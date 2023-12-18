@@ -12,7 +12,7 @@ contract ERC721MetadataSimple is Permissions {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint8 public constant METADATA_ROLE = 1;
+    uint8 public constant METADATA_ROLE = 2;
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
