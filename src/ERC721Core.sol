@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { ERC721 } from  "./ERC721.sol";
-import { BitMaps } from "./BitMaps.sol";
+import { BitMaps } from "./lib/BitMaps.sol";
 import { Initializable } from "./Initializable.sol";
 
 interface ITokenURI {
