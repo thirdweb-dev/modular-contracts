@@ -1,14 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
-/// @author Solmate
-
-/**
- *  CHANGELOG:
- *      - Remove un-implemented `tokenURI` function.
- */
-
-contract ERC721 {
+/// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
+/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
+abstract contract ERC721 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -26,6 +21,8 @@ contract ERC721 {
     string public name;
 
     string public symbol;
+
+    function tokenURI(uint256 id) public view virtual returns (string memory);
 
     /*//////////////////////////////////////////////////////////////
                       ERC721 BALANCE/OWNER STORAGE
