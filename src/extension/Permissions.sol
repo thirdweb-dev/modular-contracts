@@ -29,13 +29,13 @@ contract Permissions {
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    mapping(address => BitMaps.BitMap) private _hasRole;
+    mapping(address => BitMaps.BitMap) internal _hasRole;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function hasRole(address _account, uint8 _role) external view returns (bool) {
+    function hasRole(address _account, uint8 _role) public view returns (bool) {
         return _hasRole[_account].get(_role);
     }
 

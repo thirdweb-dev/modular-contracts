@@ -32,7 +32,6 @@ contract ERC721Core is Initializable, ERC721, Permissions {
 
     address public tokenMetadataSource;
     uint256 public nextTokenIdToMint;
-    mapping(address => BitMaps.BitMap) private _hasRole;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -64,14 +63,14 @@ contract ERC721Core is Initializable, ERC721, Permissions {
     //////////////////////////////////////////////////////////////*/
 
     function mint(address _to) external {
-        if(!_hasRole[msg.sender].get(MINTER_ROLE)) {
+        if(!hasRole(msg.sender, MINTER_ROLE)) {
             revert Unauthorized(msg.sender, MINTER_ROLE);
         }
         _mint(_to, ++nextTokenIdToMint);
     }
 
     function setTokenMetadataSource(address _tokenMetadataSource) external {
-        if(!_hasRole[msg.sender].get(ADMIN_ROLE)) {
+        if(!hasRole(msg.sender, ADMIN_ROLE)) {
             revert Unauthorized(msg.sender, ADMIN_ROLE);
         }
         tokenMetadataSource = _tokenMetadataSource;

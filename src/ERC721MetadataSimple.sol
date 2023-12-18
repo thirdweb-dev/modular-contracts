@@ -21,7 +21,6 @@ contract ERC721MetadataSimple is Permissions {
     address public tokenAddress;
 
     mapping(uint256 => string) private _tokenURI;
-    mapping(address => BitMaps.BitMap) private _hasRole;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -36,7 +35,7 @@ contract ERC721MetadataSimple is Permissions {
     //////////////////////////////////////////////////////////////*/
 
     function setTokenURI(uint256 _tokenId, string memory _uri) public {
-        if(!_hasRole[msg.sender].get(METADATA_ROLE)) {
+        if(!hasRole(msg.sender, METADATA_ROLE)) {
             revert Unauthorized(msg.sender, METADATA_ROLE);
         }
         _tokenURI[_tokenId] = _uri;
