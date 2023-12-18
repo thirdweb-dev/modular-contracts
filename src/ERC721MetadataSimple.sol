@@ -4,15 +4,21 @@ pragma solidity ^0.8.0;
 import { BitMaps } from "./lib/BitMaps.sol";
 import { Permissions } from "./extension/Permissions.sol";
 
-contract ERC721MetadataSimple is Permissions {
+contract ERC721MetadataSimple {
 
     using BitMaps for BitMaps.BitMap;
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
+                               Events
     //////////////////////////////////////////////////////////////*/
 
-    uint8 public constant METADATA_ROLE = 2;
+    event TokenMetadataSet(address indexed token, uint256 indexed tokenId, string uri);
+
+    /*//////////////////////////////////////////////////////////////
+                               ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error Unauthorized(address caller, address token);
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -34,10 +40,13 @@ contract ERC721MetadataSimple is Permissions {
                         PERMISSIONED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function setTokenURI(uint256 _tokenId, string memory _uri) public {
-        if(!hasRole(msg.sender, METADATA_ROLE)) {
-            revert Unauthorized(msg.sender, METADATA_ROLE);
+    function setTokenURI(address _token, uint256 _tokenId, string memory _uri) public {
+        // Check for admin role
+        if(!Permissions(_token).hasRole(msg.sender, 0)) {
+            revert Unauthorized(msg.sender, _token);
         }
         _tokenURI[_tokenId] = _uri;
+
+        emit TokenMetadataSet(_token, _tokenId, _uri);
     }
 }
