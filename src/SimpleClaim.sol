@@ -7,6 +7,7 @@ pragma solidity ^0.8.0;
 /// used by anyone for their copy of `ERC721Core`.
 
 import { ERC721Core } from "./ERC721Core.sol"; 
+import { Permissions } from "./extension/Permissions.sol";
 
 contract SimpleClaim {
 
@@ -71,7 +72,7 @@ contract SimpleClaim {
 
     function setClaimCondition(address _token, uint256 _price, uint256 _availableSupply, address _saleRecipient) public {
         // Checks `ADMIN_ROLE=0`
-        if(!ERC721Core(_token).hasRole(msg.sender, 0)) {
+        if(!Permissions(_token).hasRole(msg.sender, 0)) {
             revert Unauthorized(msg.sender, _token);
         }
         claimCondition[_token] = ClaimCondition(_price, _availableSupply, _saleRecipient);

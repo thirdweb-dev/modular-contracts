@@ -4,34 +4,26 @@ pragma solidity ^0.8.0;
 import { ERC721 } from  "./ERC721.sol";
 import { BitMaps } from "./lib/BitMaps.sol";
 import { Initializable } from "./extension/Initializable.sol";
+import { Permissions } from "./extension/Permissions.sol";
 
 interface ITokenURI {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
 
-contract ERC721Core is Initializable, ERC721 {
+contract ERC721Core is Initializable, ERC721, Permissions {
 
     using BitMaps for BitMaps.BitMap;
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
-    
-    event RoleGranted(address indexed account, uint8 indexed role);
-    event RoleRevoked(address indexed account, uint8 indexed role);
+
     event TokenMetadataSource(address indexed tokenMetadataSource);
-
-    /*//////////////////////////////////////////////////////////////
-                               ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error Unauthorized(address caller, uint8 role);
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint8 public constant ADMIN_ROLE = 0;
     uint8 public constant MINTER_ROLE = 1;
 
     /*//////////////////////////////////////////////////////////////
@@ -67,10 +59,6 @@ contract ERC721Core is Initializable, ERC721 {
         return ITokenURI(tokenMetadataSource).tokenURI(_tokenId);
     }
 
-    function hasRole(address _account, uint8 _role) external view returns (bool) {
-        return _hasRole[_account].get(_role);
-    }
-
     /*//////////////////////////////////////////////////////////////
                         PERMISSIONED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -80,24 +68,6 @@ contract ERC721Core is Initializable, ERC721 {
             revert Unauthorized(msg.sender, MINTER_ROLE);
         }
         _mint(_to, ++nextTokenIdToMint);
-    }
-
-    function grantRole(address _account, uint8 _role) external {
-        if(!_hasRole[msg.sender].get(ADMIN_ROLE)) {
-            revert Unauthorized(msg.sender, ADMIN_ROLE);
-        }
-        _hasRole[_account].set(_role);
-
-        emit RoleGranted(_account, _role);
-    }
-
-    function revokeRole(address _account, uint8 _role) external {
-        if(!_hasRole[msg.sender].get(ADMIN_ROLE)) {
-            revert Unauthorized(msg.sender, ADMIN_ROLE);
-        }
-        _hasRole[_account].unset(_role);
-
-        emit RoleRevoked(_account, _role);
     }
 
     function setTokenMetadataSource(address _tokenMetadataSource) external {
