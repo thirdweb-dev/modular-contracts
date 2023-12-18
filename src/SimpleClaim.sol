@@ -2,35 +2,80 @@
 pragma solidity ^0.8.0;
 
 /// This is an example claim mechanism contract that calls that calls into the ERC721Core contract's mint API.
+///
+/// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
+/// used by anyone for their copy of `ERC721Core`.
 
 import { ERC721Core } from "./ERC721Core.sol"; 
 
 contract SimpleClaim {
 
-    address public erc721;
+    /*//////////////////////////////////////////////////////////////
+                               STRUCTS
+    //////////////////////////////////////////////////////////////*/
 
-    uint256 public price;
-    uint256 public availableSupply;
-
-    mapping(address => bool) public hasClaimed;
-
-    constructor(address _erc721, uint256 _price, uint256 _availableSupply) {
-        erc721 = _erc721;
-        price = _price;
-        availableSupply = _availableSupply;
+    struct ClaimCondition {
+        uint256 price;
+        uint256 availableSupply;
+        address saleRecipient;
     }
 
-    function claim() public payable {
+    /*//////////////////////////////////////////////////////////////
+                               EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    event ClaimConditionSet(address indexed token, uint256 price, uint256 availableSupply, address saleRecipient);
+
+    /*//////////////////////////////////////////////////////////////
+                               ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error Unauthorized(address caller, address token);
+    error NotEnouthSupply(address token);
+    error IncorrectValueSent(uint256 msgValue, uint256 price);
+    error NativeTransferFailed(address recipient, uint256 amount);
+
+    /*//////////////////////////////////////////////////////////////
+                               STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    mapping(address => ClaimCondition) public claimCondition;
+
+    constructor() {}
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function claim(address _token) public payable {
         address to = msg.sender;
 
-        require(msg.value == price, "Insufficient funds");
-        require(availableSupply > 0, "No more available supply");
-        require(!hasClaimed[to], "Already claimed");
+        ClaimCondition memory condition = claimCondition[_token];
 
-        hasClaimed[to] = true;
-        availableSupply -= 1;
+        if(msg.value != condition.price) {
+            revert IncorrectValueSent(msg.value, condition.price);
+        }
+        if(condition.availableSupply == 0) {
+            revert NotEnouthSupply(_token);
+        }
 
-        ERC721Core erc721Core = ERC721Core(erc721);
-        erc721Core.mint(to);
+        condition.availableSupply -= 1;
+
+        (bool success,) = condition.saleRecipient.call{value: msg.value}("");
+        if(!success) {
+            revert NativeTransferFailed(condition.saleRecipient, msg.value);
+        }
+
+        ERC721Core(_token).mint(to);
+    }
+
+    function setClaimCondition(address _token, uint256 _price, uint256 _availableSupply, address _saleRecipient) public {
+        // Checks `ADMIN_ROLE=0`
+        if(!ERC721Core(_token).hasRole(msg.sender, 0)) {
+            revert Unauthorized(msg.sender, _token);
+        }
+        claimCondition[_token] = ClaimCondition(_price, _availableSupply, _saleRecipient);
+
+        emit ClaimConditionSet(_token, _price, _availableSupply, _saleRecipient);
     }
 }
