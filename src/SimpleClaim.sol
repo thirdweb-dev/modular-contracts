@@ -49,7 +49,6 @@ contract SimpleClaim {
     //////////////////////////////////////////////////////////////*/
 
     function claim(address _token) public payable {
-        address to = msg.sender;
 
         ClaimCondition memory condition = claimCondition[_token];
 
@@ -67,7 +66,7 @@ contract SimpleClaim {
             revert NativeTransferFailed(condition.saleRecipient, msg.value);
         }
 
-        ERC721Core(_token).mint(to);
+        ERC721Core(_token).mint(msg.sender);
     }
 
     function setClaimCondition(address _token, uint256 _price, uint256 _availableSupply, address _saleRecipient) public {
