@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import { ERC721 } from  "./ERC721.sol";
 import { BitMaps } from "./BitMaps.sol";
+import { Initializable } from "./Initializable.sol";
 
 interface ITokenURI {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
 
-contract ERC721Core is ERC721 {
+contract ERC721Core is Initializable, ERC721 {
 
     using BitMaps for BitMaps.BitMap;
 
@@ -42,12 +43,21 @@ contract ERC721Core is ERC721 {
     mapping(address => BitMaps.BitMap) private _hasRole;
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTRUCTOR
+                    CONSTRUCTOR + INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
-    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
-        _hasRole[msg.sender].set(ADMIN_ROLE);
-        _hasRole[msg.sender].set(MINTER_ROLE);
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address _defaultAdmin, address _tokenMetadataSource, string memory _name, string memory _symbol) external initializer {
+
+        __ERC721_init(_name, _symbol);
+
+        _hasRole[_defaultAdmin].set(ADMIN_ROLE);
+        _hasRole[_defaultAdmin].set(MINTER_ROLE);
+
+        tokenMetadataSource = _tokenMetadataSource;
     }
 
     /*//////////////////////////////////////////////////////////////

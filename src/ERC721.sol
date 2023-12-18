@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
+import { Initializable } from  "./Initializable.sol";
+
+/**
+ *  CHANGELOG:
+ *      - Make contract initializable.
+ */
+
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
-abstract contract ERC721 {
+abstract contract ERC721 is Initializable {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -54,7 +61,9 @@ abstract contract ERC721 {
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(string memory _name, string memory _symbol) {
+    constructor() {}
+
+    function __ERC721_init(string memory _name, string memory _symbol) internal onlyInitializing {
         name = _name;
         symbol = _symbol;
     }
