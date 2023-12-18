@@ -55,7 +55,6 @@ contract ERC721Core is Initializable, ERC721 {
         __ERC721_init(_name, _symbol);
 
         _hasRole[_defaultAdmin].set(ADMIN_ROLE);
-        _hasRole[_defaultAdmin].set(MINTER_ROLE);
 
         tokenMetadataSource = _tokenMetadataSource;
     }
