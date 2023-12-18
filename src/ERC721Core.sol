@@ -54,8 +54,12 @@ contract ERC721Core is ERC721 {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function tokenURI(uint256 _tokenId) public view virtual returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
         return ITokenURI(tokenMetadataSource).tokenURI(_tokenId);
+    }
+
+    function hasRole(address _account, uint8 _role) external view returns (bool) {
+        return _hasRole[_account].get(_role);
     }
 
     /*//////////////////////////////////////////////////////////////
