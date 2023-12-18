@@ -66,7 +66,7 @@ contract ERC721Core is Initializable, ERC721, Permissions {
         if(!hasRole(msg.sender, MINTER_ROLE)) {
             revert Unauthorized(msg.sender, MINTER_ROLE);
         }
-        _mint(_to, ++nextTokenIdToMint);
+        _mint(_to, nextTokenIdToMint++);
     }
 
     function setTokenMetadataSource(address _tokenMetadataSource) external {
