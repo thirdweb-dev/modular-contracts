@@ -8,6 +8,7 @@ pragma solidity ^0.8.0;
 
 import { ERC721Core } from "./ERC721Core.sol"; 
 import { Permissions } from "./extension/Permissions.sol";
+import { MerkleProof } from "./lib/MerkleProof.sol";
 
 contract SimpleClaim {
 
@@ -18,6 +19,7 @@ contract SimpleClaim {
     struct ClaimCondition {
         uint256 price;
         uint256 availableSupply;
+        bytes32 allowlistMerkleRoot;
         address saleRecipient;
     }
 
@@ -25,7 +27,7 @@ contract SimpleClaim {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event ClaimConditionSet(address indexed token, uint256 price, uint256 availableSupply, address saleRecipient);
+    event ClaimConditionSet(address indexed token, ClaimCondition claimCondition);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -34,6 +36,7 @@ contract SimpleClaim {
     error Unauthorized(address caller, address token);
     error NotEnouthSupply(address token);
     error IncorrectValueSent(uint256 msgValue, uint256 price);
+    error NotInAllowlist(address token, address claimer);
     error NativeTransferFailed(address recipient, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
@@ -48,15 +51,29 @@ contract SimpleClaim {
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function claim(address _token) public payable {
+    function claim(address _token, bytes32[] calldata _allowlistProof) public payable {
 
         ClaimCondition memory condition = claimCondition[_token];
+        address claimer = msg.sender;
 
         if(msg.value != condition.price) {
             revert IncorrectValueSent(msg.value, condition.price);
         }
         if(condition.availableSupply == 0) {
             revert NotEnouthSupply(_token);
+        }
+
+        (bool isAllowlisted, ) = MerkleProof.verify(
+            _allowlistProof,
+            condition.allowlistMerkleRoot,
+            keccak256(
+                abi.encodePacked(
+                    claimer
+                )
+            )
+        );
+        if(!isAllowlisted) {
+            revert NotInAllowlist(_token, claimer);
         }
 
         condition.availableSupply -= 1;
@@ -66,16 +83,16 @@ contract SimpleClaim {
             revert NativeTransferFailed(condition.saleRecipient, msg.value);
         }
 
-        ERC721Core(_token).mint(msg.sender);
+        ERC721Core(_token).mint(claimer);
     }
 
-    function setClaimCondition(address _token, uint256 _price, uint256 _availableSupply, address _saleRecipient) public {
+    function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {
         // Checks `ADMIN_ROLE=0`
         if(!Permissions(_token).hasRole(msg.sender, 0)) {
             revert Unauthorized(msg.sender, _token);
         }
-        claimCondition[_token] = ClaimCondition(_price, _availableSupply, _saleRecipient);
+        claimCondition[_token] = _claimCondition;
 
-        emit ClaimConditionSet(_token, _price, _availableSupply, _saleRecipient);
+        emit ClaimConditionSet(_token, _claimCondition);
     }
 }
