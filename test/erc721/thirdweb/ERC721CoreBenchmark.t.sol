@@ -16,8 +16,6 @@ contract ERC721CoreBenchmarkTest is ERC721BenchmarkBase {
     ERC721MetadataSimple internal erc721MetadataSource;
     SimpleClaim public simpleClaim;
 
-    event MerkleRoot(bytes32 merkleRoot);
-
     function setUp() public override {
         
         // Deploy infra/shared-state contracts pre-setup
@@ -37,8 +35,6 @@ contract ERC721CoreBenchmarkTest is ERC721BenchmarkBase {
         
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
-
-        emit MerkleRoot(root);
 
         SimpleClaim.ClaimCondition memory condition = SimpleClaim.ClaimCondition({
             price: pricePerToken,
@@ -99,7 +95,7 @@ contract ERC721CoreBenchmarkTest is ERC721BenchmarkBase {
     }
 
     /// @dev Claims a token from the target erc721 contract.
-    function _claimOneToken(address _claimer, uint256 _price) internal override {
+    function _claimOneToken(address _claimer, uint256 _price) internal override returns (uint256) {
 
         vm.pauseGasMetering();
         SimpleClaim claimContract = simpleClaim;
@@ -115,5 +111,7 @@ contract ERC721CoreBenchmarkTest is ERC721BenchmarkBase {
 
         vm.prank(_claimer);
         claimContract.claim{value: _price}(erc721Contract, proofs);
+
+        return 0;
     }
 }

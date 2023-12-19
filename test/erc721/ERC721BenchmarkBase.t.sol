@@ -41,7 +41,7 @@ abstract contract ERC721BenchmarkBase is Test {
     function _setupTokenMetadata() internal virtual;
 
     /// @dev Claims a token from the target erc721 contract.
-    function _claimOneToken(address _claimer, uint256 _price) internal virtual;
+    function _claimOneToken(address _claimer, uint256 _price) internal virtual returns (uint256 tokenId);
 
     /*//////////////////////////////////////////////////////////////
                                 TESTS
@@ -61,12 +61,12 @@ abstract contract ERC721BenchmarkBase is Test {
 
         IERC721 erc721 = IERC721(erc721Contract);
 
-        _claimOneToken(claimer, pricePerToken);
+        uint256 tokenId = _claimOneToken(claimer, pricePerToken);
 
         vm.startPrank(claimer);
 
         vm.resumeGasMetering(); 
-        erc721.transferFrom(claimer, transferRecipient, 0);
+        erc721.transferFrom(claimer, transferRecipient, tokenId);
 
         vm.stopPrank();
     }
