@@ -38,7 +38,7 @@ contract ERC721Test is Test {
 
     // Actors
     address public admin = address(0x123);
-    address public claimer = address(0x456);
+    address public claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
 
     // Test util
     CloneFactory public cloneFactory;
@@ -78,7 +78,22 @@ contract ERC721Test is Test {
         erc721MetadataSimple.setTokenURI(address(erc721), 4, "https://example.com/4.json");
 
         // Admin sets up claim conditions on `SimpleClaim` contract.
-        simpleClaim.setClaimCondition(address(erc721), 0.1 ether, 5, admin);
+        
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/generateRoot.ts";
+        
+        bytes memory result = vm.ffi(inputs);
+        bytes32 root = abi.decode(result, (bytes32));
+
+        SimpleClaim.ClaimCondition memory condition = SimpleClaim.ClaimCondition({
+            price: 0.1 ether,
+            availableSupply: 5,
+            allowlistMerkleRoot: root,
+            saleRecipient: admin
+        });
+
+        simpleClaim.setClaimCondition(address(erc721), condition);
 
         // Admin grants minter role to `SimpleClaim` contract.
         erc721.grantRole(address(simpleClaim), 1);
@@ -97,9 +112,16 @@ contract ERC721Test is Test {
         vm.expectRevert("NOT_MINTED");
         erc721.ownerOf(0);
 
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/getProof.ts";
+        
+        bytes memory result = vm.ffi(inputs);
+        bytes32[] memory proofs = abi.decode(result, (bytes32[]));
+
         // Claim token
         vm.prank(claimer);
-        simpleClaim.claim{value: 0.1 ether}(address(erc721));
+        simpleClaim.claim{value: 0.1 ether}(address(erc721), proofs);
 
         assertEq(claimer.balance, 0.4 ether);
         assertEq(admin.balance, 0.1 ether);

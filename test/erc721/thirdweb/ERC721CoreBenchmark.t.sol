@@ -16,6 +16,8 @@ contract ERC721CoreBenchmarkTest is ERC721BenchmarkBase {
     ERC721MetadataSimple internal erc721MetadataSource;
     SimpleClaim public simpleClaim;
 
+    event MerkleRoot(bytes32 merkleRoot);
+
     function setUp() public override {
         
         // Deploy infra/shared-state contracts pre-setup
@@ -29,8 +31,24 @@ contract ERC721CoreBenchmarkTest is ERC721BenchmarkBase {
         Permissions(erc721Contract).grantRole(address(simpleClaim), 1);
 
         // Setup claim condition
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/generateRoot.ts";
+        
+        bytes memory result = vm.ffi(inputs);
+        bytes32 root = abi.decode(result, (bytes32));
+
+        emit MerkleRoot(root);
+
+        SimpleClaim.ClaimCondition memory condition = SimpleClaim.ClaimCondition({
+            price: pricePerToken,
+            availableSupply: 5,
+            allowlistMerkleRoot: root,
+            saleRecipient: admin
+        });
+        
         vm.prank(admin);
-        simpleClaim.setClaimCondition(erc721Contract, pricePerToken, 5, admin);
+        simpleClaim.setClaimCondition(erc721Contract, condition);
     }
 
     /// @dev Optional: deploy the target erc721 contract's implementation.
@@ -86,9 +104,16 @@ contract ERC721CoreBenchmarkTest is ERC721BenchmarkBase {
         vm.pauseGasMetering();
         SimpleClaim claimContract = simpleClaim;
 
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/getProof.ts";
+        
+        bytes memory result = vm.ffi(inputs);
+        bytes32[] memory proofs = abi.decode(result, (bytes32[]));
+
         vm.resumeGasMetering();
 
         vm.prank(_claimer);
-        claimContract.claim{value: _price}(erc721Contract);
+        claimContract.claim{value: _price}(erc721Contract, proofs);
     }
 }

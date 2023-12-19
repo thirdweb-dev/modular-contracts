@@ -1,0 +1,17 @@
+{
+  "name": "contracts-next",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/thirdweb-dev/contracts-next.git",
+  "author": "Krishang <krishang@thirdweb.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@thirdweb-dev/merkletree": "^0.2.0",
+    "ethers": "^5.0.0",
+    "keccak256": "^1.0.6",
+    "typescript": "^5.3.3"
+  },
+  "resolutions": {
+    "typescript": "^5.3.2"
+  }
+}

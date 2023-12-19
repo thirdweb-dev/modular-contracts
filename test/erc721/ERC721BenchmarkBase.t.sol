@@ -18,7 +18,7 @@ abstract contract ERC721BenchmarkBase is Test {
     function setUp() public virtual {
 
         admin = address(0x123);
-        claimer = address(0x456);
+        claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
         transferRecipient = address(0x789);
 
         vm.deal(claimer, 1 ether);
