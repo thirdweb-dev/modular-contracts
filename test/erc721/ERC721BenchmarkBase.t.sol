@@ -13,19 +13,22 @@ abstract contract ERC721BenchmarkBase is Test {
     uint256 internal pricePerToken = 0.1 ether;
 
     address internal erc721ContractImplementation;
+    address internal erc721Contract;
     
-    function setUp() public {
+    function setUp() public virtual {
 
         admin = address(0x123);
         claimer = address(0x456);
         transferRecipient = address(0x789);
+
+        vm.deal(claimer, 1 ether);
 
         vm.label(admin, "Admin");
         vm.label(claimer, "Claimer");
         vm.label(transferRecipient, "TransferRecipient");
 
         erc721ContractImplementation = _deployERC721ContractImplementation();
-        _createERC721Contract(erc721ContractImplementation);
+        erc721Contract = _createERC721Contract(erc721ContractImplementation);
     }
 
     /// @dev Optional: deploy the target erc721 contract's implementation.
@@ -38,7 +41,7 @@ abstract contract ERC721BenchmarkBase is Test {
     function _setupTokenMetadata() internal virtual;
 
     /// @dev Claims a token from the target erc721 contract.
-    function _claimToken(address _claimer, uint256 _price, uint256 _quantity) internal virtual;
+    function _claimOneToken(address _claimer, uint256 _price) internal virtual;
 
     /*//////////////////////////////////////////////////////////////
                                 TESTS
@@ -49,20 +52,21 @@ abstract contract ERC721BenchmarkBase is Test {
     }
 
     function testBenchmarkClaimToken() public {
-        _claimToken(claimer, pricePerToken, 1);
+        _claimOneToken(claimer, pricePerToken);
     }
 
     function testBenchmarkTransferToken() public {
 
         vm.pauseGasMetering();
 
-        _claimToken(claimer, pricePerToken, 1);
+        IERC721 erc721 = IERC721(erc721Contract);
+
+        _claimOneToken(claimer, pricePerToken);
 
         vm.startPrank(claimer);
 
         vm.resumeGasMetering(); 
-        IERC721(claimer).transferFrom(claimer, transferRecipient, 0);
-        vm.pauseGasMetering();
+        erc721.transferFrom(claimer, transferRecipient, 0);
 
         vm.stopPrank();
     }
