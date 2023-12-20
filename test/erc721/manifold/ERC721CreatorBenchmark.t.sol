@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
 import { CloneFactory } from "src/CloneFactory.sol";
 
-// Target test contracs
+// Target test contracts
 import { ERC721CreatorUpgradeable } from "./utils/ERC721CreatorUpgradeable.sol";
 import { ERC721LazyMintWhitelist } from "./utils/ERC721LazyMintWhitelist.sol";
 
@@ -72,8 +72,6 @@ contract ERC721CreatorBenchmarkTest is ERC721BenchmarkBase {
     function _setupTokenMetadata() internal override {
 
         vm.pauseGasMetering();
-
-        ERC721CreatorUpgradeable source = ERC721CreatorUpgradeable(erc721Contract);
         ERC721LazyMintWhitelist claimC = claimContract;
 
         string[] memory inputs = new string[](2);

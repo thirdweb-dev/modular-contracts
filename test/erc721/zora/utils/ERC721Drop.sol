@@ -15,6 +15,11 @@ pragma solidity ^0.8.10;
 
  */
 
+/*
+*   CHANGELOG:
+*       - `abi.encodePacked` instead of `abi.encode` in `requireMerkleProof`
+*/
+
 import {ERC721AUpgradeable} from "erc721a-upgradeable/ERC721AUpgradeable.sol";
 import {IERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC721Upgradeable.sol";
 import {IERC721AUpgradeable} from "erc721a-upgradeable/IERC721AUpgradeable.sol";
@@ -1256,7 +1261,7 @@ contract ERC721Drop is
                 salesConfig.presaleMerkleRoot,
                 keccak256(
                     // address, uint256, uint256
-                    abi.encode(recipient, maxQuantity, pricePerToken)
+                    abi.encodePacked(recipient, maxQuantity, pricePerToken)
                 )
             )
         ) {
