@@ -54,18 +54,18 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
         // NOTE: Below, we use the inline hex for `abi.encodeWithSelector(...)` for more accurate gas measurement -- this is because
         //       forge will account for the gas cost of all computation such as `abi.encodeWithSelector(...)`.
         //
-        return 
-                factory.deployProxyByImplementation(
-                    _implementation, 
-                    abi.encodeWithSelector(ERC721CreatorUpgradeable.initialize.selector, admin, "Test", "TST"),
-                    bytes32(block.number)
-                );
+        // return 
+        //         factory.deployProxyByImplementation(
+        //             _implementation, 
+        //             abi.encodeWithSelector(ERC721CreatorUpgradeable.initialize.selector, admin, "Test", "TST"),
+        //             bytes32(block.number)
+        //         );
         
-        // return factory.deployProxyByImplementation(
-        //     _implementation, 
-        //     hex"2016a0d20000000000000000000000000000000000000000000000000000000000000123000000000000000000000000f62849f9a0b5bf2913b396098f7c7019b51a820a000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000", 
-        //     bytes32(block.number)
-        // );
+        return factory.deployProxyByImplementation(
+            _implementation, 
+            hex"906571470000000000000000000000000000000000000000000000000000000000000123000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000", 
+            bytes32(block.number)
+        );
     }
 
     /// @dev Setup token metadata

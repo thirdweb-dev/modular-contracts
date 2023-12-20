@@ -52,32 +52,24 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
         EditionMetadataRenderer edition = new EditionMetadataRenderer();
         DropMetadataRenderer drop = new DropMetadataRenderer();
         ZoraNFTCreatorV1 zora = new ZoraNFTCreatorV1(_implementation, edition, drop);
+
+        IMetadataRenderer metadataRenderer = IMetadataRenderer(address(drop));
+        bytes memory metadataInit = abi.encode("https://initialilMetadata/", "https://initialilURI/");
         
         vm.resumeGasMetering();
 
-        // NOTE: Below, we use the inline hex for `abi.encodeWithSelector(...)` for more accurate gas measurement -- this is because
-        //       forge will account for the gas cost of all computation such as `abi.encodeWithSelector(...)`.
-        //
-        return 
-                zora.createAndConfigureDrop("Test", "TST", admin, 100, 0, payable(admin), new bytes[](0), IMetadataRenderer(drop), abi.encode("https://initialilMetadata/", "https://initialilURI/"), address(0));
-        
-        // return factory.deployProxyByImplementation(
-        //     _implementation, 
-        //     hex"2016a0d20000000000000000000000000000000000000000000000000000000000000123000000000000000000000000f62849f9a0b5bf2913b396098f7c7019b51a820a000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000", 
-        //     bytes32(block.number)
-        // );
+        return zora.createAndConfigureDrop("Test", "TST", address(0x123), 100, 0, payable(address(0x123)), new bytes[](0), metadataRenderer, metadataInit, address(0));
     }
 
     /// @dev Setup token metadata
     function _setupTokenMetadata() internal override {
         vm.pauseGasMetering();
-        
         address erc721 = erc721Contract;
         (IMetadataRenderer metadata,,,) = ERC721Drop(payable(erc721)).config();
         DropMetadataRenderer renderer = DropMetadataRenderer(address(metadata));
 
         vm.resumeGasMetering();
-        vm.prank(admin);
+        vm.prank(address(0x123));
         renderer.updateMetadataBase(erc721, "https://example/", "https://example/");
     }
 

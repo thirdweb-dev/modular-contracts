@@ -2,6 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+ffi = true
 remappings = [
   '@openzeppelin/contracts=node_modules/@openzeppelin/contracts',
   '@manifoldxyz/libraries-solidity/=node_modules/@manifoldxyz/libraries-solidity/',

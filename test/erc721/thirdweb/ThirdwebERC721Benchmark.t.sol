@@ -87,18 +87,20 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         vm.pauseGasMetering();
         ERC721MetadataSimple source = erc721MetadataSource;
-
+        address erc721 = erc721Contract;
+        vm.prank(address(0x123));
         vm.resumeGasMetering();
-
-        vm.prank(admin);
-        source.setTokenURI(address(erc721Contract), 0, "https://example.com/0.json");
+        
+        source.setTokenURI(erc721, 0, "https://example.com/0.json");
     }
 
     /// @dev Claims a token from the target erc721 contract.
     function _claimOneToken(address _claimer, uint256 _price) internal override returns (uint256) {
 
         vm.pauseGasMetering();
+        
         SimpleClaim claimContract = simpleClaim;
+        address erc721 = erc721Contract;
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -110,8 +112,8 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         vm.resumeGasMetering();
 
         vm.prank(_claimer);
-        claimContract.claim{value: _price}(erc721Contract, proofs);
-
+        claimContract.claim{value: _price}(erc721, proofs);
+        
         return 0;
     }
 }
