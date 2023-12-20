@@ -18,6 +18,8 @@
     "@manifoldxyz/creator-core-solidity": "^3.0.0",
     "@manifoldxyz/libraries-solidity": "^1.0.4",
     "@openzeppelin/contracts": "4.8.1",
-    "@openzeppelin/contracts-upgradeable": "4.8.1"
+    "@openzeppelin/contracts-upgradeable": "4.8.1",
+    "@zoralabs/protocol-rewards": "1.0.2",
+    "erc721a-upgradeable": "^3.2.0"
   }
 }
