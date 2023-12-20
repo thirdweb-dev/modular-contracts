@@ -12,7 +12,7 @@ import { ERC721Drop } from "./utils/ERC721Drop.sol";
 import { FactoryUpgradeGate, IFactoryUpgradeGate } from "./utils/FactoryUpgradeGate.sol";
 import { ZoraNFTCreatorV1 } from "./utils/ZoraNFTCreatorV1.sol";
 
-contract ERC721DropBenchmarkTest is ERC721BenchmarkBase {
+contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
 
     function setUp() public override {
         super.setUp();

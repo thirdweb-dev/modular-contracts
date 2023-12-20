@@ -11,7 +11,7 @@ import { SimpleClaim } from "src/SimpleClaim.sol";
 import { ERC721MetadataSimple } from "src/ERC721MetadataSimple.sol";
 import { Permissions } from "src/extension/Permissions.sol";
 
-contract ERC721CoreBenchmarkTest is ERC721BenchmarkBase {
+contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
     ERC721MetadataSimple internal erc721MetadataSource;
     SimpleClaim public simpleClaim;

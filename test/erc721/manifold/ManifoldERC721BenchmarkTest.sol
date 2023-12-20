@@ -9,7 +9,7 @@ import { CloneFactory } from "src/CloneFactory.sol";
 import { ERC721CreatorUpgradeable } from "./utils/ERC721CreatorUpgradeable.sol";
 import { ERC721LazyMintWhitelist } from "./utils/ERC721LazyMintWhitelist.sol";
 
-contract ERC721CreatorBenchmarkTest is ERC721BenchmarkBase {
+contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
 
     ERC721LazyMintWhitelist internal claimContract;
 
