@@ -18,11 +18,9 @@ contract ERC721CreatorUpgradeable is AdminControlUpgradeable, ERC721Upgradeable,
     /**
      * Initializer
      */
-    function initialize(address _admin, string memory _name, string memory _symbol) public initializer {
+    function initialize(string memory _name, string memory _symbol) public initializer {
         __ERC721_init(_name, _symbol);
         __Ownable_init();
-
-        _transferOwnership(_admin);
     }
 
     /**

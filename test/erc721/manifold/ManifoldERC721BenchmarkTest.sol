@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 // Test util
 import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
-import { CloneFactory } from "src/CloneFactory.sol";
 
 // Target test contracts
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC721CreatorUpgradeable } from "./utils/ERC721CreatorUpgradeable.sol";
 import { ERC721LazyMintWhitelist } from "./utils/ERC721LazyMintWhitelist.sol";
 
@@ -43,28 +43,23 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
 
     /// @dev Creates an instance of the target erc721 contract to benchmark.
     function _createERC721Contract(address _implementation) internal override returns (address) {
-        vm.roll(block.number + 100);
-
-        vm.pauseGasMetering();
-
-        CloneFactory factory = new CloneFactory();
-        
-        vm.resumeGasMetering();
+        vm.prank(address(0x123)); // admin
 
         // NOTE: Below, we use the inline hex for `abi.encodeWithSelector(...)` for more accurate gas measurement -- this is because
         //       forge will account for the gas cost of all computation such as `abi.encodeWithSelector(...)`.
         //
-        // return 
-        //         factory.deployProxyByImplementation(
-        //             _implementation, 
-        //             abi.encodeWithSelector(ERC721CreatorUpgradeable.initialize.selector, admin, "Test", "TST"),
-        //             bytes32(block.number)
-        //         );
-        
-        return factory.deployProxyByImplementation(
-            _implementation, 
-            hex"906571470000000000000000000000000000000000000000000000000000000000000123000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000", 
-            bytes32(block.number)
+        // return address(
+        //     new ERC1967Proxy(
+        //         _implementation,
+        //         abi.encodeWithSelector(ERC721CreatorUpgradeable.initialize.selector, "Test", "TST")
+        //     )
+        // );
+
+        return address(
+            new ERC1967Proxy(
+                _implementation,
+                hex"4cd88b76000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000"
+            )
         );
     }
 
