@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "./lib/Clones.sol";
-import "./lib/Address.sol";
+import "../lib/Clones.sol";
+import "../lib/Address.sol";
 
 contract CloneFactory {
 

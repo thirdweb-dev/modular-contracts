@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import { BitMaps } from "./lib/BitMaps.sol";
-import { Permissions } from "./extension/Permissions.sol";
+import { BitMaps } from "../lib/BitMaps.sol";
+import { Permissions } from "../extension/Permissions.sol";
 
 contract ERC721MetadataSimple {
 

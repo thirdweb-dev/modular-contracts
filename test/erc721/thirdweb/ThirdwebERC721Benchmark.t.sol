@@ -3,28 +3,28 @@ pragma solidity ^0.8.0;
 
 // Test util
 import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
-import { CloneFactory } from "src/CloneFactory.sol";
+import { CloneFactory } from "src/infra/CloneFactory.sol";
 
 // Target test contracts
-import { ERC721Core } from "src/ERC721Core.sol";
-import { SimpleClaim } from "src/SimpleClaim.sol";
-import { ERC721MetadataSimple } from "src/ERC721MetadataSimple.sol";
+import { ERC721Core } from "src/erc721/ERC721Core.sol";
+import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
+import { ERC721MetadataSimple } from "src/erc721/ERC721MetadataSimple.sol";
 import { Permissions } from "src/extension/Permissions.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
     ERC721MetadataSimple internal erc721MetadataSource;
-    SimpleClaim public simpleClaim;
+    ERC721SimpleClaim public simpleClaim;
 
     function setUp() public override {
         
         // Deploy infra/shared-state contracts pre-setup
-        simpleClaim = new SimpleClaim();
+        simpleClaim = new ERC721SimpleClaim();
         erc721MetadataSource = new ERC721MetadataSimple();
 
         super.setUp();
 
-        // Grant minter role to `SimpleClaim` contract.
+        // Grant minter role to `ERC721SimpleClaim` contract.
         vm.prank(admin);
         Permissions(erc721Contract).grantRole(address(simpleClaim), 1);
 
@@ -36,7 +36,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        SimpleClaim.ClaimCondition memory condition = SimpleClaim.ClaimCondition({
+        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
             price: pricePerToken,
             availableSupply: 5,
             allowlistMerkleRoot: root,
@@ -99,7 +99,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         vm.pauseGasMetering();
         
-        SimpleClaim claimContract = simpleClaim;
+        ERC721SimpleClaim claimContract = simpleClaim;
         address erc721 = erc721Contract;
 
         string[] memory inputs = new string[](2);

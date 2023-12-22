@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import { ERC721 } from  "./ERC721.sol";
-import { BitMaps } from "./lib/BitMaps.sol";
-import { Initializable } from "./extension/Initializable.sol";
-import { Permissions } from "./extension/Permissions.sol";
+import { BitMaps } from "../lib/BitMaps.sol";
+import { Initializable } from "../extension/Initializable.sol";
+import { Permissions } from "../extension/Permissions.sol";
 
 interface ITokenURI {
     function tokenURI(uint256 _tokenId) external view returns (string memory);

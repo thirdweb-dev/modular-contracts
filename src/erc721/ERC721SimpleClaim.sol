@@ -7,10 +7,10 @@ pragma solidity ^0.8.0;
 /// used by anyone for their copy of `ERC721Core`.
 
 import { ERC721Core } from "./ERC721Core.sol"; 
-import { Permissions } from "./extension/Permissions.sol";
-import { MerkleProof } from "./lib/MerkleProof.sol";
+import { Permissions } from "../extension/Permissions.sol";
+import { MerkleProof } from "../lib/MerkleProof.sol";
 
-contract SimpleClaim {
+contract ERC721SimpleClaim {
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS

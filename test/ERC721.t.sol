@@ -4,12 +4,12 @@ pragma solidity ^0.8.13;
 import { Test } from "forge-std/Test.sol";
 
 // Test util
-import { CloneFactory } from "src/CloneFactory.sol";
+import { CloneFactory } from "src/infra/CloneFactory.sol";
 
 // Target test contracts
-import { ERC721Core } from "src/ERC721Core.sol";
-import { SimpleClaim } from "src/SimpleClaim.sol";
-import { ERC721MetadataSimple } from "src/ERC721MetadataSimple.sol";
+import { ERC721Core } from "src/erc721/ERC721Core.sol";
+import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
+import { ERC721MetadataSimple } from "src/erc721/ERC721MetadataSimple.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -23,14 +23,14 @@ import { ERC721MetadataSimple } from "src/ERC721MetadataSimple.sol";
  *                            `tokenMetadataSource` address. This address is set during contract initialization, and can be
  *                            overriden by an admin.
  *
- *  2. `SimpleClaim` is an example of a claim mechanism contract. It lets an admin of a given `ERC721Core` contract set claim
+ *  2. `ERC721SimpleClaim` is an example of a claim mechanism contract. It lets an admin of a given `ERC721Core` contract set claim
  *      conditions for that contract. Users can then claim tokens from that `ERC721Core` contract by calling `claim(address _token)`.
- *      To enable this flow, the `ERC721Core` contract's admin grants the `MINTER_ROLE` to the `SimpleClaim` contract.
+ *      To enable this flow, the `ERC721Core` contract's admin grants the `MINTER_ROLE` to the `ERC721SimpleClaim` contract.
  *
  *  3. `ERC721MetadataSimple` is an example of a token metadata source contract. It lets an admin of a given `ERC721Core` contract
  *      set the token metadata for that contract's tokens.
  *
- *  NOTE: Both `SimpleClaim` and `ERC721MetadataSimple` contracts that the `ERC721Core` contract interacts with can be swapped at runtime
+ *  NOTE: Both `ERC721SimpleClaim` and `ERC721MetadataSimple` contracts that the `ERC721Core` contract interacts with can be swapped at runtime
  *        for whatever reasons -- enabling new claim mechanics, storing metadata differently, bug fixes, etc.
  */
 
@@ -45,7 +45,7 @@ contract ERC721Test is Test {
 
     // Target test contracts
     ERC721Core public erc721;
-    SimpleClaim public simpleClaim;
+    ERC721SimpleClaim public simpleClaim;
     ERC721MetadataSimple public erc721MetadataSimple;
 
     function setUp() public {
@@ -53,7 +53,7 @@ contract ERC721Test is Test {
         // Setup contracts
         cloneFactory = new CloneFactory();
 
-        simpleClaim = new SimpleClaim();
+        simpleClaim = new ERC721SimpleClaim();
         erc721MetadataSimple = new ERC721MetadataSimple();
         
         address implementation = address(new ERC721Core());
@@ -63,7 +63,7 @@ contract ERC721Test is Test {
         );
 
         vm.label(address(erc721), "ERC721");
-        vm.label(address(simpleClaim), "SimpleClaim");
+        vm.label(address(simpleClaim), "ERC721SimpleClaim");
         vm.label(address(erc721MetadataSimple), "ERC721MetadataSimple");
         vm.label(admin, "Admin");
         vm.label(claimer, "Claimer");
@@ -77,7 +77,7 @@ contract ERC721Test is Test {
         erc721MetadataSimple.setTokenURI(address(erc721), 3, "https://example.com/3.json");
         erc721MetadataSimple.setTokenURI(address(erc721), 4, "https://example.com/4.json");
 
-        // Admin sets up claim conditions on `SimpleClaim` contract.
+        // Admin sets up claim conditions on `ERC721SimpleClaim` contract.
         
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -86,7 +86,7 @@ contract ERC721Test is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        SimpleClaim.ClaimCondition memory condition = SimpleClaim.ClaimCondition({
+        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
             price: 0.1 ether,
             availableSupply: 5,
             allowlistMerkleRoot: root,
@@ -95,7 +95,7 @@ contract ERC721Test is Test {
 
         simpleClaim.setClaimCondition(address(erc721), condition);
 
-        // Admin grants minter role to `SimpleClaim` contract.
+        // Admin grants minter role to `ERC721SimpleClaim` contract.
         erc721.grantRole(address(simpleClaim), 1);
 
         vm.stopPrank();
