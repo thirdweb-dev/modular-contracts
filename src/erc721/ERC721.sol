@@ -30,7 +30,20 @@ abstract contract ERC721 is Initializable {
 
     string public symbol;
 
-    function tokenURI(uint256 id) public view virtual returns (string memory);
+    mapping(uint256 => string) internal _tokenURI;
+
+    function tokenURI(uint256 id) public view virtual returns (string memory metadata) {
+
+        // Prioritize metadata stored locally in the contract. Fall back to metadata returned from minter.
+
+        metadata = _tokenURI[id];
+        
+        if(bytes(metadata).length == 0) {
+            try IERC721Metadata(_tokenData[id].minter).tokenURI(id) returns (string memory uri) {
+                return uri;
+            } catch {}
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////
                       ERC721 BALANCE/OWNER STORAGE
@@ -240,6 +253,11 @@ abstract contract ERC721 is Initializable {
             "UNSAFE_RECIPIENT"
         );
     }
+}
+
+/// @notice A generic interface for a contract that returns token URI metadata for ERC721 tokens.
+interface IERC721Metadata {
+    function tokenURI(uint256 id) external view returns (string memory);
 }
 
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
