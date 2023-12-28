@@ -27,6 +27,7 @@ contract ERC721SimpleClaim {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    event BaseURISet(address indexed token, string baseURI);
     event ClaimConditionSet(address indexed token, ClaimCondition claimCondition);
 
     /*//////////////////////////////////////////////////////////////
@@ -43,13 +44,33 @@ contract ERC721SimpleClaim {
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    mapping(address => string) public baseURI;
     mapping(address => ClaimCondition) public claimCondition;
 
     constructor() {}
 
     /*//////////////////////////////////////////////////////////////
+                        VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function tokenURI(uint256 id) external view returns (string memory) {
+        return string(abi.encodePacked(baseURI[msg.sender], id));
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function setBaseURI(address _token, string memory _baseURI) external {
+        // Checks `ADMIN_ROLE=0`
+        if(!Permissions(_token).hasRole(msg.sender, 0)) {
+            revert Unauthorized(msg.sender, _token);
+        }
+
+        baseURI[_token] = _baseURI;
+
+        emit BaseURISet(_token, _baseURI);
+    }
 
     function claim(address _token, bytes32[] calldata _allowlistProof) public payable {
 
