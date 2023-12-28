@@ -6,10 +6,6 @@ import { BitMaps } from "../lib/BitMaps.sol";
 import { Initializable } from "../extension/Initializable.sol";
 import { Permissions } from "../extension/Permissions.sol";
 
-interface ITokenURI {
-    function tokenURI(uint256 _tokenId) external view returns (string memory);
-}
-
 contract ERC721Core is Initializable, ERC721, Permissions {
 
     using BitMaps for BitMaps.BitMap;
@@ -18,19 +14,19 @@ contract ERC721Core is Initializable, ERC721, Permissions {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event TokenMetadataSource(address indexed tokenMetadataSource);
+    event TokenMinter(address indexed minter);
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
+                               ERRROR
     //////////////////////////////////////////////////////////////*/
 
-    uint8 public constant MINTER_ROLE = 1;
+    error NotMinter(address caller);
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address public tokenMetadataSource;
+    address public minter;
     uint256 public nextTokenIdToMint;
 
     /*//////////////////////////////////////////////////////////////
@@ -41,21 +37,9 @@ contract ERC721Core is Initializable, ERC721, Permissions {
         _disableInitializers();
     }
 
-    function initialize(address _defaultAdmin, address _tokenMetadataSource, string memory _name, string memory _symbol) external initializer {
-
+    function initialize(address _defaultAdmin, string memory _name, string memory _symbol) external initializer {
         __ERC721_init(_name, _symbol);
-
         _hasRole[_defaultAdmin].set(ADMIN_ROLE);
-
-        tokenMetadataSource = _tokenMetadataSource;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
-        return ITokenURI(tokenMetadataSource).tokenURI(_tokenId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -63,18 +47,18 @@ contract ERC721Core is Initializable, ERC721, Permissions {
     //////////////////////////////////////////////////////////////*/
 
     function mint(address _to) external {
-        if(!hasRole(msg.sender, MINTER_ROLE)) {
-            revert Unauthorized(msg.sender, MINTER_ROLE);
+        if(minter != msg.sender) {
+            revert NotMinter(msg.sender);
         }
         _mint(_to, nextTokenIdToMint++);
     }
 
-    function setTokenMetadataSource(address _tokenMetadataSource) external {
+    function setMinter(address _minter) external {
         if(!hasRole(msg.sender, ADMIN_ROLE)) {
             revert Unauthorized(msg.sender, ADMIN_ROLE);
         }
-        tokenMetadataSource = _tokenMetadataSource;
+        minter = _minter;
 
-        emit TokenMetadataSource(_tokenMetadataSource);
+        emit TokenMinter(_minter);
     }
 }
