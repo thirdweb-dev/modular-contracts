@@ -9,8 +9,11 @@ pragma solidity ^0.8.0;
 import { ERC721Core } from "./ERC721Core.sol"; 
 import { Permissions } from "../extension/Permissions.sol";
 import { MerkleProof } from "../lib/MerkleProof.sol";
+import { Strings } from "../lib/Strings.sol";
 
 contract ERC721SimpleClaim {
+
+    using Strings for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -54,7 +57,7 @@ contract ERC721SimpleClaim {
     //////////////////////////////////////////////////////////////*/
 
     function tokenURI(uint256 id) external view returns (string memory) {
-        return string(abi.encodePacked(baseURI[msg.sender], id));
+        return string(abi.encodePacked(baseURI[msg.sender], id.toString()));
     }
 
     /*//////////////////////////////////////////////////////////////

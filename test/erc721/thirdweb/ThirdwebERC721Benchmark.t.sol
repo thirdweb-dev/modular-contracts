@@ -8,25 +8,22 @@ import { CloneFactory } from "src/infra/CloneFactory.sol";
 // Target test contracts
 import { ERC721Core } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
-import { ERC721MetadataSimple } from "src/erc721/ERC721MetadataSimple.sol";
 import { Permissions } from "src/extension/Permissions.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
-    ERC721MetadataSimple internal erc721MetadataSource;
     ERC721SimpleClaim public simpleClaim;
 
     function setUp() public override {
         
         // Deploy infra/shared-state contracts pre-setup
         simpleClaim = new ERC721SimpleClaim();
-        erc721MetadataSource = new ERC721MetadataSimple();
 
         super.setUp();
 
-        // Grant minter role to `ERC721SimpleClaim` contract.
+        // Set `ERC721SimpleClaim` contract as minter
         vm.prank(admin);
-        Permissions(erc721Contract).grantRole(address(simpleClaim), 1);
+        ERC721Core(erc721Contract).setMinter(address(simpleClaim));
 
         // Setup claim condition
         string[] memory inputs = new string[](2);
@@ -65,9 +62,9 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         //
         // return address(
         //     ERC721Core(
-        //         cloneFactory.deployProxyByImplementation(
+        //         factory.deployProxyByImplementation(
         //             _implementation, 
-        //             abi.encodeWithSelector(ERC721Core.initialize.selector, admin, address(erc721MetadataSource), "Test", "TST"), 
+        //             abi.encodeWithSelector(ERC721Core.initialize.selector, admin, "Test", "TST"), 
         //             bytes32(block.number)
         //         )
         //     )
@@ -77,7 +74,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         
         return factory.deployProxyByImplementation(
             _implementation, 
-            hex"2016a0d20000000000000000000000000000000000000000000000000000000000000123000000000000000000000000f62849f9a0b5bf2913b396098f7c7019b51a820a000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000", 
+            hex"906571470000000000000000000000000000000000000000000000000000000000000123000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000", 
             bytes32(block.number)
         );
     }
@@ -86,12 +83,12 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
     function _setupTokenMetadata() internal override {
 
         vm.pauseGasMetering();
-        ERC721MetadataSimple source = erc721MetadataSource;
+        ERC721SimpleClaim metadataSource = simpleClaim;
         address erc721 = erc721Contract;
         vm.prank(address(0x123));
         vm.resumeGasMetering();
         
-        source.setTokenURI(erc721, 0, "https://example.com/0.json");
+        metadataSource.setBaseURI(erc721, "https://example.com/0.json");
     }
 
     /// @dev Claims a token from the target erc721 contract.
