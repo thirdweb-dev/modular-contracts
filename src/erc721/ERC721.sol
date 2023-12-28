@@ -55,13 +55,9 @@ abstract contract ERC721 is Initializable {
     }
 
     mapping(uint256 => TokenData) internal _tokenData;
-
-    // mapping(uint256 => address) internal _ownerOf;
-
     mapping(address => uint256) internal _balanceOf;
 
     function ownerOf(uint256 id) public view virtual returns (address owner) {
-        // require((owner = _ownerOf[id]) != address(0), "NOT_MINTED");
         require((owner = _tokenData[id].owner) != address(0), "NOT_MINTED");
     }
 
@@ -95,7 +91,6 @@ abstract contract ERC721 is Initializable {
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) public virtual {
-        // address owner = _ownerOf[id];
         address owner = _tokenData[id].owner;
 
         require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
@@ -116,7 +111,6 @@ abstract contract ERC721 is Initializable {
         address to,
         uint256 id
     ) public virtual {
-        // require(from == _ownerOf[id], "WRONG_FROM");
         require(from == _tokenData[id].owner, "WRONG_FROM");
 
         require(to != address(0), "INVALID_RECIPIENT");
@@ -134,7 +128,6 @@ abstract contract ERC721 is Initializable {
             _balanceOf[to]++;
         }
 
-        // _ownerOf[id] = to;
         _tokenData[id].owner = to;
 
         delete getApproved[id];
@@ -191,7 +184,6 @@ abstract contract ERC721 is Initializable {
     function _mint(address to, uint256 id) internal virtual {
         require(to != address(0), "INVALID_RECIPIENT");
 
-        // require(_ownerOf[id] == address(0), "ALREADY_MINTED");
         require(_tokenData[id].owner == address(0), "ALREADY_MINTED");
 
         // Counter overflow is incredibly unrealistic.
@@ -199,14 +191,12 @@ abstract contract ERC721 is Initializable {
             _balanceOf[to]++;
         }
 
-        // _ownerOf[id] = to;
         _tokenData[id] = TokenData(to, msg.sender);
 
         emit Transfer(address(0), to, id);
     }
 
     function _burn(uint256 id) internal virtual {
-        // address owner = _ownerOf[id];
         address owner = _tokenData[id].owner;
 
         require(owner != address(0), "NOT_MINTED");
@@ -216,7 +206,6 @@ abstract contract ERC721 is Initializable {
             _balanceOf[owner]--;
         }
 
-        // delete _ownerOf[id];
         delete _tokenData[id].owner;
 
         delete getApproved[id];
