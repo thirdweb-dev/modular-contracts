@@ -43,6 +43,9 @@ abstract contract ERC721BenchmarkBase is Test {
     /// @dev Claims a token from the target erc721 contract.
     function _claimOneToken(address _claimer, uint256 _price) internal virtual returns (uint256 tokenId);
 
+    /// @dev NOTE: This is a copy of `_claimOneToken` for benchmarking purposes. SHOULD NOT contain any vm.pause/resumeGasMetering calls.
+    function _claimOneTokenCopy(address _claimer, uint256 _price) internal virtual returns (uint256 tokenId);
+
     /*//////////////////////////////////////////////////////////////
                                 TESTS
     //////////////////////////////////////////////////////////////*/
@@ -61,7 +64,7 @@ abstract contract ERC721BenchmarkBase is Test {
 
         IERC721 erc721 = IERC721(erc721Contract);
 
-        uint256 tokenId = _claimOneToken(claimer, pricePerToken);
+        uint256 tokenId = _claimOneTokenCopy(claimer, pricePerToken);
 
         vm.startPrank(claimer);
 
