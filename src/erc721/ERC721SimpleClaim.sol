@@ -100,7 +100,7 @@ contract ERC721SimpleClaim {
             revert NotInAllowlist(_token, claimer);
         }
 
-        condition.availableSupply -= 1;
+        claimCondition[_token].availableSupply -= 1;
 
         (bool success,) = condition.saleRecipient.call{value: msg.value}("");
         if(!success) {
