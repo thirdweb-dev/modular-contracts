@@ -113,4 +113,23 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         
         return 0;
     }
+
+    /// @dev Claims a token from the target erc721 contract.
+    function _claimOneTokenCopy(address _claimer, uint256 _price) internal override returns (uint256) {
+        
+        ERC721SimpleClaim claimContract = simpleClaim;
+        address erc721 = erc721Contract;
+
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/getProof.ts";
+        
+        bytes memory result = vm.ffi(inputs);
+        bytes32[] memory proofs = abi.decode(result, (bytes32[]));
+
+        vm.prank(_claimer);
+        claimContract.claim{value: _price}(erc721, proofs);
+        
+        return 0;
+    }
 }

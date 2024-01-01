@@ -101,4 +101,29 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
 
         return 1;
     }
+
+    /// @dev Claims a token from the target erc721 contract.
+    function _claimOneTokenCopy(address _claimer, uint256 _price) internal override returns (uint256) {
+        ERC721Drop claimC = ERC721Drop(payable(erc721Contract));
+
+        string[] memory inputs = new string[](4);
+
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/getProofWithDetails.ts";
+        inputs[2] = "300";
+        inputs[3] = "100000000000000000"; // 0.1 ether
+
+        bytes memory result = vm.ffi(inputs);
+        bytes32[] memory proof = abi.decode(result, (bytes32[]));
+
+        uint256 price = _price;
+        uint256 quantity = 1;
+        uint256 maxQuantity = 300;
+        uint256 fee = 0.000777 ether;
+
+        vm.prank(_claimer);
+        claimC.purchasePresale{value: price + fee}(quantity, maxQuantity, price, proof);
+
+        return 1;
+    }
 }
