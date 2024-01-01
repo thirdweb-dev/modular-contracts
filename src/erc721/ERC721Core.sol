@@ -2,11 +2,12 @@
 pragma solidity ^0.8.0;
 
 import { ERC721 } from  "./ERC721.sol";
+import { ERC721Hooks } from "./ERC721Hooks.sol";
 import { BitMaps } from "../lib/BitMaps.sol";
 import { Initializable } from "../extension/Initializable.sol";
 import { Permissions } from "../extension/Permissions.sol";
 
-contract ERC721Core is Initializable, ERC721, Permissions {
+contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
 
     using BitMaps for BitMaps.BitMap;
 
@@ -46,7 +47,7 @@ contract ERC721Core is Initializable, ERC721, Permissions {
                         PERMISSIONED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function burn(uint256 _tokenId) external {
+    function burn(uint256 _tokenId) external burnHooks(msg.sender, _tokenId, "") {
         if(ownerOf(_tokenId) != msg.sender) {
             revert NotOwner(msg.sender, _tokenId);
         }
@@ -54,7 +55,7 @@ contract ERC721Core is Initializable, ERC721, Permissions {
         _burn(_tokenId);
     }
 
-    function mint(address _to) external {
+    function mint(address _to) external mintHooks(_to, nextTokenIdToMint, "") {
         if(minter != msg.sender) {
             revert NotMinter(msg.sender);
         }
@@ -68,5 +69,35 @@ contract ERC721Core is Initializable, ERC721, Permissions {
         minter = _minter;
 
         emit TokenMinter(_minter);
+    }
+
+    function setHook(Hook _hook, address _implementation) external {
+        if(!hasRole(msg.sender, ADMIN_ROLE)) {
+            revert Unauthorized(msg.sender, ADMIN_ROLE);
+        }
+        _setHookImplementation(_implementation, _hook);   
+    }
+
+    function disableHook(Hook _hook) external {
+        if(!hasRole(msg.sender, ADMIN_ROLE)) {
+            revert Unauthorized(msg.sender, ADMIN_ROLE);
+        }
+        _diableHook(_hook);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            OVERRIDE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public override transferHooks(from, to, id, "") {
+        super.transferFrom(from, to, id);
+    }
+
+    function approve(address spender, uint256 id) public override approveHooks(msg.sender, spender, id, "") {
+        super.approve(spender, id);
     }
 }
