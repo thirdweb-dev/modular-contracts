@@ -5,6 +5,8 @@ import { Test } from "forge-std/Test.sol";
 
 // Test util
 import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol"; 
+import { MockBuggySimpleClaim } from "test/mocks/MockBuggySimpleClaim.sol";
 import { TransferHook } from "test/mocks/TransferHook.sol";
 
 // Target test contracts
@@ -167,5 +169,83 @@ contract ERC721Test is Test {
         erc721.transferFrom(claimer, recipient, 0);
         
         assertEq(erc721.ownerOf(0), recipient);
+    }
+
+    function test_claimContractUpgrade() public {
+        vm.deal(claimer, 0.5 ether);
+        
+        // NOTE: proxy admin is different from ERC721 admin
+        address proxyAdmin = address(0x7567);
+
+        // Deploy `MockBuggySimpleClaim` behind an upgradeable proxy
+        address proxySimpleClaim = address(
+            new TransparentUpgradeableProxy(
+                address(new MockBuggySimpleClaim()),
+                proxyAdmin,
+                ""
+            )
+        );
+
+        // Set this contract as minter on ERC721 Core
+        vm.prank(admin);
+        erc721.setMinter(proxySimpleClaim);
+
+        // Set claim conditions and claim one token
+
+        // Set claim condition
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/generateRoot.ts";
+        
+        bytes memory result = vm.ffi(inputs);
+        bytes32 root = abi.decode(result, (bytes32));
+
+        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
+            price: 0.1 ether,
+            availableSupply: 5,
+            allowlistMerkleRoot: root,
+            saleRecipient: admin
+        });
+
+        vm.prank(admin);
+        ERC721SimpleClaim(proxySimpleClaim).setClaimCondition(address(erc721), condition);
+
+        // Claim token
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC721.NotMinted.selector, 0)
+        );
+        erc721.ownerOf(0);
+
+        string[] memory inputsProof = new string[](2);
+        inputsProof[0] = "node";
+        inputsProof[1] = "test/scripts/getProof.ts";
+        
+        bytes memory resultProof = vm.ffi(inputsProof);
+        bytes32[] memory proofs = abi.decode(resultProof, (bytes32[]));
+
+        vm.prank(claimer);
+        ERC721SimpleClaim(proxySimpleClaim).claim{value: 0.1 ether}(address(erc721), proofs);
+
+        assertEq(erc721.ownerOf(0), claimer);
+
+        // But BUG: the claim condition supply is not decremented!
+        (,uint256 availableSupply,,) = ERC721SimpleClaim(proxySimpleClaim).claimCondition(address(erc721));
+        assertEq(availableSupply, 5);
+        
+        // Perform upgrade
+        vm.prank(proxyAdmin);
+        TransparentUpgradeableProxy(payable(proxySimpleClaim)).upgradeTo(address(simpleClaim));
+
+        // Claim condition supply is already set, since state is unchanged after logic upgrade
+        (,availableSupply,,) = ERC721SimpleClaim(proxySimpleClaim).claimCondition(address(erc721));
+        assertEq(availableSupply, 5);
+
+        // But the bug is fixed, so the supply is decremented upon a new claim
+        vm.prank(claimer);
+        ERC721SimpleClaim(proxySimpleClaim).claim{value: 0.1 ether}(address(erc721), proofs);
+
+        assertEq(erc721.ownerOf(1), claimer);
+        (,availableSupply,,) = ERC721SimpleClaim(proxySimpleClaim).claimCondition(address(erc721));
+        assertEq(availableSupply, 4);
     }
 }
