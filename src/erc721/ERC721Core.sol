@@ -21,7 +21,6 @@ contract ERC721Core is Initializable, ERC721, Permissions {
     //////////////////////////////////////////////////////////////*/
 
     error NotMinter(address caller);
-    error NotOwner(address caller, uint256 tokenId);
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
