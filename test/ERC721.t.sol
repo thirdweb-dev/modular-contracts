@@ -7,7 +7,7 @@ import { Test } from "forge-std/Test.sol";
 import { CloneFactory } from "src/infra/CloneFactory.sol";
 
 // Target test contracts
-import { ERC721Core } from "src/erc721/ERC721Core.sol";
+import { ERC721Core, ERC721 } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
 
 /**
@@ -101,7 +101,9 @@ contract ERC721Test is Test {
         assertEq(admin.balance, 0);
         assertEq(erc721.balanceOf(claimer), 0);
         assertEq(erc721.nextTokenIdToMint(), 0);
-        vm.expectRevert("NOT_MINTED");
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC721.NotMinted.selector, 0)
+        );
         erc721.ownerOf(0);
 
         string[] memory inputs = new string[](2);

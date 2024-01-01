@@ -6,7 +6,9 @@ import { Initializable } from  "../extension/Initializable.sol";
 /**
  *  CHANGELOG:
  *      - Make contract initializable.
- *      - Replace _ownerOf with _tokenData
+ *      - Replace _ownerOf with _tokenData.
+ *      - Replace `require` statements with custom errors.
+ *      - Remove require(owner != address(0)) statement from `balanceOf`.
  */
 
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
@@ -21,6 +23,17 @@ abstract contract ERC721 is Initializable {
     event Approval(address indexed owner, address indexed spender, uint256 indexed id);
 
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error NotMinted(uint256 tokenId);
+    error AlreadyMinted(uint256 tokenId);
+    error NotAuthorized(address operator, uint256 tokenId);
+    error NotOwner(address caller, uint256 tokenId);
+    error InvalidRecipient();
+    error UnsafeRecipient(address recipient);
 
     /*//////////////////////////////////////////////////////////////
                          METADATA STORAGE/LOGIC
@@ -58,12 +71,12 @@ abstract contract ERC721 is Initializable {
     mapping(address => uint256) internal _balanceOf;
 
     function ownerOf(uint256 id) public view virtual returns (address owner) {
-        require((owner = _tokenData[id].owner) != address(0), "NOT_MINTED");
+        if((owner = _tokenData[id].owner) == address(0)) {
+            revert NotMinted(id);
+        }
     }
 
     function balanceOf(address owner) public view virtual returns (uint256) {
-        require(owner != address(0), "ZERO_ADDRESS");
-
         return _balanceOf[owner];
     }
 
@@ -93,7 +106,9 @@ abstract contract ERC721 is Initializable {
     function approve(address spender, uint256 id) public virtual {
         address owner = _tokenData[id].owner;
 
-        require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
+        if(msg.sender != owner && !isApprovedForAll[owner][msg.sender]) {
+            revert NotAuthorized(msg.sender, id);
+        }
 
         getApproved[id] = spender;
 
@@ -111,14 +126,17 @@ abstract contract ERC721 is Initializable {
         address to,
         uint256 id
     ) public virtual {
-        require(from == _tokenData[id].owner, "WRONG_FROM");
+        if(from != _tokenData[id].owner) {
+            revert NotOwner(from, id);
+        }
 
-        require(to != address(0), "INVALID_RECIPIENT");
+        if(to == address(0)) {
+            revert InvalidRecipient();
+        }
 
-        require(
-            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
-            "NOT_AUTHORIZED"
-        );
+        if(msg.sender != from && !isApprovedForAll[from][msg.sender] && msg.sender != getApproved[id]) {
+            revert NotAuthorized(msg.sender, id);
+        }
 
         // Underflow of the sender's balance is impossible because we check for
         // ownership above and the recipient's balance can't realistically overflow.
@@ -142,12 +160,13 @@ abstract contract ERC721 is Initializable {
     ) public virtual {
         transferFrom(from, to, id);
 
-        require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") ==
-                ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if(
+            to.code.length != 0 
+                && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") != ERC721TokenReceiver.onERC721Received.selector
+        ) {
+            revert UnsafeRecipient(to);
+        }
+        
     }
 
     function safeTransferFrom(
@@ -158,12 +177,12 @@ abstract contract ERC721 is Initializable {
     ) public virtual {
         transferFrom(from, to, id);
 
-        require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) ==
-                ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if(
+            to.code.length != 0 
+                && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) != ERC721TokenReceiver.onERC721Received.selector
+        ) {
+            revert UnsafeRecipient(to);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -182,9 +201,13 @@ abstract contract ERC721 is Initializable {
     //////////////////////////////////////////////////////////////*/
 
     function _mint(address to, uint256 id) internal virtual {
-        require(to != address(0), "INVALID_RECIPIENT");
+        if(to == address(0)) {
+            revert InvalidRecipient();
+        }
 
-        require(_tokenData[id].owner == address(0), "ALREADY_MINTED");
+        if(_tokenData[id].owner != address(0)) {
+            revert AlreadyMinted(id);
+        }
 
         // Counter overflow is incredibly unrealistic.
         unchecked {
@@ -199,7 +222,9 @@ abstract contract ERC721 is Initializable {
     function _burn(uint256 id) internal virtual {
         address owner = _tokenData[id].owner;
 
-        require(owner != address(0), "NOT_MINTED");
+        if(owner == address(0)) {
+            revert NotMinted(id);
+        }
 
         // Ownership check above ensures no underflow.
         unchecked {
@@ -220,12 +245,12 @@ abstract contract ERC721 is Initializable {
     function _safeMint(address to, uint256 id) internal virtual {
         _mint(to, id);
 
-        require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, "") ==
-                ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if(
+            to.code.length != 0 
+                && ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, "") != ERC721TokenReceiver.onERC721Received.selector
+        ) {
+            revert UnsafeRecipient(to);
+        }
     }
 
     function _safeMint(
@@ -235,12 +260,12 @@ abstract contract ERC721 is Initializable {
     ) internal virtual {
         _mint(to, id);
 
-        require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data) ==
-                ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if(
+            to.code.length != 0 
+                && ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data) != ERC721TokenReceiver.onERC721Received.selector
+        ) {
+            revert UnsafeRecipient(to);
+        }
     }
 }
 
