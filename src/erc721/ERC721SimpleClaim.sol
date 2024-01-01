@@ -9,8 +9,11 @@ pragma solidity ^0.8.0;
 import { ERC721Core } from "./ERC721Core.sol"; 
 import { Permissions } from "../extension/Permissions.sol";
 import { MerkleProof } from "../lib/MerkleProof.sol";
+import { Strings } from "../lib/Strings.sol";
 
 contract ERC721SimpleClaim {
+
+    using Strings for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -27,6 +30,7 @@ contract ERC721SimpleClaim {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    event BaseURISet(address indexed token, string baseURI);
     event ClaimConditionSet(address indexed token, ClaimCondition claimCondition);
 
     /*//////////////////////////////////////////////////////////////
@@ -43,13 +47,33 @@ contract ERC721SimpleClaim {
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    mapping(address => string) public baseURI;
     mapping(address => ClaimCondition) public claimCondition;
 
     constructor() {}
 
     /*//////////////////////////////////////////////////////////////
+                        VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function tokenURI(uint256 id) external view returns (string memory) {
+        return string(abi.encodePacked(baseURI[msg.sender], id.toString()));
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function setBaseURI(address _token, string memory _baseURI) external {
+        // Checks `ADMIN_ROLE=0`
+        if(!Permissions(_token).hasRole(msg.sender, 0)) {
+            revert Unauthorized(msg.sender, _token);
+        }
+
+        baseURI[_token] = _baseURI;
+
+        emit BaseURISet(_token, _baseURI);
+    }
 
     function claim(address _token, bytes32[] calldata _allowlistProof) public payable {
 
@@ -76,7 +100,7 @@ contract ERC721SimpleClaim {
             revert NotInAllowlist(_token, claimer);
         }
 
-        condition.availableSupply -= 1;
+        claimCondition[_token].availableSupply -= 1;
 
         (bool success,) = condition.saleRecipient.call{value: msg.value}("");
         if(!success) {

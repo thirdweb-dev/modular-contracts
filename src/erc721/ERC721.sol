@@ -6,6 +6,7 @@ import { Initializable } from  "../extension/Initializable.sol";
 /**
  *  CHANGELOG:
  *      - Make contract initializable.
+ *      - Replace _ownerOf with _tokenData
  */
 
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
@@ -29,18 +30,35 @@ abstract contract ERC721 is Initializable {
 
     string public symbol;
 
-    function tokenURI(uint256 id) public view virtual returns (string memory);
+    mapping(uint256 => string) internal _tokenURI;
+
+    function tokenURI(uint256 id) public view virtual returns (string memory metadata) {
+
+        // Prioritize metadata stored locally in the contract. Fall back to metadata returned from minter.
+
+        metadata = _tokenURI[id];
+        
+        if(bytes(metadata).length == 0) {
+            try IERC721Metadata(_tokenData[id].minter).tokenURI(id) returns (string memory uri) {
+                return uri;
+            } catch {}
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////
                       ERC721 BALANCE/OWNER STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    mapping(uint256 => address) internal _ownerOf;
+    struct TokenData {
+        address owner;
+        address minter;
+    }
 
+    mapping(uint256 => TokenData) internal _tokenData;
     mapping(address => uint256) internal _balanceOf;
 
     function ownerOf(uint256 id) public view virtual returns (address owner) {
-        require((owner = _ownerOf[id]) != address(0), "NOT_MINTED");
+        require((owner = _tokenData[id].owner) != address(0), "NOT_MINTED");
     }
 
     function balanceOf(address owner) public view virtual returns (uint256) {
@@ -73,7 +91,7 @@ abstract contract ERC721 is Initializable {
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) public virtual {
-        address owner = _ownerOf[id];
+        address owner = _tokenData[id].owner;
 
         require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
 
@@ -93,7 +111,7 @@ abstract contract ERC721 is Initializable {
         address to,
         uint256 id
     ) public virtual {
-        require(from == _ownerOf[id], "WRONG_FROM");
+        require(from == _tokenData[id].owner, "WRONG_FROM");
 
         require(to != address(0), "INVALID_RECIPIENT");
 
@@ -110,7 +128,7 @@ abstract contract ERC721 is Initializable {
             _balanceOf[to]++;
         }
 
-        _ownerOf[id] = to;
+        _tokenData[id].owner = to;
 
         delete getApproved[id];
 
@@ -166,20 +184,20 @@ abstract contract ERC721 is Initializable {
     function _mint(address to, uint256 id) internal virtual {
         require(to != address(0), "INVALID_RECIPIENT");
 
-        require(_ownerOf[id] == address(0), "ALREADY_MINTED");
+        require(_tokenData[id].owner == address(0), "ALREADY_MINTED");
 
         // Counter overflow is incredibly unrealistic.
         unchecked {
             _balanceOf[to]++;
         }
 
-        _ownerOf[id] = to;
+        _tokenData[id] = TokenData(to, msg.sender);
 
         emit Transfer(address(0), to, id);
     }
 
     function _burn(uint256 id) internal virtual {
-        address owner = _ownerOf[id];
+        address owner = _tokenData[id].owner;
 
         require(owner != address(0), "NOT_MINTED");
 
@@ -188,7 +206,7 @@ abstract contract ERC721 is Initializable {
             _balanceOf[owner]--;
         }
 
-        delete _ownerOf[id];
+        delete _tokenData[id].owner;
 
         delete getApproved[id];
 
@@ -224,6 +242,11 @@ abstract contract ERC721 is Initializable {
             "UNSAFE_RECIPIENT"
         );
     }
+}
+
+/// @notice A generic interface for a contract that returns token URI metadata for ERC721 tokens.
+interface IERC721Metadata {
+    function tokenURI(uint256 id) external view returns (string memory);
 }
 
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
