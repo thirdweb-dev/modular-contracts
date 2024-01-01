@@ -21,6 +21,7 @@ contract ERC721Core is Initializable, ERC721, Permissions {
     //////////////////////////////////////////////////////////////*/
 
     error NotMinter(address caller);
+    error NotOwner(address caller, uint256 tokenId);
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -45,6 +46,14 @@ contract ERC721Core is Initializable, ERC721, Permissions {
     /*//////////////////////////////////////////////////////////////
                         PERMISSIONED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function burn(uint256 _tokenId) external {
+        if(ownerOf(_tokenId) != msg.sender) {
+            revert NotOwner(msg.sender, _tokenId);
+        }
+
+        _burn(_tokenId);
+    }
 
     function mint(address _to) external {
         if(minter != msg.sender) {
