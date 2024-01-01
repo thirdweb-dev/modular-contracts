@@ -44,47 +44,27 @@ contract ERC721Hooks {
     //////////////////////////////////////////////////////////////*/
 
     modifier burnHooks(address _from, uint256 _tokenId, bytes memory _data) {
-        address hook = hookImplementation[Hook.BeforeMint];
-        if(hook != address(0)) {
-            IHooksERC721(hook).beforeBurn(_from, _tokenId, _data);
-            _;
-            IHooksERC721(hook).afterBurn(_from, _tokenId, _data);
-        } else {
-            _;
-        }
+        _beforeBurn(_from, _tokenId, _data);
+        _;
+        _afterBurn(_from, _tokenId, _data);
     }
 
     modifier mintHooks(address _to, uint256 _tokenId, bytes memory _data) {
-        address hook = hookImplementation[Hook.BeforeMint];
-        if(hook != address(0)) {
-            IHooksERC721(hook).beforeMint(_to, _tokenId, _data);
-            _;
-            IHooksERC721(hook).afterMint(_to, _tokenId, _data);
-        } else {
-            _;
-        }
+        _beforeMint(_to, _tokenId, _data);
+        _;
+        _afterMint(_to, _tokenId, _data);
     }
 
     modifier transferHooks(address _from, address _to, uint256 _tokenId, bytes memory _data) {
-        address hook = hookImplementation[Hook.BeforeTransfer];
-        if(hook != address(0)) {
-            IHooksERC721(hook).beforeTransfer(_from, _to, _tokenId, _data);
-            _;
-            IHooksERC721(hook).afterTransfer(_from, _to, _tokenId, _data);
-        } else {
-            _;
-        }
+        _beforeTransfer(_from, _to, _tokenId, _data);
+        _;
+        _afterTransfer(_from, _to, _tokenId, _data);
     }
 
     modifier approveHooks(address _from, address _to, uint256 _tokenId, bytes memory _data) {
-        address hook = hookImplementation[Hook.BeforeApprove];
-        if(hook != address(0)) {
-            IHooksERC721(hook).beforeApprove(_from, _to, _tokenId, _data);
-            _;
-            IHooksERC721(hook).afterApprove(_from, _to, _tokenId, _data);
-        } else {
-            _;
-        }
+        _beforeApprove(_from, _to, _tokenId, _data);
+        _;
+        _afterApprove(_from, _to, _tokenId, _data);
     }
     
     /*//////////////////////////////////////////////////////////////

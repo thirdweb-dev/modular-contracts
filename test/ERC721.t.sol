@@ -5,8 +5,10 @@ import { Test } from "forge-std/Test.sol";
 
 // Test util
 import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { TransferHook } from "test/mocks/TransferHook.sol";
 
 // Target test contracts
+import { ERC721Hooks } from "src/erc721/ERC721Hooks.sol";
 import { ERC721Core, ERC721 } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
 
@@ -124,5 +126,46 @@ contract ERC721Test is Test {
         assertEq(erc721.ownerOf(0), claimer);
 
         assertEq(erc721.tokenURI(0), "https://example.com/0");
+    }
+
+    function test_transferHook() public {
+
+        address recipient = address(0x456);
+        vm.label(recipient, "Recipient");
+
+        // Deploy transfer hook implementation contract
+        TransferHook transferHook = new TransferHook(admin, false);
+
+        vm.startPrank(admin);
+
+        // Set transfer hook
+        erc721.setHook(ERC721Hooks.Hook.BeforeTransfer, address(transferHook));
+        assertEq(erc721.hookImplementation(ERC721Hooks.Hook.BeforeTransfer), address(transferHook));
+
+        // Mint token
+        erc721.setMinter(admin);
+        erc721.mint(claimer);
+        
+        vm.stopPrank();
+
+        assertEq(erc721.ownerOf(0), claimer);
+
+        // Claimer does not have transfer role, so transfer should fail
+        assertEq(transferHook.isTransferrable(), false);
+
+        vm.expectRevert("restricted to TRANSFER_ROLE holders");
+        vm.prank(claimer);
+        
+        erc721.transferFrom(claimer, recipient, 0);
+
+        // Transfer succeeds once transfer role is granted to claimer 
+        vm.startPrank(admin);
+        transferHook.grantRole(claimer, transferHook.TRANSFER_ROLE());
+        vm.stopPrank();
+
+        vm.prank(claimer);
+        erc721.transferFrom(claimer, recipient, 0);
+        
+        assertEq(erc721.ownerOf(0), recipient);
     }
 }
