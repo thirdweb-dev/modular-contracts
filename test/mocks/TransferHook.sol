@@ -23,7 +23,7 @@ contract TransferHook is Permissions {
         isTransferrable = _isTransferrable;
     }
 
-    function beforeTransfer(address from, address to, uint256, bytes memory) external view {
+    function beforeTransfer(address from, address to, uint256) external view {
         if (!isTransferrable) {
             require(hasRole(from, TRANSFER_ROLE) || hasRole(to, TRANSFER_ROLE), "restricted to TRANSFER_ROLE holders");
         }
