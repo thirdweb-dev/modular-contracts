@@ -43,28 +43,28 @@ contract ERC721Hooks {
                             HOOKS MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    modifier burnHooks(address _from, uint256 _tokenId, bytes memory _data) {
-        _beforeBurn(_from, _tokenId, _data);
+    modifier burnHooks(address _from, uint256 _tokenId) {
+        _beforeBurn(_from, _tokenId);
         _;
-        _afterBurn(_from, _tokenId, _data);
+        _afterBurn(_from, _tokenId);
     }
 
-    modifier mintHooks(address _to, uint256 _tokenId, bytes memory _data) {
-        _beforeMint(_to, _tokenId, _data);
+    modifier mintHooks(address _to, uint256 _tokenId) {
+        _beforeMint(_to, _tokenId);
         _;
-        _afterMint(_to, _tokenId, _data);
+        _afterMint(_to, _tokenId);
     }
 
-    modifier transferHooks(address _from, address _to, uint256 _tokenId, bytes memory _data) {
-        _beforeTransfer(_from, _to, _tokenId, _data);
+    modifier transferHooks(address _from, address _to, uint256 _tokenId) {
+        _beforeTransfer(_from, _to, _tokenId);
         _;
-        _afterTransfer(_from, _to, _tokenId, _data);
+        _afterTransfer(_from, _to, _tokenId);
     }
 
-    modifier approveHooks(address _from, address _to, uint256 _tokenId, bytes memory _data) {
-        _beforeApprove(_from, _to, _tokenId, _data);
+    modifier approveHooks(address _from, address _to, uint256 _tokenId) {
+        _beforeApprove(_from, _to, _tokenId);
         _;
-        _afterApprove(_from, _to, _tokenId, _data);
+        _afterApprove(_from, _to, _tokenId);
     }
     
     /*//////////////////////////////////////////////////////////////
@@ -85,86 +85,86 @@ contract ERC721Hooks {
                             HOOKS FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _beforeMint(address to, uint256 tokenId, bytes memory data) internal virtual {
+    function _beforeMint(address to, uint256 tokenId) internal virtual {
         address hook = hookImplementation[Hook.BeforeMint];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).beforeMint(to, tokenId, data);
+            IHooksERC721(hook).beforeMint(to, tokenId);
         }
     }
 
-    function _afterMint(address to, uint256 tokenId, bytes memory data) internal virtual {
+    function _afterMint(address to, uint256 tokenId) internal virtual {
         address hook = hookImplementation[Hook.AfterMint];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).afterMint(to, tokenId, data);
+            IHooksERC721(hook).afterMint(to, tokenId);
         }
     }
 
-    function _beforeTransfer(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
+    function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
         address hook = hookImplementation[Hook.BeforeTransfer];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).beforeTransfer(from, to, tokenId, data);
+            IHooksERC721(hook).beforeTransfer(from, to, tokenId);
         }
     }
 
-    function _afterTransfer(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
+    function _afterTransfer(address from, address to, uint256 tokenId) internal virtual {
         address hook = hookImplementation[Hook.AfterTransfer];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).afterTransfer(from, to, tokenId, data);
+            IHooksERC721(hook).afterTransfer(from, to, tokenId);
         }
     }
 
-    function _beforeBurn(address from, uint256 tokenId, bytes memory data) internal virtual {
+    function _beforeBurn(address from, uint256 tokenId) internal virtual {
         address hook = hookImplementation[Hook.BeforeBurn];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).beforeBurn(from, tokenId, data);
+            IHooksERC721(hook).beforeBurn(from, tokenId);
         }
     }
 
-    function _afterBurn(address from, uint256 tokenId, bytes memory data) internal virtual {
+    function _afterBurn(address from, uint256 tokenId) internal virtual {
         address hook = hookImplementation[Hook.AfterBurn];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).afterBurn(from, tokenId, data);
+            IHooksERC721(hook).afterBurn(from, tokenId);
         }
     }
 
-    function _beforeApprove(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
+    function _beforeApprove(address from, address to, uint256 tokenId) internal virtual {
         address hook = hookImplementation[Hook.BeforeApprove];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).beforeApprove(from, to, tokenId, data);
+            IHooksERC721(hook).beforeApprove(from, to, tokenId);
         }
     }
 
-    function _afterApprove(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
+    function _afterApprove(address from, address to, uint256 tokenId) internal virtual {
         address hook = hookImplementation[Hook.AfterApprove];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).afterApprove(from, to, tokenId, data);
+            IHooksERC721(hook).afterApprove(from, to, tokenId);
         }
     }
 }
 
 interface IHooksERC721 {
-    function beforeMint(address to, uint256 tokenId, bytes memory data) external;
+    function beforeMint(address to, uint256 tokenId) external;
 
-    function afterMint(address to, uint256 tokenId, bytes memory data) external;
+    function afterMint(address to, uint256 tokenId) external;
 
-    function beforeTransfer(address from, address to, uint256 tokenId, bytes memory data) external;
+    function beforeTransfer(address from, address to, uint256 tokenId) external;
 
-    function afterTransfer(address from, address to, uint256 tokenId, bytes memory data) external;
+    function afterTransfer(address from, address to, uint256 tokenId) external;
 
-    function beforeBurn(address from, uint256 tokenId, bytes memory data) external;
+    function beforeBurn(address from, uint256 tokenId) external;
 
-    function afterBurn(address from, uint256 tokenId, bytes memory data) external;
+    function afterBurn(address from, uint256 tokenId) external;
 
-    function beforeApprove(address from, address to, uint256 tokenId, bytes memory data) external;
+    function beforeApprove(address from, address to, uint256 tokenId) external;
 
-    function afterApprove(address from, address to, uint256 tokenId, bytes memory data) external;
+    function afterApprove(address from, address to, uint256 tokenId) external;
 }
 

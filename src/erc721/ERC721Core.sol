@@ -47,7 +47,7 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
                         PERMISSIONED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function burn(uint256 _tokenId) external burnHooks(msg.sender, _tokenId, "") {
+    function burn(uint256 _tokenId) external burnHooks(msg.sender, _tokenId) {
         if(ownerOf(_tokenId) != msg.sender) {
             revert NotOwner(msg.sender, _tokenId);
         }
@@ -55,7 +55,7 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
         _burn(_tokenId);
     }
 
-    function mint(address _to) external mintHooks(_to, nextTokenIdToMint, "") {
+    function mint(address _to) external mintHooks(_to, nextTokenIdToMint) {
         if(minter != msg.sender) {
             revert NotMinter(msg.sender);
         }
@@ -93,11 +93,11 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
         address from,
         address to,
         uint256 id
-    ) public override transferHooks(from, to, id, "") {
+    ) public override transferHooks(from, to, id) {
         super.transferFrom(from, to, id);
     }
 
-    function approve(address spender, uint256 id) public override approveHooks(msg.sender, spender, id, "") {
+    function approve(address spender, uint256 id) public override approveHooks(msg.sender, spender, id) {
         super.approve(spender, id);
     }
 }
