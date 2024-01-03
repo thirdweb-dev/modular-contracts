@@ -32,6 +32,7 @@ contract ERC721Hooks {
     //////////////////////////////////////////////////////////////*/
 
     error HookInactive(Hook hook);
+    error NoBeforeMintHook();
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -88,9 +89,10 @@ contract ERC721Hooks {
     function _beforeMint(address to, uint256 tokenId, bytes memory data) internal virtual {
         address hook = hookImplementation[Hook.BeforeMint];
 
-        if(hook != address(0)) {
-            IHooksERC721(hook).beforeMint{value: msg.value}(to, tokenId, data);
+        if(hook == address(0)) {
+            revert NoBeforeMintHook();
         }
+        IHooksERC721(hook).beforeMint{value: msg.value}(to, tokenId, data);
     }
 
     function _afterMint(address to, uint256 tokenId) internal virtual {

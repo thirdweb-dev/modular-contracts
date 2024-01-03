@@ -145,7 +145,13 @@ contract ERC721Test is Test {
         assertEq(erc721.hookImplementation(ERC721Hooks.Hook.BeforeTransfer), address(transferHook));
 
         // Mint token
-        erc721.disableHook(ERC721Hooks.Hook.BeforeMint);
+        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
+            price: 0 ether,
+            availableSupply: 5,
+            allowlistMerkleRoot: bytes32(0),
+            saleRecipient: admin
+        });
+        simpleClaim.setClaimCondition(address(erc721), condition);
         erc721.mint(claimer, "");
         
         vm.stopPrank();

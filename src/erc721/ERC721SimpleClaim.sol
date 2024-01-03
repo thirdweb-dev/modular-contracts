@@ -77,7 +77,6 @@ contract ERC721SimpleClaim {
     function beforeMint(address claimer, uint256, bytes memory data) public payable {
 
         address token = msg.sender;
-        bytes32[] memory allowlistProof = abi.decode(data, (bytes32[]));
 
         ClaimCondition memory condition = claimCondition[token];
 
@@ -88,17 +87,21 @@ contract ERC721SimpleClaim {
             revert NotEnouthSupply(token);
         }
 
-        (bool isAllowlisted, ) = MerkleProof.verify(
-            allowlistProof,
-            condition.allowlistMerkleRoot,
-            keccak256(
-                abi.encodePacked(
-                    claimer
+        if(condition.allowlistMerkleRoot != bytes32(0)) {
+            bytes32[] memory allowlistProof = abi.decode(data, (bytes32[]));
+            
+            (bool isAllowlisted, ) = MerkleProof.verify(
+                allowlistProof,
+                condition.allowlistMerkleRoot,
+                keccak256(
+                    abi.encodePacked(
+                        claimer
+                    )
                 )
-            )
-        );
-        if(!isAllowlisted) {
-            revert NotInAllowlist(token, claimer);
+            );
+            if(!isAllowlisted) {
+                revert NotInAllowlist(token, claimer);
+            }
         }
         
         claimCondition[token].availableSupply -= 1;
