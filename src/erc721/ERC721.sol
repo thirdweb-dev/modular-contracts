@@ -50,9 +50,10 @@ contract ERC721 is Initializable {
         // Prioritize metadata stored locally in the contract. Fall back to metadata returned from minter.
 
         metadata = _tokenURI[id];
+        address minter = _tokenData[id].minter;
         
-        if(bytes(metadata).length == 0) {
-            try IERC721Metadata(_tokenData[id].minter).tokenURI(id) returns (string memory uri) {
+        if(bytes(metadata).length == 0 && minter != address(0)) {
+            try IERC721Metadata(minter).tokenURI(id) returns (string memory uri) {
                 return uri;
             } catch {}
         }
@@ -214,7 +215,26 @@ contract ERC721 is Initializable {
             _balanceOf[to]++;
         }
 
-        _tokenData[id] = TokenData(to, msg.sender);
+        _tokenData[id].owner = to;
+
+        emit Transfer(address(0), to, id);
+    }
+
+    function _mint(address to, uint256 id, address _hook) internal virtual {
+        if(to == address(0)) {
+            revert InvalidRecipient();
+        }
+
+        if(_tokenData[id].owner != address(0)) {
+            revert AlreadyMinted(id);
+        }
+
+        // Counter overflow is incredibly unrealistic.
+        unchecked {
+            _balanceOf[to]++;
+        }
+
+        _tokenData[id] = TokenData(to, _hook);
 
         emit Transfer(address(0), to, id);
     }

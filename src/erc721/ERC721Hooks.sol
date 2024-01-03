@@ -49,8 +49,8 @@ contract ERC721Hooks {
         _afterBurn(_from, _tokenId);
     }
 
-    modifier mintHooks(address _to, uint256 _tokenId) {
-        _beforeMint(_to, _tokenId);
+    modifier mintHooks(address _to, uint256 _tokenId, bytes memory _data) {
+        _beforeMint(_to, _tokenId, _data);
         _;
         _afterMint(_to, _tokenId);
     }
@@ -85,11 +85,11 @@ contract ERC721Hooks {
                             HOOKS FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _beforeMint(address to, uint256 tokenId) internal virtual {
+    function _beforeMint(address to, uint256 tokenId, bytes memory data) internal virtual {
         address hook = hookImplementation[Hook.BeforeMint];
 
         if(hook != address(0)) {
-            IHooksERC721(hook).beforeMint(to, tokenId);
+            IHooksERC721(hook).beforeMint{value: msg.value}(to, tokenId, data);
         }
     }
 
@@ -151,7 +151,7 @@ contract ERC721Hooks {
 }
 
 interface IHooksERC721 {
-    function beforeMint(address to, uint256 tokenId) external;
+    function beforeMint(address to, uint256 tokenId, bytes memory data) external payable;
 
     function afterMint(address to, uint256 tokenId) external;
 

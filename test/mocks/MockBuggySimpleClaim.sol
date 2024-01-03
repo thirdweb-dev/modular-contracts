@@ -74,20 +74,22 @@ contract MockBuggySimpleClaim {
         emit BaseURISet(_token, _baseURI);
     }
 
-    function claim(address _token, bytes32[] calldata _allowlistProof) public payable {
+    function beforeMint(address claimer, uint256, bytes memory data) public payable {
 
-        ClaimCondition memory condition = claimCondition[_token];
-        address claimer = msg.sender;
+        address token = msg.sender;
+        bytes32[] memory allowlistProof = abi.decode(data, (bytes32[]));
+
+        ClaimCondition memory condition = claimCondition[token];
 
         if(msg.value != condition.price) {
             revert IncorrectValueSent(msg.value, condition.price);
         }
         if(condition.availableSupply == 0) {
-            revert NotEnouthSupply(_token);
+            revert NotEnouthSupply(token);
         }
 
         (bool isAllowlisted, ) = MerkleProof.verify(
-            _allowlistProof,
+            allowlistProof,
             condition.allowlistMerkleRoot,
             keccak256(
                 abi.encodePacked(
@@ -96,18 +98,15 @@ contract MockBuggySimpleClaim {
             )
         );
         if(!isAllowlisted) {
-            revert NotInAllowlist(_token, claimer);
+            revert NotInAllowlist(token, claimer);
         }
-
-        /// BUG: decrement in memory var instead of state var!
-        condition.availableSupply -= 1;
+        
+        // BUG: availableSupply is not decremented
 
         (bool success,) = condition.saleRecipient.call{value: msg.value}("");
         if(!success) {
             revert NativeTransferFailed(condition.saleRecipient, msg.value);
         }
-
-        ERC721Core(_token).mint(claimer);
     }
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {

@@ -6,7 +6,6 @@ pragma solidity ^0.8.0;
 /// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
 /// used by anyone for their copy of `ERC721Core`.
 
-import { ERC721Core } from "./ERC721Core.sol"; 
 import { Permissions } from "../extension/Permissions.sol";
 import { MerkleProof } from "../lib/MerkleProof.sol";
 import { Strings } from "../lib/Strings.sol";
@@ -75,20 +74,22 @@ contract ERC721SimpleClaim {
         emit BaseURISet(_token, _baseURI);
     }
 
-    function claim(address _token, bytes32[] calldata _allowlistProof) public payable {
+    function beforeMint(address claimer, uint256, bytes memory data) public payable {
 
-        ClaimCondition memory condition = claimCondition[_token];
-        address claimer = msg.sender;
+        address token = msg.sender;
+        bytes32[] memory allowlistProof = abi.decode(data, (bytes32[]));
+
+        ClaimCondition memory condition = claimCondition[token];
 
         if(msg.value != condition.price) {
             revert IncorrectValueSent(msg.value, condition.price);
         }
         if(condition.availableSupply == 0) {
-            revert NotEnouthSupply(_token);
+            revert NotEnouthSupply(token);
         }
 
         (bool isAllowlisted, ) = MerkleProof.verify(
-            _allowlistProof,
+            allowlistProof,
             condition.allowlistMerkleRoot,
             keccak256(
                 abi.encodePacked(
@@ -97,17 +98,15 @@ contract ERC721SimpleClaim {
             )
         );
         if(!isAllowlisted) {
-            revert NotInAllowlist(_token, claimer);
+            revert NotInAllowlist(token, claimer);
         }
-
-        claimCondition[_token].availableSupply -= 1;
+        
+        claimCondition[token].availableSupply -= 1;
 
         (bool success,) = condition.saleRecipient.call{value: msg.value}("");
         if(!success) {
             revert NativeTransferFailed(condition.saleRecipient, msg.value);
         }
-
-        ERC721Core(_token).mint(claimer);
     }
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {

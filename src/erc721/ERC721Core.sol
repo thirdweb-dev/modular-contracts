@@ -27,7 +27,6 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address public minter;
     uint256 public nextTokenIdToMint;
 
     /*//////////////////////////////////////////////////////////////
@@ -55,20 +54,8 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
         _burn(_tokenId);
     }
 
-    function mint(address _to) external mintHooks(_to, nextTokenIdToMint) {
-        if(minter != msg.sender) {
-            revert NotMinter(msg.sender);
-        }
-        _mint(_to, nextTokenIdToMint++);
-    }
-
-    function setMinter(address _minter) external {
-        if(!hasRole(msg.sender, ADMIN_ROLE)) {
-            revert Unauthorized(msg.sender, ADMIN_ROLE);
-        }
-        minter = _minter;
-
-        emit TokenMinter(_minter);
+    function mint(address _to, bytes memory _data) external payable mintHooks(_to, nextTokenIdToMint, _data) {
+        _mint(_to, nextTokenIdToMint++, hookImplementation[Hook.BeforeMint]);
     }
 
     function setHook(Hook _hook, address _implementation) external {

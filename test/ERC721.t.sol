@@ -92,12 +92,12 @@ contract ERC721Test is Test {
         simpleClaim.setClaimCondition(address(erc721), condition);
 
         // Set `ERC721SimpleClaim` contract as minter
-        erc721.setMinter(address(simpleClaim));
+        erc721.setHook(ERC721Hooks.Hook.BeforeMint, address(simpleClaim));
 
         vm.stopPrank();
     }
 
-    function test_claim() public {
+    function test_mint() public {
         
         vm.deal(claimer, 0.5 ether);
 
@@ -119,7 +119,7 @@ contract ERC721Test is Test {
 
         // Claim token
         vm.prank(claimer);
-        simpleClaim.claim{value: 0.1 ether}(address(erc721), proofs);
+        erc721.mint{value: 0.1 ether}(claimer, abi.encode(proofs));
 
         assertEq(claimer.balance, 0.4 ether);
         assertEq(admin.balance, 0.1 ether);
@@ -145,8 +145,8 @@ contract ERC721Test is Test {
         assertEq(erc721.hookImplementation(ERC721Hooks.Hook.BeforeTransfer), address(transferHook));
 
         // Mint token
-        erc721.setMinter(admin);
-        erc721.mint(claimer);
+        erc721.disableHook(ERC721Hooks.Hook.BeforeMint);
+        erc721.mint(claimer, "");
         
         vm.stopPrank();
 
@@ -188,7 +188,7 @@ contract ERC721Test is Test {
 
         // Set this contract as minter on ERC721 Core
         vm.prank(admin);
-        erc721.setMinter(proxySimpleClaim);
+        erc721.setHook(ERC721Hooks.Hook.BeforeMint, proxySimpleClaim);
 
         // Set claim conditions and claim one token
 
@@ -224,7 +224,7 @@ contract ERC721Test is Test {
         bytes32[] memory proofs = abi.decode(resultProof, (bytes32[]));
 
         vm.prank(claimer);
-        ERC721SimpleClaim(proxySimpleClaim).claim{value: 0.1 ether}(address(erc721), proofs);
+        erc721.mint{value: 0.1 ether}(claimer, abi.encode(proofs));
 
         assertEq(erc721.ownerOf(0), claimer);
 
@@ -242,7 +242,7 @@ contract ERC721Test is Test {
 
         // But the bug is fixed, so the supply is decremented upon a new claim
         vm.prank(claimer);
-        ERC721SimpleClaim(proxySimpleClaim).claim{value: 0.1 ether}(address(erc721), proofs);
+        erc721.mint{value: 0.1 ether}(claimer, abi.encode(proofs));
 
         assertEq(erc721.ownerOf(1), claimer);
         (,availableSupply,,) = ERC721SimpleClaim(proxySimpleClaim).claimCondition(address(erc721));

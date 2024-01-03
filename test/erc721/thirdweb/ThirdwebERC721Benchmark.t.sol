@@ -6,7 +6,7 @@ import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
 import { CloneFactory } from "src/infra/CloneFactory.sol";
 
 // Target test contracts
-import { ERC721Core } from "src/erc721/ERC721Core.sol";
+import { ERC721Core, ERC721Hooks } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
 import { Permissions } from "src/extension/Permissions.sol";
 
@@ -23,7 +23,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         // Set `ERC721SimpleClaim` contract as minter
         vm.prank(admin);
-        ERC721Core(erc721Contract).setMinter(address(simpleClaim));
+        ERC721Core(erc721Contract).setHook(ERC721Hooks.Hook.BeforeMint, address(simpleClaim));
 
         // Setup claim condition
         string[] memory inputs = new string[](2);
@@ -96,8 +96,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         vm.pauseGasMetering();
         
-        ERC721SimpleClaim claimContract = simpleClaim;
-        address erc721 = erc721Contract;
+        ERC721Core claimContract = ERC721Core(erc721Contract);
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -106,10 +105,12 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
 
+        bytes memory encodedArgs = abi.encode(proofs);
+
         vm.resumeGasMetering();
 
         vm.prank(_claimer);
-        claimContract.claim{value: _price}(erc721, proofs);
+        claimContract.mint{value: _price}(claimer, encodedArgs);
         
         return 0;
     }
@@ -117,8 +118,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
     /// @dev Claims a token from the target erc721 contract.
     function _claimOneTokenCopy(address _claimer, uint256 _price) internal override returns (uint256) {
         
-        ERC721SimpleClaim claimContract = simpleClaim;
-        address erc721 = erc721Contract;
+        ERC721Core claimContract = ERC721Core(erc721Contract);
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -127,8 +127,10 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
 
+        bytes memory encodedArgs = abi.encode(proofs);
+        
         vm.prank(_claimer);
-        claimContract.claim{value: _price}(erc721, proofs);
+        claimContract.mint{value: _price}(claimer, encodedArgs);
         
         return 0;
     }
