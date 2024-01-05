@@ -9,55 +9,76 @@ contract Permissions {
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
-    
-    event RoleGranted(address indexed account, uint8 role);
-    event RoleRevoked(address indexed account, uint8 role);
+
+    event UpdatePermissions(address indexed account, uint256 permissionBits);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error Unauthorized(address caller, uint8 role);
+    error Unauthorized(address caller, uint256 permissionBits);
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
     
-    uint8 public constant ADMIN_ROLE = 0;
+    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    mapping(address => BitMaps.BitMap) internal _hasRole;
+    mapping(address => uint256) internal _permissionBits;
+
+    /*//////////////////////////////////////////////////////////////
+                               MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyAuthorized(uint256 permissionBits) {
+        if(!hasRole(msg.sender, permissionBits)) {
+            revert Unauthorized(msg.sender, permissionBits);
+        }
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function hasRole(address _account, uint8 _role) public view returns (bool) {
-        return _hasRole[_account].get(_role);
+    function hasRole(address _account, uint256 _roleBits) public view returns (bool) {
+        return _permissionBits[_account] & _roleBits > 0;
     }
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function grantRole(address _account, uint8 _role) external {
-        if(!_hasRole[msg.sender].get(ADMIN_ROLE)) {
-            revert Unauthorized(msg.sender, ADMIN_ROLE);
-        }
-        _hasRole[_account].set(_role);
-
-        emit RoleGranted(_account, _role);
+    function grantRole(address _account, uint256 _roleBits) external onlyAuthorized(ADMIN_ROLE_BITS) {
+        _setupRole(_account, _roleBits);
     }
 
-    function revokeRole(address _account, uint8 _role) external {
-        if(!_hasRole[msg.sender].get(ADMIN_ROLE)) {
-            revert Unauthorized(msg.sender, ADMIN_ROLE);
-        }
-        _hasRole[_account].unset(_role);
+    function revokeRole(address _account, uint256 _roleBits) external onlyAuthorized(ADMIN_ROLE_BITS) {
+        _revokeRole(_account, _roleBits);
+    }
 
-        emit RoleRevoked(_account, _role);
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    
+    function _setupRole(address _account, uint256 _roleBits) internal {
+        
+        uint256 permissions = _permissionBits[_account];
+        permissions |= _roleBits;
+        _permissionBits[_account] = permissions;
+
+        emit UpdatePermissions(_account, _roleBits);
+    }
+
+    function _revokeRole(address _account, uint256 _roleBits) internal {
+        uint256 permissions = _permissionBits[_account];
+        permissions &= ~_roleBits;
+        _permissionBits[_account] = permissions;
+
+        emit UpdatePermissions(_account, permissions);
     }
 }

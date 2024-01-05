@@ -168,7 +168,7 @@ contract ERC721Test is Test {
 
         // Transfer succeeds once transfer role is granted to claimer 
         vm.startPrank(admin);
-        transferHook.grantRole(claimer, transferHook.TRANSFER_ROLE());
+        transferHook.grantRole(claimer, transferHook.TRANSFER_ROLE_BITS());
         vm.stopPrank();
 
         vm.prank(claimer);

@@ -39,7 +39,7 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
 
     function initialize(address _defaultAdmin, string memory _name, string memory _symbol) external initializer {
         __ERC721_init(_name, _symbol);
-        _hasRole[_defaultAdmin].set(ADMIN_ROLE);
+        _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -58,17 +58,11 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
         _mint(_to, nextTokenIdToMint++, hookImplementation[Hook.BeforeMint]);
     }
 
-    function setHook(Hook _hook, address _implementation) external {
-        if(!hasRole(msg.sender, ADMIN_ROLE)) {
-            revert Unauthorized(msg.sender, ADMIN_ROLE);
-        }
+    function setHook(Hook _hook, address _implementation) external onlyAuthorized(ADMIN_ROLE_BITS) {
         _setHookImplementation(_implementation, _hook);   
     }
 
-    function disableHook(Hook _hook) external {
-        if(!hasRole(msg.sender, ADMIN_ROLE)) {
-            revert Unauthorized(msg.sender, ADMIN_ROLE);
-        }
+    function disableHook(Hook _hook) external onlyAuthorized(ADMIN_ROLE_BITS) {
         _diableHook(_hook);
     }
 

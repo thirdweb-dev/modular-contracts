@@ -43,6 +43,12 @@ contract MockBuggySimpleClaim {
     error NativeTransferFailed(address recipient, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
+                               CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+    
+    uint256 public constant ADMIN_ROLE = 2 ** 1;
+
+    /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -65,7 +71,7 @@ contract MockBuggySimpleClaim {
 
     function setBaseURI(address _token, string memory _baseURI) external {
         // Checks `ADMIN_ROLE=0`
-        if(!Permissions(_token).hasRole(msg.sender, 0)) {
+        if(!Permissions(_token).hasRole(msg.sender, ADMIN_ROLE)) {
             revert Unauthorized(msg.sender, _token);
         }
 
@@ -111,7 +117,7 @@ contract MockBuggySimpleClaim {
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {
         // Checks `ADMIN_ROLE=0`
-        if(!Permissions(_token).hasRole(msg.sender, 0)) {
+        if(!Permissions(_token).hasRole(msg.sender, ADMIN_ROLE)) {
             revert Unauthorized(msg.sender, _token);
         }
         claimCondition[_token] = _claimCondition;

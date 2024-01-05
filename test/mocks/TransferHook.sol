@@ -8,24 +8,23 @@ contract TransferHook is Permissions {
 
     using BitMaps for BitMaps.BitMap;
 
-    uint8 public constant TRANSFER_ROLE = 1;
+    uint8 public constant TRANSFER_ROLE_BITS = 2 ** 2;
 
     bool public isTransferrable;
 
     constructor(address _admin, bool _defaultTransferrable) {
-        _hasRole[_admin].set(ADMIN_ROLE);
-        _hasRole[_admin].set(TRANSFER_ROLE);
+        _setupRole(_admin, ADMIN_ROLE_BITS | TRANSFER_ROLE_BITS);
         isTransferrable = _defaultTransferrable;
     }
 
     function setTransferrable(bool _isTransferrable) external {
-        require(hasRole(msg.sender, ADMIN_ROLE), "TransferHook: not admin");
+        require(hasRole(msg.sender, ADMIN_ROLE_BITS), "TransferHook: not admin");
         isTransferrable = _isTransferrable;
     }
 
     function beforeTransfer(address from, address to, uint256) external view {
         if (!isTransferrable) {
-            require(hasRole(from, TRANSFER_ROLE) || hasRole(to, TRANSFER_ROLE), "restricted to TRANSFER_ROLE holders");
+            require(hasRole(from, TRANSFER_ROLE_BITS) || hasRole(to, TRANSFER_ROLE_BITS), "restricted to TRANSFER_ROLE holders");
         }
     }
 }
