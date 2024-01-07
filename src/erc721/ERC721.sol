@@ -27,20 +27,12 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata {
 
     string public symbol;
 
-    mapping(uint256 => string) internal _tokenURI;
-
     function tokenURI(uint256 id) public view virtual returns (string memory metadata) {
+        return IERC721Metadata(_tokenData[id].metadataSource).tokenURI(id);
+    }
 
-        // Prioritize metadata stored locally in the contract. Fall back to metadata returned from metadataSource.
-
-        metadata = _tokenURI[id];
-        address metadataSource = _tokenData[id].metadataSource;
-        
-        if(bytes(metadata).length == 0 && metadataSource != address(0)) {
-            try IERC721Metadata(metadataSource).tokenURI(id) returns (string memory uri) {
-                return uri;
-            } catch {}
-        }
+    function metadataSourceOf(uint256 id) public view virtual returns (address) {
+        return _tokenData[id].metadataSource;
     }
 
     /*//////////////////////////////////////////////////////////////
