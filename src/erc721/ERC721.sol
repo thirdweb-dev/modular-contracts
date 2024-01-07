@@ -31,13 +31,13 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata {
 
     function tokenURI(uint256 id) public view virtual returns (string memory metadata) {
 
-        // Prioritize metadata stored locally in the contract. Fall back to metadata returned from minter.
+        // Prioritize metadata stored locally in the contract. Fall back to metadata returned from metadataSource.
 
         metadata = _tokenURI[id];
-        address minter = _tokenData[id].minter;
+        address metadataSource = _tokenData[id].metadataSource;
         
-        if(bytes(metadata).length == 0 && minter != address(0)) {
-            try IERC721Metadata(minter).tokenURI(id) returns (string memory uri) {
+        if(bytes(metadata).length == 0 && metadataSource != address(0)) {
+            try IERC721Metadata(metadataSource).tokenURI(id) returns (string memory uri) {
                 return uri;
             } catch {}
         }
@@ -49,7 +49,7 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata {
 
     struct TokenData {
         address owner;
-        address minter;
+        address metadataSource;
     }
 
     mapping(uint256 => TokenData) internal _tokenData;
