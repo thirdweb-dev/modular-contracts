@@ -48,7 +48,7 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permission {
 
     function burn(uint256 _tokenId) external burnHooks(msg.sender, _tokenId) {
         if(ownerOf(_tokenId) != msg.sender) {
-            revert NotOwner(msg.sender, _tokenId);
+            revert ERC721NotOwner(msg.sender, _tokenId);
         }
 
         _burn(_tokenId);
