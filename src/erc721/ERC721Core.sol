@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import { ERC721 } from  "./ERC721.sol";
-import { ERC721Hooks } from "./ERC721Hooks.sol";
+import { TokenHookConsumer } from "./TokenHookConsumer.sol";
 import { BitMaps } from "../lib/BitMaps.sol";
 import { Initializable } from "../extension/Initializable.sol";
 import { Permission } from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permission {
+contract ERC721Core is Initializable, ERC721, TokenHookConsumer, Permission {
 
     using BitMaps for BitMaps.BitMap;
 
@@ -21,7 +21,7 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permission {
                                ERRROR
     //////////////////////////////////////////////////////////////*/
 
-    error NotMinter(address caller);
+    error ERC721CoreMintNotAuthorized();
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -46,24 +46,31 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permission {
                         PERMISSIONED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function burn(uint256 _tokenId) external burnHooks(msg.sender, _tokenId) {
-        if(ownerOf(_tokenId) != msg.sender) {
+    function burn(uint256 _tokenId) external {
+        
+        address owner = ownerOf(_tokenId);
+        if(owner != msg.sender) {
             revert ERC721NotOwner(msg.sender, _tokenId);
         }
 
+        _beforeBurn(owner, _tokenId);
+
         _burn(_tokenId);
+
+        _afterBurn(owner, _tokenId);
     }
 
-    function mint(address _to, bytes memory _data) external payable mintHooks(_to, nextTokenIdToMint, _data) {
-        _mint(_to, nextTokenIdToMint++, hookImplementation[Hook.BeforeMint]);
-    }
+    function mint(address _to, bytes memory _data) external payable {
 
-    function setHook(Hook _hook, address _implementation) external onlyAuthorized(ADMIN_ROLE_BITS) {
-        _setHookImplementation(_implementation, _hook);   
-    }
+        (bool success, uint256 tokenIdToMint) = _beforeMint(_to, _data);
 
-    function disableHook(Hook _hook) external onlyAuthorized(ADMIN_ROLE_BITS) {
-        _diableHook(_hook);
+        if(success) {
+            _mint(_to, tokenIdToMint, address(0));
+            _afterMint(_to, tokenIdToMint);
+            return;
+        }
+
+        revert ERC721CoreMintNotAuthorized();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -74,11 +81,23 @@ contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permission {
         address from,
         address to,
         uint256 id
-    ) public override transferHooks(from, to, id) {
+    ) public override {
+        _beforeTransfer(from, to, id);
         super.transferFrom(from, to, id);
+        _afterTransfer(from, to, id);
     }
 
-    function approve(address spender, uint256 id) public override approveHooks(msg.sender, spender, id) {
+    function approve(address spender, uint256 id) public override {
+        _beforeApprove(msg.sender, spender, id);
         super.approve(spender, id);
+        _afterApprove(msg.sender, spender, id);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _canUpdateHooks(address _caller) internal view override returns (bool) {
+        return hasRole(_caller, ADMIN_ROLE_BITS);
     }
 }
