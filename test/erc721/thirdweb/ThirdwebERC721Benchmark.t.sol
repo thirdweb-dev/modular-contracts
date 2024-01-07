@@ -4,9 +4,10 @@ pragma solidity ^0.8.0;
 // Test util
 import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
 import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { ITokenHook } from "src/interface/hooks/ITokenHook.sol";
 
 // Target test contracts
-import { ERC721Core, ERC721Hooks } from "src/erc721/ERC721Core.sol";
+import { ERC721Core } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
 import { Permission } from "src/extension/Permission.sol";
 
@@ -23,7 +24,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         // Set `ERC721SimpleClaim` contract as minter
         vm.prank(admin);
-        ERC721Core(erc721Contract).setHook(ERC721Hooks.Hook.BeforeMint, address(simpleClaim));
+        ERC721Core(erc721Contract).installHook(ITokenHook(address(simpleClaim)));
 
         // Setup claim condition
         string[] memory inputs = new string[](2);

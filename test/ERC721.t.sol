@@ -11,7 +11,7 @@ import { TransferHook } from "test/mocks/TransferHook.sol";
 
 // Target test contracts
 import { IERC721 } from "src/interface/erc721/IERC721.sol";
-import { ERC721Hooks } from "src/erc721/ERC721Hooks.sol";
+import { ITokenHook } from "src/interface/hooks/ITokenHook.sol";
 import { ERC721Core, ERC721 } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
 
@@ -93,7 +93,7 @@ contract ERC721Test is Test {
         simpleClaim.setClaimCondition(address(erc721), condition);
 
         // Set `ERC721SimpleClaim` contract as minter
-        erc721.setHook(ERC721Hooks.Hook.BeforeMint, address(simpleClaim));
+        erc721.installHook(ITokenHook(address(simpleClaim)));
 
         vm.stopPrank();
     }
@@ -112,7 +112,7 @@ contract ERC721Test is Test {
         assertEq(claimer.balance, 0.5 ether);
         assertEq(admin.balance, 0);
         assertEq(erc721.balanceOf(claimer), 0);
-        assertEq(erc721.nextTokenIdToMint(), 0);
+        assertEq(simpleClaim.nextTokenIdToMint(), 0);
         vm.expectRevert(
             abi.encodeWithSelector(IERC721.ERC721NotMinted.selector, 0)
         );
@@ -132,7 +132,7 @@ contract ERC721Test is Test {
         assertEq(claimer.balance, 0.4 ether);
         assertEq(admin.balance, 0.1 ether);
         assertEq(erc721.balanceOf(claimer), 1);
-        assertEq(erc721.nextTokenIdToMint(), 1);
+        assertEq(simpleClaim.nextTokenIdToMint(), 1);
         assertEq(erc721.ownerOf(0), claimer);
 
         assertEq(erc721.tokenURI(0), "https://example.com/0");
@@ -149,8 +149,8 @@ contract ERC721Test is Test {
         vm.startPrank(admin);
 
         // Set transfer hook
-        erc721.setHook(ERC721Hooks.Hook.BeforeTransfer, address(transferHook));
-        assertEq(erc721.hookImplementation(ERC721Hooks.Hook.BeforeTransfer), address(transferHook));
+        erc721.installHook(ITokenHook(address(transferHook)));
+        assertEq(erc721.getHookImplementation(erc721.BEFORE_TRANSFER_FLAG()), address(transferHook));
 
         // Mint token
         ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
@@ -201,8 +201,10 @@ contract ERC721Test is Test {
         );
 
         // Set this contract as minter on ERC721 Core
-        vm.prank(admin);
-        erc721.setHook(ERC721Hooks.Hook.BeforeMint, proxySimpleClaim);
+        vm.startPrank(admin);
+        erc721.uninstallHook(ITokenHook(simpleClaim));
+        erc721.installHook(ITokenHook(proxySimpleClaim));
+        vm.stopPrank();
 
         // Set claim conditions and claim one token
 

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.0;
 
-import "src/erc721/ERC721Hooks.sol";
+import "src/erc721/TokenHook.sol";
 import "src/extension/Permission.sol";
 
-contract TransferHook is Permission {
+contract TransferHook is TokenHook, Permission {
 
     using BitMaps for BitMaps.BitMap;
 
@@ -17,12 +17,16 @@ contract TransferHook is Permission {
         isTransferrable = _defaultTransferrable;
     }
 
+    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
+        hooksImplemented = BEFORE_TRANSFER_FLAG;
+    }
+
     function setTransferrable(bool _isTransferrable) external {
         require(hasRole(msg.sender, ADMIN_ROLE_BITS), "TransferHook: not admin");
         isTransferrable = _isTransferrable;
     }
 
-    function beforeTransfer(address from, address to, uint256) external view {
+    function beforeTransfer(address from, address to, uint256) external view override {
         if (!isTransferrable) {
             require(hasRole(from, TRANSFER_ROLE_BITS) || hasRole(to, TRANSFER_ROLE_BITS), "restricted to TRANSFER_ROLE holders");
         }
