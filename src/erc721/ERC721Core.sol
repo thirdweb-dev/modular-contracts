@@ -66,19 +66,19 @@ contract ERC721Core is Initializable, ERC721, TokenHookConsumer, Permission {
     //////////////////////////////////////////////////////////////*/
 
     function transferFrom(
-        address from,
-        address to,
-        uint256 id
+        address _from,
+        address _to,
+        uint256 _id
     ) public override {
-        _beforeTransfer(from, to, id);
-        super.transferFrom(from, to, id);
-        _afterTransfer(from, to, id);
+        _beforeTransfer(_from, _to, _id);
+        super.transferFrom(_from, _to, _id);
+        _afterTransfer(_from, _to, _id);
     }
 
-    function approve(address spender, uint256 id) public override {
-        _beforeApprove(msg.sender, spender, id);
-        super.approve(spender, id);
-        _afterApprove(msg.sender, spender, id);
+    function approve(address _spender, uint256 _id) public override {
+        _beforeApprove(msg.sender, _spender, _id);
+        super.approve(_spender, _id);
+        _afterApprove(msg.sender, _spender, _id);
     }
 
     /*//////////////////////////////////////////////////////////////
