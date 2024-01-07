@@ -8,7 +8,7 @@ import { CloneFactory } from "src/infra/CloneFactory.sol";
 // Target test contracts
 import { ERC721Core, ERC721Hooks } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
-import { Permissions } from "src/extension/Permissions.sol";
+import { Permission } from "src/extension/Permission.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 

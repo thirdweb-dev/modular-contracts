@@ -5,9 +5,9 @@ import { ERC721 } from  "./ERC721.sol";
 import { ERC721Hooks } from "./ERC721Hooks.sol";
 import { BitMaps } from "../lib/BitMaps.sol";
 import { Initializable } from "../extension/Initializable.sol";
-import { Permissions } from "../extension/Permissions.sol";
+import { Permission } from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permissions {
+contract ERC721Core is Initializable, ERC721, ERC721Hooks, Permission {
 
     using BitMaps for BitMaps.BitMap;
 

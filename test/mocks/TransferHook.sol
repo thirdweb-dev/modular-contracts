@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "src/erc721/ERC721Hooks.sol";
-import "src/extension/Permissions.sol";
+import "src/extension/Permission.sol";
 
-contract TransferHook is Permissions {
+contract TransferHook is Permission {
 
     using BitMaps for BitMaps.BitMap;
 
