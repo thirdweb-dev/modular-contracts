@@ -136,11 +136,11 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         }
     }
 
-    function _afterMint(address _to, uint256 _tokenId) internal virtual {
+    function _afterMint(address _to, uint256 _startId, uint256 _quantity) internal virtual {
         address hook = getHookImplementation(AFTER_MINT_FLAG);
 
         if(hook != address(0)) {
-            ITokenHook(hook).afterMint(_to, _tokenId);
+            ITokenHook(hook).afterMint(_to, _startId, _quantity);
         }
     }
 

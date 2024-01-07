@@ -26,7 +26,7 @@ abstract contract TokenHook is ITokenHook {
         revert TokenHookNotImplemented();
     }
 
-    function afterMint(address _to, uint256 _tokenId) external virtual {
+    function afterMint(address _to, uint256 _startId, uint256 _quantity) external virtual {
         revert TokenHookNotImplemented();
     }
 
@@ -70,7 +70,7 @@ contract TokenHookExample is TokenHook {
         emit TokenMinted(tokenIdToMint);
     }
 
-    function afterMint(address, uint256 _tokenId) external override {
-        emit TokenMinted(_tokenId);
+    function afterMint(address, uint256 _startId, uint256) external override {
+        emit TokenMinted(_startId);
     }
 }

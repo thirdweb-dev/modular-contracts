@@ -93,15 +93,18 @@ contract ERC721SimpleClaim is TokenHook {
 
         ClaimCondition memory condition = claimCondition[token];
 
-        if(msg.value != condition.price) {
-            revert IncorrectValueSent(msg.value, condition.price);
-        }
         if(condition.availableSupply == 0) {
             revert NotEnouthSupply(token);
         }
 
+        (uint256 quantity, bytes32[] memory allowlistProof) = abi.decode(_data, (uint256, bytes32[]));
+        uint256 totalPrice = condition.price * quantity;
+
+        if(msg.value != totalPrice) {
+            revert IncorrectValueSent(msg.value, totalPrice);
+        }
+
         if(condition.allowlistMerkleRoot != bytes32(0)) {
-            bytes32[] memory allowlistProof = abi.decode(_data, (bytes32[]));
             
             (bool isAllowlisted, ) = MerkleProof.verify(
                 allowlistProof,
@@ -117,7 +120,7 @@ contract ERC721SimpleClaim is TokenHook {
             }
         }
         
-        claimCondition[token].availableSupply -= 1;
+        claimCondition[token].availableSupply -= quantity;
 
         (bool success,) = condition.saleRecipient.call{value: msg.value}("");
         if(!success) {
@@ -125,7 +128,7 @@ contract ERC721SimpleClaim is TokenHook {
         }
 
         tokenIdToMint = nextTokenIdToMint;
-        nextTokenIdToMint += 1;
+        nextTokenIdToMint += quantity;
     }
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {

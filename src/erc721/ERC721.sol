@@ -177,42 +177,27 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata {
                         INTERNAL MINT/BURN LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function _mint(address _to, uint256 _id) internal virtual {
+    function _mint(address _to, uint256 _startId, uint256 _quantity, address _metadataSource) internal virtual {
         if(_to == address(0)) {
             revert ERC721InvalidRecipient();
         }
 
-        if(_tokenData[_id].owner != address(0)) {
-            revert ERC721AlreadyMinted(_id);
-        }
+        uint256 endId = _startId + _quantity;
 
         // Counter overflow is incredibly unrealistic.
         unchecked {
-            _balanceOf[_to]++;
+            _balanceOf[_to] += _quantity;
         }
 
-        _tokenData[_id].owner = _to;
+        for(uint256 id = _startId; id < endId; id++) {
+            if(_tokenData[id].owner != address(0)) {
+                revert ERC721AlreadyMinted(id);
+            }
 
-        emit Transfer(address(0), _to, _id);
-    }
+            _tokenData[id] = TokenData(_to, _metadataSource);
 
-    function _mint(address _to, uint256 _id, address _metadataSource) internal virtual {
-        if(_to == address(0)) {
-            revert ERC721InvalidRecipient();
+            emit Transfer(address(0), _to, id);
         }
-
-        if(_tokenData[_id].owner != address(0)) {
-            revert ERC721AlreadyMinted(_id);
-        }
-
-        // Counter overflow is incredibly unrealistic.
-        unchecked {
-            _balanceOf[_to]++;
-        }
-
-        _tokenData[_id] = TokenData(_to, _metadataSource);
-
-        emit Transfer(address(0), _to, _id);
     }
 
     function _burn(uint256 _id) internal virtual {
@@ -232,36 +217,6 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata {
         delete getApproved[_id];
 
         emit Transfer(owner, address(0), _id);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        INTERNAL SAFE MINT LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function _safeMint(address _to, uint256 _id) internal virtual {
-        _mint(_to, _id);
-
-        if(
-            _to.code.length != 0 
-                && ERC721TokenReceiver(_to).onERC721Received(msg.sender, address(0), _id, "") != ERC721TokenReceiver.onERC721Received.selector
-        ) {
-            revert ERC721UnsafeRecipient(_to);
-        }
-    }
-
-    function _safeMint(
-        address _to,
-        uint256 _id,
-        bytes memory _data
-    ) internal virtual {
-        _mint(_to, _id);
-
-        if(
-            _to.code.length != 0 
-                && ERC721TokenReceiver(_to).onERC721Received(msg.sender, address(0), _id, _data) != ERC721TokenReceiver.onERC721Received.selector
-        ) {
-            revert ERC721UnsafeRecipient(_to);
-        }
     }
 }
 

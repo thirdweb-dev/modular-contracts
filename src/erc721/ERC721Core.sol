@@ -48,13 +48,13 @@ contract ERC721Core is Initializable, ERC721, TokenHookConsumer, Permission {
         _afterBurn(owner, _tokenId);
     }
 
-    function mint(address _to, bytes memory _data) external payable {
+    function mint(address _to, uint256 _quantity, bytes memory _data) external payable {
 
         (bool success, address metadataSource, uint256 tokenIdToMint) = _beforeMint(_to, _data);
 
         if(success) {
-            _mint(_to, tokenIdToMint, metadataSource);
-            _afterMint(_to, tokenIdToMint);
+            _mint(_to, tokenIdToMint, _quantity, metadataSource);
+            _afterMint(_to, tokenIdToMint, _quantity);
             return;
         }
 

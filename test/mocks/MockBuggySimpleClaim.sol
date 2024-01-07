@@ -47,8 +47,7 @@ contract MockBuggySimpleClaim is TokenHook {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
     
-    uint256 public constant ADMIN_ROLE = 2 ** 1;
-    uint8 public constant TRANSFER_ROLE_BITS = 2 ** 2;
+    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -64,8 +63,8 @@ contract MockBuggySimpleClaim is TokenHook {
                         VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function tokenURI(uint256 id) external view returns (string memory) {
-        return string(abi.encodePacked(baseURI[msg.sender], id.toString()));
+    function tokenURI(uint256 _id) external view returns (string memory) {
+        return string(abi.encodePacked(baseURI[msg.sender], _id.toString()));
     }
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
@@ -77,8 +76,8 @@ contract MockBuggySimpleClaim is TokenHook {
     //////////////////////////////////////////////////////////////*/
 
     function setBaseURI(address _token, string memory _baseURI) external {
-        // Checks `ADMIN_ROLE=0`
-        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE)) {
+        // Checks `ADMIN_ROLE_BITS=0`
+        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert Unauthorized(msg.sender, _token);
         }
 
@@ -87,37 +86,40 @@ contract MockBuggySimpleClaim is TokenHook {
         emit BaseURISet(_token, _baseURI);
     }
 
-    function beforeMint(address claimer, bytes memory data) external payable override returns (uint256 tokenIdToMint) {
+    function beforeMint(address _claimer, bytes memory _data) external payable override returns (uint256 tokenIdToMint) {
 
         address token = msg.sender;
 
         ClaimCondition memory condition = claimCondition[token];
 
-        if(msg.value != condition.price) {
-            revert IncorrectValueSent(msg.value, condition.price);
-        }
         if(condition.availableSupply == 0) {
             revert NotEnouthSupply(token);
         }
 
+        (uint256 quantity, bytes32[] memory allowlistProof) = abi.decode(_data, (uint256, bytes32[]));
+        uint256 totalPrice = condition.price * quantity;
+
+        if(msg.value != totalPrice) {
+            revert IncorrectValueSent(msg.value, totalPrice);
+        }
+
         if(condition.allowlistMerkleRoot != bytes32(0)) {
-            bytes32[] memory allowlistProof = abi.decode(data, (bytes32[]));
             
             (bool isAllowlisted, ) = MerkleProof.verify(
                 allowlistProof,
                 condition.allowlistMerkleRoot,
                 keccak256(
                     abi.encodePacked(
-                        claimer
+                        _claimer
                     )
                 )
             );
             if(!isAllowlisted) {
-                revert NotInAllowlist(token, claimer);
+                revert NotInAllowlist(token, _claimer);
             }
         }
         
-        // BUG: This contract does not decrement available supply after a claim.
+        // BUG: the supply is not decremented!
 
         (bool success,) = condition.saleRecipient.call{value: msg.value}("");
         if(!success) {
@@ -125,12 +127,12 @@ contract MockBuggySimpleClaim is TokenHook {
         }
 
         tokenIdToMint = nextTokenIdToMint;
-        nextTokenIdToMint += 1;
+        nextTokenIdToMint += quantity;
     }
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {
-        // Checks `ADMIN_ROLE=0`
-        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE)) {
+        // Checks `ADMIN_ROLE_BITS=0`
+        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert Unauthorized(msg.sender, _token);
         }
         claimCondition[_token] = _claimCondition;
