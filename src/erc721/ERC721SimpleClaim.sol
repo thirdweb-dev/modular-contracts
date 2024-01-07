@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 /// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
 /// used by anyone for their copy of `ERC721Core`.
 
-import { Permissions } from "../extension/Permissions.sol";
+import { Permission } from "../extension/Permission.sol";
 import { MerkleProof } from "../lib/MerkleProof.sol";
 import { Strings } from "../lib/Strings.sol";
 
@@ -71,7 +71,7 @@ contract ERC721SimpleClaim {
 
     function setBaseURI(address _token, string memory _baseURI) external {
         // Checks `ADMIN_ROLE=0`
-        if(!Permissions(_token).hasRole(msg.sender, ADMIN_ROLE)) {
+        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE)) {
             revert Unauthorized(msg.sender, _token);
         }
 
@@ -120,7 +120,7 @@ contract ERC721SimpleClaim {
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {
         // Checks `ADMIN_ROLE=0`
-        if(!Permissions(_token).hasRole(msg.sender, ADMIN_ROLE)) {
+        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE)) {
             revert Unauthorized(msg.sender, _token);
         }
         claimCondition[_token] = _claimCondition;

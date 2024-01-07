@@ -1,22 +1,11 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
 import "../lib/BitMaps.sol";
+import "../interface/extension/IPermission.sol";
 
-contract Permissions {
+contract Permission is IPermission {
     using BitMaps for BitMaps.BitMap;
-
-    /*//////////////////////////////////////////////////////////////
-                               EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event UpdatePermissions(address indexed account, uint256 permissionBits);
-
-    /*//////////////////////////////////////////////////////////////
-                               ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error Unauthorized(address caller, uint256 permissionBits);
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -36,7 +25,7 @@ contract Permissions {
 
     modifier onlyAuthorized(uint256 permissionBits) {
         if(!hasRole(msg.sender, permissionBits)) {
-            revert Unauthorized(msg.sender, permissionBits);
+            revert PermissionUnauthorized(msg.sender, permissionBits);
         }
         _;
     }
@@ -71,7 +60,7 @@ contract Permissions {
         permissions |= _roleBits;
         _permissionBits[_account] = permissions;
 
-        emit UpdatePermissions(_account, _roleBits);
+        emit PermissionUpdated(_account, _roleBits);
     }
 
     function _revokeRole(address _account, uint256 _roleBits) internal {
@@ -79,6 +68,6 @@ contract Permissions {
         permissions &= ~_roleBits;
         _permissionBits[_account] = permissions;
 
-        emit UpdatePermissions(_account, permissions);
+        emit PermissionUpdated(_account, permissions);
     }
 }

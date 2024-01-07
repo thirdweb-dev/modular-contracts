@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 ///       supply after a claim.
 
 import { ERC721Core } from "src/erc721/ERC721Core.sol"; 
-import { Permissions } from "src/extension/Permissions.sol";
+import { Permission } from "src/extension/Permission.sol";
 import { MerkleProof } from "src/lib/MerkleProof.sol";
 import { Strings } from "src/lib/Strings.sol";
 
@@ -71,7 +71,7 @@ contract MockBuggySimpleClaim {
 
     function setBaseURI(address _token, string memory _baseURI) external {
         // Checks `ADMIN_ROLE=0`
-        if(!Permissions(_token).hasRole(msg.sender, ADMIN_ROLE)) {
+        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE)) {
             revert Unauthorized(msg.sender, _token);
         }
 
@@ -117,7 +117,7 @@ contract MockBuggySimpleClaim {
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {
         // Checks `ADMIN_ROLE=0`
-        if(!Permissions(_token).hasRole(msg.sender, ADMIN_ROLE)) {
+        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE)) {
             revert Unauthorized(msg.sender, _token);
         }
         claimCondition[_token] = _claimCondition;

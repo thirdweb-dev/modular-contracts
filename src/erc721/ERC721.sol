@@ -2,6 +2,8 @@
 pragma solidity >=0.8.0;
 
 import { Initializable } from  "../extension/Initializable.sol";
+import { IERC721 } from "../interface/erc721/IERC721.sol";
+import { IERC721Metadata } from "../interface/erc721/IERC721Metadata.sol";
 
 /**
  *  CHANGELOG:
@@ -9,31 +11,13 @@ import { Initializable } from  "../extension/Initializable.sol";
  *      - Replace _ownerOf with _tokenData.
  *      - Replace `require` statements with custom errors.
  *      - Remove require(owner != address(0)) statement from `balanceOf`.
+ *      - Move events and errors to interface
+ *      - Implement tokenURI
  */
 
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
-contract ERC721 is Initializable {
-    /*//////////////////////////////////////////////////////////////
-                                 EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event Transfer(address indexed from, address indexed to, uint256 indexed id);
-
-    event Approval(address indexed owner, address indexed spender, uint256 indexed id);
-
-    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
-
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error NotMinted(uint256 tokenId);
-    error AlreadyMinted(uint256 tokenId);
-    error NotAuthorized(address operator, uint256 tokenId);
-    error NotOwner(address caller, uint256 tokenId);
-    error InvalidRecipient();
-    error UnsafeRecipient(address recipient);
+contract ERC721 is Initializable, IERC721, IERC721Metadata {
 
     /*//////////////////////////////////////////////////////////////
                          METADATA STORAGE/LOGIC
@@ -73,7 +57,7 @@ contract ERC721 is Initializable {
 
     function ownerOf(uint256 id) public view virtual returns (address owner) {
         if((owner = _tokenData[id].owner) == address(0)) {
-            revert NotMinted(id);
+            revert ERC721NotMinted(id);
         }
     }
 
@@ -108,7 +92,7 @@ contract ERC721 is Initializable {
         address owner = _tokenData[id].owner;
 
         if(msg.sender != owner && !isApprovedForAll[owner][msg.sender]) {
-            revert NotAuthorized(msg.sender, id);
+            revert ERC721NotApproved(msg.sender, id);
         }
 
         getApproved[id] = spender;
@@ -128,15 +112,15 @@ contract ERC721 is Initializable {
         uint256 id
     ) public virtual {
         if(from != _tokenData[id].owner) {
-            revert NotOwner(from, id);
+            revert ERC721NotOwner(from, id);
         }
 
         if(to == address(0)) {
-            revert InvalidRecipient();
+            revert ERC721InvalidRecipient();
         }
 
         if(msg.sender != from && !isApprovedForAll[from][msg.sender] && msg.sender != getApproved[id]) {
-            revert NotAuthorized(msg.sender, id);
+            revert ERC721NotApproved(msg.sender, id);
         }
 
         // Underflow of the sender's balance is impossible because we check for
@@ -165,7 +149,7 @@ contract ERC721 is Initializable {
             to.code.length != 0 
                 && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") != ERC721TokenReceiver.onERC721Received.selector
         ) {
-            revert UnsafeRecipient(to);
+            revert ERC721UnsafeRecipient(to);
         }
         
     }
@@ -182,7 +166,7 @@ contract ERC721 is Initializable {
             to.code.length != 0 
                 && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) != ERC721TokenReceiver.onERC721Received.selector
         ) {
-            revert UnsafeRecipient(to);
+            revert ERC721UnsafeRecipient(to);
         }
     }
 
@@ -203,11 +187,11 @@ contract ERC721 is Initializable {
 
     function _mint(address to, uint256 id) internal virtual {
         if(to == address(0)) {
-            revert InvalidRecipient();
+            revert ERC721InvalidRecipient();
         }
 
         if(_tokenData[id].owner != address(0)) {
-            revert AlreadyMinted(id);
+            revert ERC721AlreadyMinted(id);
         }
 
         // Counter overflow is incredibly unrealistic.
@@ -222,11 +206,11 @@ contract ERC721 is Initializable {
 
     function _mint(address to, uint256 id, address _hook) internal virtual {
         if(to == address(0)) {
-            revert InvalidRecipient();
+            revert ERC721InvalidRecipient();
         }
 
         if(_tokenData[id].owner != address(0)) {
-            revert AlreadyMinted(id);
+            revert ERC721AlreadyMinted(id);
         }
 
         // Counter overflow is incredibly unrealistic.
@@ -243,7 +227,7 @@ contract ERC721 is Initializable {
         address owner = _tokenData[id].owner;
 
         if(owner == address(0)) {
-            revert NotMinted(id);
+            revert ERC721NotMinted(id);
         }
 
         // Ownership check above ensures no underflow.
@@ -269,7 +253,7 @@ contract ERC721 is Initializable {
             to.code.length != 0 
                 && ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, "") != ERC721TokenReceiver.onERC721Received.selector
         ) {
-            revert UnsafeRecipient(to);
+            revert ERC721UnsafeRecipient(to);
         }
     }
 
@@ -284,14 +268,9 @@ contract ERC721 is Initializable {
             to.code.length != 0 
                 && ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data) != ERC721TokenReceiver.onERC721Received.selector
         ) {
-            revert UnsafeRecipient(to);
+            revert ERC721UnsafeRecipient(to);
         }
     }
-}
-
-/// @notice A generic interface for a contract that returns token URI metadata for ERC721 tokens.
-interface IERC721Metadata {
-    function tokenURI(uint256 id) external view returns (string memory);
 }
 
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
