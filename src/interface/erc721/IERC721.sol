@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-interface IERC721 {
+import "../common/IERC165.sol";
+
+interface IERC721 is IERC165 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -61,10 +63,4 @@ interface IERC721 {
         uint256 id,
         bytes calldata data
     ) external;
-
-    /*//////////////////////////////////////////////////////////////
-                              ERC165 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
