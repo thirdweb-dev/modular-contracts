@@ -8,7 +8,7 @@ import { ITokenHook } from "src/interface/extension/ITokenHook.sol";
 
 // Target test contracts
 import { ERC721Core } from "src/erc721/ERC721Core.sol";
-import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
+import { ERC721SimpleClaim } from "src/erc721/hooks/ERC721SimpleClaim.sol";
 import { Permission } from "src/extension/Permission.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {

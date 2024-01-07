@@ -6,10 +6,10 @@ pragma solidity ^0.8.0;
 /// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
 /// used by anyone for their copy of `ERC721Core`.
 
-import { TokenHook } from "../extension/TokenHook.sol";
-import { Permission } from "../extension/Permission.sol";
-import { MerkleProof } from "../lib/MerkleProof.sol";
-import { Strings } from "../lib/Strings.sol";
+import { TokenHook } from "../../extension/TokenHook.sol";
+import { Permission } from "../../extension/Permission.sol";
+import { MerkleProof } from "../../lib/MerkleProof.sol";
+import { Strings } from "../../lib/Strings.sol";
 
 contract ERC721SimpleClaim is TokenHook {
 
