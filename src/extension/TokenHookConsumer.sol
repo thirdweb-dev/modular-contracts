@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../lib/BitMaps.sol";
 import "../lib/Address.sol";
-import { ITokenHook, ITokenHookConsumer } from "../interface/hooks/ITokenHookConsumer.sol";
+import { ITokenHook, ITokenHookConsumer } from "../interface/extension/ITokenHookConsumer.sol";
 
 abstract contract TokenHookConsumer is ITokenHookConsumer {
 

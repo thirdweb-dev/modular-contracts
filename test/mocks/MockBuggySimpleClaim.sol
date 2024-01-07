@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 ///       It is the same as ERC721SimpleClaim, but with the bug that is does not decrement available
 ///       supply after a claim.
 
-import { TokenHook } from "src/erc721/TokenHook.sol";
+import { TokenHook } from "src/extension/TokenHook.sol";
 import { Permission } from "src/extension/Permission.sol";
 import { MerkleProof } from "src/lib/MerkleProof.sol";
 import { Strings } from "src/lib/Strings.sol";

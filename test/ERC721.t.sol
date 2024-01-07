@@ -11,7 +11,7 @@ import { TransferHook } from "test/mocks/TransferHook.sol";
 
 // Target test contracts
 import { IERC721 } from "src/interface/erc721/IERC721.sol";
-import { ITokenHook } from "src/interface/hooks/ITokenHook.sol";
+import { ITokenHook } from "src/interface/extension/ITokenHook.sol";
 import { ERC721Core, ERC721 } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/ERC721SimpleClaim.sol";
 

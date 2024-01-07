@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.0;
 
-import "src/erc721/TokenHook.sol";
+import "src/extension/TokenHook.sol";
 import "src/extension/Permission.sol";
 
 contract TransferHook is TokenHook, Permission {

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { ERC721 } from  "./ERC721.sol";
-import { TokenHookConsumer } from "./TokenHookConsumer.sol";
+import { TokenHookConsumer } from "../extension/TokenHookConsumer.sol";
 import { BitMaps } from "../lib/BitMaps.sol";
 import { Initializable } from "../extension/Initializable.sol";
 import { Permission } from "../extension/Permission.sol";
