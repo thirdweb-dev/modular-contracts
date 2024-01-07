@@ -49,7 +49,6 @@ contract ERC721SimpleClaim is TokenHook {
     //////////////////////////////////////////////////////////////*/
     
     uint256 public constant ADMIN_ROLE = 2 ** 1;
-    uint8 public constant TRANSFER_ROLE_BITS = 2 ** 2;
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
