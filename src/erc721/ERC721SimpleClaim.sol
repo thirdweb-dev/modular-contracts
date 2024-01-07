@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
 /// This is an example claim mechanism contract that calls that calls into the ERC721Core contract's mint API.
@@ -6,11 +6,12 @@ pragma solidity ^0.8.0;
 /// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
 /// used by anyone for their copy of `ERC721Core`.
 
+import { TokenHook } from "./TokenHook.sol";
 import { Permission } from "../extension/Permission.sol";
 import { MerkleProof } from "../lib/MerkleProof.sol";
 import { Strings } from "../lib/Strings.sol";
 
-contract ERC721SimpleClaim {
+contract ERC721SimpleClaim is TokenHook {
 
     using Strings for uint256;
 
@@ -41,17 +42,20 @@ contract ERC721SimpleClaim {
     error IncorrectValueSent(uint256 msgValue, uint256 price);
     error NotInAllowlist(address token, address claimer);
     error NativeTransferFailed(address recipient, uint256 amount);
+    error NotTransferrable(address from, address to, uint256 tokenId);
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
     
     uint256 public constant ADMIN_ROLE = 2 ** 1;
+    uint8 public constant TRANSFER_ROLE_BITS = 2 ** 2;
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    uint256 public nextTokenIdToMint;
     mapping(address => string) public baseURI;
     mapping(address => ClaimCondition) public claimCondition;
 
@@ -63,6 +67,10 @@ contract ERC721SimpleClaim {
 
     function tokenURI(uint256 id) external view returns (string memory) {
         return string(abi.encodePacked(baseURI[msg.sender], id.toString()));
+    }
+
+    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
+        hooksImplemented = BEFORE_MINT_FLAG;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -80,7 +88,7 @@ contract ERC721SimpleClaim {
         emit BaseURISet(_token, _baseURI);
     }
 
-    function beforeMint(address claimer, uint256, bytes memory data) public payable {
+    function beforeMint(address claimer, bytes memory data) external payable override returns (uint256 tokenIdToMint) {
 
         address token = msg.sender;
 
@@ -116,6 +124,9 @@ contract ERC721SimpleClaim {
         if(!success) {
             revert NativeTransferFailed(condition.saleRecipient, msg.value);
         }
+
+        tokenIdToMint = nextTokenIdToMint;
+        nextTokenIdToMint += 1;
     }
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {
