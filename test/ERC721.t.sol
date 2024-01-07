@@ -97,6 +97,13 @@ contract ERC721Test is Test {
         vm.stopPrank();
     }
 
+    function test_bits() public {
+
+        for(uint256 i = 0; i < 256 ; i++) {
+            assertEq(1 << i, 2 ** i);
+        }
+    }
+
     function test_mint() public {
         
         vm.deal(claimer, 0.5 ether);

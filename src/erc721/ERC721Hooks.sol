@@ -2,43 +2,16 @@
 pragma solidity ^0.8.0;
 
 import "../lib/Address.sol";
+import { TokenHookRegister } from "./TokenHooks.sol";
 
 // before/after hooks at ERC721 functions: mint, transfer, burn and approve
-contract ERC721Hooks {
-
-    /*//////////////////////////////////////////////////////////////
-                                TYPES
-    //////////////////////////////////////////////////////////////*/
-
-    enum Hook {
-        BeforeMint,
-        AfterMint,
-        BeforeTransfer,
-        AfterTransfer,
-        BeforeBurn,
-        AfterBurn,
-        BeforeApprove,
-        AfterApprove
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event HookSet(Hook hook, address implementation);
+contract ERC721Hooks is TokenHookRegister {
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error HookInactive(Hook hook);
     error NoBeforeMintHook();
-
-    /*//////////////////////////////////////////////////////////////
-                                STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    mapping(Hook => address) public hookImplementation;
 
     /*//////////////////////////////////////////////////////////////
                             HOOKS MODIFIERS
@@ -67,32 +40,17 @@ contract ERC721Hooks {
         _;
         _afterApprove(_from, _to, _tokenId);
     }
-    
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function _diableHook(Hook hook) internal {
-        delete hookImplementation[hook];
-        emit HookSet(hook, address(0));
-    }
-
-    function _setHookImplementation(address _implementation, Hook hook) internal {
-        hookImplementation[hook] = _implementation;
-        emit HookSet(hook, _implementation);
-    }
 
     /*//////////////////////////////////////////////////////////////
                             HOOKS FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     function _beforeMint(address to, uint256 tokenId, bytes memory data) internal virtual {
-        address hook = hookImplementation[Hook.BeforeMint];
 
-        if(hook == address(0)) {
+        if(!_isHookActive(BEFORE_MINT_FLAG)) {
             revert NoBeforeMintHook();
         }
-        IHooksERC721(hook).beforeMint{value: msg.value}(to, tokenId, data);
+        IHooksERC721(getHookImplementation(BEFORE_MINT_FLAG)).beforeMint{value: msg.value}(to, tokenId, data);
     }
 
     function _afterMint(address to, uint256 tokenId) internal virtual {
