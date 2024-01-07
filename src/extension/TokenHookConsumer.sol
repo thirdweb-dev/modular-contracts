@@ -127,68 +127,68 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
                         HOOKS INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _beforeMint(address to, bytes memory data) internal virtual returns (bool success, address hook, uint256 tokenIdToMint) {
+    function _beforeMint(address _to, bytes memory _data) internal virtual returns (bool success, address hook, uint256 tokenIdToMint) {
         hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if(hook != address(0)) {
-            tokenIdToMint = ITokenHook(hook).beforeMint{value: msg.value}(to, data);
+            tokenIdToMint = ITokenHook(hook).beforeMint{value: msg.value}(_to, _data);
             success = true;
         }
     }
 
-    function _afterMint(address to, uint256 tokenId) internal virtual {
+    function _afterMint(address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(AFTER_MINT_FLAG);
 
         if(hook != address(0)) {
-            ITokenHook(hook).afterMint(to, tokenId);
+            ITokenHook(hook).afterMint(_to, _tokenId);
         }
     }
 
-    function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
+    function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if(hook != address(0)) {
-            ITokenHook(hook).beforeTransfer(from, to, tokenId);
+            ITokenHook(hook).beforeTransfer(_from, _to, _tokenId);
         }
     }
 
-    function _afterTransfer(address from, address to, uint256 tokenId) internal virtual {
+    function _afterTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(AFTER_TRANSFER_FLAG);
 
         if(hook != address(0)) {
-            ITokenHook(hook).afterTransfer(from, to, tokenId);
+            ITokenHook(hook).afterTransfer(_from, _to, _tokenId);
         }
     }
 
-    function _beforeBurn(address from, uint256 tokenId) internal virtual {
+    function _beforeBurn(address _from, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if(hook != address(0)) {
-            ITokenHook(hook).beforeBurn(from, tokenId);
+            ITokenHook(hook).beforeBurn(_from, _tokenId);
         }
     }
 
-    function _afterBurn(address from, uint256 tokenId) internal virtual {
+    function _afterBurn(address _from, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(AFTER_BURN_FLAG);
 
         if(hook != address(0)) {
-            ITokenHook(hook).afterBurn(from, tokenId);
+            ITokenHook(hook).afterBurn(_from, _tokenId);
         }
     }
 
-    function _beforeApprove(address from, address to, uint256 tokenId) internal virtual {
+    function _beforeApprove(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if(hook != address(0)) {
-            ITokenHook(hook).beforeApprove(from, to, tokenId);
+            ITokenHook(hook).beforeApprove(_from, _to, _tokenId);
         }
     }
 
-    function _afterApprove(address from, address to, uint256 tokenId) internal virtual {
+    function _afterApprove(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(AFTER_APPROVE_FLAG);
 
         if(hook != address(0)) {
-            ITokenHook(hook).afterApprove(from, to, tokenId);
+            ITokenHook(hook).afterApprove(_from, _to, _tokenId);
         }
     }
 }

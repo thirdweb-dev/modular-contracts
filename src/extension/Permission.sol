@@ -17,15 +17,15 @@ contract Permission is IPermission {
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    mapping(address => uint256) internal _permissionBits;
+    mapping(address => uint256) private _permissionBits;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    modifier onlyAuthorized(uint256 permissionBits) {
-        if(!hasRole(msg.sender, permissionBits)) {
-            revert PermissionUnauthorized(msg.sender, permissionBits);
+    modifier onlyAuthorized(uint256 _roleBits) {
+        if(!hasRole(msg.sender, _roleBits)) {
+            revert PermissionUnauthorized(msg.sender, _roleBits);
         }
         _;
     }

@@ -22,35 +22,35 @@ abstract contract TokenHook is ITokenHook {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function beforeMint(address, bytes memory) external payable virtual returns (uint256) {
+    function beforeMint(address _to, bytes memory _data) external payable virtual returns (uint256) {
         revert TokenHookNotImplemented();
     }
 
-    function afterMint(address, uint256) external virtual {
+    function afterMint(address _to, uint256 _tokenId) external virtual {
         revert TokenHookNotImplemented();
     }
 
-    function beforeTransfer(address, address, uint256) external virtual {
+    function beforeTransfer(address _from, address _to, uint256 _tokenId) external virtual {
         revert TokenHookNotImplemented();
     }
 
-    function afterTransfer(address, address, uint256) external virtual {
+    function afterTransfer(address _from, address _to, uint256 _tokenId) external virtual {
         revert TokenHookNotImplemented();
     }
 
-    function beforeBurn(address, uint256) external virtual {
+    function beforeBurn(address _from, uint256 _tokenId) external virtual {
         revert TokenHookNotImplemented();
     }
 
-    function afterBurn(address, uint256) external virtual {
+    function afterBurn(address _from, uint256 _tokenId) external virtual {
         revert TokenHookNotImplemented();
     }
 
-    function beforeApprove(address, address, uint256) external virtual {
+    function beforeApprove(address _from, address _to, uint256 _tokenId) external virtual {
         revert TokenHookNotImplemented();
     }
 
-    function afterApprove(address, address, uint256) external virtual {
+    function afterApprove(address _from, address _to, uint256 _tokenId) external virtual {
         revert TokenHookNotImplemented();
     }
 }

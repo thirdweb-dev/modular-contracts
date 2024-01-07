@@ -64,8 +64,8 @@ contract ERC721SimpleClaim is TokenHook {
                         VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function tokenURI(uint256 id) external view returns (string memory) {
-        return string(abi.encodePacked(baseURI[msg.sender], id.toString()));
+    function tokenURI(uint256 _id) external view returns (string memory) {
+        return string(abi.encodePacked(baseURI[msg.sender], _id.toString()));
     }
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
@@ -87,7 +87,7 @@ contract ERC721SimpleClaim is TokenHook {
         emit BaseURISet(_token, _baseURI);
     }
 
-    function beforeMint(address claimer, bytes memory data) external payable override returns (uint256 tokenIdToMint) {
+    function beforeMint(address _claimer, bytes memory _data) external payable override returns (uint256 tokenIdToMint) {
 
         address token = msg.sender;
 
@@ -101,19 +101,19 @@ contract ERC721SimpleClaim is TokenHook {
         }
 
         if(condition.allowlistMerkleRoot != bytes32(0)) {
-            bytes32[] memory allowlistProof = abi.decode(data, (bytes32[]));
+            bytes32[] memory allowlistProof = abi.decode(_data, (bytes32[]));
             
             (bool isAllowlisted, ) = MerkleProof.verify(
                 allowlistProof,
                 condition.allowlistMerkleRoot,
                 keccak256(
                     abi.encodePacked(
-                        claimer
+                        _claimer
                     )
                 )
             );
             if(!isAllowlisted) {
-                revert NotInAllowlist(token, claimer);
+                revert NotInAllowlist(token, _claimer);
             }
         }
         
