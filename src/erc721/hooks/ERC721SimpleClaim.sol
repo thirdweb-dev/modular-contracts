@@ -48,7 +48,7 @@ contract ERC721SimpleClaim is TokenHook {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
     
-    uint256 public constant ADMIN_ROLE = 2 ** 1;
+    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -77,8 +77,8 @@ contract ERC721SimpleClaim is TokenHook {
     //////////////////////////////////////////////////////////////*/
 
     function setBaseURI(address _token, string memory _baseURI) external {
-        // Checks `ADMIN_ROLE=0`
-        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE)) {
+        // Checks `ADMIN_ROLE_BITS=0`
+        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert Unauthorized(msg.sender, _token);
         }
 
@@ -129,8 +129,8 @@ contract ERC721SimpleClaim is TokenHook {
     }
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {
-        // Checks `ADMIN_ROLE=0`
-        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE)) {
+        // Checks `ADMIN_ROLE_BITS=0`
+        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert Unauthorized(msg.sender, _token);
         }
         claimCondition[_token] = _claimCondition;
