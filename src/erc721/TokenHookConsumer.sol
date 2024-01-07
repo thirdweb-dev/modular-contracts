@@ -98,9 +98,6 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     }
 
     function _removeHook(uint256 _flag, uint256 _currentHooks) internal pure returns (uint256) {
-        if (_currentHooks & _flag == 0) {
-            revert TokenHookConsumerHookDoesNotExist();
-        }
         return _currentHooks & ~_flag;
     }
 
