@@ -127,7 +127,7 @@ contract ERC721Test is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc721.mint{value: 0.1 ether}(claimer, 1, abi.encode(1, proofs));
+        erc721.mint{value: 0.1 ether}(claimer, 1, abi.encode(proofs));
 
         assertEq(claimer.balance, 0.4 ether);
         assertEq(admin.balance, 0.1 ether);
@@ -160,7 +160,7 @@ contract ERC721Test is Test {
             saleRecipient: admin
         });
         simpleClaim.setClaimCondition(address(erc721), condition);
-        erc721.mint(claimer, 1, abi.encode(1, ""));
+        erc721.mint(claimer, 1, "");
         
         vm.stopPrank();
 
@@ -240,7 +240,7 @@ contract ERC721Test is Test {
         bytes32[] memory proofs = abi.decode(resultProof, (bytes32[]));
 
         vm.prank(claimer);
-        erc721.mint{value: 0.1 ether}(claimer, 1, abi.encode(1, proofs));
+        erc721.mint{value: 0.1 ether}(claimer, 1, abi.encode(proofs));
 
         assertEq(erc721.ownerOf(0), claimer);
 
@@ -258,7 +258,7 @@ contract ERC721Test is Test {
 
         // But the bug is fixed, so the supply is decremented upon a new claim
         vm.prank(claimer);
-        erc721.mint{value: 0.1 ether}(claimer, 1, abi.encode(1, proofs));
+        erc721.mint{value: 0.1 ether}(claimer, 1, abi.encode(proofs));
 
         assertEq(erc721.ownerOf(1), claimer);
         (,availableSupply,,) = ERC721SimpleClaim(proxySimpleClaim).claimCondition(address(erc721));

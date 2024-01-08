@@ -18,7 +18,7 @@ abstract contract TokenHook is ITokenHook {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function beforeMint(address _to, bytes memory _data) external payable virtual returns (uint256) {
+    function beforeMint(address _to, uint256 _quantity, bytes memory _data) external payable virtual returns (uint256) {
         revert TokenHookNotImplemented();
     }
 
@@ -45,7 +45,7 @@ contract TokenHookExample is TokenHook {
         hooksImplemented = BEFORE_MINT_FLAG | BEFORE_BURN_FLAG;
     }
 
-    function beforeMint(address, bytes memory) external payable override returns (uint256 tokenIdToMint) {
+    function beforeMint(address, uint256, bytes memory) external payable override returns (uint256 tokenIdToMint) {
         tokenIdToMint = _nextId++;
         emit SomeEvent();
     }

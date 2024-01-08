@@ -106,7 +106,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
 
-        bytes memory encodedArgs = abi.encode(1, proofs);
+        bytes memory encodedArgs = abi.encode(proofs);
 
         vm.resumeGasMetering();
 
@@ -126,7 +126,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
 
-        bytes memory encodedArgs = abi.encode(1, proofs);
+        bytes memory encodedArgs = abi.encode(proofs);
         
         vm.prank(_claimer);
         claimContract.mint{value: _price}(claimer, 1, encodedArgs);

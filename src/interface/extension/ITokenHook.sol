@@ -19,7 +19,7 @@ interface ITokenHook {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function beforeMint(address to, bytes memory data) external payable returns (uint256 tokenIdToMint);
+    function beforeMint(address to, uint256 quantity, bytes memory data) external payable returns (uint256 tokenIdToMint);
 
     function beforeTransfer(address from, address to, uint256 tokenId) external;
 

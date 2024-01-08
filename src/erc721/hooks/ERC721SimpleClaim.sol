@@ -87,7 +87,7 @@ contract ERC721SimpleClaim is TokenHook {
         emit BaseURISet(_token, _baseURI);
     }
 
-    function beforeMint(address _claimer, bytes memory _data) external payable override returns (uint256 tokenIdToMint) {
+    function beforeMint(address _claimer, uint256 _quantity, bytes memory _data) external payable override returns (uint256 tokenIdToMint) {
 
         address token = msg.sender;
 
@@ -97,14 +97,13 @@ contract ERC721SimpleClaim is TokenHook {
             revert NotEnouthSupply(token);
         }
 
-        (uint256 quantity, bytes32[] memory allowlistProof) = abi.decode(_data, (uint256, bytes32[]));
-        uint256 totalPrice = condition.price * quantity;
-
+        uint256 totalPrice = condition.price * _quantity;
         if(msg.value != totalPrice) {
             revert IncorrectValueSent(msg.value, totalPrice);
         }
 
         if(condition.allowlistMerkleRoot != bytes32(0)) {
+            bytes32[] memory allowlistProof = abi.decode(_data, (bytes32[]));
             
             (bool isAllowlisted, ) = MerkleProof.verify(
                 allowlistProof,
@@ -120,7 +119,7 @@ contract ERC721SimpleClaim is TokenHook {
             }
         }
         
-        claimCondition[token].availableSupply -= quantity;
+        claimCondition[token].availableSupply -= _quantity;
 
         (bool success,) = condition.saleRecipient.call{value: msg.value}("");
         if(!success) {
@@ -128,7 +127,7 @@ contract ERC721SimpleClaim is TokenHook {
         }
 
         tokenIdToMint = nextTokenIdToMint;
-        nextTokenIdToMint += quantity;
+        nextTokenIdToMint += _quantity;
     }
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {

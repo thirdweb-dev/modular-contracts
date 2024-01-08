@@ -139,7 +139,7 @@ contract ERC721CoreBenchmarkTest is Test {
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
         uint256 quantityToClaim = 1;
 
-        bytes memory encodedArgs = abi.encode(quantityToClaim, proofs);
+        bytes memory encodedArgs = abi.encode(proofs);
 
         ERC721Core claimContract = erc721;
         address claimerAddress = claimer;
@@ -164,7 +164,7 @@ contract ERC721CoreBenchmarkTest is Test {
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
         uint256 quantityToClaim = 10;
 
-        bytes memory encodedArgs = abi.encode(quantityToClaim, proofs);
+        bytes memory encodedArgs = abi.encode(proofs);
 
         ERC721Core claimContract = erc721;
         address claimerAddress = claimer;
@@ -193,7 +193,7 @@ contract ERC721CoreBenchmarkTest is Test {
         bytes32[] memory proofs = abi.decode(claimResult, (bytes32[]));
         uint256 quantityToClaim = 1;
 
-        bytes memory encodedArgs = abi.encode(quantityToClaim, proofs);
+        bytes memory encodedArgs = abi.encode(proofs);
 
         // Claim token
         vm.prank(claimer);
