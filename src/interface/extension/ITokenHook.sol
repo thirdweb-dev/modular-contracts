@@ -13,7 +13,9 @@ interface ITokenHook {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getHooksImplemented() external pure returns (uint256 hooksImplemented);
+    function getHooksImplemented() external view returns (uint256 hooksImplemented);
+
+    function getBeforeMintArgSignature() external view returns (string memory argSignature);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS

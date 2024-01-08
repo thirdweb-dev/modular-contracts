@@ -73,6 +73,10 @@ contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
         hooksImplemented = BEFORE_MINT_FLAG;
     }
 
+    function getBeforeMintArgSignature() external view override returns (string memory argSignature) {
+        argSignature = "bytes32[]";
+    }
+
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
         return _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }

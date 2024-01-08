@@ -15,6 +15,14 @@ abstract contract TokenHook is ITokenHook {
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function getBeforeMintArgSignature() external view virtual returns (string memory argSignature) {
+        argSignature = "";
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
