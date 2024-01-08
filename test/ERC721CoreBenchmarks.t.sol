@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import { Test } from "forge-std/Test.sol";
 
 import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol"; 
+import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
 import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
 
 import { ERC721Core, ERC721 } from "src/erc721/ERC721Core.sol";
@@ -47,13 +47,13 @@ contract ERC721CoreBenchmarkTest is Test {
         cloneFactory = new CloneFactory();
         
         hookProxyAddress = address(
-            new TransparentUpgradeableProxy(
-                address(new ERC721SimpleClaim()),
+            new MinimalUpgradeableRouter(
                 platformAdmin,
-                ""
+                address(new ERC721SimpleClaim())
             )
         );
         simpleClaimHook = ERC721SimpleClaim(hookProxyAddress);
+        assertEq(simpleClaimHook.nextTokenIdToMint(), 0);
 
         erc721Implementation = address(new ERC721Core());
 
@@ -220,16 +220,17 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
+        bytes4 sel = ERC721SimpleClaim.beforeMint.selector;
         address newImpl = address(new ERC721SimpleClaim());
         address proxyAdmin = platformAdmin;
-        TransparentUpgradeableProxy proxy = TransparentUpgradeableProxy(payable(hookProxyAddress));
+        MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
         
         vm.prank(proxyAdmin);
 
         vm.resumeGasMetering();
         
         // Perform upgrade
-        proxy.upgradeTo(newImpl);
+        proxy.setImplementationForFunction(sel, newImpl);
     }
 
     /*//////////////////////////////////////////////////////////////
