@@ -7,10 +7,11 @@ pragma solidity ^0.8.0;
 
 import { TokenHook } from "src/extension/TokenHook.sol";
 import { Permission } from "src/extension/Permission.sol";
+import { RoyaltyShared } from "src/extension/RoyaltyShared.sol";
 import { MerkleProof } from "src/lib/MerkleProof.sol";
 import { Strings } from "src/lib/Strings.sol";
 
-contract MockBuggySimpleClaim is TokenHook {
+contract MockBuggySimpleClaim is TokenHook, RoyaltyShared {
 
     using Strings for uint256;
 
@@ -69,6 +70,10 @@ contract MockBuggySimpleClaim is TokenHook {
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = BEFORE_MINT_FLAG;
+    }
+
+    function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
+        return _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -137,5 +142,13 @@ contract MockBuggySimpleClaim is TokenHook {
         claimCondition[_token] = _claimCondition;
 
         emit ClaimConditionSet(_token, _claimCondition);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _canSetRoyaltyInfo() internal view override returns (bool) {
+        return Permission(msg.sender).hasRole(msg.sender, ADMIN_ROLE_BITS);
     }
 }

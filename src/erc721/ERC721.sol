@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import { Initializable } from  "../extension/Initializable.sol";
 import { IERC721 } from "../interface/erc721/IERC721.sol";
 import { IERC721Metadata } from "../interface/erc721/IERC721Metadata.sol";
+import { IERC2981 } from "../interface/eip/IERC2981.sol";
 
 /**
  *  CHANGELOG:
@@ -13,11 +14,12 @@ import { IERC721Metadata } from "../interface/erc721/IERC721Metadata.sol";
  *      - Remove require(owner != address(0)) statement from `balanceOf`.
  *      - Move events and errors to interface
  *      - Implement tokenURI
+ *      - Implement ERC-2981 Royalty
  */
 
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
-contract ERC721 is Initializable, IERC721, IERC721Metadata {
+contract ERC721 is Initializable, IERC721, IERC721Metadata, IERC2981 {
 
     /*//////////////////////////////////////////////////////////////
                          METADATA STORAGE/LOGIC
@@ -55,6 +57,17 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata {
 
     function balanceOf(address owner) public view virtual returns (uint256) {
         return _balanceOf[owner];
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            ERC-2981 ROYALTY
+    //////////////////////////////////////////////////////////////*/
+
+    function royaltyInfo(
+        uint256 _tokenId,
+        uint256 _salePrice
+    ) external view returns (address, uint256) {
+        return IERC2981(_tokenData[_tokenId].metadataSource).royaltyInfo(_tokenId, _salePrice);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -170,7 +183,8 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata {
         return
             _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
             _interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            _interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
+            _interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
+            _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     /*//////////////////////////////////////////////////////////////

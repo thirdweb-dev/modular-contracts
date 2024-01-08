@@ -8,10 +8,11 @@ pragma solidity ^0.8.0;
 
 import { TokenHook } from "../../extension/TokenHook.sol";
 import { Permission } from "../../extension/Permission.sol";
+import { RoyaltyShared } from "../../extension/RoyaltyShared.sol";
 import { MerkleProof } from "../../lib/MerkleProof.sol";
 import { Strings } from "../../lib/Strings.sol";
 
-contract ERC721SimpleClaim is TokenHook {
+contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
 
     using Strings for uint256;
 
@@ -70,6 +71,10 @@ contract ERC721SimpleClaim is TokenHook {
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = BEFORE_MINT_FLAG;
+    }
+
+    function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
+        return _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -138,5 +143,13 @@ contract ERC721SimpleClaim is TokenHook {
         claimCondition[_token] = _claimCondition;
 
         emit ClaimConditionSet(_token, _claimCondition);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _canSetRoyaltyInfo() internal view override returns (bool) {
+        return Permission(msg.sender).hasRole(msg.sender, ADMIN_ROLE_BITS);
     }
 }
