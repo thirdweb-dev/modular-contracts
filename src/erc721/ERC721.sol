@@ -15,6 +15,7 @@ import { IERC2981 } from "../interface/eip/IERC2981.sol";
  *      - Move events and errors to interface
  *      - Implement tokenURI
  *      - Implement ERC-2981 Royalty
+ *      - Implement totalSuppply()
  */
 
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
@@ -46,6 +47,7 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata, IERC2981 {
         address metadataSource;
     }
 
+    uint256 private _totalSupply;
     mapping(uint256 => TokenData) private _tokenData;
     mapping(address => uint256) private _balanceOf;
 
@@ -57,6 +59,10 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata, IERC2981 {
 
     function balanceOf(address owner) public view virtual returns (uint256) {
         return _balanceOf[owner];
+    }
+
+    function totalSupply() public view virtual returns (uint256) {
+        return _totalSupply;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -87,6 +93,7 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata, IERC2981 {
     function __ERC721_init(string memory _name, string memory _symbol) internal onlyInitializing {
         name = _name;
         symbol = _symbol;
+        _totalSupply = 1;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -201,6 +208,7 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata, IERC2981 {
         // Counter overflow is incredibly unrealistic.
         unchecked {
             _balanceOf[_to] += _quantity;
+            _totalSupply += _quantity;
         }
 
         for(uint256 id = _startId; id < endId; id++) {
@@ -224,6 +232,7 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata, IERC2981 {
         // Ownership check above ensures no underflow.
         unchecked {
             _balanceOf[owner]--;
+            _totalSupply--;
         }
 
         delete _tokenData[_id].owner;
