@@ -51,11 +51,20 @@ abstract contract ERC721BenchmarkBase is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testBenchmarkDeployContract() public {
-        _createERC721Contract(erc721ContractImplementation);
+
+        vm.pauseGasMetering();
+        address implementation = erc721ContractImplementation;
+        vm.resumeGasMetering();
+
+        _createERC721Contract(implementation);
     }
 
     function testBenchmarkClaimToken() public {
-        _claimOneToken(claimer, pricePerToken);
+        vm.pauseGasMetering();
+        address claimerAddr = claimer;
+        uint256 price = pricePerToken;
+        vm.resumeGasMetering();
+        _claimOneToken(claimerAddr, price);
     }
 
     function testBenchmarkTransferToken() public {
@@ -65,11 +74,13 @@ abstract contract ERC721BenchmarkBase is Test {
         IERC721 erc721 = IERC721(erc721Contract);
 
         uint256 tokenId = _claimOneTokenCopy(claimer, pricePerToken);
+        address claimerAddr = claimer;
+        address recipient = transferRecipient;
 
-        vm.startPrank(claimer);
+        vm.startPrank(claimerAddr);
 
         vm.resumeGasMetering(); 
-        erc721.transferFrom(claimer, transferRecipient, tokenId);
+        erc721.transferFrom(claimerAddr, recipient, tokenId);
 
         vm.stopPrank();
     }

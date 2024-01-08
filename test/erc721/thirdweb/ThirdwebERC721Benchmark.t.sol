@@ -111,9 +111,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         vm.resumeGasMetering();
 
         vm.prank(_claimer);
-        claimContract.mint{value: _price}(claimer, 1, encodedArgs);
-        
-        return 0;
+        claimContract.mint{value: _price}(_claimer, 1, encodedArgs);
     }
 
     /// @dev Claims a token from the target erc721 contract.
