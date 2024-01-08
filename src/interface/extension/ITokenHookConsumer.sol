@@ -11,13 +11,9 @@ interface ITokenHookConsumer {
 
     struct HookImplementation {
         address beforeMint;
-        address afterMint;
         address beforeTransfer;
-        address afterTransfer;
         address beforeBurn;
-        address afterBurn;
         address beforeApprove;
-        address afterApprove;
     }
 
     /*//////////////////////////////////////////////////////////////

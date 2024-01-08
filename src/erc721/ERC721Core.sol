@@ -42,10 +42,7 @@ contract ERC721Core is Initializable, ERC721, TokenHookConsumer, Permission {
         }
 
         _beforeBurn(owner, _tokenId);
-
         _burn(_tokenId);
-
-        _afterBurn(owner, _tokenId);
     }
 
     function mint(address _to, uint256 _quantity, bytes memory _data) external payable {
@@ -54,7 +51,6 @@ contract ERC721Core is Initializable, ERC721, TokenHookConsumer, Permission {
 
         if(success) {
             _mint(_to, tokenIdToMint, _quantity, metadataSource);
-            _afterMint(_to, tokenIdToMint, _quantity);
             return;
         }
 
@@ -72,13 +68,11 @@ contract ERC721Core is Initializable, ERC721, TokenHookConsumer, Permission {
     ) public override {
         _beforeTransfer(_from, _to, _id);
         super.transferFrom(_from, _to, _id);
-        _afterTransfer(_from, _to, _id);
     }
 
     function approve(address _spender, uint256 _id) public override {
         _beforeApprove(msg.sender, _spender, _id);
         super.approve(_spender, _id);
-        _afterApprove(msg.sender, _spender, _id);
     }
 
     /*//////////////////////////////////////////////////////////////

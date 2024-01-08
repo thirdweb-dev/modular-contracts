@@ -12,11 +12,11 @@ contract MockOneHookImpl is TokenHook {
     }
 }
 
-contract MockFiveHookImpl is TokenHook {
+contract MockFourHookImpl is TokenHook {
 
     constructor() {}
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_TRANSFER_FLAG | AFTER_TRANSFER_FLAG | BEFORE_APPROVE_FLAG | AFTER_APPROVE_FLAG | BEFORE_BURN_FLAG;
+        hooksImplemented = BEFORE_MINT_FLAG | BEFORE_TRANSFER_FLAG | BEFORE_BURN_FLAG | BEFORE_APPROVE_FLAG;
     }
 }

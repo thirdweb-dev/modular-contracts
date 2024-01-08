@@ -14,13 +14,9 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     //////////////////////////////////////////////////////////////*/
 
     uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
-    uint256 public constant AFTER_MINT_FLAG = 2 ** 2;
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 3;
-    uint256 public constant AFTER_TRANSFER_FLAG = 2 ** 4;
-    uint256 public constant BEFORE_BURN_FLAG = 2 ** 5;
-    uint256 public constant AFTER_BURN_FLAG = 2 ** 6;
-    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 7;
-    uint256 public constant AFTER_APPROVE_FLAG = 2 ** 8;
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
     
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -37,13 +33,9 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     function getAllHooks() external view returns (HookImplementation memory hooks) {
         hooks = HookImplementation({
             beforeMint: _hookImplementationMap[BEFORE_MINT_FLAG],
-            afterMint: _hookImplementationMap[AFTER_MINT_FLAG],
             beforeTransfer: _hookImplementationMap[BEFORE_TRANSFER_FLAG],
-            afterTransfer: _hookImplementationMap[AFTER_TRANSFER_FLAG],
             beforeBurn: _hookImplementationMap[BEFORE_BURN_FLAG],
-            afterBurn: _hookImplementationMap[AFTER_BURN_FLAG],
-            beforeApprove: _hookImplementationMap[BEFORE_APPROVE_FLAG],
-            afterApprove: _hookImplementationMap[AFTER_APPROVE_FLAG]
+            beforeApprove: _hookImplementationMap[BEFORE_APPROVE_FLAG]
         });
     }
 
@@ -110,7 +102,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     {
         uint256 currentActiveHooks = _activeHooks;
 
-        uint256 flag = 2 ** 8;
+        uint256 flag = 2 ** 4;
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActiveHooks = _addOrRemoveHook(flag, currentActiveHooks);
@@ -136,27 +128,11 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         }
     }
 
-    function _afterMint(address _to, uint256 _startId, uint256 _quantity) internal virtual {
-        address hook = getHookImplementation(AFTER_MINT_FLAG);
-
-        if(hook != address(0)) {
-            ITokenHook(hook).afterMint(_to, _startId, _quantity);
-        }
-    }
-
     function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if(hook != address(0)) {
             ITokenHook(hook).beforeTransfer(_from, _to, _tokenId);
-        }
-    }
-
-    function _afterTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
-        address hook = getHookImplementation(AFTER_TRANSFER_FLAG);
-
-        if(hook != address(0)) {
-            ITokenHook(hook).afterTransfer(_from, _to, _tokenId);
         }
     }
 
@@ -168,27 +144,11 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         }
     }
 
-    function _afterBurn(address _from, uint256 _tokenId) internal virtual {
-        address hook = getHookImplementation(AFTER_BURN_FLAG);
-
-        if(hook != address(0)) {
-            ITokenHook(hook).afterBurn(_from, _tokenId);
-        }
-    }
-
     function _beforeApprove(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if(hook != address(0)) {
             ITokenHook(hook).beforeApprove(_from, _to, _tokenId);
-        }
-    }
-
-    function _afterApprove(address _from, address _to, uint256 _tokenId) internal virtual {
-        address hook = getHookImplementation(AFTER_APPROVE_FLAG);
-
-        if(hook != address(0)) {
-            ITokenHook(hook).afterApprove(_from, _to, _tokenId);
         }
     }
 }

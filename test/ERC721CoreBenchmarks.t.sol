@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 
 import { CloneFactory } from "src/infra/CloneFactory.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol"; 
-import { MockOneHookImpl, MockFiveHookImpl } from "test/mocks/MockHookImpl.sol";
+import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
 
 import { ERC721Core, ERC721 } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/hooks/ERC721SimpleClaim.sol";
@@ -252,9 +252,12 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_installfiveHooks() public {
         vm.pauseGasMetering();
         
-        ITokenHook mockHook = ITokenHook(address(new MockFiveHookImpl()));
+        ITokenHook mockHook = ITokenHook(address(new MockFourHookImpl()));
         ERC721Core hookConsumer = erc721;
     
+        vm.prank(platformUser);
+        hookConsumer.uninstallHook(ITokenHook(hookProxyAddress));
+
         vm.prank(platformUser);
         
         vm.resumeGasMetering();
@@ -281,8 +284,11 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
         
-        ITokenHook mockHook = ITokenHook(address(new MockFiveHookImpl()));
+        ITokenHook mockHook = ITokenHook(address(new MockFourHookImpl()));
         ERC721Core hookConsumer = erc721;
+
+        vm.prank(platformUser);
+        hookConsumer.uninstallHook(ITokenHook(hookProxyAddress));
     
         vm.prank(platformUser);
         hookConsumer.installHook(mockHook);
