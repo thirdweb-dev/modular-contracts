@@ -62,7 +62,7 @@ contract ERC721 is Initializable, IERC721, IERC721Metadata, IERC2981 {
     }
 
     function totalSupply() public view virtual returns (uint256) {
-        return _totalSupply;
+        return _totalSupply - 1; // We initialize totalSupply as `1` in `initialize` to save on `mint` gas.
     }
 
     /*//////////////////////////////////////////////////////////////
