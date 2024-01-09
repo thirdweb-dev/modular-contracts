@@ -70,7 +70,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
 
         uint256 hooksToUninstall = _hook.getHooksImplemented();
 
-        _updateHooks(hooksToUninstall, address(_hook), _removeHook);
+        _updateHooks(hooksToUninstall, address(0), _removeHook);
         _hookImplementations.unset(uint160(address(_hook)));
 
         emit TokenHookUninstalled(address(_hook), hooksToUninstall);
