@@ -11,8 +11,9 @@ import { TransferHook } from "test/mocks/TransferHook.sol";
 
 // Target test contracts
 import { IERC721 } from "src/interface/erc721/IERC721.sol";
+import { IERC721CustomErrors } from "src/interface/erc721/IERC721CustomErrors.sol";
 import { ITokenHook } from "src/interface/extension/ITokenHook.sol";
-import { ERC721Core, ERC721 } from "src/erc721/ERC721Core.sol";
+import { ERC721Core, ERC721Initializable } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/hooks/ERC721SimpleClaim.sol";
 
 /**
@@ -114,7 +115,7 @@ contract ERC721Test is Test {
         assertEq(erc721.balanceOf(claimer), 0);
         assertEq(simpleClaim.nextTokenIdToMint(), 0);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC721.ERC721NotMinted.selector, 0)
+            abi.encodeWithSelector(IERC721CustomErrors.ERC721NotMinted.selector, 0)
         );
         erc721.ownerOf(0);
 
@@ -228,7 +229,7 @@ contract ERC721Test is Test {
 
         // Claim token
         vm.expectRevert(
-            abi.encodeWithSelector(IERC721.ERC721NotMinted.selector, 0)
+            abi.encodeWithSelector(IERC721CustomErrors.ERC721NotMinted.selector, 0)
         );
         erc721.ownerOf(0);
 

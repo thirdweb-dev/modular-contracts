@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.0;
 
-import { ERC721 } from  "./ERC721.sol";
+import { ERC721Initializable } from  "./ERC721Initializable.sol";
 import { TokenHookConsumer } from "../extension/TokenHookConsumer.sol";
 import { BitMaps } from "../lib/BitMaps.sol";
 import { Initializable } from "../extension/Initializable.sol";
 import { Permission } from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721, TokenHookConsumer, Permission {
+contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Permission {
 
     using BitMaps for BitMaps.BitMap;
 

@@ -10,6 +10,13 @@ interface IERC2981 is IERC165 {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     *  @notice Returns the royalty amount for a given NFT and sale price.
+     *  @param tokenId The token ID of the NFT
+     *  @param salePrice The sale price of the NFT
+     *  @return receiver The royalty recipient address
+     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
+     */
     function royaltyInfo(
         uint256 tokenId,
         uint256 salePrice

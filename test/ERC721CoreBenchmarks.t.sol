@@ -7,7 +7,7 @@ import { CloneFactory } from "src/infra/CloneFactory.sol";
 import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
 import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
 
-import { ERC721Core, ERC721 } from "src/erc721/ERC721Core.sol";
+import { ERC721Core, ERC721Initializable } from "src/erc721/ERC721Core.sol";
 import { ERC721SimpleClaim } from "src/erc721/hooks/ERC721SimpleClaim.sol";
 import { IERC721 } from "src/interface/erc721/IERC721.sol";
 import { ITokenHook } from "src/interface/extension/ITokenHook.sol";
