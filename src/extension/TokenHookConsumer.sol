@@ -80,6 +80,10 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
 
     function _canUpdateHooks(address _caller) internal view virtual returns (bool);
 
+    function _maxFlagIndex() internal pure virtual returns (uint8) {
+        return 4;
+    }
+
     function _addHook(uint256 _flag, uint256 _currentHooks) internal pure returns (uint256) {
         if (_currentHooks & _flag > 0) {
             revert TokenHookConsumerHookAlreadyExists();
@@ -98,7 +102,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     ) internal {
         uint256 currentActiveHooks = _activeHooks;
 
-        uint256 flag = 2 ** 4;
+        uint256 flag = 2 ** _maxFlagIndex();
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActiveHooks = _addOrRemoveHook(flag, currentActiveHooks);

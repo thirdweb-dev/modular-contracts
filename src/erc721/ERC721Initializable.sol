@@ -9,7 +9,7 @@ import {IERC721CustomErrors} from "../interface/erc721/IERC721CustomErrors.sol";
 import {IERC721Receiver} from "../interface/erc721/IERC721Receiver.sol";
 import {IERC2981} from "../interface/eip/IERC2981.sol";
 
-contract ERC721Initializable is
+abstract contract ERC721Initializable is
     Initializable,
     IERC721,
     IERC721Supply,
@@ -75,16 +75,6 @@ contract ERC721Initializable is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice Returns the token metadata of an NFT.
-     *  @dev Always returns metadata queried from the metadata source.
-     *  @param _id The token ID of the NFT.
-     *  @return metadata The URI to fetch metadata from.
-     */
-    function tokenURI(uint256 _id) public view virtual returns (string memory metadata) {
-        return IERC721Metadata(_tokenData[_id].metadataSource).tokenURI(_id);
-    }
-
-    /**
      *  @notice Returns the metadata source of an NFT.
      *  @dev The metadata source of an NFT is set at minting time, and does not change later.
      *  @param _id The token ID of the NFT.
@@ -124,25 +114,12 @@ contract ERC721Initializable is
     }
 
     /**
-     *  @notice Returns the royalty amount for a given NFT and sale price.
-     *  @param _tokenId The token ID of the NFT
-     *  @param _salePrice The sale price of the NFT
-     *  @return receiver The royalty recipient address
-     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
-     */
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice) external view returns (address, uint256) {
-        return IERC2981(_tokenData[_tokenId].metadataSource).royaltyInfo(_tokenId, _salePrice);
-    }
-
-    /**
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
         return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
-            || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
-            || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
-            || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+            || _interfaceId == 0x80ac58cd; // ERC165 Interface ID for ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
