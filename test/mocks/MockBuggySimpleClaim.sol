@@ -8,7 +8,7 @@ pragma solidity ^0.8.0;
 import {TokenHook} from "src/extension/TokenHook.sol";
 import {Permission} from "src/extension/Permission.sol";
 import {RoyaltyShared} from "src/extension/RoyaltyShared.sol";
-import {MerkleProof} from "src/lib/MerkleProof.sol";
+import {MerkleProofLib} from "src/lib/MerkleProofLib.sol";
 import {Strings} from "src/lib/Strings.sol";
 
 contract MockBuggySimpleClaim is TokenHook, RoyaltyShared {
@@ -112,8 +112,8 @@ contract MockBuggySimpleClaim is TokenHook, RoyaltyShared {
         if (condition.allowlistMerkleRoot != bytes32(0)) {
             bytes32[] memory allowlistProof = abi.decode(_data, (bytes32[]));
 
-            (bool isAllowlisted,) =
-                MerkleProof.verify(allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer)));
+            bool isAllowlisted =
+                MerkleProofLib.verify(allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer)));
             if (!isAllowlisted) {
                 revert NotInAllowlist(token, _claimer);
             }

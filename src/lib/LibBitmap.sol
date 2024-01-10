@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 /// @notice Library for storage of packed unsigned booleans.
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/utils/LibBitmap.sol)
-
 library LibBitmap {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                         CONSTANTS                          */

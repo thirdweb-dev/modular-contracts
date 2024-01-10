@@ -9,7 +9,7 @@ pragma solidity ^0.8.0;
 import {TokenHook} from "../../extension/TokenHook.sol";
 import {Permission} from "../../extension/Permission.sol";
 import {RoyaltyShared} from "../../extension/RoyaltyShared.sol";
-import {MerkleProof} from "../../lib/MerkleProof.sol";
+import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {Strings} from "../../lib/Strings.sol";
 
 contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
@@ -117,8 +117,8 @@ contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
         if (condition.allowlistMerkleRoot != bytes32(0)) {
             bytes32[] memory allowlistProof = abi.decode(_data, (bytes32[]));
 
-            (bool isAllowlisted,) =
-                MerkleProof.verify(allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer)));
+            bool isAllowlisted =
+                MerkleProofLib.verify(allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer)));
             if (!isAllowlisted) {
                 revert NotInAllowlist(token, _claimer);
             }
