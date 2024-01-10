@@ -6,13 +6,13 @@ pragma solidity ^0.8.0;
 /// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
 /// used by anyone for their copy of `ERC721Core`.
 
-import {TokenHook} from "../../extension/TokenHook.sol";
+import {NFTHook} from "../../extension/NFTHook.sol";
 import {Permission} from "../../extension/Permission.sol";
 import {RoyaltyShared} from "../../extension/RoyaltyShared.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {LibString} from "../../lib/LibString.sol";
 
-contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
+contract ERC721SimpleClaim is NFTHook, RoyaltyShared {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -69,10 +69,10 @@ contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
     }
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG;
+        hooksImplemented = BEFORE_MINT_FLAG | TOKEN_URI_FLAG | ROYALTY_FLAG;
     }
 
-    function getBeforeMintArgSignature() external view override returns (string memory argSignature) {
+    function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
         argSignature = "bytes32[]";
     }
 
