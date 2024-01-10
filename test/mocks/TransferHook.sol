@@ -5,7 +5,6 @@ import "src/extension/TokenHook.sol";
 import "src/extension/Permission.sol";
 
 contract TransferHook is TokenHook, Permission {
-
     using BitMaps for BitMaps.BitMap;
 
     uint8 public constant TRANSFER_ROLE_BITS = 2 ** 2;
@@ -28,7 +27,10 @@ contract TransferHook is TokenHook, Permission {
 
     function beforeTransfer(address from, address to, uint256) external view override {
         if (!isTransferrable) {
-            require(hasRole(from, TRANSFER_ROLE_BITS) || hasRole(to, TRANSFER_ROLE_BITS), "restricted to TRANSFER_ROLE holders");
+            require(
+                hasRole(from, TRANSFER_ROLE_BITS) || hasRole(to, TRANSFER_ROLE_BITS),
+                "restricted to TRANSFER_ROLE holders"
+            );
         }
     }
 }

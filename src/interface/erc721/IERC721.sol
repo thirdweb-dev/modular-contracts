@@ -40,7 +40,7 @@ interface IERC721 is IERC165 {
      *  @param id The token ID of the NFT
      *  @return operator The address approved to transfer the NFT
      */
-    function getApproved (uint256 id) external view returns (address operator);
+    function getApproved(uint256 id) external view returns (address operator);
 
     /**
      *  @notice Returns whether operator is approved to transfer or issue approval of any of the owner's NFTs.
@@ -74,11 +74,7 @@ interface IERC721 is IERC165 {
      *  @param to The address to transfer to
      *  @param id The token ID of the NFT
      */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) external;
+    function transferFrom(address from, address to, uint256 id) external;
 
     /**
      *  @notice Transfers ownership of an NFT from one address to another. If transfer is recipient is a smart contract,
@@ -87,11 +83,7 @@ interface IERC721 is IERC165 {
      *  @param to The address to transfer to
      *  @param id The token ID of the NFT
      */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) external;
+    function safeTransferFrom(address from, address to, uint256 id) external;
 
     /**
      *  @notice Transfers ownership of an NFT from one address to another. If transfer is recipient is a smart contract,
@@ -101,10 +93,5 @@ interface IERC721 is IERC165 {
      *  @param id The token ID of the NFT
      *  @param data Additional data passed onto the `onERC721Received` call to the recipient
      */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        bytes calldata data
-    ) external;
+    function safeTransferFrom(address from, address to, uint256 id, bytes calldata data) external;
 }

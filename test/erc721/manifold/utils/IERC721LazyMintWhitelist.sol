@@ -8,15 +8,13 @@ pragma solidity ^0.8.0;
  * ERC721 Lazy Mint with Whitelist interface
  */
 interface IERC721LazyMintWhitelist {
-
     /**
      * @dev premints gifted nfts
      */
     function premint(address[] memory to) external;
-    
 
     /**
-     * @dev external mint function 
+     * @dev external mint function
      */
     function mint(bytes32[] memory merkleProof) external payable;
 
@@ -33,5 +31,5 @@ interface IERC721LazyMintWhitelist {
     /**
      * @dev Withdraw funds from the contract
      */
-    function withdraw(address _to, uint amount) external;
+    function withdraw(address _to, uint256 amount) external;
 }

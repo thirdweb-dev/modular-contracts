@@ -10,7 +10,7 @@ contract Permission is IPermission {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
-    
+
     uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
 
     /*//////////////////////////////////////////////////////////////
@@ -24,7 +24,7 @@ contract Permission is IPermission {
     //////////////////////////////////////////////////////////////*/
 
     modifier onlyAuthorized(uint256 _roleBits) {
-        if(!hasRole(msg.sender, _roleBits)) {
+        if (!hasRole(msg.sender, _roleBits)) {
             revert PermissionUnauthorized(msg.sender, _roleBits);
         }
         _;
@@ -53,9 +53,8 @@ contract Permission is IPermission {
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    
+
     function _setupRole(address _account, uint256 _roleBits) internal {
-        
         uint256 permissions = _permissionBits[_account];
         permissions |= _roleBits;
         _permissionBits[_account] = permissions;

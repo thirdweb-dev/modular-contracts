@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
-import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
+import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
-import { ERC721Core, ERC721Initializable } from "src/erc721/ERC721Core.sol";
-import { ERC721SimpleClaim } from "src/erc721/hooks/ERC721SimpleClaim.sol";
-import { IERC721 } from "src/interface/erc721/IERC721.sol";
-import { ITokenHook } from "src/interface/extension/ITokenHook.sol";
+import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
+import {ERC721SimpleClaim} from "src/erc721/hooks/ERC721SimpleClaim.sol";
+import {IERC721} from "src/interface/erc721/IERC721.sol";
+import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 
 contract ERC721CoreBenchmarkTest is Test {
-
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -38,20 +37,14 @@ contract ERC721CoreBenchmarkTest is Test {
     uint256 public availableSupply = 100;
 
     function setUp() public {
-
         // Setup up to enabling minting on ERC-721 contract.
 
         // Platform contracts: gas incurred by platform.
         vm.startPrank(platformAdmin);
-        
+
         cloneFactory = new CloneFactory();
-        
-        hookProxyAddress = address(
-            new MinimalUpgradeableRouter(
-                platformAdmin,
-                address(new ERC721SimpleClaim())
-            )
-        );
+
+        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new ERC721SimpleClaim())));
         simpleClaimHook = ERC721SimpleClaim(hookProxyAddress);
         assertEq(simpleClaimHook.nextTokenIdToMint(), 0);
 
@@ -63,9 +56,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST");
-        erc721 = ERC721Core(
-            cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt"))
-        );
+        erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
 
@@ -84,7 +75,7 @@ contract ERC721CoreBenchmarkTest is Test {
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "test/scripts/generateRoot.ts";
-        
+
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
@@ -108,12 +99,12 @@ contract ERC721CoreBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
                         DEPLOY END-USER CONTRACT
     //////////////////////////////////////////////////////////////*/
-    
+
     function test_deployEndUserContract() public {
         // Deploy a minimal proxy to the ERC721Core implementation contract.
 
         vm.pauseGasMetering();
-        
+
         address impl = erc721Implementation;
         bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST");
         bytes32 salt = bytes32("salt");
@@ -134,7 +125,7 @@ contract ERC721CoreBenchmarkTest is Test {
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "test/scripts/getProof.ts";
-        
+
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
         uint256 quantityToClaim = 1;
@@ -159,7 +150,7 @@ contract ERC721CoreBenchmarkTest is Test {
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "test/scripts/getProof.ts";
-        
+
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
         uint256 quantityToClaim = 10;
@@ -188,7 +179,7 @@ contract ERC721CoreBenchmarkTest is Test {
         string[] memory claimInputs = new string[](2);
         claimInputs[0] = "node";
         claimInputs[1] = "test/scripts/getProof.ts";
-        
+
         bytes memory claimResult = vm.ffi(claimInputs);
         bytes32[] memory proofs = abi.decode(claimResult, (bytes32[]));
         uint256 quantityToClaim = 1;
@@ -210,7 +201,6 @@ contract ERC721CoreBenchmarkTest is Test {
 
         // Transfer token
         erc721Contract.transferFrom(from, to, tokenId);
-
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -224,11 +214,11 @@ contract ERC721CoreBenchmarkTest is Test {
         address newImpl = address(new ERC721SimpleClaim());
         address proxyAdmin = platformAdmin;
         MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
-        
+
         vm.prank(proxyAdmin);
 
         vm.resumeGasMetering();
-        
+
         // Perform upgrade
         proxy.setImplementationForFunction(sel, newImpl);
     }
@@ -239,12 +229,12 @@ contract ERC721CoreBenchmarkTest is Test {
 
     function test_installOneHook() public {
         vm.pauseGasMetering();
-        
+
         ITokenHook mockHook = ITokenHook(address(new MockOneHookImpl()));
         ERC721Core hookConsumer = erc721;
-    
+
         vm.prank(platformUser);
-        
+
         vm.resumeGasMetering();
 
         hookConsumer.installHook(mockHook);
@@ -252,15 +242,15 @@ contract ERC721CoreBenchmarkTest is Test {
 
     function test_installfiveHooks() public {
         vm.pauseGasMetering();
-        
+
         ITokenHook mockHook = ITokenHook(address(new MockFourHookImpl()));
         ERC721Core hookConsumer = erc721;
-    
+
         vm.prank(platformUser);
         hookConsumer.uninstallHook(ITokenHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        
+
         vm.resumeGasMetering();
 
         hookConsumer.installHook(mockHook);
@@ -268,10 +258,10 @@ contract ERC721CoreBenchmarkTest is Test {
 
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
-        
+
         ITokenHook mockHook = ITokenHook(address(new MockOneHookImpl()));
         ERC721Core hookConsumer = erc721;
-    
+
         vm.prank(platformUser);
         hookConsumer.installHook(mockHook);
 
@@ -284,13 +274,13 @@ contract ERC721CoreBenchmarkTest is Test {
 
     function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
-        
+
         ITokenHook mockHook = ITokenHook(address(new MockFourHookImpl()));
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
         hookConsumer.uninstallHook(ITokenHook(hookProxyAddress));
-    
+
         vm.prank(platformUser);
         hookConsumer.installHook(mockHook);
 

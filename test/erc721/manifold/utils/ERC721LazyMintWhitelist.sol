@@ -13,20 +13,26 @@ import "./IERC721LazyMintWhitelist.sol";
  * Lazy Mint with Whitelist for ERC721 tokens
  */
 contract ERC721LazyMintWhitelist is ERC721LazyMintWhitelistBase, AdminControl, IERC721LazyMintWhitelist {
-
     constructor(address creator, string memory prefix) {
         _initialize(creator, prefix);
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(AdminControl, ERC721LazyMintWhitelistBase) returns (bool) {
-        return interfaceId == type(IERC721LazyMintWhitelist).interfaceId || AdminControl.supportsInterface(interfaceId) || ERC721LazyMintWhitelistBase.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(AdminControl, ERC721LazyMintWhitelistBase)
+        returns (bool)
+    {
+        return interfaceId == type(IERC721LazyMintWhitelist).interfaceId || AdminControl.supportsInterface(interfaceId)
+            || ERC721LazyMintWhitelistBase.supportsInterface(interfaceId);
     }
 
     function premint(address[] memory to) external override adminRequired {
         _premint(to);
     }
 
-    function mint(bytes32[] memory merkleProof) external override payable {
+    function mint(bytes32[] memory merkleProof) external payable override {
         _mint(merkleProof);
     }
 
@@ -38,8 +44,7 @@ contract ERC721LazyMintWhitelist is ERC721LazyMintWhitelistBase, AdminControl, I
         _setTokenURIPrefix(prefix);
     }
 
-    function withdraw(address _to, uint amount) external override adminRequired {
+    function withdraw(address _to, uint256 amount) external override adminRequired {
         _withdraw(_to, amount);
     }
-    
 }

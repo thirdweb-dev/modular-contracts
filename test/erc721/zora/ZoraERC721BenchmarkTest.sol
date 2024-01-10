@@ -2,18 +2,17 @@
 pragma solidity ^0.8.0;
 
 // Test util
-import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
+import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
 
 // Target test contracts
 import {ProtocolRewards} from "@zoralabs/protocol-rewards/src/ProtocolRewards.sol";
-import { EditionMetadataRenderer } from "./utils/EditionMetadataRenderer.sol";
-import { IMetadataRenderer, DropMetadataRenderer } from "./utils/DropMetadataRenderer.sol";
-import { ERC721Drop } from "./utils/ERC721Drop.sol";
-import { FactoryUpgradeGate, IFactoryUpgradeGate } from "./utils/FactoryUpgradeGate.sol";
-import { ZoraNFTCreatorV1 } from "./utils/ZoraNFTCreatorV1.sol";
+import {EditionMetadataRenderer} from "./utils/EditionMetadataRenderer.sol";
+import {IMetadataRenderer, DropMetadataRenderer} from "./utils/DropMetadataRenderer.sol";
+import {ERC721Drop} from "./utils/ERC721Drop.sol";
+import {FactoryUpgradeGate, IFactoryUpgradeGate} from "./utils/FactoryUpgradeGate.sol";
+import {ZoraNFTCreatorV1} from "./utils/ZoraNFTCreatorV1.sol";
 
 contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
-
     function setUp() public override {
         super.setUp();
 
@@ -31,17 +30,21 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
 
         // Set sale details
         vm.prank(admin);
-        ERC721Drop(payable(erc721Contract)).setSaleConfiguration(uint104(pricePerToken), 1, 10_000, 20_000, 0, 9999, root);
+        ERC721Drop(payable(erc721Contract)).setSaleConfiguration(
+            uint104(pricePerToken), 1, 10_000, 20_000, 0, 9999, root
+        );
     }
 
     function _deployERC721ContractImplementation() internal override returns (address) {
-        return address(new ERC721Drop(
-            address(0),
-            IFactoryUpgradeGate(address(new FactoryUpgradeGate(admin))),
-            0,
-            payable(admin),
-            address(new ProtocolRewards())
-        ));
+        return address(
+            new ERC721Drop(
+                address(0),
+                IFactoryUpgradeGate(address(new FactoryUpgradeGate(admin))),
+                0,
+                payable(admin),
+                address(new ProtocolRewards())
+            )
+        );
     }
 
     function _createERC721Contract(address _implementation) internal override returns (address) {
@@ -55,10 +58,21 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
 
         IMetadataRenderer metadataRenderer = IMetadataRenderer(address(drop));
         bytes memory metadataInit = abi.encode("https://initialilMetadata/", "https://initialilURI/");
-        
+
         vm.resumeGasMetering();
 
-        return zora.createAndConfigureDrop("Test", "TST", address(0x123), 100, 0, payable(address(0x123)), new bytes[](0), metadataRenderer, metadataInit, address(0));
+        return zora.createAndConfigureDrop(
+            "Test",
+            "TST",
+            address(0x123),
+            100,
+            0,
+            payable(address(0x123)),
+            new bytes[](0),
+            metadataRenderer,
+            metadataInit,
+            address(0)
+        );
     }
 
     /// @dev Setup token metadata
@@ -75,7 +89,6 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
 
     /// @dev Claims a token from the target erc721 contract.
     function _claimOneToken(address _claimer, uint256 _price) internal override returns (uint256) {
-
         vm.pauseGasMetering();
         ERC721Drop claimC = ERC721Drop(payable(erc721Contract));
 

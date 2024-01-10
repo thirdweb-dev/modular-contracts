@@ -8,8 +8,6 @@ pragma solidity ^0.8.0;
  * Library of legacy interface constants
  */
 library LegacyInterfaces {
-
     // LEGACY ERC721CreatorCore interface
     bytes4 internal constant IERC721CreatorCore_v1 = 0x478c8530;
-
 }

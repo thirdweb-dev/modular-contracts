@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "src/extension/TokenHook.sol";
 
 contract MockOneHookImpl is TokenHook {
-
     constructor() {}
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
@@ -13,7 +12,6 @@ contract MockOneHookImpl is TokenHook {
 }
 
 contract MockFourHookImpl is TokenHook {
-
     constructor() {}
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {

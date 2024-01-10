@@ -18,15 +18,19 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 /**
  * Lazy mint with whitelist ERC721 tokens
  */
-abstract contract ERC721LazyMintWhitelistBase is ERC721SingleCreatorExtensionBase, ICreatorExtensionTokenURI, ReentrancyGuard {
+abstract contract ERC721LazyMintWhitelistBase is
+    ERC721SingleCreatorExtensionBase,
+    ICreatorExtensionTokenURI,
+    ReentrancyGuard
+{
     using Strings for uint256;
-    using ABDKMath64x64 for uint;
+    using ABDKMath64x64 for uint256;
 
     string private _tokenPrefix;
     uint256 public _tokensMinted;
     mapping(uint256 => uint256) private _tokenEdition;
-    uint private MINT_PRICE = 0.1 ether; // to be changed
-    uint private MAX_MINTS = 50; // to be changed
+    uint256 private MINT_PRICE = 0.1 ether; // to be changed
+    uint256 private MAX_MINTS = 50; // to be changed
     bytes32 merkleRoot;
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165) returns (bool) {
@@ -34,12 +38,12 @@ abstract contract ERC721LazyMintWhitelistBase is ERC721SingleCreatorExtensionBas
     }
 
     function _initialize(address creator, string memory prefix) internal {
-      require(_creator == address(0), "Already initialized");
-      _setCreator(creator);
-      _tokenPrefix = prefix;
+        require(_creator == address(0), "Already initialized");
+        _setCreator(creator);
+        _tokenPrefix = prefix;
     }
 
-    function onAllowList(address claimer, bytes32[] memory proof) public view returns(bool) {
+    function onAllowList(address claimer, bytes32[] memory proof) public view returns (bool) {
         bytes32 leaf = keccak256(abi.encodePacked(claimer));
         return MerkleProof.verify(proof, merkleRoot, leaf);
     }
@@ -52,13 +56,13 @@ abstract contract ERC721LazyMintWhitelistBase is ERC721SingleCreatorExtensionBas
      * @dev Mint token if you are on the whitelist
      */
     function _premint(address[] memory to) internal {
-        for (uint i = 0; i < to.length; i++) {
+        for (uint256 i = 0; i < to.length; i++) {
             _tokenEdition[IERC721CreatorCore(_creator).mintExtension(to[i])] = _tokensMinted + i + 1;
         }
         _tokensMinted += to.length;
         MAX_MINTS += to.length; // Extend max mints when preminting
     }
-    
+
     /**
      * @dev Mint token if you are on the whitelist
      */
@@ -78,7 +82,7 @@ abstract contract ERC721LazyMintWhitelistBase is ERC721SingleCreatorExtensionBas
         _tokenPrefix = prefix;
     }
 
-    function _withdraw(address _to, uint amount) internal {
+    function _withdraw(address _to, uint256 amount) internal {
         payable(_to).transfer(amount);
     }
 
@@ -87,7 +91,6 @@ abstract contract ERC721LazyMintWhitelistBase is ERC721SingleCreatorExtensionBas
      */
     function tokenURI(address creator, uint256 tokenId) external view override returns (string memory) {
         require(creator == _creator && _tokenEdition[tokenId] != 0, "Invalid token");
-        return  string(abi.encodePacked(_tokenPrefix, _tokenEdition[tokenId].toString()));
+        return string(abi.encodePacked(_tokenPrefix, _tokenEdition[tokenId].toString()));
     }
-    
 }

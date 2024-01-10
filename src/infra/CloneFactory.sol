@@ -5,7 +5,6 @@ import "../lib/Clones.sol";
 import "../lib/Address.sol";
 
 contract CloneFactory {
-
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -16,11 +15,10 @@ contract CloneFactory {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function deployProxyByImplementation(
-        address _implementation,
-        bytes memory _data,
-        bytes32 _salt
-    ) public returns (address deployedProxy) {
+    function deployProxyByImplementation(address _implementation, bytes memory _data, bytes32 _salt)
+        public
+        returns (address deployedProxy)
+    {
         bytes32 salthash = keccak256(abi.encodePacked(msg.sender, _salt));
         deployedProxy = Clones.cloneDeterministic(_implementation, salthash);
 

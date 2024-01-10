@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.0;
 
-import { ERC721Initializable } from  "./ERC721Initializable.sol";
-import { TokenHookConsumer } from "../extension/TokenHookConsumer.sol";
-import { BitMaps } from "../lib/BitMaps.sol";
-import { Initializable } from "../extension/Initializable.sol";
-import { Permission } from "../extension/Permission.sol";
+import {ERC721Initializable} from "./ERC721Initializable.sol";
+import {TokenHookConsumer} from "../extension/TokenHookConsumer.sol";
+import {BitMaps} from "../lib/BitMaps.sol";
+import {Initializable} from "../extension/Initializable.sol";
+import {Permission} from "../extension/Permission.sol";
 
 contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Permission {
-
     using BitMaps for BitMaps.BitMap;
 
     /*//////////////////////////////////////////////////////////////
@@ -35,9 +34,8 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
     //////////////////////////////////////////////////////////////*/
 
     function burn(uint256 _tokenId) external {
-        
         address owner = ownerOf(_tokenId);
-        if(owner != msg.sender) {
+        if (owner != msg.sender) {
             revert ERC721NotOwner(msg.sender, _tokenId);
         }
 
@@ -46,10 +44,9 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
     }
 
     function mint(address _to, uint256 _quantity, bytes memory _data) external payable {
-
         (bool success, address metadataSource, uint256 tokenIdToMint) = _beforeMint(_to, _quantity, _data);
 
-        if(success) {
+        if (success) {
             _mint(_to, tokenIdToMint, _quantity, metadataSource);
             return;
         }
@@ -61,11 +58,7 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
                             OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _id
-    ) public override {
+    function transferFrom(address _from, address _to, uint256 _id) public override {
         _beforeTransfer(_from, _to, _id);
         super.transferFrom(_from, _to, _id);
     }

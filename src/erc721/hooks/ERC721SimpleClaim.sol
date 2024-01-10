@@ -6,14 +6,13 @@ pragma solidity ^0.8.0;
 /// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
 /// used by anyone for their copy of `ERC721Core`.
 
-import { TokenHook } from "../../extension/TokenHook.sol";
-import { Permission } from "../../extension/Permission.sol";
-import { RoyaltyShared } from "../../extension/RoyaltyShared.sol";
-import { MerkleProof } from "../../lib/MerkleProof.sol";
-import { Strings } from "../../lib/Strings.sol";
+import {TokenHook} from "../../extension/TokenHook.sol";
+import {Permission} from "../../extension/Permission.sol";
+import {RoyaltyShared} from "../../extension/RoyaltyShared.sol";
+import {MerkleProof} from "../../lib/MerkleProof.sol";
+import {Strings} from "../../lib/Strings.sol";
 
 contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
-
     using Strings for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -48,7 +47,7 @@ contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
-    
+
     uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
 
     /*//////////////////////////////////////////////////////////////
@@ -87,7 +86,7 @@ contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
 
     function setBaseURI(address _token, string memory _baseURI) external {
         // Checks `ADMIN_ROLE_BITS=0`
-        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+        if (!Permission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert Unauthorized(msg.sender, _token);
         }
 
@@ -96,42 +95,39 @@ contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
         emit BaseURISet(_token, _baseURI);
     }
 
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _data) external payable override returns (uint256 tokenIdToMint) {
-
+    function beforeMint(address _claimer, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        override
+        returns (uint256 tokenIdToMint)
+    {
         address token = msg.sender;
 
         ClaimCondition memory condition = claimCondition[token];
 
-        if(condition.availableSupply == 0) {
+        if (condition.availableSupply == 0) {
             revert NotEnouthSupply(token);
         }
 
         uint256 totalPrice = condition.price * _quantity;
-        if(msg.value != totalPrice) {
+        if (msg.value != totalPrice) {
             revert IncorrectValueSent(msg.value, totalPrice);
         }
 
-        if(condition.allowlistMerkleRoot != bytes32(0)) {
+        if (condition.allowlistMerkleRoot != bytes32(0)) {
             bytes32[] memory allowlistProof = abi.decode(_data, (bytes32[]));
-            
-            (bool isAllowlisted, ) = MerkleProof.verify(
-                allowlistProof,
-                condition.allowlistMerkleRoot,
-                keccak256(
-                    abi.encodePacked(
-                        _claimer
-                    )
-                )
-            );
-            if(!isAllowlisted) {
+
+            (bool isAllowlisted,) =
+                MerkleProof.verify(allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer)));
+            if (!isAllowlisted) {
                 revert NotInAllowlist(token, _claimer);
             }
         }
-        
+
         claimCondition[token].availableSupply -= _quantity;
 
         (bool success,) = condition.saleRecipient.call{value: msg.value}("");
-        if(!success) {
+        if (!success) {
             revert NativeTransferFailed(condition.saleRecipient, msg.value);
         }
 
@@ -141,7 +137,7 @@ contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
 
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public {
         // Checks `ADMIN_ROLE_BITS=0`
-        if(!Permission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+        if (!Permission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert Unauthorized(msg.sender, _token);
         }
         claimCondition[_token] = _claimCondition;

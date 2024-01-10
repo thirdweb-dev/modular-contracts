@@ -3,10 +3,9 @@ pragma solidity ^0.8.0;
 
 import "../lib/BitMaps.sol";
 import "../lib/Address.sol";
-import { ITokenHook, ITokenHookConsumer } from "../interface/extension/ITokenHookConsumer.sol";
+import {ITokenHook, ITokenHookConsumer} from "../interface/extension/ITokenHookConsumer.sol";
 
 abstract contract TokenHookConsumer is ITokenHookConsumer {
-
     using BitMaps for BitMaps.BitMap;
 
     /*//////////////////////////////////////////////////////////////
@@ -17,7 +16,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
     uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
-    
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -48,12 +47,12 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     //////////////////////////////////////////////////////////////*/
 
     function installHook(ITokenHook _hook) external {
-        if(!_canUpdateHooks(msg.sender)) {
+        if (!_canUpdateHooks(msg.sender)) {
             revert TokenHookConsumerNotAuthorized();
         }
 
         uint256 hooksToInstall = _hook.getHooksImplemented();
-        
+
         _updateHooks(hooksToInstall, address(_hook), _addHook);
         _hookImplementations.set(uint160(address(_hook)));
 
@@ -61,10 +60,10 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     }
 
     function uninstallHook(ITokenHook _hook) external {
-        if(!_canUpdateHooks(msg.sender)) {
+        if (!_canUpdateHooks(msg.sender)) {
             revert TokenHookConsumerNotAuthorized();
         }
-        if(!_hookImplementations.get(uint160(address(_hook)))) {
+        if (!_hookImplementations.get(uint160(address(_hook)))) {
             revert TokenHookConsumerHookDoesNotExist();
         }
 
@@ -94,12 +93,10 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     }
 
     function _updateHooks(
-        uint256 _hooksToUpdate, 
-        address _implementation, 
+        uint256 _hooksToUpdate,
+        address _implementation,
         function (uint256, uint256) internal pure returns (uint256) _addOrRemoveHook
-    )
-        internal
-    {
+    ) internal {
         uint256 currentActiveHooks = _activeHooks;
 
         uint256 flag = 2 ** 4;
@@ -119,10 +116,14 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
                         HOOKS INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _beforeMint(address _to, uint256 _quantity, bytes memory _data) internal virtual returns (bool success, address hook, uint256 tokenIdToMint) {
+    function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
+        internal
+        virtual
+        returns (bool success, address hook, uint256 tokenIdToMint)
+    {
         hook = getHookImplementation(BEFORE_MINT_FLAG);
 
-        if(hook != address(0)) {
+        if (hook != address(0)) {
             tokenIdToMint = ITokenHook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
             success = true;
         }
@@ -131,7 +132,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
-        if(hook != address(0)) {
+        if (hook != address(0)) {
             ITokenHook(hook).beforeTransfer(_from, _to, _tokenId);
         }
     }
@@ -139,7 +140,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     function _beforeBurn(address _from, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
-        if(hook != address(0)) {
+        if (hook != address(0)) {
             ITokenHook(hook).beforeBurn(_from, _tokenId);
         }
     }
@@ -147,7 +148,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     function _beforeApprove(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
-        if(hook != address(0)) {
+        if (hook != address(0)) {
             ITokenHook(hook).beforeApprove(_from, _to, _tokenId);
         }
     }

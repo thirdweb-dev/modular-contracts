@@ -1,16 +1,22 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from  "../extension/Initializable.sol";
-import { IERC721 } from "../interface/erc721/IERC721.sol";
-import { IERC721Supply } from "../interface/erc721/IERC721Supply.sol";
-import { IERC721Metadata } from "../interface/erc721/IERC721Metadata.sol";
-import { IERC721CustomErrors } from "../interface/erc721/IERC721CustomErrors.sol";
-import { IERC721Receiver } from "../interface/erc721/IERC721Receiver.sol";
-import { IERC2981 } from "../interface/eip/IERC2981.sol";
+import {Initializable} from "../extension/Initializable.sol";
+import {IERC721} from "../interface/erc721/IERC721.sol";
+import {IERC721Supply} from "../interface/erc721/IERC721Supply.sol";
+import {IERC721Metadata} from "../interface/erc721/IERC721Metadata.sol";
+import {IERC721CustomErrors} from "../interface/erc721/IERC721CustomErrors.sol";
+import {IERC721Receiver} from "../interface/erc721/IERC721Receiver.sol";
+import {IERC2981} from "../interface/eip/IERC2981.sol";
 
-contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Metadata, IERC721CustomErrors, IERC2981 {
-
+contract ERC721Initializable is
+    Initializable,
+    IERC721,
+    IERC721Supply,
+    IERC721Metadata,
+    IERC721CustomErrors,
+    IERC2981
+{
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -39,7 +45,7 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
 
     /// @notice Mapping from token ID to TokenData i.e. owner and metadata source.
     mapping(uint256 => TokenData) private _tokenData;
-    
+
     /// @notice Mapping from owner address to number of owned token.
     mapping(address => uint256) private _balanceOf;
 
@@ -95,11 +101,11 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
      *  @return owner The address of the owner of the NFT.
      */
     function ownerOf(uint256 _id) public view virtual returns (address owner) {
-        if((owner = _tokenData[_id].owner) == address(0)) {
+        if ((owner = _tokenData[_id].owner) == address(0)) {
             revert ERC721NotMinted(_id);
         }
     }
-    
+
     /**
      *  @notice Returns the total quantity of NFTs owned by an address.
      *  @param _owner The address to query the balance of
@@ -124,10 +130,7 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
      *  @return receiver The royalty recipient address
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
      */
-    function royaltyInfo(
-        uint256 _tokenId,
-        uint256 _salePrice
-    ) external view returns (address, uint256) {
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice) external view returns (address, uint256) {
         return IERC2981(_tokenData[_tokenId].metadataSource).royaltyInfo(_tokenId, _salePrice);
     }
 
@@ -136,11 +139,10 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            _interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            _interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
-            _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
+            || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
+            || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -155,7 +157,7 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
     function approve(address _spender, uint256 _id) public virtual {
         address owner = _tokenData[_id].owner;
 
-        if(msg.sender != owner && !isApprovedForAll[owner][msg.sender]) {
+        if (msg.sender != owner && !isApprovedForAll[owner][msg.sender]) {
             revert ERC721NotApproved(msg.sender, _id);
         }
 
@@ -181,20 +183,16 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _id
-    ) public virtual {
-        if(_from != _tokenData[_id].owner) {
+    function transferFrom(address _from, address _to, uint256 _id) public virtual {
+        if (_from != _tokenData[_id].owner) {
             revert ERC721NotOwner(_from, _id);
         }
 
-        if(_to == address(0)) {
+        if (_to == address(0)) {
             revert ERC721InvalidRecipient();
         }
 
-        if(msg.sender != _from && !isApprovedForAll[_from][msg.sender] && msg.sender != getApproved[_id]) {
+        if (msg.sender != _from && !isApprovedForAll[_from][msg.sender] && msg.sender != getApproved[_id]) {
             revert ERC721NotApproved(msg.sender, _id);
         }
 
@@ -220,20 +218,16 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _id
-    ) public virtual {
+    function safeTransferFrom(address _from, address _to, uint256 _id) public virtual {
         transferFrom(_from, _to, _id);
 
-        if(
-            _to.code.length != 0 
-                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, "") != IERC721Receiver.onERC721Received.selector
+        if (
+            _to.code.length != 0
+                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, "")
+                    != IERC721Receiver.onERC721Received.selector
         ) {
             revert ERC721UnsafeRecipient(_to);
         }
-        
     }
 
     /**
@@ -244,17 +238,13 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
      *  @param _id The token ID of the NFT
      *  @param _data Additional data passed onto the `onERC721Received` call to the recipient
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _id,
-        bytes calldata _data
-    ) public virtual {
+    function safeTransferFrom(address _from, address _to, uint256 _id, bytes calldata _data) public virtual {
         transferFrom(_from, _to, _id);
 
-        if(
-            _to.code.length != 0 
-                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, _data) != IERC721Receiver.onERC721Received.selector
+        if (
+            _to.code.length != 0
+                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, _data)
+                    != IERC721Receiver.onERC721Received.selector
         ) {
             revert ERC721UnsafeRecipient(_to);
         }
@@ -272,7 +262,7 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
      *  @param _metadataSource The address of the metadata source of all the minted NFTs
      */
     function _mint(address _to, uint256 _startId, uint256 _quantity, address _metadataSource) internal virtual {
-        if(_to == address(0)) {
+        if (_to == address(0)) {
             revert ERC721InvalidRecipient();
         }
 
@@ -284,8 +274,8 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
             _totalSupply += _quantity;
         }
 
-        for(uint256 id = _startId; id < endId; id++) {
-            if(_tokenData[id].owner != address(0)) {
+        for (uint256 id = _startId; id < endId; id++) {
+            if (_tokenData[id].owner != address(0)) {
                 revert ERC721AlreadyMinted(id);
             }
 
@@ -302,7 +292,7 @@ contract ERC721Initializable is Initializable, IERC721, IERC721Supply, IERC721Me
     function _burn(uint256 _id) internal virtual {
         address owner = _tokenData[_id].owner;
 
-        if(owner == address(0)) {
+        if (owner == address(0)) {
             revert ERC721NotMinted(_id);
         }
 

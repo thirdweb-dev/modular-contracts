@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../interface/extension/ITokenHook.sol";
 
 abstract contract TokenHook is ITokenHook {
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -26,7 +25,12 @@ abstract contract TokenHook is ITokenHook {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function beforeMint(address _to, uint256 _quantity, bytes memory _data) external payable virtual returns (uint256) {
+    function beforeMint(address _to, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        returns (uint256)
+    {
         revert TokenHookNotImplemented();
     }
 
@@ -44,7 +48,6 @@ abstract contract TokenHook is ITokenHook {
 }
 
 contract TokenHookExample is TokenHook {
-
     event SomeEvent();
 
     uint256 private _nextId;

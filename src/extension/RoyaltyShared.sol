@@ -6,7 +6,6 @@ pragma solidity ^0.8.0;
 import "../interface/extension/IRoyaltyShared.sol";
 
 abstract contract RoyaltyShared is IRoyaltyShared {
-
     /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -18,10 +17,13 @@ abstract contract RoyaltyShared is IRoyaltyShared {
                                VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function royaltyInfo(
-        uint256 _tokenId,
-        uint256 _salePrice
-    ) external view virtual override returns (address receiver, uint256 royaltyAmount) {
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
+        external
+        view
+        virtual
+        override
+        returns (address receiver, uint256 royaltyAmount)
+    {
         address token = msg.sender;
         (address recipient, uint256 bps) = getRoyaltyInfoForToken(token, _tokenId);
         receiver = recipient;
@@ -32,10 +34,9 @@ abstract contract RoyaltyShared is IRoyaltyShared {
         RoyaltyInfo memory royaltyForToken = _royaltyInfoForToken[_token][_tokenId];
         RoyaltyInfo memory defaultRoyaltyInfo = _defaultRoyaltyInfo[_token];
 
-        return
-            royaltyForToken.recipient == address(0)
-                ? (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps))
-                : (royaltyForToken.recipient, uint16(royaltyForToken.bps));
+        return royaltyForToken.recipient == address(0)
+            ? (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps))
+            : (royaltyForToken.recipient, uint16(royaltyForToken.bps));
     }
 
     function getDefaultRoyaltyInfo(address _token) external view override returns (address, uint16) {
@@ -55,7 +56,10 @@ abstract contract RoyaltyShared is IRoyaltyShared {
         _setupDefaultRoyaltyInfo(_token, _royaltyRecipient, _royaltyBps);
     }
 
-    function setRoyaltyInfoForToken(address _token, uint256 _tokenId, address _recipient, uint256 _bps) external override {
+    function setRoyaltyInfoForToken(address _token, uint256 _tokenId, address _recipient, uint256 _bps)
+        external
+        override
+    {
         if (!_canSetRoyaltyInfo()) {
             revert("Not authorized");
         }
@@ -72,7 +76,7 @@ abstract contract RoyaltyShared is IRoyaltyShared {
             revert("Exceeds max bps");
         }
 
-        _defaultRoyaltyInfo[_token] = RoyaltyInfo({ recipient: _royaltyRecipient, bps: _royaltyBps });
+        _defaultRoyaltyInfo[_token] = RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
 
         emit DefaultRoyaltyUpdate(_token, _royaltyRecipient, _royaltyBps);
     }
@@ -82,7 +86,7 @@ abstract contract RoyaltyShared is IRoyaltyShared {
             revert("Exceeds max bps");
         }
 
-        _royaltyInfoForToken[_token][_tokenId] = RoyaltyInfo({ recipient: _recipient, bps: _bps });
+        _royaltyInfoForToken[_token][_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
 
         emit TokenRoyaltyUpdate(_token, _tokenId, _recipient, _bps);
     }

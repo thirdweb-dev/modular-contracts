@@ -77,16 +77,10 @@ library Strings {
             let o := add(str, 0x22)
             let hashed := and(keccak256(o, 40), mul(34, mask)) // `0b10001000 ... `
             let t := shl(240, 136) // `0b10001000 << 240`
-            for {
-                let i := 0
-            } 1 {
-
-            } {
+            for { let i := 0 } 1 {} {
                 mstore(add(i, i), mul(t, byte(i, hashed)))
                 i := add(i, 1)
-                if eq(i, 20) {
-                    break
-                }
+                if eq(i, 20) { break }
             }
             mstore(o, xor(mload(o), shr(1, and(mload(0x00), and(mload(o), mask)))))
             o := add(o, 0x20)
@@ -133,19 +127,13 @@ library Strings {
 
             // We write the string from rightmost digit to leftmost digit.
             // The following is essentially a do-while loop that also handles the zero case.
-            for {
-                let i := 0
-            } 1 {
-
-            } {
+            for { let i := 0 } 1 {} {
                 let p := add(o, add(i, i))
                 let temp := byte(i, value)
                 mstore8(add(p, 1), mload(and(temp, 15)))
                 mstore8(p, mload(shr(4, temp)))
                 i := add(i, 1)
-                if eq(i, 20) {
-                    break
-                }
+                if eq(i, 20) { break }
             }
         }
     }
@@ -178,11 +166,7 @@ library Strings {
             let o := add(str, 0x20)
             let end := add(raw, length)
 
-            for {
-
-            } iszero(eq(raw, end)) {
-
-            } {
+            for {} iszero(eq(raw, end)) {} {
                 raw := add(raw, 1)
                 mstore8(add(o, 1), mload(and(mload(raw), 15)))
                 mstore8(o, mload(and(shr(4, mload(raw)), 15)))

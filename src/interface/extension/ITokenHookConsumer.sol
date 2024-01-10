@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import { ITokenHook } from "./ITokenHook.sol";
+import {ITokenHook} from "./ITokenHook.sol";
 
 interface ITokenHookConsumer {
-
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
