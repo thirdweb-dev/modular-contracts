@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
 /// NOTE: This contract is for testing purposes only. It is not intended to be used in production.
