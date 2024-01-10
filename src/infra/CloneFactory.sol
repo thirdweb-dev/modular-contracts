@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "../lib/Clones.sol";
-import "../lib/Address.sol";
 
 contract CloneFactory {
     /*//////////////////////////////////////////////////////////////
@@ -25,8 +24,29 @@ contract CloneFactory {
         emit ProxyDeployed(_implementation, deployedProxy, msg.sender);
 
         if (_data.length > 0) {
-            // slither-disable-next-line unused-return
-            Address.functionCall(deployedProxy, _data);
+            (bool success, bytes memory returndata) = deployedProxy.call(_data);
+
+            if (!success) {
+                _revert(returndata, "Failed to initialize proxy");
+            }
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _revert(bytes memory _returndata, string memory _errorMessage) private pure {
+        // Look for revert reason and bubble it up if present
+        if (_returndata.length > 0) {
+            // The easiest way to bubble the revert reason is using memory via assembly
+            /// @solidity memory-safe-assembly
+            assembly {
+                let returndata_size := mload(_returndata)
+                revert(add(32, _returndata), returndata_size)
+            }
+        } else {
+            revert(_errorMessage);
         }
     }
 }
