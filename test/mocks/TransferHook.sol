@@ -5,7 +5,6 @@ import "src/extension/TokenHook.sol";
 import "src/extension/Permission.sol";
 
 contract TransferHook is TokenHook, Permission {
-    using BitMaps for BitMaps.BitMap;
 
     uint8 public constant TRANSFER_ROLE_BITS = 2 ** 2;
 

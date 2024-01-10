@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import "../lib/BitMaps.sol";
+import "../lib/LibBitmap.sol";
 import "../lib/Address.sol";
 import {ITokenHook, ITokenHookConsumer} from "../interface/extension/ITokenHookConsumer.sol";
 
 abstract contract TokenHookConsumer is ITokenHookConsumer {
-    using BitMaps for BitMaps.BitMap;
+    using LibBitmap for LibBitmap.Bitmap;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -22,7 +22,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     //////////////////////////////////////////////////////////////*/
 
     uint256 private _activeHooks;
-    BitMaps.BitMap private _hookImplementations;
+    LibBitmap.Bitmap private _hookImplementations;
     mapping(uint256 => address) private _hookImplementationMap;
 
     /*//////////////////////////////////////////////////////////////
