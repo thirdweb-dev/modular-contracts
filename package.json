@@ -12,7 +12,7 @@
     "typescript": "^5.3.3",
     "@manifoldxyz/creator-core-solidity": "^3.0.0",
     "@manifoldxyz/libraries-solidity": "^1.0.4",
-    "@openzeppelin/contracts": "4.8.1",
+    "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "4.8.1",
     "@thirdweb-dev/dynamic-contracts": "^1.2.5",
     "@zoralabs/protocol-rewards": "1.0.2",
