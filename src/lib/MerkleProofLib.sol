@@ -9,11 +9,7 @@ library MerkleProofLib {
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     /// @dev Returns whether `leaf` exists in the Merkle tree with `root`, given `proof`.
-    function verify(bytes32[] memory proof, bytes32 root, bytes32 leaf)
-        internal
-        pure
-        returns (bool isValid)
-    {
+    function verify(bytes32[] memory proof, bytes32 root, bytes32 leaf) internal pure returns (bool isValid) {
         /// @solidity memory-safe-assembly
         assembly {
             if mload(proof) {

@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../interface/extension/IPermission.sol";
 
 contract Permission is IPermission {
-
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/

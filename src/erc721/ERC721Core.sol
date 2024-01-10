@@ -7,7 +7,6 @@ import {Initializable} from "../extension/Initializable.sol";
 import {Permission} from "../extension/Permission.sol";
 
 contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Permission {
-
     /*//////////////////////////////////////////////////////////////
                                ERRROR
     //////////////////////////////////////////////////////////////*/

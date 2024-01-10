@@ -22,10 +22,7 @@ library LibClone {
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     /// @dev Deploys a deterministic clone of `implementation` with `salt`.
-    function cloneDeterministic(address implementation, bytes32 salt)
-        internal
-        returns (address instance)
-    {
+    function cloneDeterministic(address implementation, bytes32 salt) internal returns (address instance) {
         instance = cloneDeterministic(0, implementation, salt);
     }
 

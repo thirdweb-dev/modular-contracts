@@ -117,8 +117,9 @@ contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
         if (condition.allowlistMerkleRoot != bytes32(0)) {
             bytes32[] memory allowlistProof = abi.decode(_data, (bytes32[]));
 
-            bool isAllowlisted =
-                MerkleProofLib.verify(allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer)));
+            bool isAllowlisted = MerkleProofLib.verify(
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
+            );
             if (!isAllowlisted) {
                 revert NotInAllowlist(token, _claimer);
             }

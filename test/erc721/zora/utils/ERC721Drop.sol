@@ -1173,9 +1173,8 @@ contract ERC721Drop is
         bytes32[] calldata merkleProof
     ) internal view {
         if (
-            !
             // address, uint256, uint256
-            MerkleProofUpgradeable.verify(
+            !MerkleProofUpgradeable.verify(
                 merkleProof,
                 salesConfig.presaleMerkleRoot,
                 keccak256(abi.encodePacked(recipient, maxQuantity, pricePerToken))
