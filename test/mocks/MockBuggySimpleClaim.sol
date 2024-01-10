@@ -9,10 +9,10 @@ import {TokenHook} from "src/extension/TokenHook.sol";
 import {Permission} from "src/extension/Permission.sol";
 import {RoyaltyShared} from "src/extension/RoyaltyShared.sol";
 import {MerkleProofLib} from "src/lib/MerkleProofLib.sol";
-import {Strings} from "src/lib/Strings.sol";
+import {LibString} from "src/lib/LibString.sol";
 
 contract MockBuggySimpleClaim is TokenHook, RoyaltyShared {
-    using Strings for uint256;
+    using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS

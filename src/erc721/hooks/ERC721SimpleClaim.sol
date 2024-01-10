@@ -10,10 +10,10 @@ import {TokenHook} from "../../extension/TokenHook.sol";
 import {Permission} from "../../extension/Permission.sol";
 import {RoyaltyShared} from "../../extension/RoyaltyShared.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
-import {Strings} from "../../lib/Strings.sol";
+import {LibString} from "../../lib/LibString.sol";
 
 contract ERC721SimpleClaim is TokenHook, RoyaltyShared {
-    using Strings for uint256;
+    using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
