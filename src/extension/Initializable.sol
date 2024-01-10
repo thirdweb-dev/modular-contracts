@@ -1,136 +1,130 @@
-// SPDX-License-Identifier: Apache 2.0
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../lib/Address.sol";
-
-/**
- * @dev This is a base contract to aid in writing upgradeable contracts, or any kind of contract that will be deployed
- * behind a proxy. Since proxied contracts do not make use of a constructor, it's common to move constructor logic to an
- * external initializer function, usually called `initialize`. It then becomes necessary to protect this initializer
- * function so it can only be called once. The {initializer} modifier provided by this contract will have this effect.
- *
- * The initialization functions use a version number. Once a version number is used, it is consumed and cannot be
- * reused. This mechanism prevents re-execution of each "step" but allows the creation of new initialization steps in
- * case an upgrade adds a module that needs to be initialized.
- *
- * For example:
- *
- * [.hljs-theme-light.nopadding]
- * ```
- * contract MyToken is ERC20Upgradeable {
- *     function initialize() initializer public {
- *         __ERC20_init("MyToken", "MTK");
- *     }
- * }
- * contract MyTokenV2 is MyToken, ERC20PermitUpgradeable {
- *     function initializeV2() reinitializer(2) public {
- *         __ERC20Permit_init("MyToken");
- *     }
- * }
- * ```
- *
- * TIP: To avoid leaving the proxy in an uninitialized state, the initializer function should be called as early as
- * possible by providing the encoded function call as the `_data` argument to {ERC1967Proxy-constructor}.
- *
- * CAUTION: When used with inheritance, manual care must be taken to not invoke a parent initializer twice, or to ensure
- * that all initializers are idempotent. This is not verified automatically as constructors are by Solidity.
- *
- * [CAUTION]
- * ====
- * Avoid leaving a contract uninitialized.
- *
- * An uninitialized contract can be taken over by an attacker. This applies to both a proxy and its implementation
- * contract, which may impact the proxy. To prevent the implementation contract from being used, you should invoke
- * the {_disableInitializers} function in the constructor to automatically lock it when it is deployed:
- *
- * [.hljs-theme-light.nopadding]
- * ```
- * /// @custom:oz-upgrades-unsafe-allow constructor
- * constructor() {
- *     _disableInitializers();
- * }
- * ```
- * ====
- */
+/// @notice Initializable mixin for the upgradeable contracts.
+/// @author Solady (https://github.com/vectorized/solady/blob/main/src/utils/Initializable.sol)
 abstract contract Initializable {
-    /**
-     * @dev Indicates that the contract has been initialized.
-     * @custom:oz-retyped-from bool
-     */
-    uint8 private _initialized;
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                       CUSTOM ERRORS                        */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /**
-     * @dev Indicates that the contract is in the process of being initialized.
-     */
-    bool private _initializing;
+    /// @dev The contract is already initialized.
+    error InvalidInitialization();
 
-    /**
-     * @dev Triggered when the contract has been initialized or reinitialized.
-     */
-    event Initialized(uint8 version);
+    /// @dev The contract is not initializing.
+    error NotInitializing();
 
-    /**
-     * @dev A modifier that defines a protected initializer function that can be invoked at most once. In its scope,
-     * `onlyInitializing` functions can be used to initialize parent contracts. Equivalent to `reinitializer(1)`.
-     */
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                           EVENTS                           */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    /// @dev Triggered when the contract has been initialized.
+    event Initialized(uint64 version);
+
+    /// @dev `keccak256(bytes("Initialized(uint64)"))`.
+    bytes32 private constant _INTIALIZED_EVENT_SIGNATURE =
+        0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2;
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                          STORAGE                           */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    /// @dev The initializable slot is given by:
+    /// `bytes32(~uint256(uint32(bytes4(keccak256("_INITIALIZABLE_SLOT")))))`.
+    ///
+    /// Bits Layout:
+    /// - [0]     `initializing`
+    /// - [1..64] `initializedVersion`
+    bytes32 private constant _INITIALIZABLE_SLOT =
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffbf601132;
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                         OPERATIONS                         */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    /// @dev Guards an initializer function so that it can be invoked at most once.
+    ///
+    /// You can guard a function with `onlyInitializing` such that it can be called
+    /// through a function guarded with `initializer`.
+    ///
+    /// This is similar to `reinitializer(1)`, except that in the context of a constructor,
+    /// an `initializer` guarded function can be invoked multiple times.
+    /// This can be useful during testing and is not expected to be used in production.
+    ///
+    /// Emits an {Initialized} event.
     modifier initializer() {
-        bool isTopLevelCall = !_initializing;
-        require(
-            (isTopLevelCall && _initialized < 1) || (!Address.isContract(address(this)) && _initialized == 1),
-            "Initializable: contract is already initialized"
-        );
-        _initialized = 1;
-        if (isTopLevelCall) {
-            _initializing = true;
+        uint256 i;
+        /// @solidity memory-safe-assembly
+        assembly {
+            let s := _INITIALIZABLE_SLOT
+            i := sload(s)
+            // If `!(initializing == 0 && initializedVersion == 0)`.
+            if i {
+                // If `!(address(this).code.length == 0 && initializedVersion == 1)`.
+                if iszero(lt(extcodesize(address()), eq(shr(1, i), 1))) {
+                    mstore(0x00, 0xf92ee8a9) // `InvalidInitialization()`.
+                    revert(0x1c, 0x04)
+                }
+            }
+            // Set `initializing` to 1, `initializedVersion` to 1.
+            sstore(s, 3)
         }
         _;
-        if (isTopLevelCall) {
-            _initializing = false;
-            emit Initialized(1);
+        /// @solidity memory-safe-assembly
+        assembly {
+            // If `initializing == 0`.
+            if iszero(and(i, 1)) {
+                // Set `initializing` to 0, `initializedVersion` to 1.
+                sstore(_INITIALIZABLE_SLOT, 2)
+                // Emit the {Initialized} event.
+                mstore(0x20, 1)
+                log1(0x20, 0x20, _INTIALIZED_EVENT_SIGNATURE)
+            }
         }
     }
 
-    /**
-     * @dev A modifier that defines a protected reinitializer function that can be invoked at most once, and only if the
-     * contract hasn't been initialized to a greater version before. In its scope, `onlyInitializing` functions can be
-     * used to initialize parent contracts.
-     *
-     * `initializer` is equivalent to `reinitializer(1)`, so a reinitializer may be used after the original
-     * initialization step. This is essential to configure modules that are added through upgrades and that require
-     * initialization.
-     *
-     * Note that versions can jump in increments greater than 1; this implies that if multiple reinitializers coexist in
-     * a contract, executing them in the right order is up to the developer or operator.
-     */
-    modifier reinitializer(uint8 version) {
-        require(!_initializing && _initialized < version, "Initializable: contract is already initialized");
-        _initialized = version;
-        _initializing = true;
-        _;
-        _initializing = false;
-        emit Initialized(version);
-    }
-
-    /**
-     * @dev Modifier to protect an initialization function so that it can only be invoked by functions with the
-     * {initializer} and {reinitializer} modifiers, directly or indirectly.
-     */
+    /// @dev Guards a function such that it can only be called in the scope
+    /// of a function guarded with `initializer` or `reinitializer`.
     modifier onlyInitializing() {
-        require(_initializing, "Initializable: contract is not initializing");
+        _checkInitializing();
         _;
     }
 
-    /**
-     * @dev Locks the contract, preventing any future reinitialization. This cannot be part of an initializer call.
-     * Calling this in the constructor of a contract will prevent that contract from being initialized or reinitialized
-     * to any version. It is recommended to use this to lock implementation contracts that are designed to be called
-     * through proxies.
-     */
+    /// @dev Reverts if the contract is not initializing.
+    function _checkInitializing() internal view virtual {
+        /// @solidity memory-safe-assembly
+        assembly {
+            if iszero(and(1, sload(_INITIALIZABLE_SLOT))) {
+                mstore(0x00, 0xd7e6bcf8) // `NotInitializing()`.
+                revert(0x1c, 0x04)
+            }
+        }
+    }
+
+    /// @dev Locks any future initializations by setting the initialized version to `2**64 - 1`.
+    ///
+    /// Calling this in the constructor will prevent the contract from being initialized
+    /// or reinitialized. It is recommended to use this to lock implementation contracts
+    /// that are designed to be called through proxies.
+    ///
+    /// Emits an {Initialized} event the first time it is successfully called.
     function _disableInitializers() internal virtual {
-        require(!_initializing, "Initializable: contract is initializing");
-        if (_initialized < type(uint8).max) {
-            _initialized = type(uint8).max;
-            emit Initialized(type(uint8).max);
+        /// @solidity memory-safe-assembly
+        assembly {
+            let s := _INITIALIZABLE_SLOT
+            let i := sload(s)
+            if and(i, 1) {
+                mstore(0x00, 0xf92ee8a9) // `InvalidInitialization()`.
+                revert(0x1c, 0x04)
+            }
+            let uint64max := shr(192, s) // Computed to save bytecode.
+            if iszero(eq(shr(1, i), uint64max)) {
+                // Set `initializing` to 0, `initializedVersion` to `2**64 - 1`.
+                sstore(s, shl(1, uint64max))
+                // Emit the {Initialized} event.
+                mstore(0x20, uint64max)
+                log1(0x20, 0x20, _INTIALIZED_EVENT_SIGNATURE)
+            }
         }
     }
 }

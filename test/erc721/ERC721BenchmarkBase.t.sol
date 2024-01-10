@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
-import { IERC721 } from "./interface/IERC721.sol";
+import {Test} from "forge-std/Test.sol";
+import {IERC721} from "./interface/IERC721.sol";
 
 abstract contract ERC721BenchmarkBase is Test {
-
     address internal admin;
     address internal claimer;
     address internal transferRecipient;
@@ -14,9 +13,8 @@ abstract contract ERC721BenchmarkBase is Test {
 
     address internal erc721ContractImplementation;
     address internal erc721Contract;
-    
-    function setUp() public virtual {
 
+    function setUp() public virtual {
         admin = address(0x123);
         claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
         transferRecipient = address(0x789);
@@ -51,25 +49,34 @@ abstract contract ERC721BenchmarkBase is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testBenchmarkDeployContract() public {
-        _createERC721Contract(erc721ContractImplementation);
+        vm.pauseGasMetering();
+        address implementation = erc721ContractImplementation;
+        vm.resumeGasMetering();
+
+        _createERC721Contract(implementation);
     }
 
     function testBenchmarkClaimToken() public {
-        _claimOneToken(claimer, pricePerToken);
+        vm.pauseGasMetering();
+        address claimerAddr = claimer;
+        uint256 price = pricePerToken;
+        vm.resumeGasMetering();
+        _claimOneToken(claimerAddr, price);
     }
 
     function testBenchmarkTransferToken() public {
-
         vm.pauseGasMetering();
 
         IERC721 erc721 = IERC721(erc721Contract);
 
         uint256 tokenId = _claimOneTokenCopy(claimer, pricePerToken);
+        address claimerAddr = claimer;
+        address recipient = transferRecipient;
 
-        vm.startPrank(claimer);
+        vm.startPrank(claimerAddr);
 
-        vm.resumeGasMetering(); 
-        erc721.transferFrom(claimer, transferRecipient, tokenId);
+        vm.resumeGasMetering();
+        erc721.transferFrom(claimerAddr, recipient, tokenId);
 
         vm.stopPrank();
     }

@@ -1,33 +1,18 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import { ERC721 } from  "./ERC721.sol";
-import { BitMaps } from "../lib/BitMaps.sol";
-import { Initializable } from "../extension/Initializable.sol";
-import { Permissions } from "../extension/Permissions.sol";
+import {ERC721Initializable} from "./ERC721Initializable.sol";
+import {TokenHookConsumer} from "../extension/TokenHookConsumer.sol";
+import {Initializable} from "../extension/Initializable.sol";
+import {Permission} from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721, Permissions {
-
-    using BitMaps for BitMaps.BitMap;
-
-    /*//////////////////////////////////////////////////////////////
-                               EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event TokenMinter(address indexed minter);
+contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Permission {
 
     /*//////////////////////////////////////////////////////////////
                                ERRROR
     //////////////////////////////////////////////////////////////*/
 
-    error NotMinter(address caller);
-
-    /*//////////////////////////////////////////////////////////////
-                               STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    address public minter;
-    uint256 public nextTokenIdToMint;
+    error ERC721CoreMintNotAuthorized();
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -39,7 +24,7 @@ contract ERC721Core is Initializable, ERC721, Permissions {
 
     function initialize(address _defaultAdmin, string memory _name, string memory _symbol) external initializer {
         __ERC721_init(_name, _symbol);
-        _hasRole[_defaultAdmin].set(ADMIN_ROLE);
+        _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -47,26 +32,45 @@ contract ERC721Core is Initializable, ERC721, Permissions {
     //////////////////////////////////////////////////////////////*/
 
     function burn(uint256 _tokenId) external {
-        if(ownerOf(_tokenId) != msg.sender) {
-            revert NotOwner(msg.sender, _tokenId);
+        address owner = ownerOf(_tokenId);
+        if (owner != msg.sender) {
+            revert ERC721NotOwner(msg.sender, _tokenId);
         }
 
+        _beforeBurn(owner, _tokenId);
         _burn(_tokenId);
     }
 
-    function mint(address _to) external {
-        if(minter != msg.sender) {
-            revert NotMinter(msg.sender);
+    function mint(address _to, uint256 _quantity, bytes memory _data) external payable {
+        (bool success, address metadataSource, uint256 tokenIdToMint) = _beforeMint(_to, _quantity, _data);
+
+        if (success) {
+            _mint(_to, tokenIdToMint, _quantity, metadataSource);
+            return;
         }
-        _mint(_to, nextTokenIdToMint++);
+
+        revert ERC721CoreMintNotAuthorized();
     }
 
-    function setMinter(address _minter) external {
-        if(!hasRole(msg.sender, ADMIN_ROLE)) {
-            revert Unauthorized(msg.sender, ADMIN_ROLE);
-        }
-        minter = _minter;
+    /*//////////////////////////////////////////////////////////////
+                            OVERRIDE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
-        emit TokenMinter(_minter);
+    function transferFrom(address _from, address _to, uint256 _id) public override {
+        _beforeTransfer(_from, _to, _id);
+        super.transferFrom(_from, _to, _id);
+    }
+
+    function approve(address _spender, uint256 _id) public override {
+        _beforeApprove(msg.sender, _spender, _id);
+        super.approve(_spender, _id);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _canUpdateHooks(address _caller) internal view override returns (bool) {
+        return hasRole(_caller, ADMIN_ROLE_BITS);
     }
 }

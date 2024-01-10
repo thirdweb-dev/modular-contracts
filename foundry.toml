@@ -9,7 +9,8 @@ remappings = [
   '@manifoldxyz/creator-core-solidity/=node_modules/@manifoldxyz/creator-core-solidity/',
   '@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/',
   '@zoralabs/protocol-rewards/src/=node_modules/@zoralabs/protocol-rewards/dist/contracts/',
-  'erc721a-upgradeable/=node_modules/erc721a-upgradeable/contracts/'
+  'erc721a-upgradeable/=node_modules/erc721a-upgradeable/contracts/',
+  '@thirdweb-dev/dynamic-contracts/=node_modules/@thirdweb-dev/dynamic-contracts/src/'
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

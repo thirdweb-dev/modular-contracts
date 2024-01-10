@@ -2,33 +2,32 @@
 pragma solidity ^0.8.0;
 
 // Test util
-import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
+import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
 
 // Target test contracts
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { ERC721CreatorUpgradeable } from "./utils/ERC721CreatorUpgradeable.sol";
-import { ERC721LazyMintWhitelist } from "./utils/ERC721LazyMintWhitelist.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {ERC721CreatorUpgradeable} from "./utils/ERC721CreatorUpgradeable.sol";
+import {ERC721LazyMintWhitelist} from "./utils/ERC721LazyMintWhitelist.sol";
 
 contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
-
     ERC721LazyMintWhitelist internal claimContract;
 
     function setUp() public override {
         super.setUp();
-        
+
         vm.startPrank(admin);
 
         // Deploy infra/shared-state contracts pre-setup
         claimContract = new ERC721LazyMintWhitelist(erc721Contract, "test");
-        
+
         // Set allowlist
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "test/scripts/generateRoot.ts";
-        
+
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
-        
+
         claimContract.setAllowList(root);
 
         // Register extension
@@ -65,14 +64,13 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
 
     /// @dev Setup token metadata
     function _setupTokenMetadata() internal override {
-
         vm.pauseGasMetering();
         ERC721LazyMintWhitelist claimC = claimContract;
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "test/scripts/getProof.ts";
-        
+
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
 
@@ -87,14 +85,13 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
 
     /// @dev Claims a token from the target erc721 contract.
     function _claimOneToken(address _claimer, uint256 _price) internal override returns (uint256) {
-
         vm.pauseGasMetering();
         ERC721LazyMintWhitelist claimC = claimContract;
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "test/scripts/getProof.ts";
-        
+
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
 
@@ -108,13 +105,12 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
 
     /// @dev Claims a token from the target erc721 contract.
     function _claimOneTokenCopy(address _claimer, uint256 _price) internal override returns (uint256) {
-
         ERC721LazyMintWhitelist claimC = claimContract;
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "test/scripts/getProof.ts";
-        
+
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
 

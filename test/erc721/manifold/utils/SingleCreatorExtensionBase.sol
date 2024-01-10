@@ -14,10 +14,10 @@ abstract contract SingleCreatorExtensionBase {
      * @dev Override with appropriate interface checks if necessary
      */
     function _setCreator(address creator) internal virtual {
-      _creator = creator;
+        _creator = creator;
     }
 
-    function creatorContract() public view returns(address) {
+    function creatorContract() public view returns (address) {
         return _creator;
     }
 }

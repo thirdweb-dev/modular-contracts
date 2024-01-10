@@ -9,17 +9,17 @@
     "@thirdweb-dev/merkletree": "^0.2.0",
     "ethers": "^5.0.0",
     "keccak256": "^1.0.6",
-    "typescript": "^5.3.3"
-  },
-  "resolutions": {
-    "typescript": "^5.3.2"
-  },
-  "dependencies": {
+    "typescript": "^5.3.3",
     "@manifoldxyz/creator-core-solidity": "^3.0.0",
     "@manifoldxyz/libraries-solidity": "^1.0.4",
     "@openzeppelin/contracts": "4.8.1",
     "@openzeppelin/contracts-upgradeable": "4.8.1",
+    "@thirdweb-dev/dynamic-contracts": "^1.2.5",
     "@zoralabs/protocol-rewards": "1.0.2",
     "erc721a-upgradeable": "^3.2.0"
-  }
+  },
+  "resolutions": {
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {}
 }

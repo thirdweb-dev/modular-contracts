@@ -11,11 +11,7 @@ contract DropMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck {
 
     /// Event to mark updated metadata information
     event MetadataUpdated(
-        address indexed target,
-        string metadataBase,
-        string metadataExtension,
-        string contractURI,
-        uint256 freezeAt
+        address indexed target, string metadataBase, string metadataExtension, string contractURI, uint256 freezeAt
     );
 
     /// @notice Hash to mark updated provenance hash
@@ -39,24 +35,14 @@ contract DropMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck {
     /// @param data passed in for initialization
     function initializeWithData(bytes memory data) external {
         // data format: string baseURI, string newContractURI
-        (string memory initialBaseURI, string memory initialContractURI) = abi
-            .decode(data, (string, string));
-        _updateMetadataDetails(
-            msg.sender,
-            initialBaseURI,
-            "",
-            initialContractURI,
-            0
-        );
+        (string memory initialBaseURI, string memory initialContractURI) = abi.decode(data, (string, string));
+        _updateMetadataDetails(msg.sender, initialBaseURI, "", initialContractURI, 0);
     }
 
     /// @notice Update the provenance hash (optional) for a given nft
     /// @param target target address to update
     /// @param provenanceHash provenance hash to set
-    function updateProvenanceHash(
-        address target,
-        bytes32 provenanceHash
-    ) external requireSenderAdmin(target) {
+    function updateProvenanceHash(address target, bytes32 provenanceHash) external requireSenderAdmin(target) {
         provenanceHashes[target] = provenanceHash;
         emit ProvenanceHashUpdated(target, provenanceHash);
     }
@@ -64,11 +50,10 @@ contract DropMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck {
     /// @notice Update metadata base URI and contract URI
     /// @param baseUri new base URI
     /// @param newContractUri new contract URI (can be an empty string)
-    function updateMetadataBase(
-        address target,
-        string memory baseUri,
-        string memory newContractUri
-    ) external requireSenderAdmin(target) {
+    function updateMetadataBase(address target, string memory baseUri, string memory newContractUri)
+        external
+        requireSenderAdmin(target)
+    {
         _updateMetadataDetails(target, baseUri, "", newContractUri, 0);
     }
 
@@ -84,13 +69,7 @@ contract DropMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck {
         string memory newContractURI,
         uint256 freezeAt
     ) external requireSenderAdmin(target) {
-        _updateMetadataDetails(
-            target,
-            metadataBase,
-            metadataExtension,
-            newContractURI,
-            freezeAt
-        );
+        _updateMetadataDetails(target, metadataBase, metadataExtension, newContractURI, freezeAt);
     }
 
     /// @notice Internal metadata update function
@@ -135,20 +114,11 @@ contract DropMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck {
     /// @notice A token URI for the given drops contract
     /// @dev reverts if a contract uri is not set
     /// @return token URI for the given token ID and contract (set by msg.sender)
-    function tokenURI(
-        uint256 tokenId
-    ) external view override returns (string memory) {
+    function tokenURI(uint256 tokenId) external view override returns (string memory) {
         MetadataURIInfo memory info = metadataBaseByContract[msg.sender];
 
         if (bytes(info.base).length == 0) revert();
 
-        return
-            string(
-                abi.encodePacked(
-                    info.base,
-                    StringsUpgradeable.toString(tokenId),
-                    info.extension
-                )
-            );
+        return string(abi.encodePacked(info.base, StringsUpgradeable.toString(tokenId), info.extension));
     }
 }
