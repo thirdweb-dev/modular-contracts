@@ -9,7 +9,7 @@ import {IERC721CustomErrors} from "../interface/erc721/IERC721CustomErrors.sol";
 import {IERC721Receiver} from "../interface/erc721/IERC721Receiver.sol";
 import {IERC2981} from "../interface/eip/IERC2981.sol";
 
-contract ERC721Initializable is
+abstract contract ERC721Initializable is
     Initializable,
     IERC721,
     IERC721Supply,
@@ -17,16 +17,6 @@ contract ERC721Initializable is
     IERC721CustomErrors,
     IERC2981
 {
-    /*//////////////////////////////////////////////////////////////
-                                STRUCTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev An struct for internal use. Stores a token's owner and metadata source.
-    struct TokenData {
-        address owner;
-        address metadataSource;
-    }
-
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -44,7 +34,7 @@ contract ERC721Initializable is
     uint256 private _totalSupply;
 
     /// @notice Mapping from token ID to TokenData i.e. owner and metadata source.
-    mapping(uint256 => TokenData) private _tokenData;
+    mapping(uint256 => address) private _ownerOf;
 
     /// @notice Mapping from owner address to number of owned token.
     mapping(address => uint256) private _balanceOf;
@@ -75,33 +65,13 @@ contract ERC721Initializable is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice Returns the token metadata of an NFT.
-     *  @dev Always returns metadata queried from the metadata source.
-     *  @param _id The token ID of the NFT.
-     *  @return metadata The URI to fetch metadata from.
-     */
-    function tokenURI(uint256 _id) public view virtual returns (string memory metadata) {
-        return IERC721Metadata(_tokenData[_id].metadataSource).tokenURI(_id);
-    }
-
-    /**
-     *  @notice Returns the metadata source of an NFT.
-     *  @dev The metadata source of an NFT is set at minting time, and does not change later.
-     *  @param _id The token ID of the NFT.
-     *  @return metadataSource The address of the metadata source.
-     */
-    function metadataSourceOf(uint256 _id) public view virtual returns (address) {
-        return _tokenData[_id].metadataSource;
-    }
-
-    /**
      *  @notice Returns the owner of an NFT.
      *  @dev Throws if the NFT does not exist.
      *  @param _id The token ID of the NFT.
      *  @return owner The address of the owner of the NFT.
      */
     function ownerOf(uint256 _id) public view virtual returns (address owner) {
-        if ((owner = _tokenData[_id].owner) == address(0)) {
+        if ((owner = _ownerOf[_id]) == address(0)) {
             revert ERC721NotMinted(_id);
         }
     }
@@ -124,25 +94,12 @@ contract ERC721Initializable is
     }
 
     /**
-     *  @notice Returns the royalty amount for a given NFT and sale price.
-     *  @param _tokenId The token ID of the NFT
-     *  @param _salePrice The sale price of the NFT
-     *  @return receiver The royalty recipient address
-     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
-     */
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice) external view returns (address, uint256) {
-        return IERC2981(_tokenData[_tokenId].metadataSource).royaltyInfo(_tokenId, _salePrice);
-    }
-
-    /**
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
         return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
-            || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
-            || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
-            || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+            || _interfaceId == 0x80ac58cd; // ERC165 Interface ID for ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -155,7 +112,7 @@ contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      */
     function approve(address _spender, uint256 _id) public virtual {
-        address owner = _tokenData[_id].owner;
+        address owner = _ownerOf[_id];
 
         if (msg.sender != owner && !isApprovedForAll[owner][msg.sender]) {
             revert ERC721NotApproved(msg.sender, _id);
@@ -184,7 +141,7 @@ contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      */
     function transferFrom(address _from, address _to, uint256 _id) public virtual {
-        if (_from != _tokenData[_id].owner) {
+        if (_from != _ownerOf[_id]) {
             revert ERC721NotOwner(_from, _id);
         }
 
@@ -204,7 +161,7 @@ contract ERC721Initializable is
             _balanceOf[_to]++;
         }
 
-        _tokenData[_id].owner = _to;
+        _ownerOf[_id] = _to;
 
         delete getApproved[_id];
 
@@ -259,9 +216,8 @@ contract ERC721Initializable is
      *  @param _to The address to mint NFTs to
      *  @param _startId The token ID of the first NFT to mint
      *  @param _quantity The quantity of NFTs to mint
-     *  @param _metadataSource The address of the metadata source of all the minted NFTs
      */
-    function _mint(address _to, uint256 _startId, uint256 _quantity, address _metadataSource) internal virtual {
+    function _mint(address _to, uint256 _startId, uint256 _quantity) internal virtual {
         if (_to == address(0)) {
             revert ERC721InvalidRecipient();
         }
@@ -275,11 +231,11 @@ contract ERC721Initializable is
         }
 
         for (uint256 id = _startId; id < endId; id++) {
-            if (_tokenData[id].owner != address(0)) {
+            if (_ownerOf[id] != address(0)) {
                 revert ERC721AlreadyMinted(id);
             }
 
-            _tokenData[id] = TokenData(_to, _metadataSource);
+            _ownerOf[id] = _to;
 
             emit Transfer(address(0), _to, id);
         }
@@ -290,7 +246,7 @@ contract ERC721Initializable is
      *  @param _id The token ID of the NFT to burn
      */
     function _burn(uint256 _id) internal virtual {
-        address owner = _tokenData[_id].owner;
+        address owner = _ownerOf[_id];
 
         if (owner == address(0)) {
             revert ERC721NotMinted(_id);
@@ -302,8 +258,7 @@ contract ERC721Initializable is
             _totalSupply--;
         }
 
-        delete _tokenData[_id].owner;
-
+        delete _ownerOf[_id];
         delete getApproved[_id];
 
         emit Transfer(owner, address(0), _id);

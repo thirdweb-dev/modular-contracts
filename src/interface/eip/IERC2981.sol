@@ -3,9 +3,7 @@ pragma solidity ^0.8.0;
 
 /// @author thirdweb
 
-import "./IERC165.sol";
-
-interface IERC2981 is IERC165 {
+interface IERC2981 {
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
