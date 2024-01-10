@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "../lib/Clones.sol";
+import "../lib/LibClone.sol";
 
 contract CloneFactory {
     /*//////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ contract CloneFactory {
         returns (address deployedProxy)
     {
         bytes32 salthash = keccak256(abi.encodePacked(msg.sender, _salt));
-        deployedProxy = Clones.cloneDeterministic(_implementation, salthash);
+        deployedProxy = LibClone.cloneDeterministic(_implementation, salthash);
 
         emit ProxyDeployed(_implementation, deployedProxy, msg.sender);
 
