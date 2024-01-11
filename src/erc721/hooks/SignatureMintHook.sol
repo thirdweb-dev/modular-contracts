@@ -73,6 +73,10 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
         argSignature = "address,address,uint256,uint256,address,uint128,uint128,bytes32,bytes";
     }
 
+    function getNextTokenIdToMint(address _token) external view returns (uint256) {
+        return _nextTokenIdToMint[_token];
+    }
+
     function verify(
         address _token,
         MintRequestERC721 memory _req,
@@ -117,7 +121,7 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
         emit NextTokenIdUpdate(_token, _nextIdToMint);
     }
 
-    function setFeeConfig(address _token, FeeConfig calldata _config) external onlyAdmin(_config.primarySaleRecipient) {
+    function setFeeConfig(address _token, FeeConfig calldata _config) external onlyAdmin(_token) {
         _feeConfig[_token] = _config;
         emit FeeConfigUpdate(_token, _config);
     }
