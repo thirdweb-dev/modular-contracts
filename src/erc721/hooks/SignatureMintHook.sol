@@ -187,14 +187,25 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
         FeeConfig memory feeConfig = _feeConfig[_token];
 
         uint256 totalPrice = _quantityToClaim * _pricePerToken;
-        uint256 platformFees = (totalPrice * feeConfig.platformFeeBps) / 10_000;
+        
+        bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
+        uint256 platformFees = 0;
+
+        if(payoutPlatformFees) {
+            platformFees = (totalPrice * feeConfig.platformFeeBps) / 10_000;
+        }
 
         if (_currency == NATIVE_TOKEN) {
             require(msg.value == totalPrice, "!Price");
-            SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, totalPrice);
+            if(payoutPlatformFees) {
+                SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
+            }
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, totalPrice - platformFees);
         } else {
             require(msg.value == 0, "!Value");
+            if(payoutPlatformFees) {
+                SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);    
+            }
             SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);
             SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.primarySaleRecipient, totalPrice - platformFees);
         }

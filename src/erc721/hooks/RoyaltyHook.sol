@@ -6,7 +6,9 @@ pragma solidity ^0.8.0;
 import "../../interface/eip/IERC2981.sol";
 import "../../interface/extension/IPermission.sol";
 
-contract RoyaltyHook is IERC2981 {
+import { NFTHook } from "../../extension/NFTHook.sol";
+
+contract RoyaltyHook is IERC2981, NFTHook {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -48,6 +50,10 @@ contract RoyaltyHook is IERC2981 {
     /*//////////////////////////////////////////////////////////////
                                VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
+        hooksImplemented = ROYALTY_FLAG;
+    }
 
     function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
         external

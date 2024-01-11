@@ -75,6 +75,10 @@ contract DropMintHook is IClaimCondition, TokenHook {
         argSignature = "address,uint256,bytes32[],uint256,uint256,address";
     }
 
+    function getNextTokenIdToMint(address _token) external view returns (uint256) {
+        return _nextTokenIdToMint[_token];
+    }
+
     function verifyClaim(
         address _token,
         address _claimer,
@@ -181,12 +185,12 @@ contract DropMintHook is IClaimCondition, TokenHook {
         emit NextTokenIdUpdate(_token, _nextIdToMint);
     }
 
-    function setFeeConfig(address _token, FeeConfig calldata _config) external onlyAdmin(_config.primarySaleRecipient) {
+    function setFeeConfig(address _token, FeeConfig calldata _config) external onlyAdmin(_token) {
         _feeConfig[_token] = _config;
         emit FeeConfigUpdate(_token, _config);
     }
 
-    function setClaimConditions(address _token, ClaimCondition calldata _condition, bool _resetClaimEligibility) external onlyAdmin(_token) {
+    function setClaimCondition(address _token, ClaimCondition calldata _condition, bool _resetClaimEligibility) external onlyAdmin(_token) {
         bytes32 targetConditionId = _conditionId[_token];
         uint256 supplyClaimedAlready = _claimCondition[_token].supplyClaimed;
 
@@ -233,14 +237,25 @@ contract DropMintHook is IClaimCondition, TokenHook {
         FeeConfig memory feeConfig = _feeConfig[_token];
 
         uint256 totalPrice = _quantityToClaim * _pricePerToken;
-        uint256 platformFees = (totalPrice * feeConfig.platformFeeBps) / 10_000;
+        
+        bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
+        uint256 platformFees = 0;
+
+        if(payoutPlatformFees) {
+            platformFees = (totalPrice * feeConfig.platformFeeBps) / 10_000;
+        }
 
         if (_currency == NATIVE_TOKEN) {
             require(msg.value == totalPrice, "!Price");
-            SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, totalPrice);
+            if(payoutPlatformFees) {
+                SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
+            }
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, totalPrice - platformFees);
         } else {
             require(msg.value == 0, "!Value");
+            if(payoutPlatformFees) {
+                SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);    
+            }
             SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);
             SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.primarySaleRecipient, totalPrice - platformFees);
         }
