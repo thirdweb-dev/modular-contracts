@@ -34,4 +34,34 @@
 
 # Design Overview
 
+Developers deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-721 Core contract.
+
+- This contract is initializable, and meant to be used with proxy contracts.
+- Implements the token standard (and the respective token metadata standard).
+- Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/Permission.sol) contract.
+- Implements the [`TokenHookConsumer`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/TokenHookConsumer.sol) interface.
+
+## Hooks and Modularity
+
 ![mint tokens via hooks](https://ipfs.io/ipfs/QmXfN8GFsJNEgkwa9F44kRWFFnahPbyPb8yV2L9LmFomnj/contracts-next-mint-tokens.png)
+
+Hooks are an external call made to a contract that implements the [`TokenHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/TokenHook.sol) interface.
+
+The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
+
+There is a fixed, defined set of 6 hooks:
+
+- BeforeMint: called before a token is minted in the ERC721Core.mint call.
+- BeforeTransfer: called before a token is transferred in the ERC721.transferFrom call.
+- BeforeBurn: called before a token is burned in the ERC721.burn call.
+- BeforeApprove: called before the ERC721.approve call.
+- Token URI: called when the ERC721Metadata.tokenURI function is called.
+- Royalty: called when the ERC2981.royaltyInfo function is called.
+
+Developers can install hooks into their core contracts, and uninstall hooks at any time. On installation, a hook contract tells the hook consumer which hook functions it implements -- the hook consumer maps all these hook functions to the mentioned hook contract as their implemention.
+
+## Upgradeability
+
+thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/erc721/hooks/](https://github.com/thirdweb-dev/contracts-next/tree/main/src/erc721/hooks) and [test/hook-examples](https://github.com/thirdweb-dev/contracts-next/tree/main/test/hook-examples) which contains the familiar Drop and Signature Mint contracts as shared state hooks).
+
+These hook contracts are designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make beacon upgrades to developer contracts using these hooks.
