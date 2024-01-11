@@ -41,6 +41,8 @@ Developers deploy non-upgradeable minimal clones of token core contracts e.g. th
 - Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/Permission.sol) contract.
 - Implements the [`TokenHookConsumer`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/TokenHookConsumer.sol) interface.
 
+Core contracts are deliberately written as non-upgradeable foundations that contain minimal code with a fixed-behaviour. These contracts are meant to be extended by developers using hooks.
+
 ## Hooks and Modularity
 
 ![mint tokens via hooks](https://ipfs.io/ipfs/QmXfN8GFsJNEgkwa9F44kRWFFnahPbyPb8yV2L9LmFomnj/contracts-next-mint-tokens.png)
@@ -51,16 +53,18 @@ The purpose of hooks is to allow developers to extend their contract's functiona
 
 There is a fixed, defined set of 6 hooks:
 
-- BeforeMint: called before a token is minted in the ERC721Core.mint call.
-- BeforeTransfer: called before a token is transferred in the ERC721.transferFrom call.
-- BeforeBurn: called before a token is burned in the ERC721.burn call.
-- BeforeApprove: called before the ERC721.approve call.
-- Token URI: called when the ERC721Metadata.tokenURI function is called.
-- Royalty: called when the ERC2981.royaltyInfo function is called.
+- **BeforeMint**: called before a token is minted in the ERC721Core.mint call.
+- **BeforeTransfer**: called before a token is transferred in the ERC721.transferFrom call.
+- **BeforeBurn**: called before a token is burned in the ERC721.burn call.
+- **BeforeApprove**: called before the ERC721.approve call.
+- **Token URI**: called when the ERC721Metadata.tokenURI function is called.
+- **Royalty**: called when the ERC2981.royaltyInfo function is called.
 
 Developers can install hooks into their core contracts, and uninstall hooks at any time. On installation, a hook contract tells the hook consumer which hook functions it implements -- the hook consumer maps all these hook functions to the mentioned hook contract as their implemention.
 
 ## Upgradeability
+
+![beacon upgrade](https://ipfs.io/ipfs/QmS1zU629FoDZM1X3oRmMZyxi7ThW2UiFybK7mkpZ2DzBS/contracts-next-beacon-upgrade.png)
 
 thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/erc721/hooks/](https://github.com/thirdweb-dev/contracts-next/tree/main/src/erc721/hooks) and [test/hook-examples](https://github.com/thirdweb-dev/contracts-next/tree/main/test/hook-examples) which contains the familiar Drop and Signature Mint contracts as shared state hooks).
 
