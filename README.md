@@ -41,7 +41,7 @@ Developers deploy non-upgradeable minimal clones of token core contracts e.g. th
 - Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/Permission.sol) contract.
 - Implements the [`TokenHookConsumer`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/TokenHookConsumer.sol) interface.
 
-Core contracts are deliberately written as non-upgradeable foundations that contain minimal code with a fixed-behaviour. These contracts are meant to be extended by developers using hooks.
+Core contracts are deliberately written as non-upgradeable foundations that contain minimal code with fixed behaviour. These contracts are meant to be extended by developers using hooks.
 
 ## Hooks and Modularity
 
