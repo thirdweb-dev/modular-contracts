@@ -55,14 +55,16 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         CloneFactory factory = new CloneFactory();
 
-        // NOTE: Below, we use the inline hex for `abi.encodeWithSelector(...)` for more accurate gas measurement -- this is because
-        //       forge will account for the gas cost of all computation such as `abi.encodeWithSelector(...)`.
-        //
+        // vm.resumeGasMetering();
+
+        // // NOTE: Below, we use the inline hex for `abi.encodeWithSelector(...)` for more accurate gas measurement -- this is because
+        // //       forge will account for the gas cost of all computation such as `abi.encodeWithSelector(...)`.
+        // //
         // return address(
         //     ERC721Core(
         //         factory.deployProxyByImplementation(
         //             _implementation,
-        //             abi.encodeWithSelector(ERC721Core.initialize.selector, admin, "Test", "TST"),
+        //             abi.encodeWithSelector(ERC721Core.initialize.selector, admin, "Test", "TST", "contractURI://"),
         //             bytes32(block.number)
         //         )
         //     )
@@ -72,7 +74,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         return factory.deployProxyByImplementation(
             _implementation,
-            hex"906571470000000000000000000000000000000000000000000000000000000000000123000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000",
+            hex"5f1e6f6d0000000000000000000000000000000000000000000000000000000000000123000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e636f6e74726163745552493a2f2f000000000000000000000000000000000000",
             bytes32(block.number)
         );
     }

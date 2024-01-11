@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
+import {IERC7572} from "../interface/eip/IERC7572.sol";
 import {IERC721Metadata} from "../interface/erc721/IERC721Metadata.sol";
 import {IERC2981} from "../interface/eip/IERC2981.sol";
 import {IERC721CoreCustomErrors} from "../interface/erc721/IERC721CoreCustomErrors.sol";
@@ -9,7 +10,14 @@ import {TokenHookConsumer} from "../extension/TokenHookConsumer.sol";
 import {Initializable} from "../extension/Initializable.sol";
 import {Permission} from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Permission, IERC721CoreCustomErrors {
+contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Permission, IERC721CoreCustomErrors, IERC7572 {
+    /*//////////////////////////////////////////////////////////////
+                            STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The contract URI of the contract.
+    string private _contractURI;
+    
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
     //////////////////////////////////////////////////////////////*/
@@ -24,7 +32,8 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      */
-    function initialize(address _defaultAdmin, string memory _name, string memory _symbol) external initializer {
+    function initialize(address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri) external initializer {
+        _setupContractURI(_uri);
         __ERC721_init(_name, _symbol);
         _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
     }
@@ -32,6 +41,14 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @notice Returns the contract URI of the contract.
+     *  @return uri The contract URI of the contract.
+     */
+    function contractURI() external view override returns (string memory) {
+        return _contractURI;
+    }
 
     /**
      *  @notice Returns the token metadata of an NFT.
@@ -72,6 +89,15 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @notice Sets the contract URI of the contract.
+     *  @dev Only callable by contract admin.
+     *  @param _uri The contract URI to set.
+     */
+    function setContractURI(string memory _uri) external onlyAuthorized(ADMIN_ROLE_BITS) {
+        _setupContractURI(_uri);
+    }
 
     /**
      *  @notice Burns an NFT.
@@ -132,6 +158,12 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @dev Sets contract URI
+    function _setupContractURI(string memory _uri) internal {
+        _contractURI = _uri;
+        emit ContractURIUpdated();
+    }
 
     /// @dev Returns whether the given caller can update hooks.
     function _canUpdateHooks(address _caller) internal view override returns (bool) {

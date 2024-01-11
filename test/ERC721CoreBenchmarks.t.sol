@@ -61,7 +61,7 @@ contract ERC721CoreBenchmarkTest is Test {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST");
+        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -111,7 +111,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         address impl = erc721Implementation;
-        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST");
+        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();

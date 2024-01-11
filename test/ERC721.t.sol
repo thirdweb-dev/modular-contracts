@@ -60,7 +60,7 @@ contract ERC721Test is Test {
         lazyMintHook = new LazyMintMetadataHook();
 
         address implementation = address(new ERC721Core());
-        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, admin, "Test", "TST");
+        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, admin, "Test", "TST", "contractURI://");
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(implementation, data, bytes32("salt")));
 
         vm.label(address(erc721), "ERC721");
