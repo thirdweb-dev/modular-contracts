@@ -80,14 +80,13 @@ git clone https://github.com/thirdweb-dev/contracts-next.git
 
 Install dependencies:
 
-```
-forge install
-yarn
+```bash
+forge install && yarn
 ```
 
 Run benchmark comparison tests:
 
-```
+```bash
 forge test --mc Thirdweb # or Manifold / Zora
 ```
 
