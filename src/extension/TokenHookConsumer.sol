@@ -11,23 +11,36 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Bits representing the before mint hook.
     uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+
+    /// @notice Bits representing the before transfer hook.
     uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+
+    /// @notice Bits representing the before burn hook.
     uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+
+    /// @notice Bits representing the before approve hook.
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    uint256 private _activeHooks;
+    /// @notice Bits representing all hooks installed.
+    uint256 private _installedHooks;
+
+    /// @notice Whether a given hook is installed in the contract.
     LibBitmap.Bitmap private _hookImplementations;
+
+    /// @notice Mapping from hook bits representation => implementation of the hook.
     mapping(uint256 => address) private _hookImplementationMap;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns all of the contract's hooks and their implementations.
     function getAllHooks() external view returns (HookImplementation memory hooks) {
         hooks = HookImplementation({
             beforeMint: _hookImplementationMap[BEFORE_MINT_FLAG],
@@ -37,6 +50,11 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         });
     }
 
+    /**
+     *  @notice Retusn the implementation of a given hook, if any.
+     *  @param _flag The bits representing the hook.
+     *  @return impl The implementation of the hook.
+     */
     function getHookImplementation(uint256 _flag) public view returns (address) {
         return _hookImplementationMap[_flag];
     }
@@ -45,6 +63,11 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     *  @notice Installs a hook in the contract.
+     *  @dev Maps all hook functions implemented by the hook to the hook's address.
+     *  @param _hook The hook to install.
+     */
     function installHook(ITokenHook _hook) external {
         if (!_canUpdateHooks(msg.sender)) {
             revert TokenHookConsumerNotAuthorized();
@@ -58,6 +81,10 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         emit TokenHookInstalled(address(_hook), hooksToInstall);
     }
 
+    /**
+     *  @notice Uninstalls a hook in the contract.
+     *  @dev Reverts if the hook is not installed already.
+     */
     function uninstallHook(ITokenHook _hook) external {
         if (!_canUpdateHooks(msg.sender)) {
             revert TokenHookConsumerNotAuthorized();
@@ -78,8 +105,10 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Returns whether the caller can update hooks.
     function _canUpdateHooks(address _caller) internal view virtual returns (bool);
 
+    /// @dev Returns the largest power of 2 that represents a hook.
     function _maxFlagIndex() internal pure virtual returns (uint8) {
         return 4;
     }
@@ -100,7 +129,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         address _implementation,
         function (uint256, uint256) internal pure returns (uint256) _addOrRemoveHook
     ) internal {
-        uint256 currentActiveHooks = _activeHooks;
+        uint256 currentActiveHooks = _installedHooks;
 
         uint256 flag = 2 ** _maxFlagIndex();
         while (flag > 1) {
@@ -112,13 +141,14 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
             flag >>= 1;
         }
 
-        _activeHooks = currentActiveHooks;
+        _installedHooks = currentActiveHooks;
     }
 
     /*//////////////////////////////////////////////////////////////
                         HOOKS INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
         internal
         virtual
@@ -132,6 +162,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         }
     }
 
+    /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
@@ -140,6 +171,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         }
     }
 
+    /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address _from, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
@@ -148,6 +180,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         }
     }
 
+    /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApprove(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
