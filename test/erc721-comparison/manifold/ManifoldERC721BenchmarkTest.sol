@@ -66,20 +66,9 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
     function _setupTokenMetadata() internal override {
         vm.pauseGasMetering();
         ERC721LazyMintWhitelist claimC = claimContract;
-
-        string[] memory inputs = new string[](2);
-        inputs[0] = "node";
-        inputs[1] = "test/scripts/getProof.ts";
-
-        bytes memory result = vm.ffi(inputs);
-        bytes32[] memory proofs = abi.decode(result, (bytes32[]));
-
-        vm.prank(claimer);
-        claimC.mint{value: pricePerToken}(proofs);
-
+        vm.prank(admin);
         vm.resumeGasMetering();
 
-        vm.prank(admin);
         claimC.setTokenURIPrefix("https://example.com/");
     }
 

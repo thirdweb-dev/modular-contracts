@@ -27,10 +27,10 @@
 **ERC-721 Benchmarks Comparison** ([test/erc721-comparison/](https://github.com/thirdweb-dev/contracts-next/tree/main/test/erc721-comparison))
 | Action | Thirdweb | Zora | Manifold |
 | ------------- | ------------- | ------------- | ------------- |
-| Deploy (developer-facing) | 191_902 | 477_739 | 299_526 |
+| Deploy (developer-facing) | 191_880 | 477_739 | 299_526 |
 | Claim 1 token | 160_798 | 151_865 | 175_723 |
-| Transfer token | 23_230 | 37_354 | 29_255 |
-| Setup token metadata | 114_045 | 31_946 | 14_205 |
+| Transfer token | 23_300 | 37_354 | 29_255 |
+| Setup token metadata | 43_997 | 31_946 | 14_205 |
 
 # Design Overview
 
