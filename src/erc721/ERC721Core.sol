@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC721Metadata} from "../interface/erc721/IERC721Metadata.sol";
-import { IERC2981 } from "../interface/eip/IERC2981.sol";
+import {IERC2981} from "../interface/eip/IERC2981.sol";
 import {IERC721CoreCustomErrors} from "../interface/erc721/IERC721CoreCustomErrors.sol";
 import {ERC721Initializable} from "./ERC721Initializable.sol";
 import {NFTHookConsumer} from "../extension/NFTHookConsumer.sol";
