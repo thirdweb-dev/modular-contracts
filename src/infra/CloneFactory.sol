@@ -8,12 +8,19 @@ contract CloneFactory {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a clone is deployed.
     event ProxyDeployed(address indexed implementation, address proxy, address indexed deployer);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     *  @notice Deploys a minimal clone at a determininstic address.
+     *  @param _implementation The implementation to point a clone to.
+     *  @param _data The data to initialize the clone with.
+     *  @param _salt The salt to use for the deployment of the clone.
+     */
     function deployProxyByImplementation(address _implementation, bytes memory _data, bytes32 _salt)
         public
         returns (address deployedProxy)
@@ -36,6 +43,7 @@ contract CloneFactory {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Reverts with the given return data / error message.
     function _revert(bytes memory _returndata, string memory _errorMessage) private pure {
         // Look for revert reason and bubble it up if present
         if (_returndata.length > 0) {

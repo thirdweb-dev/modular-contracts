@@ -4,6 +4,11 @@ pragma solidity ^0.8.0;
 /// @author thirdweb
 
 interface IClaimCondition {
+
+    /*//////////////////////////////////////////////////////////////
+                                STRUCTS
+    //////////////////////////////////////////////////////////////*/
+    
     /**
      *  @notice The criteria that make up a claim condition.
      *

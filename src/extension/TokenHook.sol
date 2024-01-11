@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import "../interface/extension/ITokenHook.sol";
+import {ITokenHook} from "../interface/extension/ITokenHook.sol";
 
 abstract contract TokenHook is ITokenHook {
     /*//////////////////////////////////////////////////////////////

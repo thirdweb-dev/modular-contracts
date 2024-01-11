@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import "../lib/LibBitmap.sol";
+import {LibBitmap} from "../lib/LibBitmap.sol";
 import {ITokenHook, ITokenHookConsumer} from "../interface/extension/ITokenHookConsumer.sol";
 
 abstract contract TokenHookConsumer is ITokenHookConsumer {
@@ -84,6 +84,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     /**
      *  @notice Uninstalls a hook in the contract.
      *  @dev Reverts if the hook is not installed already.
+     *  @param _hook The hook to uninstall.
      */
     function uninstallHook(ITokenHook _hook) external {
         if (!_canUpdateHooks(msg.sender)) {

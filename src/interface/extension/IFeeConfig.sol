@@ -23,5 +23,6 @@ interface IFeeConfig {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when the fee config is updated.
     event FeeConfigUpdate(address indexed token, FeeConfig feeConfig);
 }

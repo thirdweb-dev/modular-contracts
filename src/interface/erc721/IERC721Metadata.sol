@@ -12,6 +12,9 @@ interface IERC721Metadata {
     /// @notice Returns the symbol of the token collection.
     function symbol() external view returns (string memory);
 
-    /// @notice Returns the URI to fetch token metadata from.
+    /**
+     *  @notice Returns the URI to fetch token metadata from.
+     *  @param id The token ID to fetch metadata for.
+     */
     function tokenURI(uint256 id) external view returns (string memory metadata);
 }
