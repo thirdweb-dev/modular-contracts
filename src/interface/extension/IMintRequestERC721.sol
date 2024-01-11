@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 /// @author thirdweb
 
 interface IMintRequestERC721 {
-
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -30,5 +29,4 @@ interface IMintRequestERC721 {
         uint128 validityEndTimestamp;
         bytes32 uid;
     }
-
 }

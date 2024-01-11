@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 import {IERC2981} from "../../interface/eip/IERC2981.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
-import { TokenHook } from "../../extension/TokenHook.sol";
+import {TokenHook} from "../../extension/TokenHook.sol";
 
 contract RoyaltyHook is IERC2981, TokenHook {
     /*//////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ contract RoyaltyHook is IERC2981, TokenHook {
      *  @param _tokenId The token ID of the NFT.
      *  @param _salePrice The sale price of the NFT.
      *  @return receiver The royalty recipient address.
-     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale. 
+     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
     function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
         external
@@ -126,7 +126,10 @@ contract RoyaltyHook is IERC2981, TokenHook {
      *  @param _royaltyRecipient The royalty recipient address.
      *  @param _royaltyBps The basis points of the sale price that is taken as royalty.
      */
-    function setDefaultRoyaltyInfo(address _token, address _royaltyRecipient, uint256 _royaltyBps) external onlyAdmin(_token) {
+    function setDefaultRoyaltyInfo(address _token, address _royaltyRecipient, uint256 _royaltyBps)
+        external
+        onlyAdmin(_token)
+    {
         _setupDefaultRoyaltyInfo(_token, _royaltyRecipient, _royaltyBps);
     }
 
@@ -141,7 +144,6 @@ contract RoyaltyHook is IERC2981, TokenHook {
         external
         onlyAdmin(_token)
     {
-
         _setupRoyaltyInfoForToken(_token, _tokenId, _recipient, _bps);
     }
 

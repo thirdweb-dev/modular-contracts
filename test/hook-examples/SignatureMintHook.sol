@@ -5,9 +5,9 @@ import {Test} from "forge-std/Test.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 
-import { SignatureMintHook } from "src/erc721/hooks/SignatureMintHook.sol";
-import { LazyMintMetadataHook } from "src/erc721/hooks/LazyMintMetadataHook.sol";
-import { RoyaltyHook } from "src/erc721/hooks/RoyaltyHook.sol";
+import {SignatureMintHook} from "src/erc721/hooks/SignatureMintHook.sol";
+import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
+import {RoyaltyHook} from "src/erc721/hooks/RoyaltyHook.sol";
 
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
@@ -36,7 +36,7 @@ contract SignatureMintHookTest is Test {
     bytes32 internal versionHash;
     bytes32 internal typehashEip712;
     bytes32 internal domainSeparator;
-    
+
     function setUp() public {
         platformUser = vm.addr(platformUserPkey);
 
@@ -46,15 +46,18 @@ contract SignatureMintHookTest is Test {
         vm.startPrank(platformAdmin);
 
         CloneFactory cloneFactory = new CloneFactory();
-        
-        address sigmintHookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new SignatureMintHook())));
+
+        address sigmintHookProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new SignatureMintHook())));
         sigmintHook = SignatureMintHook(sigmintHookProxyAddress);
         assertEq(sigmintHook.getNextTokenIdToMint(address(erc721)), 0);
 
-        address lazyMintHookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
+        address lazyMintHookProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
         lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
 
-        address royaltyHookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
+        address royaltyHookProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
         royaltyHook = RoyaltyHook(royaltyHookProxyAddress);
 
         address erc721Implementation = address(new ERC721Core());
@@ -84,16 +87,16 @@ contract SignatureMintHookTest is Test {
         );
         nameHash = keccak256(bytes("SignatureMintERC721"));
         versionHash = keccak256(bytes("1"));
-        typehashEip712 = keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
-        domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(sigmintHook)));
+        typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        domainSeparator =
+            keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(sigmintHook)));
     }
 
-    function _signMintRequest(
-        SignatureMintHook.MintRequestERC721 memory mintrequest,
-        uint256 privateKey
-    ) internal view returns (bytes memory) {
+    function _signMintRequest(SignatureMintHook.MintRequestERC721 memory mintrequest, uint256 privateKey)
+        internal
+        view
+        returns (bytes memory)
+    {
         bytes memory encodedRequest = abi.encode(
             typehashMintRequest,
             mintrequest.token,
@@ -115,11 +118,10 @@ contract SignatureMintHookTest is Test {
     }
 
     function test_setupAndClaim() public {
-
         // [1] Developer: lazy mints token metadata on metadata hook
         uint256 quantityToLazymint = 100;
         string memory baseURI = "ipfs://Qme.../";
-        
+
         vm.prank(platformUser);
         lazyMintHook.lazyMint(address(erc721), quantityToLazymint, baseURI, "");
 
@@ -130,7 +132,7 @@ contract SignatureMintHookTest is Test {
         vm.prank(platformUser);
         royaltyHook.setDefaultRoyaltyInfo(address(erc721), royaltyRecipient, royaltyBps);
 
-        // [3] Developer: sets fee config on signature mint hook 
+        // [3] Developer: sets fee config on signature mint hook
         SignatureMintHook.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);

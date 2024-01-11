@@ -50,7 +50,7 @@ contract MockBuggySimpleClaim is TokenHook, IFeeConfig {
 
     /// @notice Emitted on an attempt to mint when there is no more available supply to mint.
     error NotEnouthSupply(address token);
-    
+
     /// @notice Emitted on an attempt to mint when incorrect msg value is sent.
     error IncorrectValueSent(uint256 msgValue, uint256 price);
 
@@ -178,7 +178,7 @@ contract MockBuggySimpleClaim is TokenHook, IFeeConfig {
         feeConfig[_token] = _config;
         emit FeeConfigUpdate(_token, _config);
     }
-    
+
     /**
      *  @notice Sets the claim condition for a given token.
      *  @dev Only callable by an admin of the given token.
@@ -195,11 +195,7 @@ contract MockBuggySimpleClaim is TokenHook, IFeeConfig {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Transfers the sale price of minting based on the fee config set.
-    function _collectPriceOnClaim(
-        address _token,
-        uint256 _quantityToClaim,
-        uint256 _pricePerToken
-    ) internal {
+    function _collectPriceOnClaim(address _token, uint256 _quantityToClaim, uint256 _pricePerToken) internal {
         if (_pricePerToken == 0) {
             require(msg.value == 0, "!Value");
             return;
@@ -208,16 +204,16 @@ contract MockBuggySimpleClaim is TokenHook, IFeeConfig {
         FeeConfig memory config = feeConfig[_token];
 
         uint256 totalPrice = _quantityToClaim * _pricePerToken;
-        
+
         bool payoutPlatformFees = config.platformFeeBps > 0 && config.platformFeeRecipient != address(0);
         uint256 platformFees = 0;
 
-        if(payoutPlatformFees) {
+        if (payoutPlatformFees) {
             platformFees = (totalPrice * config.platformFeeBps) / 10_000;
         }
 
         require(msg.value == totalPrice, "!Price");
-        if(payoutPlatformFees) {
+        if (payoutPlatformFees) {
             SafeTransferLib.safeTransferETH(config.platformFeeRecipient, platformFees);
         }
         SafeTransferLib.safeTransferETH(config.primarySaleRecipient, totalPrice - platformFees);

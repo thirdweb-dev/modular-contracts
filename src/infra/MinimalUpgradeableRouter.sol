@@ -6,7 +6,6 @@ import "@thirdweb-dev/dynamic-contracts/core/RouterPayable.sol";
 /// NOTE: This contract is not meant for production use. It is only meant to be used for testing purposes.
 
 contract MinimalUpgradeableRouter is RouterPayable {
-
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/

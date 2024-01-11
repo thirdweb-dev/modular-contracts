@@ -14,7 +14,7 @@ import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {IERC721CustomErrors} from "src/interface/erc721/IERC721CustomErrors.sol";
 import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
-import { LazyMintMetadataHook } from "src/erc721/hooks/LazyMintMetadataHook.sol";
+import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
 import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
 
 /**
@@ -82,17 +82,14 @@ contract ERC721Test is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
-            price: 0.1 ether,
-            availableSupply: 5,
-            allowlistMerkleRoot: root
-        });
+        AllowlistMintHook.ClaimCondition memory condition =
+            AllowlistMintHook.ClaimCondition({price: 0.1 ether, availableSupply: 5, allowlistMerkleRoot: root});
 
         simpleClaim.setClaimCondition(address(erc721), condition);
-        
+
         AllowlistMintHook.FeeConfig memory config;
         config.primarySaleRecipient = admin;
-        
+
         simpleClaim.setFeeConfig(address(erc721), config);
 
         // Set `AllowlistMintHook` contract as minter
@@ -152,11 +149,8 @@ contract ERC721Test is Test {
         assertEq(erc721.getHookImplementation(erc721.BEFORE_TRANSFER_FLAG()), address(transferHook));
 
         // Mint token
-        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
-            price: 0 ether,
-            availableSupply: 5,
-            allowlistMerkleRoot: bytes32(0)
-        });
+        AllowlistMintHook.ClaimCondition memory condition =
+            AllowlistMintHook.ClaimCondition({price: 0 ether, availableSupply: 5, allowlistMerkleRoot: bytes32(0)});
         simpleClaim.setClaimCondition(address(erc721), condition);
         erc721.mint(claimer, 1, "");
 
@@ -209,11 +203,8 @@ contract ERC721Test is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
-            price: 0.1 ether,
-            availableSupply: 5,
-            allowlistMerkleRoot: root
-        });
+        AllowlistMintHook.ClaimCondition memory condition =
+            AllowlistMintHook.ClaimCondition({price: 0.1 ether, availableSupply: 5, allowlistMerkleRoot: root});
 
         vm.prank(admin);
         AllowlistMintHook(proxySimpleClaim).setClaimCondition(address(erc721), condition);

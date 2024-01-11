@@ -9,8 +9,7 @@ import {TokenHookConsumer} from "../extension/TokenHookConsumer.sol";
 import {Initializable} from "../extension/Initializable.sol";
 import {Permission} from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer,  Permission, IERC721CoreCustomErrors {
-
+contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Permission, IERC721CoreCustomErrors {
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
     //////////////////////////////////////////////////////////////*/
@@ -41,9 +40,7 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer,  P
      *  @return metadata The URI to fetch metadata from.
      */
     function tokenURI(uint256 _id) public view returns (string memory) {
-        return IERC721Metadata(
-            getHookImplementation(TOKEN_URI_FLAG)
-        ).tokenURI(_id);
+        return IERC721Metadata(getHookImplementation(TOKEN_URI_FLAG)).tokenURI(_id);
     }
 
     /**
@@ -53,10 +50,12 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer,  P
      *  @return recipient The royalty recipient address
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
      */
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice) external view returns (address recipient, uint256 royaltyAmount) {
-        (recipient, royaltyAmount) =  IERC2981(
-            getHookImplementation(ROYALTY_FLAG)
-        ).royaltyInfo(_tokenId, _salePrice);
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
+        external
+        view
+        returns (address recipient, uint256 royaltyAmount)
+    {
+        (recipient, royaltyAmount) = IERC2981(getHookImplementation(ROYALTY_FLAG)).royaltyInfo(_tokenId, _salePrice);
     }
 
     /**

@@ -77,11 +77,7 @@ library ECDSA {
     }
 
     /// @dev Recovers the signer's address from a message digest `hash`, and the `signature`.
-    function recoverCalldata(bytes32 hash, bytes calldata signature)
-        internal
-        view
-        returns (address result)
-    {
+    function recoverCalldata(bytes32 hash, bytes calldata signature) internal view returns (address result) {
         /// @solidity memory-safe-assembly
         assembly {
             result := 1
@@ -157,11 +153,7 @@ library ECDSA {
 
     /// @dev Recovers the signer's address from a message digest `hash`,
     /// and the signature defined by `v`, `r`, `s`.
-    function recover(bytes32 hash, uint8 v, bytes32 r, bytes32 s)
-        internal
-        view
-        returns (address result)
-    {
+    function recover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) internal view returns (address result) {
         /// @solidity memory-safe-assembly
         assembly {
             let m := mload(0x40) // Cache the free memory pointer.
@@ -201,11 +193,7 @@ library ECDSA {
     // a zero address (e.g. an uninitialized address variable).
 
     /// @dev Recovers the signer's address from a message digest `hash`, and the `signature`.
-    function tryRecover(bytes32 hash, bytes memory signature)
-        internal
-        view
-        returns (address result)
-    {
+    function tryRecover(bytes32 hash, bytes memory signature) internal view returns (address result) {
         /// @solidity memory-safe-assembly
         assembly {
             result := 1
@@ -245,11 +233,7 @@ library ECDSA {
     }
 
     /// @dev Recovers the signer's address from a message digest `hash`, and the `signature`.
-    function tryRecoverCalldata(bytes32 hash, bytes calldata signature)
-        internal
-        view
-        returns (address result)
-    {
+    function tryRecoverCalldata(bytes32 hash, bytes calldata signature) internal view returns (address result) {
         /// @solidity memory-safe-assembly
         assembly {
             result := 1
@@ -290,11 +274,7 @@ library ECDSA {
 
     /// @dev Recovers the signer's address from a message digest `hash`,
     /// and the EIP-2098 short form signature defined by `r` and `vs`.
-    function tryRecover(bytes32 hash, bytes32 r, bytes32 vs)
-        internal
-        view
-        returns (address result)
-    {
+    function tryRecover(bytes32 hash, bytes32 r, bytes32 vs) internal view returns (address result) {
         /// @solidity memory-safe-assembly
         assembly {
             let m := mload(0x40) // Cache the free memory pointer.
@@ -321,11 +301,7 @@ library ECDSA {
 
     /// @dev Recovers the signer's address from a message digest `hash`,
     /// and the signature defined by `v`, `r`, `s`.
-    function tryRecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s)
-        internal
-        view
-        returns (address result)
-    {
+    function tryRecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) internal view returns (address result) {
         /// @solidity memory-safe-assembly
         assembly {
             let m := mload(0x40) // Cache the free memory pointer.

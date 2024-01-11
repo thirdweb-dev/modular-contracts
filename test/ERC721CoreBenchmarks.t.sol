@@ -9,7 +9,7 @@ import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
 import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
-import { LazyMintMetadataHook } from "src/erc721/hooks/LazyMintMetadataHook.sol";
+import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 
@@ -50,7 +50,8 @@ contract ERC721CoreBenchmarkTest is Test {
         simpleClaimHook = AllowlistMintHook(hookProxyAddress);
         assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
 
-        address lazyMintHookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
+        address lazyMintHookProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
         lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
 
         erc721Implementation = address(new ERC721Core());

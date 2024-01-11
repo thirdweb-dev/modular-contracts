@@ -19,7 +19,7 @@ interface IPermission {
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    
+
     /**
      *  @notice Returns whether an account has the given permissions.
      *  @param account The account to check.

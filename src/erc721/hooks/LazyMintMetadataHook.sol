@@ -3,11 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IPermission} from "../../interface/extension/IPermission.sol";
 
-import { TokenHook } from "../../extension/TokenHook.sol";
-import { LibString } from "../../lib/LibString.sol";
+import {TokenHook} from "../../extension/TokenHook.sol";
+import {LibString} from "../../lib/LibString.sol";
 
 contract LazyMintMetadataHook is TokenHook {
-
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -20,9 +19,11 @@ contract LazyMintMetadataHook is TokenHook {
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
-    
+
     /// @dev Emitted when tokens are lazy minted.
-    event TokensLazyMinted(address indexed token, uint256 indexed startTokenId, uint256 endTokenId, string baseURI, bytes encryptedBaseURI);
+    event TokensLazyMinted(
+        address indexed token, uint256 indexed startTokenId, uint256 endTokenId, string baseURI, bytes encryptedBaseURI
+    );
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -55,7 +56,7 @@ contract LazyMintMetadataHook is TokenHook {
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = TOKEN_URI_FLAG;
     }
-    
+
     /**
      *  @notice Returns the count of batches of NFTs for a token.
      *  @param _token The token address.
@@ -100,12 +101,12 @@ contract LazyMintMetadataHook is TokenHook {
      *  @param _data Additional bytes data
      *  @return batchId A unique integer identifier for the batch of NFTs lazy minted together.
      */
-    function lazyMint(
-        address _token,
-        uint256 _amount,
-        string calldata _baseURIForTokens,
-        bytes calldata _data
-    ) public virtual onlyAdmin(_token) returns (uint256 batchId) {
+    function lazyMint(address _token, uint256 _amount, string calldata _baseURIForTokens, bytes calldata _data)
+        public
+        virtual
+        onlyAdmin(_token)
+        returns (uint256 batchId)
+    {
         if (_amount == 0) {
             revert("0 amt");
         }

@@ -35,11 +35,8 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
-            price: pricePerToken,
-            availableSupply: 5,
-            allowlistMerkleRoot: root
-        });
+        AllowlistMintHook.ClaimCondition memory condition =
+            AllowlistMintHook.ClaimCondition({price: pricePerToken, availableSupply: 5, allowlistMerkleRoot: root});
 
         vm.prank(admin);
         simpleClaim.setClaimCondition(erc721Contract, condition);

@@ -145,10 +145,7 @@ library SafeTransferLib {
     }
 
     /// @dev Sends `amount` (in wei) ETH to `to`, with a `gasStipend`.
-    function trySafeTransferETH(address to, uint256 amount, uint256 gasStipend)
-        internal
-        returns (bool success)
-    {
+    function trySafeTransferETH(address to, uint256 amount, uint256 gasStipend) internal returns (bool success) {
         /// @solidity memory-safe-assembly
         assembly {
             success := call(gasStipend, to, amount, codesize(), 0x00, codesize(), 0x00)
@@ -156,10 +153,7 @@ library SafeTransferLib {
     }
 
     /// @dev Sends all the ETH in the current contract to `to`, with a `gasStipend`.
-    function trySafeTransferAllETH(address to, uint256 gasStipend)
-        internal
-        returns (bool success)
-    {
+    function trySafeTransferAllETH(address to, uint256 gasStipend) internal returns (bool success) {
         /// @solidity memory-safe-assembly
         assembly {
             success := call(gasStipend, to, selfbalance(), codesize(), 0x00, codesize(), 0x00)
@@ -203,10 +197,7 @@ library SafeTransferLib {
     ///
     /// The `from` account must have their entire balance approved for
     /// the current contract to manage.
-    function safeTransferAllFrom(address token, address from, address to)
-        internal
-        returns (uint256 amount)
-    {
+    function safeTransferAllFrom(address token, address from, address to) internal returns (uint256 amount) {
         /// @solidity memory-safe-assembly
         assembly {
             let m := mload(0x40) // Cache the free memory pointer.

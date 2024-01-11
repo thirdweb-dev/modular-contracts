@@ -8,5 +8,4 @@ interface IERC721CoreCustomErrors {
 
     /// @notice Emitted on an attempt to mint tokens when either beforeMint hook is absent or unsuccessful.
     error ERC721CoreMintingDisabled();
-    
 }

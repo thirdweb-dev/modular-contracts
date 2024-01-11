@@ -4,12 +4,11 @@ pragma solidity ^0.8.0;
 import {IClaimCondition} from "../../interface/extension/IClaimCondition.sol";
 import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
-import {MerkleProofLib} from "../../lib/MerkleProofLib.sol"; 
-import {SafeTransferLib} from "../../lib/SafeTransferLib.sol"; 
+import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
+import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 import {TokenHook} from "../../extension/TokenHook.sol";
 
 contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
-
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -59,13 +58,12 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
 
     /// @notice Mapping from token => fee config for the token.
     mapping(address => FeeConfig) private _feeConfig;
-    
+
     /// @notice Mapping from condition ID => hash(claimer, token) => supply claimed by wallet.
     mapping(bytes32 => mapping(bytes32 => uint256)) private _supplyClaimedByWallet;
 
     /// @notice Mapping from token => condition ID.
     mapping(address => bytes32) private _conditionId;
-
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -103,7 +101,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
      *  @param _quantity The quantity of tokens to claim.
      *  @param _currency The currency in which the claimer must pay the price for claiming tokens.
      *  @param _pricePerToken The price per token claimed the claimer must pay.
-     *  @param _allowlistProof The proof of the claimer's inclusion in an allowlist. 
+     *  @param _allowlistProof The proof of the claimer's inclusion in an allowlist.
      */
     function verifyClaim(
         address _token,
@@ -139,12 +137,9 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
         }
 
         if (isOverride) {
-            claimLimit = _allowlistProof.quantityLimitPerWallet != 0
-                ? _allowlistProof.quantityLimitPerWallet
-                : claimLimit;
-            claimPrice = _allowlistProof.pricePerToken != type(uint256).max
-                ? _allowlistProof.pricePerToken
-                : claimPrice;
+            claimLimit =
+                _allowlistProof.quantityLimitPerWallet != 0 ? _allowlistProof.quantityLimitPerWallet : claimLimit;
+            claimPrice = _allowlistProof.pricePerToken != type(uint256).max ? _allowlistProof.pricePerToken : claimPrice;
             claimCurrency = _allowlistProof.pricePerToken != type(uint256).max && _allowlistProof.currency != address(0)
                 ? _allowlistProof.currency
                 : claimCurrency;
@@ -181,7 +176,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
     /*//////////////////////////////////////////////////////////////
                             BEFORE MINT HOOK
     //////////////////////////////////////////////////////////////*/
-    
+
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
      *  @param _claimer The address that is minting tokens.
@@ -197,11 +192,8 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
     {
         address token = msg.sender;
 
-        (
-            address currency,
-            uint256 pricePerToken,
-            AllowlistProof memory allowlistProof
-        ) = abi.decode(_encodedArgs, (address, uint256, AllowlistProof));
+        (address currency, uint256 pricePerToken, AllowlistProof memory allowlistProof) =
+            abi.decode(_encodedArgs, (address, uint256, AllowlistProof));
 
         verifyClaim(token, _claimer, _quantity, currency, pricePerToken, allowlistProof);
 
@@ -247,7 +239,10 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
      *  @param _condition The claim condition to set.
      *  @param _resetClaimEligibility Whether to reset the claim eligibility of all wallets.
      */
-    function setClaimCondition(address _token, ClaimCondition calldata _condition, bool _resetClaimEligibility) external onlyAdmin(_token) {
+    function setClaimCondition(address _token, ClaimCondition calldata _condition, bool _resetClaimEligibility)
+        external
+        onlyAdmin(_token)
+    {
         bytes32 targetConditionId = _conditionId[_token];
         uint256 supplyClaimedAlready = _claimCondition[_token].supplyClaimed;
 
@@ -295,27 +290,29 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
         FeeConfig memory feeConfig = _feeConfig[_token];
 
         uint256 totalPrice = _quantityToClaim * _pricePerToken;
-        
+
         bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
         uint256 platformFees = 0;
 
-        if(payoutPlatformFees) {
+        if (payoutPlatformFees) {
             platformFees = (totalPrice * feeConfig.platformFeeBps) / 10_000;
         }
 
         if (_currency == NATIVE_TOKEN) {
             require(msg.value == totalPrice, "!Price");
-            if(payoutPlatformFees) {
+            if (payoutPlatformFees) {
                 SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
             }
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, totalPrice - platformFees);
         } else {
             require(msg.value == 0, "!Value");
-            if(payoutPlatformFees) {
-                SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);    
+            if (payoutPlatformFees) {
+                SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);
             }
             SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);
-            SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.primarySaleRecipient, totalPrice - platformFees);
+            SafeTransferLib.safeTransferFrom(
+                _token, _claimer, feeConfig.primarySaleRecipient, totalPrice - platformFees
+            );
         }
     }
 }
