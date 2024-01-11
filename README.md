@@ -69,3 +69,36 @@ Developers can install hooks into their core contracts, and uninstall hooks at a
 thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/erc721/hooks/](https://github.com/thirdweb-dev/contracts-next/tree/main/src/erc721/hooks) and [test/hook-examples](https://github.com/thirdweb-dev/contracts-next/tree/main/test/hook-examples) which contains the familiar Drop and Signature Mint contracts as shared state hooks).
 
 These hook contracts are designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make beacon upgrades to developer contracts using these hooks.
+
+# Run this repo
+
+Clone the repo:
+
+```bash
+git clone https://github.com/thirdweb-dev/contracts-next.git
+```
+
+Install dependencies:
+
+```
+forge install
+yarn
+```
+
+Run benchmark comparison tests:
+
+```
+forge test --mc Thirdweb # or Manifold / Zora
+```
+
+## Feedback
+
+If you have any feedback, please create an issue or reach out to us at support@thirdweb.com.
+
+## Authors
+
+- [thirdweb](https://thirdweb.com)
+
+## License
+
+[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)
