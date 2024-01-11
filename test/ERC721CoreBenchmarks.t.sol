@@ -13,6 +13,43 @@ import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 
+/**
+ *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
+ *
+ *  CORE CONTRACTS:
+ *
+ *  Developers will deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-721 Core contract.
+ *
+ *      - This contract is initializable, and meant to be used with proxy contracts.
+ *      - Implements the token standard (and the respective token metadata standard).
+ *      - Uses the role based permission model of the `Permission` contract.
+ *      - Implements the `TokenHookConsumer` interface.
+ *
+ *  HOOKS:
+ *
+ *  Core contracts work with "hooks". There is a fixed set of 6 hooks supported by the core contract:
+ *
+ *      - BeforeMint: called before a token is minted in the ERC721Core.mint call.
+ *      - BeforeTransfer: called before a token is transferred in the ERC721.transferFrom call.
+ *      - BeforeBurn: called before a token is burned in the ERC721.burn call.
+ *      - BeforeApprove: called before the ERC721.approve call.
+ *      - Token URI: called when the ERC721Metadata.tokenURI function is called.
+ *      - Royalty: called when the ERC2981.royaltyInfo function is called.
+ *
+ *  Each of these hooks is an external call made to a contract that implements the `ITokenHook` interface. 
+ 
+ *  The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic
+ *  right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
+ *
+ *  Developers can install hooks into their core contracts, and uninstall hooks at any time.
+ *
+ *  UPGRADEABILITY:
+ *
+ *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc721/hooks/). These hook contracts are
+ *  designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make
+ *  beacon upgrades to developer contracts using these hooks.
+ */
+
 contract ERC721CoreBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP

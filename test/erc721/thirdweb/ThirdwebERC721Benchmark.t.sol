@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 // Test util
 import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 
 // Target test contracts
@@ -18,8 +19,12 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
     function setUp() public override {
         // Deploy infra/shared-state contracts pre-setup
-        simpleClaim = new AllowlistMintHook();
-        lazyMintHook = new LazyMintMetadataHook();
+        address hookProxyAddress = address(new MinimalUpgradeableRouter(admin, address(new AllowlistMintHook())));
+        simpleClaim = AllowlistMintHook(hookProxyAddress);
+        
+        address lazyMintHookProxyAddress =
+            address(new MinimalUpgradeableRouter(admin, address(new LazyMintMetadataHook())));
+        lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
 
         super.setUp();
 
