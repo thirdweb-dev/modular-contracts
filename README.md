@@ -34,4 +34,4 @@
 
 # Design Overview
 
-<img src="https://d391b93f5f62d9c15f67142e43841acc.ipfscdn.io/ipfs/bafybeiekqr3xscf6glbzhowpwwj52nk2bjxu3itkoped2ybcoo2roclf3q/contracts-next-mint-tokens.png" alt="mint tokens via hooks"/>
+![mint tokens via hooks](https://ipfs.io/ipfs/QmXfN8GFsJNEgkwa9F44kRWFFnahPbyPb8yV2L9LmFomnj/contracts-next-mint-tokens.png)
