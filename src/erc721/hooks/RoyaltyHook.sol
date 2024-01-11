@@ -5,9 +5,9 @@ pragma solidity ^0.8.0;
 
 import {IERC2981} from "../../interface/eip/IERC2981.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
-import { NFTHook } from "../../extension/NFTHook.sol";
+import { TokenHook } from "../../extension/TokenHook.sol";
 
-contract RoyaltyHook is IERC2981, NFTHook {
+contract RoyaltyHook is IERC2981, TokenHook {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/

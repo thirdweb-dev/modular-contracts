@@ -20,6 +20,12 @@ abstract contract TokenHook is ITokenHook {
     /// @notice Bits representing the before approve hook.
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
+    /// @notice Bits representing the token URI hook.
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+
+    /// @notice Bits representing the royalty hook.
+    uint256 public constant ROYALTY_FLAG = 2 ** 6;
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

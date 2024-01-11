@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IPermission} from "../../interface/extension/IPermission.sol";
 
-import { NFTHook } from "../../extension/NFTHook.sol";
+import { TokenHook } from "../../extension/TokenHook.sol";
 import { LibString } from "../../lib/LibString.sol";
 
-contract LazyMintMetadataHook is NFTHook {
+contract LazyMintMetadataHook is TokenHook {
 
     using LibString for uint256;
 

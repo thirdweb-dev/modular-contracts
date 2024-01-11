@@ -23,6 +23,12 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     /// @notice Bits representing the before approve hook.
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
+    /// @notice Bits representing the token URI hook.
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+
+    /// @notice Bits representing the royalty hook.
+    uint256 public constant ROYALTY_FLAG = 2 ** 6;
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -46,7 +52,9 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
             beforeMint: _hookImplementationMap[BEFORE_MINT_FLAG],
             beforeTransfer: _hookImplementationMap[BEFORE_TRANSFER_FLAG],
             beforeBurn: _hookImplementationMap[BEFORE_BURN_FLAG],
-            beforeApprove: _hookImplementationMap[BEFORE_APPROVE_FLAG]
+            beforeApprove: _hookImplementationMap[BEFORE_APPROVE_FLAG],
+            tokenUri: _hookImplementationMap[TOKEN_URI_FLAG],
+            royalty: _hookImplementationMap[ROYALTY_FLAG]
         });
     }
 
@@ -111,7 +119,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
 
     /// @dev Returns the largest power of 2 that represents a hook.
     function _maxFlagIndex() internal pure virtual returns (uint8) {
-        return 4;
+        return 6;
     }
 
     function _addHook(uint256 _flag, uint256 _currentHooks) internal pure returns (uint256) {

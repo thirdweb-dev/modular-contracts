@@ -5,11 +5,11 @@ import {IERC721Metadata} from "../interface/erc721/IERC721Metadata.sol";
 import {IERC2981} from "../interface/eip/IERC2981.sol";
 import {IERC721CoreCustomErrors} from "../interface/erc721/IERC721CoreCustomErrors.sol";
 import {ERC721Initializable} from "./ERC721Initializable.sol";
-import {NFTHookConsumer} from "../extension/NFTHookConsumer.sol";
+import {TokenHookConsumer} from "../extension/TokenHookConsumer.sol";
 import {Initializable} from "../extension/Initializable.sol";
 import {Permission} from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721Initializable, NFTHookConsumer,  Permission, IERC721CoreCustomErrors {
+contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer,  Permission, IERC721CoreCustomErrors {
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE

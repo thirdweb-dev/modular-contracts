@@ -9,14 +9,14 @@ pragma solidity ^0.8.0;
 import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
 
-import {NFTHook} from "../../extension/NFTHook.sol";
+import {TokenHook} from "../../extension/TokenHook.sol";
 import {Permission} from "../../extension/Permission.sol";
 
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 import {LibString} from "../../lib/LibString.sol";
 
-contract AllowlistMintHook is NFTHook, IFeeConfig {
+contract AllowlistMintHook is TokenHook, IFeeConfig {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////

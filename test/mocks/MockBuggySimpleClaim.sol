@@ -8,14 +8,14 @@ pragma solidity ^0.8.0;
 import {IFeeConfig} from "src/interface/extension/IFeeConfig.sol";
 import {IPermission} from "src/interface/extension/IPermission.sol";
 
-import {NFTHook} from "src/extension/NFTHook.sol";
+import {TokenHook} from "src/extension/TokenHook.sol";
 import {Permission} from "src/extension/Permission.sol";
 
 import {MerkleProofLib} from "src/lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "src/lib/SafeTransferLib.sol";
 import {LibString} from "src/lib/LibString.sol";
 
-contract MockBuggySimpleClaim is NFTHook, IFeeConfig {
+contract MockBuggySimpleClaim is TokenHook, IFeeConfig {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
