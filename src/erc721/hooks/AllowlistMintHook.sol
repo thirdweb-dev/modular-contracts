@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-/// NOTE: This contract is for testing purposes only. It is not intended to be used in production.
-///       It is the same as ERC721SimpleClaim, but with the bug that is does not decrement available
-///       supply after a claim.
+/// This is an example claim mechanism contract that calls that calls into the ERC721Core contract's mint API.
+///
+/// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
+/// used by anyone for their copy of `ERC721Core`.
 
-import {IFeeConfig} from "src/interface/extension/IFeeConfig.sol";
-import {IPermission} from "src/interface/extension/IPermission.sol";
+import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
+import {IPermission} from "../../interface/extension/IPermission.sol";
 
-import {NFTHook} from "src/extension/NFTHook.sol";
-import {Permission} from "src/extension/Permission.sol";
+import {NFTHook} from "../../extension/NFTHook.sol";
+import {Permission} from "../../extension/Permission.sol";
 
-import {MerkleProofLib} from "src/lib/MerkleProofLib.sol";
-import {SafeTransferLib} from "src/lib/SafeTransferLib.sol";
-import {LibString} from "src/lib/LibString.sol";
+import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
+import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
+import {LibString} from "../../lib/LibString.sol";
 
-contract MockBuggySimpleClaim is NFTHook, IFeeConfig {
+contract AllowlistMintHook is NFTHook, IFeeConfig {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -149,7 +150,7 @@ contract MockBuggySimpleClaim is NFTHook, IFeeConfig {
 
         _collectPriceOnClaim(token, _quantity, condition.price);
 
-        // BUG: does not decrement available supply
+        claimCondition[token].availableSupply -= _quantity;
         tokenIdToMint = _nextTokenIdToMint[token]++;
     }
 

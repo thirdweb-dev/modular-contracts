@@ -14,7 +14,8 @@ import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {IERC721CustomErrors} from "src/interface/erc721/IERC721CustomErrors.sol";
 import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
-import {ERC721SimpleClaim} from "src/erc721/hooks/ERC721SimpleClaim.sol";
+import { LazyMintMetadataHook } from "src/erc721/hooks/LazyMintMetadataHook.sol";
+import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -28,14 +29,14 @@ import {ERC721SimpleClaim} from "src/erc721/hooks/ERC721SimpleClaim.sol";
  *                            By default, `tokenURI(id)` will return the URI for the token stored on the minter contract. If the minter
  *                            is a non-contract OR a URI has been stored locally on the contract, that local URI will be returned instead.
  *
- *  2. `ERC721SimpleClaim` is an example of a claim mechanism contract. It lets an admin of a given `ERC721Core` contract set claim
+ *  2. `AllowlistMintHook` is an example of a claim mechanism contract. It lets an admin of a given `ERC721Core` contract set claim
  *      conditions for that contract. Users can then claim tokens from that `ERC721Core` contract by calling `claim(address _token)`.
- *      To enable this flow, the `ERC721Core` contract's admin grants the `MINTER_ROLE` to the `ERC721SimpleClaim` contract.
+ *      To enable this flow, the `ERC721Core` contract's admin grants the `MINTER_ROLE` to the `AllowlistMintHook` contract.
  *
- *  3. `ERC721SimpleClaim` also returns the default for the tokens it mints on the `ERC721Core` contract. The admin of the core contract can
+ *  3. `AllowlistMintHook` also returns the default for the tokens it mints on the `ERC721Core` contract. The admin of the core contract can
  *      set the token metadata for that contract's tokens on the minter contract.
  *
- *  NOTE: The `ERC721SimpleClaim` contract that the `ERC721Core` contract interacts with can be swapped at runtime
+ *  NOTE: The `AllowlistMintHook` contract that the `ERC721Core` contract interacts with can be swapped at runtime
  *        for whatever reasons -- enabling new claim mechanics, storing metadata differently, bug fixes, etc.
  */
 contract ERC721Test is Test {
@@ -48,27 +49,29 @@ contract ERC721Test is Test {
 
     // Target test contracts
     ERC721Core public erc721;
-    ERC721SimpleClaim public simpleClaim;
+    AllowlistMintHook public simpleClaim;
+    LazyMintMetadataHook public lazyMintHook;
 
     function setUp() public {
         // Setup contracts
         cloneFactory = new CloneFactory();
 
-        simpleClaim = new ERC721SimpleClaim();
+        simpleClaim = new AllowlistMintHook();
+        lazyMintHook = new LazyMintMetadataHook();
 
         address implementation = address(new ERC721Core());
         bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, admin, "Test", "TST");
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(implementation, data, bytes32("salt")));
 
         vm.label(address(erc721), "ERC721");
-        vm.label(address(simpleClaim), "ERC721SimpleClaim");
+        vm.label(address(simpleClaim), "AllowlistMintHook");
         vm.label(admin, "Admin");
         vm.label(claimer, "Claimer");
 
         vm.startPrank(admin);
 
         // Admin sets up token metadata.
-        simpleClaim.setBaseURI(address(erc721), "https://example.com/");
+        lazyMintHook.lazyMint(address(erc721), 10_000, "https://example.com/", "");
 
         // Admin sets up claim conditions.
 
@@ -79,17 +82,22 @@ contract ERC721Test is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
+        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
             price: 0.1 ether,
             availableSupply: 5,
-            allowlistMerkleRoot: root,
-            saleRecipient: admin
+            allowlistMerkleRoot: root
         });
 
         simpleClaim.setClaimCondition(address(erc721), condition);
+        
+        AllowlistMintHook.FeeConfig memory config;
+        config.primarySaleRecipient = admin;
+        
+        simpleClaim.setFeeConfig(address(erc721), config);
 
-        // Set `ERC721SimpleClaim` contract as minter
+        // Set `AllowlistMintHook` contract as minter
         erc721.installHook(ITokenHook(address(simpleClaim)));
+        erc721.installHook(ITokenHook(address(lazyMintHook)));
 
         vm.stopPrank();
     }
@@ -106,7 +114,7 @@ contract ERC721Test is Test {
         assertEq(claimer.balance, 0.5 ether);
         assertEq(admin.balance, 0);
         assertEq(erc721.balanceOf(claimer), 0);
-        assertEq(simpleClaim.nextTokenIdToMint(), 0);
+        assertEq(simpleClaim.getNextTokenIdToMint(address(erc721)), 0);
         vm.expectRevert(abi.encodeWithSelector(IERC721CustomErrors.ERC721NotMinted.selector, 0));
         erc721.ownerOf(0);
 
@@ -124,7 +132,7 @@ contract ERC721Test is Test {
         assertEq(claimer.balance, 0.4 ether);
         assertEq(admin.balance, 0.1 ether);
         assertEq(erc721.balanceOf(claimer), 1);
-        assertEq(simpleClaim.nextTokenIdToMint(), 1);
+        assertEq(simpleClaim.getNextTokenIdToMint(address(erc721)), 1);
         assertEq(erc721.ownerOf(0), claimer);
 
         assertEq(erc721.tokenURI(0), "https://example.com/0");
@@ -144,11 +152,10 @@ contract ERC721Test is Test {
         assertEq(erc721.getHookImplementation(erc721.BEFORE_TRANSFER_FLAG()), address(transferHook));
 
         // Mint token
-        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
+        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
             price: 0 ether,
             availableSupply: 5,
-            allowlistMerkleRoot: bytes32(0),
-            saleRecipient: admin
+            allowlistMerkleRoot: bytes32(0)
         });
         simpleClaim.setClaimCondition(address(erc721), condition);
         erc721.mint(claimer, 1, "");
@@ -202,15 +209,14 @@ contract ERC721Test is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
+        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
             price: 0.1 ether,
             availableSupply: 5,
-            allowlistMerkleRoot: root,
-            saleRecipient: admin
+            allowlistMerkleRoot: root
         });
 
         vm.prank(admin);
-        ERC721SimpleClaim(proxySimpleClaim).setClaimCondition(address(erc721), condition);
+        AllowlistMintHook(proxySimpleClaim).setClaimCondition(address(erc721), condition);
 
         // Claim token
         vm.expectRevert(abi.encodeWithSelector(IERC721CustomErrors.ERC721NotMinted.selector, 0));
@@ -229,7 +235,7 @@ contract ERC721Test is Test {
         assertEq(erc721.ownerOf(0), claimer);
 
         // But BUG: the claim condition supply is not decremented!
-        (, uint256 availableSupply,,) = ERC721SimpleClaim(proxySimpleClaim).claimCondition(address(erc721));
+        (, uint256 availableSupply,) = AllowlistMintHook(proxySimpleClaim).claimCondition(address(erc721));
         assertEq(availableSupply, 5);
 
         // Perform upgrade
@@ -237,7 +243,7 @@ contract ERC721Test is Test {
         TransparentUpgradeableProxy(payable(proxySimpleClaim)).upgradeTo(address(simpleClaim));
 
         // Claim condition supply is already set, since state is unchanged after logic upgrade
-        (, availableSupply,,) = ERC721SimpleClaim(proxySimpleClaim).claimCondition(address(erc721));
+        (, availableSupply,) = AllowlistMintHook(proxySimpleClaim).claimCondition(address(erc721));
         assertEq(availableSupply, 5);
 
         // But the bug is fixed, so the supply is decremented upon a new claim
@@ -245,7 +251,7 @@ contract ERC721Test is Test {
         erc721.mint{value: 0.1 ether}(claimer, 1, abi.encode(proofs));
 
         assertEq(erc721.ownerOf(1), claimer);
-        (, availableSupply,,) = ERC721SimpleClaim(proxySimpleClaim).claimCondition(address(erc721));
+        (, availableSupply,) = AllowlistMintHook(proxySimpleClaim).claimCondition(address(erc721));
         assertEq(availableSupply, 4);
     }
 }

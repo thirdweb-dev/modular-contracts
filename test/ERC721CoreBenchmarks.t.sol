@@ -8,7 +8,8 @@ import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
-import {ERC721SimpleClaim} from "src/erc721/hooks/ERC721SimpleClaim.sol";
+import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
+import { LazyMintMetadataHook } from "src/erc721/hooks/LazyMintMetadataHook.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 
@@ -30,7 +31,8 @@ contract ERC721CoreBenchmarkTest is Test {
     address public hookProxyAddress;
 
     ERC721Core public erc721;
-    ERC721SimpleClaim public simpleClaimHook;
+    AllowlistMintHook public simpleClaimHook;
+    LazyMintMetadataHook public lazyMintHook;
 
     // Token claim params
     uint256 public pricePerToken = 0.1 ether;
@@ -44,9 +46,12 @@ contract ERC721CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new ERC721SimpleClaim())));
-        simpleClaimHook = ERC721SimpleClaim(hookProxyAddress);
-        assertEq(simpleClaimHook.nextTokenIdToMint(), 0);
+        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHook())));
+        simpleClaimHook = AllowlistMintHook(hookProxyAddress);
+        assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
+
+        address lazyMintHookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
+        lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
 
         erc721Implementation = address(new ERC721Core());
 
@@ -62,7 +67,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.label(address(erc721), "ERC721Core");
         vm.label(erc721Implementation, "ERC721CoreImpl");
-        vm.label(hookProxyAddress, "ERC721SimpleClaim");
+        vm.label(hookProxyAddress, "AllowlistMintHook");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
@@ -70,7 +75,7 @@ contract ERC721CoreBenchmarkTest is Test {
         // Developer sets up token metadata and claim conditions: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        simpleClaimHook.setBaseURI(address(erc721), "https://example.com/");
+        lazyMintHook.lazyMint(address(erc721), 10_000, "https://example.com/", "");
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -79,16 +84,15 @@ contract ERC721CoreBenchmarkTest is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
+        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
             price: pricePerToken,
             availableSupply: availableSupply,
-            allowlistMerkleRoot: root,
-            saleRecipient: platformUser
+            allowlistMerkleRoot: root
         });
 
         simpleClaimHook.setClaimCondition(address(erc721), condition);
 
-        // Developer installs `ERC721SimpleClaim` hook
+        // Developer installs `AllowlistMintHook` hook
         erc721.installHook(ITokenHook(hookProxyAddress));
 
         vm.stopPrank();
@@ -210,8 +214,8 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        bytes4 sel = ERC721SimpleClaim.beforeMint.selector;
-        address newImpl = address(new ERC721SimpleClaim());
+        bytes4 sel = AllowlistMintHook.beforeMint.selector;
+        address newImpl = address(new AllowlistMintHook());
         address proxyAdmin = platformAdmin;
         MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
 

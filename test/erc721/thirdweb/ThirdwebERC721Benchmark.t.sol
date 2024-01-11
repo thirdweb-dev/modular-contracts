@@ -8,19 +8,22 @@ import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 
 // Target test contracts
 import {ERC721Core} from "src/erc721/ERC721Core.sol";
-import {ERC721SimpleClaim} from "src/erc721/hooks/ERC721SimpleClaim.sol";
+import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
+import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
 import {Permission} from "src/extension/Permission.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
-    ERC721SimpleClaim public simpleClaim;
+    AllowlistMintHook public simpleClaim;
+    LazyMintMetadataHook public lazyMintHook;
 
     function setUp() public override {
         // Deploy infra/shared-state contracts pre-setup
-        simpleClaim = new ERC721SimpleClaim();
+        simpleClaim = new AllowlistMintHook();
+        lazyMintHook = new LazyMintMetadataHook();
 
         super.setUp();
 
-        // Set `ERC721SimpleClaim` contract as minter
+        // Set `AllowlistMintHook` contract as minter
         vm.prank(admin);
         ERC721Core(erc721Contract).installHook(ITokenHook(address(simpleClaim)));
 
@@ -32,11 +35,10 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        ERC721SimpleClaim.ClaimCondition memory condition = ERC721SimpleClaim.ClaimCondition({
+        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
             price: pricePerToken,
             availableSupply: 5,
-            allowlistMerkleRoot: root,
-            saleRecipient: admin
+            allowlistMerkleRoot: root
         });
 
         vm.prank(admin);
@@ -81,12 +83,12 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
     /// @dev Setup token metadata
     function _setupTokenMetadata() internal override {
         vm.pauseGasMetering();
-        ERC721SimpleClaim metadataSource = simpleClaim;
+        LazyMintMetadataHook hook = lazyMintHook;
         address erc721 = erc721Contract;
         vm.prank(address(0x123));
         vm.resumeGasMetering();
 
-        metadataSource.setBaseURI(erc721, "https://example.com/0.json");
+        hook.lazyMint(erc721Contract, 10_000, "https://example.com/", "");
     }
 
     /// @dev Claims a token from the target erc721 contract.

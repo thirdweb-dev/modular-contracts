@@ -4,8 +4,11 @@ pragma solidity ^0.8.0;
 import "../../interface/extension/IPermission.sol";
 
 import { NFTHook } from "../../extension/NFTHook.sol";
+import { LibString } from "../../lib/LibString.sol";
 
 contract LazyMintMetadataHook is NFTHook {
+
+    using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -25,7 +28,7 @@ contract LazyMintMetadataHook is NFTHook {
 
     mapping(address => uint256[]) private _batchIds;
     mapping(address => uint256) private _nextTokenIdToLazyMint;
-    mapping( address => mapping(uint256 => string)) private _baseURI;
+    mapping(address => mapping(uint256 => string)) private _baseURI;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -46,6 +49,14 @@ contract LazyMintMetadataHook is NFTHook {
 
     function getBaseURICount(address _token) public view returns (uint256) {
         return _batchIds[_token].length;
+    }
+
+    /// @notice Returns the URI to fetch token metadata from.
+    function tokenURI(uint256 id) external view returns (string memory) {
+        address token = msg.sender;
+        string memory batchUri = _getBaseURI(token, id);
+
+        return string(abi.encodePacked(batchUri, id.toString()));
     }
 
     function getBatchIdAtIndex(address _token, uint256 _index) public view returns (uint256) {
@@ -94,5 +105,17 @@ contract LazyMintMetadataHook is NFTHook {
         _batchIds[_token].push(batchId);
 
         _baseURI[_token][batchId] = _baseURIForTokens;
+    }
+
+    function _getBaseURI(address _token, uint256 _tokenId) internal view returns (string memory) {
+        uint256 numOfTokenBatches = getBaseURICount(_token);
+        uint256[] memory indices = _batchIds[_token];
+
+        for (uint256 i = 0; i < numOfTokenBatches; i += 1) {
+            if (_tokenId < indices[i]) {
+                return _baseURI[_token][indices[i]];
+            }
+        }
+        revert("Invalid tokenId");
     }
 }
