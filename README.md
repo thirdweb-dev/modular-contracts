@@ -7,4 +7,4 @@
 <p align="center"><strong>Next iteration of thirdweb smart contracts. Install hooks in core contracts.</strong></p>
 <br />
 
-> :warning: **Call for community feedback**: This design update to thirdweb smart contracts is WIP and we encourage opening an issue with feedback.
+> :warning: **Call for community feedback**: This design update is WIP and we encourage opening an issue with feedback.
