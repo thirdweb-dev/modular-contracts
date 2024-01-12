@@ -2,8 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {IERC7572} from "../interface/eip/IERC7572.sol";
-import {IERC721Metadata} from "../interface/erc721/IERC721Metadata.sol";
-import {IERC2981} from "../interface/eip/IERC2981.sol";
 import {IERC721CoreCustomErrors} from "../interface/erc721/IERC721CoreCustomErrors.sol";
 import {ERC721Initializable} from "./ERC721Initializable.sol";
 import {TokenHookConsumer} from "../extension/TokenHookConsumer.sol";
@@ -57,7 +55,7 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
      *  @return metadata The URI to fetch metadata from.
      */
     function tokenURI(uint256 _id) public view returns (string memory) {
-        return IERC721Metadata(getHookImplementation(TOKEN_URI_FLAG)).tokenURI(_id);
+        return _getTokenURI(_id);
     }
 
     /**
@@ -70,9 +68,9 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
     function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
         external
         view
-        returns (address recipient, uint256 royaltyAmount)
+        returns (address, uint256)
     {
-        (recipient, royaltyAmount) = IERC2981(getHookImplementation(ROYALTY_FLAG)).royaltyInfo(_tokenId, _salePrice);
+        return _getRoyaltyInfo(_tokenId, _salePrice);
     }
 
     /**

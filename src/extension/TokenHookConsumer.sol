@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {LibBitmap} from "../lib/LibBitmap.sol";
 import {ITokenHook, ITokenHookConsumer} from "../interface/extension/ITokenHookConsumer.sol";
+import {IERC721Metadata} from "../interface/erc721/IERC721Metadata.sol";
+import {IERC2981} from "../interface/eip/IERC2981.sol";
 
 abstract contract TokenHookConsumer is ITokenHookConsumer {
     using LibBitmap for LibBitmap.Bitmap;
@@ -195,6 +197,29 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
 
         if (hook != address(0)) {
             ITokenHook(hook).beforeApprove(_from, _to, _tokenId);
+        }
+    }
+
+    /// @dev Fetches token URI from the token metadata hook.
+    function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory uri) {
+        address hook = getHookImplementation(TOKEN_URI_FLAG);
+
+        if (hook != address(0)) {
+            uri = IERC721Metadata(hook).tokenURI(_tokenId);
+        }
+    }
+
+    /// @dev Fetches royalty info from the royalty hook.
+    function _getRoyaltyInfo(uint256 _tokenId, uint256 _salePrice)
+        internal
+        view
+        virtual
+        returns (address receiver, uint256 royaltyAmount)
+    {
+        address hook = getHookImplementation(ROYALTY_FLAG);
+
+        if (hook != address(0)) {
+            (receiver, royaltyAmount) = IERC2981(hook).royaltyInfo(_tokenId, _salePrice);
         }
     }
 }
