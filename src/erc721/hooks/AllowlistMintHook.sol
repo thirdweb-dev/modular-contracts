@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-/// This is an example claim mechanism contract that calls that calls into the ERC721Core contract's mint API.
-///
-/// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
-/// used by anyone for their copy of `ERC721Core`.
-
 import {IPermission} from "../../interface/extension/IPermission.sol";
 import {TokenHook} from "../../extension/TokenHook.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
