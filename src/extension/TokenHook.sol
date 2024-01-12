@@ -50,7 +50,7 @@ abstract contract TokenHook is ITokenHook {
         external
         payable
         virtual
-        returns (uint256)
+        returns (uint256, uint256)
     {
         revert TokenHookNotImplemented();
     }
@@ -94,7 +94,7 @@ contract TokenHookExample is TokenHook {
         hooksImplemented = BEFORE_MINT_FLAG | BEFORE_BURN_FLAG;
     }
 
-    function beforeMint(address, uint256, bytes memory) external payable override returns (uint256 tokenIdToMint) {
+    function beforeMint(address, uint256, bytes memory) external payable override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         tokenIdToMint = _nextId++;
         emit SomeEvent();
     }

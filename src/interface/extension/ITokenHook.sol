@@ -29,11 +29,12 @@ interface ITokenHook {
      *  @param quantity The quantity of tokens to mint.
      *  @param encodedArgs The encoded arguments for the beforeMint hook.
      *  @return tokenIdToMint The token ID to start minting the given quantity tokens from.
+     *  @return quantityToMint The quantity of tokens to mint.
      */
     function beforeMint(address to, uint256 quantity, bytes memory encodedArgs)
         external
         payable
-        returns (uint256 tokenIdToMint);
+        returns (uint256 tokenIdToMint, uint256 quantityToMint);
 
     /**
      *  @notice The beforeTransfer hook that is called by a core token before transferring a token.

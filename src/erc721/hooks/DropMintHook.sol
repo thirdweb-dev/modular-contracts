@@ -188,9 +188,10 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
         external
         payable
         override
-        returns (uint256 tokenIdToMint)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
+        quantityToMint = _quantity;
 
         (address currency, uint256 pricePerToken, AllowlistProof memory allowlistProof) =
             abi.decode(_encodedArgs, (address, uint256, AllowlistProof));

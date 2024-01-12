@@ -106,9 +106,10 @@ contract SignatureMintHook is IMintRequestERC721, IFeeConfig, EIP712, TokenHook 
         external
         payable
         override
-        returns (uint256 tokenIdToMint)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
+        quantityToMint = _quantity;
 
         (MintRequestERC721 memory req, bytes memory signature) = abi.decode(_encodedArgs, (MintRequestERC721, bytes));
         require(req.quantity == _quantity, "Invalid quantity");

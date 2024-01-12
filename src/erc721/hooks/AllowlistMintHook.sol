@@ -122,9 +122,10 @@ contract AllowlistMintHook is TokenHook, IFeeConfig {
         external
         payable
         override
-        returns (uint256 tokenIdToMint)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
+        quantityToMint = _quantity;
 
         ClaimCondition memory condition = claimCondition[token];
 

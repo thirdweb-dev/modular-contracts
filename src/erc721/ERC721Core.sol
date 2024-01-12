@@ -122,10 +122,10 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
     function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
-        (bool success, uint256 tokenIdToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
+        (bool success, uint256 tokenIdToMint, uint256 _quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
 
         if (success) {
-            _mint(_to, tokenIdToMint, _quantity);
+            _mint(_to, tokenIdToMint, _quantityToMint);
             return;
         }
 

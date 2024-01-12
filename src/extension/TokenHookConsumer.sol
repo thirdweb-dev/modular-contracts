@@ -161,12 +161,12 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
         internal
         virtual
-        returns (bool success, uint256 tokenIdToMint)
+        returns (bool success, uint256 tokenIdToMint, uint256 _quantityToMint)
     {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            tokenIdToMint = ITokenHook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
+            (tokenIdToMint, _quantityToMint) = ITokenHook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
             success = true;
         }
     }
