@@ -59,6 +59,7 @@ There is a fixed, defined set of 6 hooks:
 - **BeforeApprove**: called before the ERC721.approve call.
 - **Token URI**: called when the ERC721Metadata.tokenURI function is called.
 - **Royalty**: called when the ERC2981.royaltyInfo function is called.
+- **Distribute Sale Value**: called after minting to distribute mint sale value, if any.
 
 Developers can install hooks into their core contracts, and uninstall hooks at any time. On installation, a hook contract tells the hook consumer which hook functions it implements -- the hook consumer maps all these hook functions to the mentioned hook contract as their implemention.
 
