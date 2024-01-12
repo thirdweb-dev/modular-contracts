@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import {LibBitmap} from "../lib/LibBitmap.sol";
 import {ITokenHook, ITokenHookConsumer} from "../interface/extension/ITokenHookConsumer.sol";
-import {IERC721Metadata} from "../interface/erc721/IERC721Metadata.sol";
-import {IERC2981} from "../interface/eip/IERC2981.sol";
 
 abstract contract TokenHookConsumer is ITokenHookConsumer {
     using LibBitmap for LibBitmap.Bitmap;
@@ -29,7 +27,10 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_FLAG = 2 ** 6;
+    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+
+    /// @notice Bits representing the sale value distribution hook.
+    uint256 public constant DISTRIBUTE_SALE_VALUE_FLAG = 2 ** 7;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -55,8 +56,9 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
             beforeTransfer: _hookImplementationMap[BEFORE_TRANSFER_FLAG],
             beforeBurn: _hookImplementationMap[BEFORE_BURN_FLAG],
             beforeApprove: _hookImplementationMap[BEFORE_APPROVE_FLAG],
-            tokenUri: _hookImplementationMap[TOKEN_URI_FLAG],
-            royalty: _hookImplementationMap[ROYALTY_FLAG]
+            tokenURI: _hookImplementationMap[TOKEN_URI_FLAG],
+            royaltyInfo: _hookImplementationMap[ROYALTY_INFO_FLAG],
+            distributeSaleValue: _hookImplementationMap[DISTRIBUTE_SALE_VALUE_FLAG]
         });
     }
 
@@ -121,7 +123,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
 
     /// @dev Returns the largest power of 2 that represents a hook.
     function _maxFlagIndex() internal pure virtual returns (uint8) {
-        return 6;
+        return 7;
     }
 
     function _addHook(uint256 _flag, uint256 _currentHooks) internal pure returns (uint256) {
@@ -163,12 +165,12 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
         internal
         virtual
-        returns (bool success, uint256 tokenIdToMint, uint256 _quantityToMint)
+        returns (bool success, ITokenHook.MintParams memory mintParams)
     {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (tokenIdToMint, _quantityToMint) = ITokenHook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
+            mintParams = ITokenHook(hook).beforeMint(_to, _quantity, _data);
             success = true;
         }
     }
@@ -205,7 +207,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         address hook = getHookImplementation(TOKEN_URI_FLAG);
 
         if (hook != address(0)) {
-            uri = IERC721Metadata(hook).tokenURI(_tokenId);
+            uri = ITokenHook(hook).tokenURI(_tokenId);
         }
     }
 
@@ -216,10 +218,23 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address hook = getHookImplementation(ROYALTY_FLAG);
+        address hook = getHookImplementation(ROYALTY_INFO_FLAG);
 
         if (hook != address(0)) {
-            (receiver, royaltyAmount) = IERC2981(hook).royaltyInfo(_tokenId, _salePrice);
+            (receiver, royaltyAmount) = ITokenHook(hook).royaltyInfo(_tokenId, _salePrice);
+        }
+    }
+
+    /// @dev Calls the distribute sale value hook, if installed.
+    function _distributeSaleValue(
+        address _minter,
+        uint256 _totalPrice,
+        address _currency
+    ) internal virtual {
+        address hook = getHookImplementation(DISTRIBUTE_SALE_VALUE_FLAG);
+
+        if (hook != address(0)) {
+            ITokenHook(hook).distributeSaleValue{value: msg.value}(_minter, _totalPrice, _currency);
         }
     }
 }

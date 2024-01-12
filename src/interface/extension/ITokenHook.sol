@@ -2,6 +2,25 @@
 pragma solidity ^0.8.0;
 
 interface ITokenHook {
+
+    /*//////////////////////////////////////////////////////////////
+                                STRUCT
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @notice A struct for internal use. The details around which to execute a mint, returned by the beforeMint hook.
+     *  @param tokenIdToMint The token ID to start minting the given quantity tokens from.
+     *  @param totalPrice The total price to pay to mint the tokens.
+     *  @param currency The currency in which to pay for the tokens.
+     *  @param quantityToMint The quantity of tokens to mint.
+     */
+    struct MintParams {
+        uint256 tokenIdToMint;
+        uint256 totalPrice;
+        address currency;
+        uint96 quantityToMint;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -20,7 +39,7 @@ interface ITokenHook {
     function getBeforeMintArgSignature() external view returns (string memory argSignature);
 
     /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
+                            HOOK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -28,13 +47,11 @@ interface ITokenHook {
      *  @param to The address that is minting tokens.
      *  @param quantity The quantity of tokens to mint.
      *  @param encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return tokenIdToMint The token ID to start minting the given quantity tokens from.
-     *  @return quantityToMint The quantity of tokens to mint.
+     *  @return details The details around which to execute a mint.
      */
     function beforeMint(address to, uint256 quantity, bytes memory encodedArgs)
         external
-        payable
-        returns (uint256 tokenIdToMint, uint256 quantityToMint);
+        returns (MintParams memory details);
 
     /**
      *  @notice The beforeTransfer hook that is called by a core token before transferring a token.
@@ -58,4 +75,30 @@ interface ITokenHook {
      *  @param tokenId The token ID being approved.
      */
     function beforeApprove(address from, address to, uint256 tokenId) external;
+
+    /**
+     *  @notice Returns the URI to fetch token metadata from.
+     *  @dev Meant to be called by the core token contract.
+     *  @param tokenId The token ID of the NFT.
+     *  @return metadata The URI to fetch token metadata from.
+     */
+    function tokenURI(uint256 tokenId) external view returns (string memory metadata);
+
+    /**
+     *  @notice Returns the royalty recipient and amount for a given sale.
+     *  @dev Meant to be called by a token contract.
+     *  @param tokenId The token ID of the NFT.
+     *  @param salePrice The sale price of the NFT.
+     *  @return receiver The royalty recipient address.
+     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
+     */
+    function royaltyInfo(uint256 tokenId, uint256 salePrice) external view returns (address receiver, uint256 royaltyAmount);
+
+    /**
+     *  @notice Distributes the sale value of a mint.
+     *  @param minter The address of the claimer.
+     *  @param totalPrice The total price of the mint.
+     *  @param currency The currency in which the sale was made.
+     */
+    function distributeSaleValue(address minter, uint256 totalPrice, address currency) external payable;
 }

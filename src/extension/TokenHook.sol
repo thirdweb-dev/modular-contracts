@@ -24,7 +24,10 @@ abstract contract TokenHook is ITokenHook {
     uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_FLAG = 2 ** 6;
+    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+
+    /// @notice Bits representing the sale value distribution hook.
+    uint256 public constant DISTRIBUTE_SALE_VALUE_FLAG = 2 ** 7;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -44,13 +47,12 @@ abstract contract TokenHook is ITokenHook {
      *  @param _to The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return tokenIdToMint The token ID to start minting the given quantity tokens from.
+     *  @return details The details around which to execute a mint.
      */
     function beforeMint(address _to, uint256 _quantity, bytes memory _encodedArgs)
         external
-        payable
         virtual
-        returns (uint256, uint256)
+        returns (MintParams memory details)
     {
         revert TokenHookNotImplemented();
     }
@@ -83,6 +85,38 @@ abstract contract TokenHook is ITokenHook {
     function beforeApprove(address _from, address _to, uint256 _tokenId) external virtual {
         revert TokenHookNotImplemented();
     }
+
+    /**
+     *  @notice Returns the URI to fetch token metadata from.
+     *  @dev Meant to be called by the core token contract.
+     *  @param tokenId The token ID of the NFT.
+     *  @return metadata The URI to fetch token metadata from.
+     */
+    function tokenURI(uint256 tokenId) external view virtual returns (string memory metadata) {
+        revert TokenHookNotImplemented();
+    }
+
+    /**
+     *  @notice Returns the royalty recipient and amount for a given sale.
+     *  @dev Meant to be called by a token contract.
+     *  @param tokenId The token ID of the NFT.
+     *  @param salePrice The sale price of the NFT.
+     *  @return receiver The royalty recipient address.
+     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
+     */
+    function royaltyInfo(uint256 tokenId, uint256 salePrice) external view virtual returns (address receiver, uint256 royaltyAmount) {
+        revert TokenHookNotImplemented();
+    }
+
+    /**
+     *  @notice Distributes the sale value of a mint.
+     *  @param minter The address of the claimer.
+     *  @param totalPrice The total price of the mint.
+     *  @param currency The currency in which the sale was made.
+     */
+    function distributeSaleValue(address minter, uint256 totalPrice, address currency) external payable virtual {
+        revert TokenHookNotImplemented();
+    }
 }
 
 contract TokenHookExample is TokenHook {
@@ -94,8 +128,8 @@ contract TokenHookExample is TokenHook {
         hooksImplemented = BEFORE_MINT_FLAG | BEFORE_BURN_FLAG;
     }
 
-    function beforeMint(address, uint256, bytes memory) external payable override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
-        tokenIdToMint = _nextId++;
+    function beforeMint(address, uint256, bytes memory) external override returns (MintParams memory details) {
+        details.tokenIdToMint = _nextId++;
         emit SomeEvent();
     }
 

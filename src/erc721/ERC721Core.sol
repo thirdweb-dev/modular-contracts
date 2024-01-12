@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IERC7572} from "../interface/eip/IERC7572.sol";
 import {IERC721CoreCustomErrors} from "../interface/erc721/IERC721CoreCustomErrors.sol";
+import {ITokenHook} from "../interface/extension/ITokenHook.sol";
 import {ERC721Initializable} from "./ERC721Initializable.sol";
 import {TokenHookConsumer} from "../extension/TokenHookConsumer.sol";
 import {Initializable} from "../extension/Initializable.sol";
@@ -120,10 +121,13 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
     function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
-        (bool success, uint256 tokenIdToMint, uint256 _quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
+        (bool success, ITokenHook.MintParams memory mintParams) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
 
         if (success) {
-            _mint(_to, tokenIdToMint, _quantityToMint);
+            _mint(_to, mintParams.tokenIdToMint, mintParams.quantityToMint);
+            if(mintParams.totalPrice > 0) {
+                _distributeSaleValue(_to, mintParams.totalPrice, mintParams.currency);
+            }
             return;
         }
 

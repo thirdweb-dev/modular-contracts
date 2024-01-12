@@ -10,6 +10,7 @@ import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
 import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
 import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
+import {SimpleDistributeHook} from "src/erc721/hooks/SimpleDistributeHook.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
 
@@ -70,6 +71,7 @@ contract ERC721CoreBenchmarkTest is Test {
     ERC721Core public erc721;
     AllowlistMintHook public simpleClaimHook;
     LazyMintMetadataHook public lazyMintHook;
+    SimpleDistributeHook public distributeHook;
 
     // Token claim params
     uint256 public pricePerToken = 0.1 ether;
@@ -90,6 +92,10 @@ contract ERC721CoreBenchmarkTest is Test {
         address lazyMintHookProxyAddress =
             address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
         lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
+
+        address distributeHookProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new SimpleDistributeHook())));
+        distributeHook = SimpleDistributeHook(distributeHookProxyAddress);
 
         erc721Implementation = address(new ERC721Core());
 
@@ -132,6 +138,8 @@ contract ERC721CoreBenchmarkTest is Test {
 
         // Developer installs `AllowlistMintHook` hook
         erc721.installHook(ITokenHook(hookProxyAddress));
+        erc721.installHook(ITokenHook(lazyMintHookProxyAddress));
+        erc721.installHook(ITokenHook(distributeHookProxyAddress));
 
         vm.stopPrank();
 

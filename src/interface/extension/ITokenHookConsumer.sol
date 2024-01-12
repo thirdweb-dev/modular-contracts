@@ -14,8 +14,9 @@ interface ITokenHookConsumer {
         address beforeTransfer;
         address beforeBurn;
         address beforeApprove;
-        address tokenUri;
-        address royalty;
+        address tokenURI;
+        address royaltyInfo;
+        address distributeSaleValue;
     }
 
     /*//////////////////////////////////////////////////////////////

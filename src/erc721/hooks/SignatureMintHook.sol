@@ -3,13 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IMintRequestERC721} from "../../interface/extension/IMintRequestERC721.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
-import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {ECDSA} from "../../lib/ECDSA.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 import {EIP712} from "../../extension/EIP712.sol";
 import {TokenHook} from "../../extension/TokenHook.sol";
 
-contract SignatureMintHook is IMintRequestERC721, IFeeConfig, EIP712, TokenHook {
+contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -40,9 +39,6 @@ contract SignatureMintHook is IMintRequestERC721, IFeeConfig, EIP712, TokenHook 
 
     /// @notice Mapping from token => the next token ID to mint.
     mapping(address => uint256) private _nextTokenIdToMint;
-
-    /// @notice Mapping from token => fee config for the token.
-    mapping(address => FeeConfig) private _feeConfig;
 
     /// @dev Mapping from request UID => whether the mint request is processed.
     mapping(bytes32 => bool) private minted;
@@ -100,24 +96,24 @@ contract SignatureMintHook is IMintRequestERC721, IFeeConfig, EIP712, TokenHook 
      *  @param _claimer The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return tokenIdToMint The token ID to start minting the given quantity tokens from.
+     *  @return mintParams The details around which to execute a mint.
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
-        payable
         override
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+        returns (MintParams memory mintParams)
     {
         address token = msg.sender;
-        quantityToMint = _quantity;
 
         (MintRequestERC721 memory req, bytes memory signature) = abi.decode(_encodedArgs, (MintRequestERC721, bytes));
         require(req.quantity == _quantity, "Invalid quantity");
 
-        tokenIdToMint = _nextTokenIdToMint[token]++;
-        _processRequest(token, req, signature);
+        mintParams.tokenIdToMint = _nextTokenIdToMint[token]++;
+        mintParams.quantityToMint = uint96(_quantity);
+        mintParams.totalPrice = req.pricePerToken * _quantity;
+        mintParams.currency = req.currency;
 
-        _collectPriceOnClaim(token, _claimer, _quantity, req.currency, req.pricePerToken);
+        _processRequest(token, req, signature);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -133,17 +129,6 @@ contract SignatureMintHook is IMintRequestERC721, IFeeConfig, EIP712, TokenHook 
     function setNextIdToMint(address _token, uint256 _nextIdToMint) external onlyAdmin(_token) {
         _nextTokenIdToMint[_token] = _nextIdToMint;
         emit NextTokenIdUpdate(_token, _nextIdToMint);
-    }
-
-    /**
-     *  @notice Sets the fee config for a given token.
-     *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the fee config for.
-     *  @param _config The fee config to set.
-     */
-    function setFeeConfig(address _token, FeeConfig calldata _config) external onlyAdmin(_token) {
-        _feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -192,47 +177,5 @@ contract SignatureMintHook is IMintRequestERC721, IFeeConfig, EIP712, TokenHook 
         require(_req.quantity > 0, "0 qty");
 
         minted[_req.uid] = true;
-    }
-
-    /// @dev Transfers the sale price of minting based on the fee config set.
-    function _collectPriceOnClaim(
-        address _token,
-        address _claimer,
-        uint256 _quantityToClaim,
-        address _currency,
-        uint256 _pricePerToken
-    ) internal {
-        if (_pricePerToken == 0) {
-            require(msg.value == 0, "!Value");
-            return;
-        }
-
-        FeeConfig memory feeConfig = _feeConfig[_token];
-
-        uint256 totalPrice = _quantityToClaim * _pricePerToken;
-
-        bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
-        uint256 platformFees = 0;
-
-        if (payoutPlatformFees) {
-            platformFees = (totalPrice * feeConfig.platformFeeBps) / 10_000;
-        }
-
-        if (_currency == NATIVE_TOKEN) {
-            require(msg.value == totalPrice, "!Price");
-            if (payoutPlatformFees) {
-                SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
-            }
-            SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, totalPrice - platformFees);
-        } else {
-            require(msg.value == 0, "!Value");
-            if (payoutPlatformFees) {
-                SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);
-            }
-            SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);
-            SafeTransferLib.safeTransferFrom(
-                _token, _claimer, feeConfig.primarySaleRecipient, totalPrice - platformFees
-            );
-        }
     }
 }

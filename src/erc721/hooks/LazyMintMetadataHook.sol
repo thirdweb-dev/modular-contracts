@@ -70,7 +70,7 @@ contract LazyMintMetadataHook is TokenHook {
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function tokenURI(uint256 _id) external view returns (string memory) {
+    function tokenURI(uint256 _id) external view override returns (string memory) {
         address token = msg.sender;
         string memory batchUri = _getBaseURI(token, _id);
 

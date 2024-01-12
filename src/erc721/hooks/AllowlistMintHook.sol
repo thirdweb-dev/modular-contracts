@@ -6,18 +6,11 @@ pragma solidity ^0.8.0;
 /// Note that this contract is designed to hold "shared state" i.e. it is deployed once by anyone, and can be
 /// used by anyone for their copy of `ERC721Core`.
 
-import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
-
 import {TokenHook} from "../../extension/TokenHook.sol";
-import {Permission} from "../../extension/Permission.sol";
-
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
-import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
-import {LibString} from "../../lib/LibString.sol";
 
-contract AllowlistMintHook is TokenHook, IFeeConfig {
-    using LibString for uint256;
+contract AllowlistMintHook is TokenHook {
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -63,7 +56,10 @@ contract AllowlistMintHook is TokenHook, IFeeConfig {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The bits that represent the admin role.
-    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
+    uint96 public constant ADMIN_ROLE_BITS = 2 ** 1;
+
+    /// @notice The address considered as native token.
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -74,9 +70,6 @@ contract AllowlistMintHook is TokenHook, IFeeConfig {
 
     /// @notice Mapping from token => the claim conditions for minting the token.
     mapping(address => ClaimCondition) public claimCondition;
-
-    /// @notice Mapping from token => fee config for the token.
-    mapping(address => FeeConfig) private feeConfig;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -116,26 +109,19 @@ contract AllowlistMintHook is TokenHook, IFeeConfig {
      *  @param _claimer The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return tokenIdToMint The token ID to start minting the given quantity tokens from.
+     *  @return mintParams The details around which to execute a mint.
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
-        payable
         override
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+        returns (MintParams memory mintParams)
     {
         address token = msg.sender;
-        quantityToMint = _quantity;
 
         ClaimCondition memory condition = claimCondition[token];
 
         if (condition.availableSupply == 0) {
             revert NotEnouthSupply(token);
-        }
-
-        uint256 totalPrice = condition.price * _quantity;
-        if (msg.value != totalPrice) {
-            revert IncorrectValueSent(msg.value, totalPrice);
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
@@ -149,10 +135,12 @@ contract AllowlistMintHook is TokenHook, IFeeConfig {
             }
         }
 
-        _collectPriceOnClaim(token, _quantity, condition.price);
+        mintParams.quantityToMint = uint96(_quantity);
+        mintParams.currency = NATIVE_TOKEN;
+        mintParams.totalPrice = _quantity * condition.price;
+        mintParams.tokenIdToMint = _nextTokenIdToMint[token]++;
 
         claimCondition[token].availableSupply -= _quantity;
-        tokenIdToMint = _nextTokenIdToMint[token]++;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -171,17 +159,6 @@ contract AllowlistMintHook is TokenHook, IFeeConfig {
     }
 
     /**
-     *  @notice Sets the fee config for a given token.
-     *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the fee config for.
-     *  @param _config The fee config to set.
-     */
-    function setFeeConfig(address _token, FeeConfig calldata _config) external onlyAdmin(_token) {
-        feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
-    }
-
-    /**
      *  @notice Sets the claim condition for a given token.
      *  @dev Only callable by an admin of the given token.
      *  @param _token The token to set the claim condition for.
@@ -190,34 +167,5 @@ contract AllowlistMintHook is TokenHook, IFeeConfig {
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public onlyAdmin(_token) {
         claimCondition[_token] = _claimCondition;
         emit ClaimConditionUpdate(_token, _claimCondition);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev Transfers the sale price of minting based on the fee config set.
-    function _collectPriceOnClaim(address _token, uint256 _quantityToClaim, uint256 _pricePerToken) internal {
-        if (_pricePerToken == 0) {
-            require(msg.value == 0, "!Value");
-            return;
-        }
-
-        FeeConfig memory config = feeConfig[_token];
-
-        uint256 totalPrice = _quantityToClaim * _pricePerToken;
-
-        bool payoutPlatformFees = config.platformFeeBps > 0 && config.platformFeeRecipient != address(0);
-        uint256 platformFees = 0;
-
-        if (payoutPlatformFees) {
-            platformFees = (totalPrice * config.platformFeeBps) / 10_000;
-        }
-
-        require(msg.value == totalPrice, "!Price");
-        if (payoutPlatformFees) {
-            SafeTransferLib.safeTransferETH(config.platformFeeRecipient, platformFees);
-        }
-        SafeTransferLib.safeTransferETH(config.primarySaleRecipient, totalPrice - platformFees);
     }
 }

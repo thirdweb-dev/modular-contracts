@@ -3,11 +3,10 @@ pragma solidity ^0.8.0;
 
 /// @author thirdweb
 
-import {IERC2981} from "../../interface/eip/IERC2981.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
 import {TokenHook} from "../../extension/TokenHook.sol";
 
-contract RoyaltyHook is IERC2981, TokenHook {
+contract RoyaltyHook is TokenHook {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -65,7 +64,7 @@ contract RoyaltyHook is IERC2981, TokenHook {
 
     /// @notice Returns all hook functions implemented by this hook contract.
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = ROYALTY_FLAG;
+        hooksImplemented = ROYALTY_INFO_FLAG;
     }
 
     /**

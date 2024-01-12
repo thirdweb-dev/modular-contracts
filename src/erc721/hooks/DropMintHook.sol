@@ -2,22 +2,17 @@
 pragma solidity ^0.8.0;
 
 import {IClaimCondition} from "../../interface/extension/IClaimCondition.sol";
-import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
-import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
-import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 import {TokenHook} from "../../extension/TokenHook.sol";
+import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 
-contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
+contract DropMintHook is IClaimCondition, TokenHook {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The bits that represent the admin role.
-    uint96 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
-    /// @notice The address considered as native token.
-    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -55,9 +50,6 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
 
     /// @notice Mapping from token => the claim conditions for minting the token.
     mapping(address => ClaimCondition) private _claimCondition;
-
-    /// @notice Mapping from token => fee config for the token.
-    mapping(address => FeeConfig) private _feeConfig;
 
     /// @notice Mapping from condition ID => hash(claimer, token) => supply claimed by wallet.
     mapping(bytes32 => mapping(bytes32 => uint256)) private _supplyClaimedByWallet;
@@ -182,16 +174,14 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
      *  @param _claimer The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return tokenIdToMint The token ID to start minting the given quantity tokens from.
+     *  @return mintParams The details around which to execute a mint.
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
-        payable
         override
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+        returns (MintParams memory mintParams)
     {
         address token = msg.sender;
-        quantityToMint = _quantity;
 
         (address currency, uint256 pricePerToken, AllowlistProof memory allowlistProof) =
             abi.decode(_encodedArgs, (address, uint256, AllowlistProof));
@@ -199,12 +189,13 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
         verifyClaim(token, _claimer, _quantity, currency, pricePerToken, allowlistProof);
 
         // Update contract state.
-        tokenIdToMint = _nextTokenIdToMint[token]++;
+        mintParams.tokenIdToMint = _nextTokenIdToMint[token]++;
+        mintParams.quantityToMint = uint96(_quantity);
+        mintParams.currency = currency;
+        mintParams.totalPrice = _quantity * pricePerToken;
+
         _claimCondition[token].supplyClaimed += _quantity;
         _supplyClaimedByWallet[_conditionId[token]][keccak256(abi.encode(_claimer, token))] += _quantity;
-
-        // If there's a price, collect price.
-        _collectPriceOnClaim(token, _claimer, _quantity, currency, pricePerToken);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -220,17 +211,6 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
     function setNextIdToMint(address _token, uint256 _nextIdToMint) external onlyAdmin(_token) {
         _nextTokenIdToMint[_token] = _nextIdToMint;
         emit NextTokenIdUpdate(_token, _nextIdToMint);
-    }
-
-    /**
-     *  @notice Sets the fee config for a given token.
-     *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the fee config for.
-     *  @param _config The fee config to set.
-     */
-    function setFeeConfig(address _token, FeeConfig calldata _config) external onlyAdmin(_token) {
-        _feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
     }
 
     /**
@@ -269,51 +249,5 @@ contract DropMintHook is IClaimCondition, IFeeConfig, TokenHook {
         _conditionId[_token] = targetConditionId;
 
         emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev Transfers the sale price of minting based on the fee config set.
-    function _collectPriceOnClaim(
-        address _token,
-        address _claimer,
-        uint256 _quantityToClaim,
-        address _currency,
-        uint256 _pricePerToken
-    ) internal {
-        if (_pricePerToken == 0) {
-            require(msg.value == 0, "!Value");
-            return;
-        }
-
-        FeeConfig memory feeConfig = _feeConfig[_token];
-
-        uint256 totalPrice = _quantityToClaim * _pricePerToken;
-
-        bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
-        uint256 platformFees = 0;
-
-        if (payoutPlatformFees) {
-            platformFees = (totalPrice * feeConfig.platformFeeBps) / 10_000;
-        }
-
-        if (_currency == NATIVE_TOKEN) {
-            require(msg.value == totalPrice, "!Price");
-            if (payoutPlatformFees) {
-                SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
-            }
-            SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, totalPrice - platformFees);
-        } else {
-            require(msg.value == 0, "!Value");
-            if (payoutPlatformFees) {
-                SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);
-            }
-            SafeTransferLib.safeTransferFrom(_token, _claimer, feeConfig.platformFeeRecipient, platformFees);
-            SafeTransferLib.safeTransferFrom(
-                _token, _claimer, feeConfig.primarySaleRecipient, totalPrice - platformFees
-            );
-        }
     }
 }
