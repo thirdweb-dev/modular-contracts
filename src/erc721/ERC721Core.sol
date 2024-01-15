@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2.0
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 import {IERC7572} from "../interface/eip/IERC7572.sol";
