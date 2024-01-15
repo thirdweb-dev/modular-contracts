@@ -12,7 +12,7 @@ import {RoyaltyHook} from "src/erc721/hooks/RoyaltyHook.sol";
 
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
-import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
+import {IHook} from "src/interface/extension/IHook.sol";
 
 contract SignatureMintHookTest is Test {
     /*//////////////////////////////////////////////////////////////
@@ -151,10 +151,10 @@ contract SignatureMintHookTest is Test {
 
         vm.startPrank(platformUser);
 
-        erc721.installHook(ITokenHook(address(sigmintHook)));
-        erc721.installHook(ITokenHook(address(lazyMintHook)));
-        erc721.installHook(ITokenHook(address(royaltyHook)));
-        erc721.installHook(ITokenHook(address(distributeHook)));
+        erc721.installHook(IHook(address(sigmintHook)));
+        erc721.installHook(IHook(address(lazyMintHook)));
+        erc721.installHook(IHook(address(royaltyHook)));
+        erc721.installHook(IHook(address(distributeHook)));
 
         vm.stopPrank();
 

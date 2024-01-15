@@ -6,9 +6,9 @@ import {IPermission} from "../../interface/extension/IPermission.sol";
 import {ECDSA} from "../../lib/ECDSA.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 import {EIP712} from "../../extension/EIP712.sol";
-import {TokenHook} from "../../extension/TokenHook.sol";
+import {ERC721Hook} from "./ERC721Hook.sol";
 
-contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
+contract SignatureMintHook is IMintRequestERC721, EIP712, ERC721Hook {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////

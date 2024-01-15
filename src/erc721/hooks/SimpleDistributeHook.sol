@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
-import {TokenHook} from "../../extension/TokenHook.sol";
+import {ERC721Hook} from "./ERC721Hook.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-contract SimpleDistributeHook is IFeeConfig, TokenHook {
+contract SimpleDistributeHook is IFeeConfig, ERC721Hook {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/

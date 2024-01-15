@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {ITokenHook} from "./ITokenHook.sol";
+import {IHook} from "./IHook.sol";
 
 interface IHookInstaller {
 
@@ -48,12 +48,12 @@ interface IHookInstaller {
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
      *  @param hook The hook to install.
      */
-    function installHook(ITokenHook hook) external;
+    function installHook(IHook hook) external;
 
     /**
      *  @notice Uninstalls a hook in the contract.
      *  @dev Reverts if the hook is not installed already.
      *  @param hook The hook to uninstall.
      */
-    function uninstallHook(ITokenHook hook) external;
+    function uninstallHook(IHook hook) external;
 }

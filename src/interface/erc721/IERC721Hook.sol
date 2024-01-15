@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-interface ITokenHook {
+import "../extension/IHook.sol";
+
+interface IERC721Hook is IHook {
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCT
@@ -26,14 +28,11 @@ interface ITokenHook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted on an attempt to call a hook that is not implemented.
-    error TokenHookNotImplemented();
+    error ERC721HookNotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Returns the number of hooks implemented by the contract.
-    function getHooksImplemented() external view returns (uint256 hooksImplemented);
 
     /// @notice Returns the signature of the arguments expected by the beforeMint hook.
     function getBeforeMintArgSignature() external view returns (string memory argSignature);

@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IPermission} from "../../interface/extension/IPermission.sol";
 
-import {TokenHook} from "../../extension/TokenHook.sol";
+import {ERC721Hook} from "./ERC721Hook.sol";
 import {LibString} from "../../lib/LibString.sol";
 
-contract LazyMintMetadataHook is TokenHook {
+contract LazyMintMetadataHook is ERC721Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////

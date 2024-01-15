@@ -9,13 +9,6 @@ abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Should return the max flag that represents a hook.
-    uint256 public constant MAX_HOOK_FLAG = 0;
-
-    /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -91,6 +84,12 @@ abstract contract HookInstaller is IHookInstaller {
     /// @dev Returns whether the caller can update hooks.
     function _canUpdateHooks(address _caller) internal view virtual returns (bool);
 
+    /// @dev Should return the max flag that represents a hook.
+    function _maxHookFlag() internal pure virtual returns (uint256) {
+        return 0;
+    }
+
+    /// @dev Adds a hook to the given integer represented hooks.
     function _addHook(uint256 _flag, uint256 _currentHooks) internal pure returns (uint256) {
         if (_currentHooks & _flag > 0) {
             revert HookAlreadyInstalled();
@@ -98,10 +97,12 @@ abstract contract HookInstaller is IHookInstaller {
         return _currentHooks | _flag;
     }
 
+    /// @dev Removes a hook from the given integer represented hooks.
     function _removeHook(uint256 _flag, uint256 _currentHooks) internal pure returns (uint256) {
         return _currentHooks & ~_flag;
     }
 
+    /// @dev Updates the current active hooks of the contract.
     function _updateHooks(
         uint256 _hooksToUpdate,
         address _implementation,
@@ -109,7 +110,7 @@ abstract contract HookInstaller is IHookInstaller {
     ) internal {
         uint256 currentActiveHooks = _installedHooks;
 
-        uint256 flag = 2 ** MAX_HOOK_FLAG;
+        uint256 flag = 2 ** _maxHookFlag();
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActiveHooks = _addOrRemoveHook(flag, currentActiveHooks);

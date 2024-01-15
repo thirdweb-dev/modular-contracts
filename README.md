@@ -39,7 +39,7 @@ Developers deploy non-upgradeable minimal clones of token core contracts e.g. th
 - This contract is initializable, and meant to be used with proxy contracts.
 - Implements the token standard (and the respective token metadata standard).
 - Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/Permission.sol) contract.
-- Implements the [`TokenHookConsumer`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/TokenHookConsumer.sol) interface.
+- Implements the [`HookInstaller`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/HookInstaller.sol) interface.
 
 Core contracts are deliberately written as non-upgradeable foundations that contain minimal code with fixed behaviour. These contracts are meant to be extended by developers using hooks.
 
@@ -47,7 +47,7 @@ Core contracts are deliberately written as non-upgradeable foundations that cont
 
 ![mint tokens via hooks](https://ipfs.io/ipfs/QmXfN8GFsJNEgkwa9F44kRWFFnahPbyPb8yV2L9LmFomnj/contracts-next-mint-tokens.png)
 
-Hooks are an external call made to a contract that implements the [`TokenHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/TokenHook.sol) interface.
+Hooks are an external call made to a contract that implements the [`IHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/extension/IHook.sol) interface.
 
 The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
 

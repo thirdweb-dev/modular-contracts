@@ -12,7 +12,7 @@ import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
 import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
 import {SimpleDistributeHook} from "src/erc721/hooks/SimpleDistributeHook.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
-import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
+import {IHook} from "src/interface/extension/IHook.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -24,7 +24,7 @@ import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
  *      - This contract is initializable, and meant to be used with proxy contracts.
  *      - Implements the token standard (and the respective token metadata standard).
  *      - Uses the role based permission model of the `Permission` contract.
- *      - Implements the `TokenHookConsumer` interface.
+ *      - Implements the `IHookInstaller` interface.
  *
  *  HOOKS:
  *
@@ -37,7 +37,7 @@ import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
  *      - Token URI: called when the ERC721Metadata.tokenURI function is called.
  *      - Royalty: called when the ERC2981.royaltyInfo function is called.
  *
- *  Each of these hooks is an external call made to a contract that implements the `ITokenHook` interface. 
+ *  Each of these hooks is an external call made to a contract that implements the `IHook` interface. 
  
  *  The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic
  *  right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
@@ -137,9 +137,9 @@ contract ERC721CoreBenchmarkTest is Test {
         simpleClaimHook.setClaimCondition(address(erc721), condition);
 
         // Developer installs `AllowlistMintHook` hook
-        erc721.installHook(ITokenHook(hookProxyAddress));
-        erc721.installHook(ITokenHook(lazyMintHookProxyAddress));
-        erc721.installHook(ITokenHook(distributeHookProxyAddress));
+        erc721.installHook(IHook(hookProxyAddress));
+        erc721.installHook(IHook(lazyMintHookProxyAddress));
+        erc721.installHook(IHook(distributeHookProxyAddress));
 
         vm.stopPrank();
 
@@ -280,7 +280,7 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        ITokenHook mockHook = ITokenHook(address(new MockOneHookImpl()));
+        IHook mockHook = IHook(address(new MockOneHookImpl()));
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
@@ -293,11 +293,11 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_installfiveHooks() public {
         vm.pauseGasMetering();
 
-        ITokenHook mockHook = ITokenHook(address(new MockFourHookImpl()));
+        IHook mockHook = IHook(address(new MockFourHookImpl()));
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(ITokenHook(hookProxyAddress));
+        hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
 
@@ -309,7 +309,7 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        ITokenHook mockHook = ITokenHook(address(new MockOneHookImpl()));
+        IHook mockHook = IHook(address(new MockOneHookImpl()));
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
@@ -325,11 +325,11 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
 
-        ITokenHook mockHook = ITokenHook(address(new MockFourHookImpl()));
+        IHook mockHook = IHook(address(new MockFourHookImpl()));
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(ITokenHook(hookProxyAddress));
+        hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
         hookConsumer.installHook(mockHook);

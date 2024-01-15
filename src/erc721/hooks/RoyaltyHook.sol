@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 /// @author thirdweb
 
 import {IPermission} from "../../interface/extension/IPermission.sol";
-import {TokenHook} from "../../extension/TokenHook.sol";
+import {ERC721Hook} from "./ERC721Hook.sol";
 
-contract RoyaltyHook is TokenHook {
+contract RoyaltyHook is ERC721Hook {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/

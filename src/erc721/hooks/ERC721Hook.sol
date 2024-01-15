@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {ITokenHook} from "../interface/extension/ITokenHook.sol";
+import {IERC721Hook} from "../../interface/erc721/IERC721Hook.sol";
 
-abstract contract TokenHook is ITokenHook {
+abstract contract ERC721Hook is IERC721Hook {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -54,7 +54,7 @@ abstract contract TokenHook is ITokenHook {
         virtual
         returns (MintParams memory details)
     {
-        revert TokenHookNotImplemented();
+        revert ERC721HookNotImplemented();
     }
 
     /**
@@ -64,7 +64,7 @@ abstract contract TokenHook is ITokenHook {
      *  @param _tokenId The token ID being transferred.
      */
     function beforeTransfer(address _from, address _to, uint256 _tokenId) external virtual {
-        revert TokenHookNotImplemented();
+        revert ERC721HookNotImplemented();
     }
 
     /**
@@ -73,7 +73,7 @@ abstract contract TokenHook is ITokenHook {
      *  @param _tokenId The token ID being burned.
      */
     function beforeBurn(address _from, uint256 _tokenId) external virtual {
-        revert TokenHookNotImplemented();
+        revert ERC721HookNotImplemented();
     }
 
     /**
@@ -83,7 +83,7 @@ abstract contract TokenHook is ITokenHook {
      *  @param _tokenId The token ID being approved.
      */
     function beforeApprove(address _from, address _to, uint256 _tokenId) external virtual {
-        revert TokenHookNotImplemented();
+        revert ERC721HookNotImplemented();
     }
 
     /**
@@ -93,7 +93,7 @@ abstract contract TokenHook is ITokenHook {
      *  @return metadata The URI to fetch token metadata from.
      */
     function tokenURI(uint256 tokenId) external view virtual returns (string memory metadata) {
-        revert TokenHookNotImplemented();
+        revert ERC721HookNotImplemented();
     }
 
     /**
@@ -105,7 +105,7 @@ abstract contract TokenHook is ITokenHook {
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
     function royaltyInfo(uint256 tokenId, uint256 salePrice) external view virtual returns (address receiver, uint256 royaltyAmount) {
-        revert TokenHookNotImplemented();
+        revert ERC721HookNotImplemented();
     }
 
     /**
@@ -115,6 +115,6 @@ abstract contract TokenHook is ITokenHook {
      *  @param currency The currency in which the sale was made.
      */
     function distributeSaleValue(address minter, uint256 totalPrice, address currency) external payable virtual {
-        revert TokenHookNotImplemented();
+        revert ERC721HookNotImplemented();
     }
 }

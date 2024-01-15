@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {ITokenHook} from "src/interface/extension/ITokenHook.sol";
+import {IHook} from "src/interface/extension/IHook.sol";
 
 // Target test contracts
 import {ERC721Core} from "src/erc721/ERC721Core.sol";
@@ -36,9 +36,9 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         // Set `AllowlistMintHook` contract as minter
         vm.startPrank(admin);
-        ERC721Core(erc721Contract).installHook(ITokenHook(address(simpleClaim)));
-        ERC721Core(erc721Contract).installHook(ITokenHook(address(simpleMetadataHook)));
-        ERC721Core(erc721Contract).installHook(ITokenHook(address(distributeHook)));
+        ERC721Core(erc721Contract).installHook(IHook(address(simpleClaim)));
+        ERC721Core(erc721Contract).installHook(IHook(address(simpleMetadataHook)));
+        ERC721Core(erc721Contract).installHook(IHook(address(distributeHook)));
         vm.stopPrank();
 
         // Setup claim condition

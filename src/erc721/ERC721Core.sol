@@ -3,13 +3,40 @@ pragma solidity ^0.8.0;
 
 import {IERC7572} from "../interface/eip/IERC7572.sol";
 import {IERC721CoreCustomErrors} from "../interface/erc721/IERC721CoreCustomErrors.sol";
-import {ITokenHook} from "../interface/extension/ITokenHook.sol";
+import {IERC721Hook} from "../interface/erc721/IERC721Hook.sol";
+import {IERC721HookInstaller} from "../interface/erc721/IERC721HookInstaller.sol";
 import {ERC721Initializable} from "./ERC721Initializable.sol";
-import {TokenHookConsumer} from "../extension/TokenHookConsumer.sol";
+import {HookInstaller} from "../extension/HookInstaller.sol";
 import {Initializable} from "../extension/Initializable.sol";
 import {Permission} from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Permission, IERC721CoreCustomErrors, IERC7572 {
+contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permission, IERC721HookInstaller, IERC721CoreCustomErrors, IERC7572 {
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Bits representing the before mint hook.
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+
+    /// @notice Bits representing the before transfer hook.
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+
+    /// @notice Bits representing the before burn hook.
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+
+    /// @notice Bits representing the before approve hook.
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+
+    /// @notice Bits representing the token URI hook.
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+
+    /// @notice Bits representing the royalty hook.
+    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+
+    /// @notice Bits representing the sale value distribution hook.
+    uint256 public constant DISTRIBUTE_SALE_VALUE_FLAG = 2 ** 7;
+
     /*//////////////////////////////////////////////////////////////
                             STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -40,6 +67,19 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Returns all of the contract's hooks and their implementations.
+    function getAllHooks() external view returns (ERC721Hooks memory hooks) {
+        hooks = ERC721Hooks({
+            beforeMint: getHookImplementation(BEFORE_MINT_FLAG),
+            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
+            beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
+            beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
+            tokenURI: getHookImplementation(TOKEN_URI_FLAG),
+            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG),
+            distributeSaleValue: getHookImplementation(DISTRIBUTE_SALE_VALUE_FLAG)
+        });
+    }
 
     /**
      *  @notice Returns the contract URI of the contract.
@@ -121,7 +161,7 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
     function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
-        (bool success, ITokenHook.MintParams memory mintParams) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
+        (bool success, IERC721Hook.MintParams memory mintParams) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
 
         if (success) {
             _mint(_to, mintParams.tokenIdToMint, mintParams.quantityToMint);
@@ -170,5 +210,91 @@ contract ERC721Core is Initializable, ERC721Initializable, TokenHookConsumer, Pe
     /// @dev Returns whether the given caller can update hooks.
     function _canUpdateHooks(address _caller) internal view override returns (bool) {
         return hasRole(_caller, ADMIN_ROLE_BITS);
+    }
+
+    /// @dev Should return the max flag that represents a hook.
+    function _maxHookFlag() internal pure override returns (uint256) {
+        return DISTRIBUTE_SALE_VALUE_FLAG;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        HOOKS INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Calls the beforeMint hook.
+    function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
+        internal
+        virtual
+        returns (bool success, IERC721Hook.MintParams memory mintParams)
+    {
+        address hook = getHookImplementation(BEFORE_MINT_FLAG);
+
+        if (hook != address(0)) {
+            mintParams = IERC721Hook(hook).beforeMint(_to, _quantity, _data);
+            success = true;
+        }
+    }
+
+    /// @dev Calls the beforeTransfer hook, if installed.
+    function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
+        address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
+
+        if (hook != address(0)) {
+            IERC721Hook(hook).beforeTransfer(_from, _to, _tokenId);
+        }
+    }
+
+    /// @dev Calls the beforeBurn hook, if installed.
+    function _beforeBurn(address _from, uint256 _tokenId) internal virtual {
+        address hook = getHookImplementation(BEFORE_BURN_FLAG);
+
+        if (hook != address(0)) {
+            IERC721Hook(hook).beforeBurn(_from, _tokenId);
+        }
+    }
+
+    /// @dev Calls the beforeApprove hook, if installed.
+    function _beforeApprove(address _from, address _to, uint256 _tokenId) internal virtual {
+        address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
+
+        if (hook != address(0)) {
+            IERC721Hook(hook).beforeApprove(_from, _to, _tokenId);
+        }
+    }
+
+    /// @dev Fetches token URI from the token metadata hook.
+    function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory uri) {
+        address hook = getHookImplementation(TOKEN_URI_FLAG);
+
+        if (hook != address(0)) {
+            uri = IERC721Hook(hook).tokenURI(_tokenId);
+        }
+    }
+
+    /// @dev Fetches royalty info from the royalty hook.
+    function _getRoyaltyInfo(uint256 _tokenId, uint256 _salePrice)
+        internal
+        view
+        virtual
+        returns (address receiver, uint256 royaltyAmount)
+    {
+        address hook = getHookImplementation(ROYALTY_INFO_FLAG);
+
+        if (hook != address(0)) {
+            (receiver, royaltyAmount) = IERC721Hook(hook).royaltyInfo(_tokenId, _salePrice);
+        }
+    }
+
+    /// @dev Calls the distribute sale value hook, if installed.
+    function _distributeSaleValue(
+        address _minter,
+        uint256 _totalPrice,
+        address _currency
+    ) internal virtual {
+        address hook = getHookImplementation(DISTRIBUTE_SALE_VALUE_FLAG);
+
+        if (hook != address(0)) {
+            IERC721Hook(hook).distributeSaleValue{value: msg.value}(_minter, _totalPrice, _currency);
+        }
     }
 }

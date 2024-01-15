@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "src/extension/TokenHook.sol";
+import "src/erc721/hooks/ERC721Hook.sol";
 
-contract MockOneHookImpl is TokenHook {
+contract MockOneHookImpl is ERC721Hook {
     constructor() {}
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
@@ -11,7 +11,7 @@ contract MockOneHookImpl is TokenHook {
     }
 }
 
-contract MockFourHookImpl is TokenHook {
+contract MockFourHookImpl is ERC721Hook {
     constructor() {}
 
     function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
