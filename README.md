@@ -18,10 +18,10 @@
 | Mint 1 token | 171_412 |
 | Mint 10 tokens | 391_432 |
 | Transfer token | 22_984 |
-| Install 1 hook | 63_857 |
-| Install 5 hooks | 73_429 |
-| Uninstall 1 hook | 2_495 |
-| Uninstall 5 hooks | 3_408 |
+| Install 1 hook | 72_182 |
+| Install 5 hooks | 80_089 |
+| Uninstall 1 hook | 10_068 |
+| Uninstall 5 hooks | 9_155 |
 | Beacon upgrade (via platform) | 30_313 |
 
 **ERC-721 Benchmarks Comparison** ([test/erc721-comparison/](https://github.com/thirdweb-dev/contracts-next/tree/main/test/erc721-comparison))
