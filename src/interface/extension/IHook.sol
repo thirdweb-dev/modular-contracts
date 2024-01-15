@@ -7,6 +7,6 @@ interface IHook {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns the number of hooks implemented by the contract.
+    /// @notice Returns all hooks implemented by the contract -- represented in the bits of the returned integer.
     function getHooksImplemented() external view returns (uint256 hooksImplemented);
 }
