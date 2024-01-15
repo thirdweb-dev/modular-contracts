@@ -118,22 +118,3 @@ abstract contract TokenHook is ITokenHook {
         revert TokenHookNotImplemented();
     }
 }
-
-contract TokenHookExample is TokenHook {
-    event SomeEvent();
-
-    uint256 private _nextId;
-
-    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG | BEFORE_BURN_FLAG;
-    }
-
-    function beforeMint(address, uint256, bytes memory) external override returns (MintParams memory details) {
-        details.tokenIdToMint = _nextId++;
-        emit SomeEvent();
-    }
-
-    function beforeBurn(address, uint256) external override {
-        emit SomeEvent();
-    }
-}
