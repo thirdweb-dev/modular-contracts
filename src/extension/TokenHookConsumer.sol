@@ -32,6 +32,9 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     /// @notice Bits representing the sale value distribution hook.
     uint256 public constant DISTRIBUTE_SALE_VALUE_FLAG = 2 ** 7;
 
+    /// @notice Should return the max flag that represents a hook.
+    uint256 public constant MAX_HOOK_FLAG = DISTRIBUTE_SALE_VALUE_FLAG;
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -121,11 +124,6 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     /// @dev Returns whether the caller can update hooks.
     function _canUpdateHooks(address _caller) internal view virtual returns (bool);
 
-    /// @dev Returns the largest power of 2 that represents a hook.
-    function _maxFlagIndex() internal pure virtual returns (uint8) {
-        return 7;
-    }
-
     function _addHook(uint256 _flag, uint256 _currentHooks) internal pure returns (uint256) {
         if (_currentHooks & _flag > 0) {
             revert TokenHookConsumerHookAlreadyExists();
@@ -144,7 +142,7 @@ abstract contract TokenHookConsumer is ITokenHookConsumer {
     ) internal {
         uint256 currentActiveHooks = _installedHooks;
 
-        uint256 flag = 2 ** _maxFlagIndex();
+        uint256 flag = 2 ** MAX_HOOK_FLAG;
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActiveHooks = _addOrRemoveHook(flag, currentActiveHooks);
