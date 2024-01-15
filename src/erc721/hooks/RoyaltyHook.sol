@@ -39,6 +39,16 @@ contract RoyaltyHook is TokenHook {
     event TokenRoyaltyUpdate(address indexed token, uint256 indexed tokenId, address indexed recipient, uint256 bps);
 
     /*//////////////////////////////////////////////////////////////
+                               ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when caller is not token core admin.
+    error RoyaltyHookNotAuthorized();
+
+    /// @notice Emitted when royalty BPS exceeds 10,000.
+    error RoyaltyHookExceedsMaxBps();
+
+    /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -54,7 +64,9 @@ contract RoyaltyHook is TokenHook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        require(IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS), "not authorized");
+        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert RoyaltyHookNotAuthorized();
+        }
         _;
     }
 
@@ -153,7 +165,7 @@ contract RoyaltyHook is TokenHook {
     /// @dev Sets the default royalty info for a given token.
     function _setupDefaultRoyaltyInfo(address _token, address _royaltyRecipient, uint256 _royaltyBps) internal {
         if (_royaltyBps > 10_000) {
-            revert("Exceeds max bps");
+            revert RoyaltyHookExceedsMaxBps();
         }
 
         _defaultRoyaltyInfo[_token] = RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
@@ -164,7 +176,7 @@ contract RoyaltyHook is TokenHook {
     /// @dev Sets the royalty info for a specific NFT of a token collection.
     function _setupRoyaltyInfoForToken(address _token, uint256 _tokenId, address _recipient, uint256 _bps) internal {
         if (_bps > 10_000) {
-            revert("Exceeds max bps");
+            revert RoyaltyHookExceedsMaxBps();
         }
 
         _royaltyInfoForToken[_token][_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});

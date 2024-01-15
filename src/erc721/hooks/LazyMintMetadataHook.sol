@@ -26,6 +26,22 @@ contract LazyMintMetadataHook is TokenHook {
     );
 
     /*//////////////////////////////////////////////////////////////
+                               ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when caller is not token core admin.
+    error LazyMintMetadataHookNotAuthorized();
+
+    /// @notice Emitted when querying an invalid index in a batch array.
+    error LazyMintMetadataHookInvalidIndex();
+
+    /// @notice Emitted when lazy minting zero tokens.
+    error LazyMintMetadataHookZeroAmount();
+
+    /// @notice Emitted when querying URI for a non-existent invalid token ID.
+    error LazyMintMetadataHookInvalidTokenId();
+
+    /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -44,7 +60,9 @@ contract LazyMintMetadataHook is TokenHook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        require(IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS), "not authorized");
+        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert LazyMintMetadataHookNotAuthorized();
+        }
         _;
     }
 
@@ -84,7 +102,7 @@ contract LazyMintMetadataHook is TokenHook {
      */
     function getBatchIdAtIndex(address _token, uint256 _index) public view returns (uint256) {
         if (_index >= getBaseURICount(_token)) {
-            revert("Invalid index");
+            revert LazyMintMetadataHookInvalidIndex();
         }
         return _batchIds[_token][_index];
     }
@@ -108,7 +126,7 @@ contract LazyMintMetadataHook is TokenHook {
         returns (uint256 batchId)
     {
         if (_amount == 0) {
-            revert("0 amt");
+            revert LazyMintMetadataHookZeroAmount();
         }
 
         uint256 startId = _nextTokenIdToLazyMint[_token];
@@ -149,6 +167,6 @@ contract LazyMintMetadataHook is TokenHook {
                 return _baseURI[_token][indices[i]];
             }
         }
-        revert("Invalid tokenId");
+        revert LazyMintMetadataHookInvalidTokenId();
     }
 }

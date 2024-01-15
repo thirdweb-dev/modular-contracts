@@ -12,6 +12,13 @@ contract CloneFactory {
     event ProxyDeployed(address indexed implementation, address proxy, address indexed deployer);
 
     /*//////////////////////////////////////////////////////////////
+                                ERROR
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted on failure to initialize clone.
+    error CloneFactoryFailedToInitialize();
+
+    /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -34,7 +41,7 @@ contract CloneFactory {
             (bool success, bytes memory returndata) = deployedProxy.call(_data);
 
             if (!success) {
-                _revert(returndata, "Failed to initialize proxy");
+                _revert(returndata);
             }
         }
     }
@@ -44,7 +51,7 @@ contract CloneFactory {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory _returndata, string memory _errorMessage) private pure {
+    function _revert(bytes memory _returndata) private pure {
         // Look for revert reason and bubble it up if present
         if (_returndata.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly
@@ -54,7 +61,7 @@ contract CloneFactory {
                 revert(add(32, _returndata), returndata_size)
             }
         } else {
-            revert(_errorMessage);
+            revert CloneFactoryFailedToInitialize();
         }
     }
 }

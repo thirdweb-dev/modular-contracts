@@ -34,6 +34,25 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
     event NextTokenIdUpdate(address indexed token, uint256 nextTokenIdToMint);
 
     /*//////////////////////////////////////////////////////////////
+                               ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when caller is not token core admin.
+    error SignatureMintHookNotAuthorized();
+    
+    /// @notice Emitted when minting invalid quantity.
+    error SignatureMintHookInvalidQuantity();
+
+    /// @notice Emitted when minting with an invalid mint request.
+    error SignatureMintHookInvalidRequest();
+
+    /// @notice Emitted when minting with an expired request.
+    error SignatureMintHookRequestExpired();
+
+    /// @notice Emitted when minting to an invalid recipient.
+    error SignatureMintHookInvalidRecipient();
+
+    /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -49,7 +68,9 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        require(IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS), "not authorized");
+        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert SignatureMintHookNotAuthorized();
+        }
         _;
     }
 
@@ -106,7 +127,9 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
         address token = msg.sender;
 
         (MintRequestERC721 memory req, bytes memory signature) = abi.decode(_encodedArgs, (MintRequestERC721, bytes));
-        require(req.quantity == _quantity, "Invalid quantity");
+        if(req.quantity != _quantity) {
+            revert SignatureMintHookInvalidQuantity();
+        }
 
         mintParams.tokenIdToMint = _nextTokenIdToMint[token]++;
         mintParams.quantityToMint = uint96(_quantity);
@@ -167,14 +190,18 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, TokenHook {
         (success, signer) = verify(_token, _req, _signature);
 
         if (!success) {
-            revert("Invalid req");
+            revert SignatureMintHookInvalidRequest();
         }
 
         if (_req.validityStartTimestamp > block.timestamp || block.timestamp > _req.validityEndTimestamp) {
-            revert("Req expired");
+            revert SignatureMintHookRequestExpired();
         }
-        require(_req.to != address(0), "recipient undefined");
-        require(_req.quantity > 0, "0 qty");
+        if(_req.to == address(0)) {
+            revert SignatureMintHookInvalidRecipient();
+        }
+        if(_req.quantity == 0) {
+            revert SignatureMintHookInvalidQuantity();
+        }
 
         minted[_req.uid] = true;
     }

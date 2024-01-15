@@ -42,6 +42,25 @@ contract DropMintHook is IClaimCondition, TokenHook {
     event NextTokenIdUpdate(address indexed token, uint256 nextTokenIdToMint);
 
     /*//////////////////////////////////////////////////////////////
+                               ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when caller is not token core admin.
+    error DropMintHookNotAuthorized();
+
+    /// @notice Emitted when the condition price or currency is unexpected.
+    error DropMintHookUnexpectedPriceOrCurrency();
+
+    /// @notice Emitted when claiming an invalid quantity of tokens.
+    error DropMintHookInvalidQuantity();
+
+    /// @notice Emitted when the max supply of tokens has been claimed.
+    error DropMintHookMaxSupplyClaimed();
+
+    /// @notice Emitted when the claim condition has not started yet.
+    error DropMintHookMintNotStarted();
+
+    /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -63,7 +82,9 @@ contract DropMintHook is IClaimCondition, TokenHook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        require(IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS), "not authorized");
+        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert DropMintHookNotAuthorized();
+        }
         _;
     }
 
@@ -140,19 +161,19 @@ contract DropMintHook is IClaimCondition, TokenHook {
         uint256 supplyClaimedByWallet = getSupplyClaimedByWallet(_token, _claimer);
 
         if (_currency != claimCurrency || _pricePerToken != claimPrice) {
-            revert("!PriceOrCurrency");
+            revert DropMintHookUnexpectedPriceOrCurrency();
         }
 
         if (_quantity == 0 || (_quantity + supplyClaimedByWallet > claimLimit)) {
-            revert("!Qty");
+            revert DropMintHookInvalidQuantity();
         }
 
         if (currentClaimPhase.supplyClaimed + _quantity > currentClaimPhase.maxClaimableSupply) {
-            revert("!MaxSupply");
+            revert DropMintHookMaxSupplyClaimed();
         }
 
         if (currentClaimPhase.startTimestamp > block.timestamp) {
-            revert("cant claim yet");
+            revert DropMintHookMintNotStarted();
         }
     }
 
@@ -233,7 +254,7 @@ contract DropMintHook is IClaimCondition, TokenHook {
         }
 
         if (supplyClaimedAlready > _condition.maxClaimableSupply) {
-            revert("max supply claimed");
+            revert DropMintHookMaxSupplyClaimed();
         }
 
         _claimCondition[_token] = ClaimCondition({

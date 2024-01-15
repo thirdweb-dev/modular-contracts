@@ -37,14 +37,14 @@ contract AllowlistMintHook is TokenHook {
                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted on an attempt to mint when there is no more available supply to mint.
-    error NotEnouthSupply(address token);
+    /// @notice Emitted when caller is not token core admin.
+    error AllowlistMintHookNotAuthorized();
 
-    /// @notice Emitted on an attempt to mint when incorrect msg value is sent.
-    error IncorrectValueSent(uint256 msgValue, uint256 price);
+    /// @notice Emitted on an attempt to mint when there is no more available supply to mint.
+    error AllowlistMintHookNotEnoughSupply(address token);
 
     /// @notice Emitted on an attempt to mint when the claimer is not in the allowlist.
-    error NotInAllowlist(address token, address claimer);
+    error AllowlistMintHookNotInAllowlist(address token, address claimer);
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -72,7 +72,9 @@ contract AllowlistMintHook is TokenHook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        require(IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS), "not authorized");
+        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert AllowlistMintHookNotAuthorized();
+        }
         _;
     }
 
@@ -116,7 +118,7 @@ contract AllowlistMintHook is TokenHook {
         ClaimCondition memory condition = claimCondition[token];
 
         if (condition.availableSupply == 0) {
-            revert NotEnouthSupply(token);
+            revert AllowlistMintHookNotEnoughSupply(token);
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
@@ -126,7 +128,7 @@ contract AllowlistMintHook is TokenHook {
                 allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
             );
             if (!isAllowlisted) {
-                revert NotInAllowlist(token, _claimer);
+                revert AllowlistMintHookNotInAllowlist(token, _claimer);
             }
         }
 

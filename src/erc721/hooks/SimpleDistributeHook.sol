@@ -21,8 +21,11 @@ contract SimpleDistributeHook is IFeeConfig, TokenHook {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when caller is not token core admin.
+    error SimpleDistributeHookNotAuthorized();
+
     /// @notice Emitted when incorrect native token value is sent.
-    error IncorrectValueSent();
+    error SimpleDistributeHookIncorrectValueSent();
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -37,7 +40,9 @@ contract SimpleDistributeHook is IFeeConfig, TokenHook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        require(IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS), "not authorized");
+        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert SimpleDistributeHookNotAuthorized();
+        }
         _;
     }
 
@@ -62,7 +67,7 @@ contract SimpleDistributeHook is IFeeConfig, TokenHook {
     function distributeSaleValue(address _minter, uint256 _totalPrice, address _currency) external payable override {
         if (_totalPrice == 0) {
             if(msg.value > 0) {
-                revert IncorrectValueSent();
+                revert SimpleDistributeHookIncorrectValueSent();
             }
             return;
         }
@@ -79,7 +84,7 @@ contract SimpleDistributeHook is IFeeConfig, TokenHook {
 
         if (_currency == NATIVE_TOKEN) {
             if(msg.value != _totalPrice) {
-                revert IncorrectValueSent();
+                revert SimpleDistributeHookIncorrectValueSent();
             }
             if (payoutPlatformFees) {
                 SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
@@ -87,7 +92,7 @@ contract SimpleDistributeHook is IFeeConfig, TokenHook {
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         } else {
             if(msg.value > 0) {
-                revert IncorrectValueSent();
+                revert SimpleDistributeHookIncorrectValueSent();
             }
             if (payoutPlatformFees) {
                 SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);

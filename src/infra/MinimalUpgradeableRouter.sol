@@ -13,6 +13,12 @@ contract MinimalUpgradeableRouter is RouterPayable {
     event ImplementationUpdate(bytes4 indexed functionSelector, address indexed implementation);
 
     /*//////////////////////////////////////////////////////////////
+                                ERROR
+    //////////////////////////////////////////////////////////////*/
+
+    error MinimalUpgradeableRouterNotAuthorized();
+
+    /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -46,7 +52,9 @@ contract MinimalUpgradeableRouter is RouterPayable {
     //////////////////////////////////////////////////////////////*/
 
     function setImplementationForFunction(bytes4 _functionSelector, address _implementationAddress) public {
-        require(msg.sender == admin, "MinimalUpgradeableRouter: only admin can set implementation.");
+        if(msg.sender != admin) {
+            revert MinimalUpgradeableRouterNotAuthorized();
+        }
         _implementation[_functionSelector] = _implementationAddress;
 
         emit ImplementationUpdate(_functionSelector, _implementationAddress);

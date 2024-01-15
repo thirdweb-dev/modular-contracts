@@ -20,7 +20,15 @@ contract SimpleMetadataHook is TokenHook {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when the base URI for a token is updated.
     event MetadataUpdate(address indexed token);
+
+    /*//////////////////////////////////////////////////////////////
+                               ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when caller is not token core admin.
+    error SimpleMetadataHookNotAuthorized();
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -35,7 +43,9 @@ contract SimpleMetadataHook is TokenHook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        require(IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS), "not authorized");
+        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert SimpleMetadataHookNotAuthorized();
+        }
         _;
     }
 
