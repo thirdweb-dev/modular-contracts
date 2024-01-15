@@ -161,17 +161,13 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
     function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
-        (bool success, IERC721Hook.MintParams memory mintParams) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
-
-        if (success) {
-            _mint(_to, mintParams.tokenIdToMint, mintParams.quantityToMint);
-            if(mintParams.totalPrice > 0) {
-                _distributeSaleValue(_to, mintParams.totalPrice, mintParams.currency);
-            }
-            return;
+        IERC721Hook.MintParams memory mintParams = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
+        
+        _mint(_to, mintParams.tokenIdToMint, mintParams.quantityToMint);
+        
+        if(mintParams.totalPrice > 0) {
+            _distributeSaleValue(_to, mintParams.totalPrice, mintParams.currency);
         }
-
-        revert ERC721CoreMintingDisabled();
     }
 
     /**
@@ -225,13 +221,14 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
     function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
         internal
         virtual
-        returns (bool success, IERC721Hook.MintParams memory mintParams)
+        returns (IERC721Hook.MintParams memory mintParams)
     {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
             mintParams = IERC721Hook(hook).beforeMint(_to, _quantity, _data);
-            success = true;
+        } else {
+            revert ERC721CoreMintingDisabled();
         }
     }
 
