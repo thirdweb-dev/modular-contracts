@@ -50,6 +50,7 @@ interface IERC721Hook is IHook {
      */
     function beforeMint(address to, uint256 quantity, bytes memory encodedArgs)
         external
+        payable
         returns (MintParams memory details);
 
     /**
@@ -92,12 +93,4 @@ interface IERC721Hook is IHook {
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
     function royaltyInfo(uint256 tokenId, uint256 salePrice) external view returns (address receiver, uint256 royaltyAmount);
-
-    /**
-     *  @notice Distributes the sale value of a mint.
-     *  @param minter The address of the claimer.
-     *  @param totalPrice The total price of the mint.
-     *  @param currency The currency in which the sale was made.
-     */
-    function distributeSaleValue(address minter, uint256 totalPrice, address currency) external payable;
 }

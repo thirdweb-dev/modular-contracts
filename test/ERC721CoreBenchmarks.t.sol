@@ -10,7 +10,6 @@ import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
 import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
 import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
-import {SimpleDistributeHook} from "src/erc721/hooks/SimpleDistributeHook.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
 
@@ -71,7 +70,6 @@ contract ERC721CoreBenchmarkTest is Test {
     ERC721Core public erc721;
     AllowlistMintHook public simpleClaimHook;
     LazyMintMetadataHook public lazyMintHook;
-    SimpleDistributeHook public distributeHook;
 
     // Token claim params
     uint256 public pricePerToken = 0.1 ether;
@@ -92,10 +90,6 @@ contract ERC721CoreBenchmarkTest is Test {
         address lazyMintHookProxyAddress =
             address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
         lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
-
-        address distributeHookProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new SimpleDistributeHook())));
-        distributeHook = SimpleDistributeHook(distributeHookProxyAddress);
 
         erc721Implementation = address(new ERC721Core());
 
@@ -136,10 +130,16 @@ contract ERC721CoreBenchmarkTest is Test {
 
         simpleClaimHook.setClaimCondition(address(erc721), condition);
 
+        AllowlistMintHook.FeeConfig memory feeConfig;
+        feeConfig.primarySaleRecipient = platformUser;
+        feeConfig.platformFeeRecipient = address(0x789);
+        feeConfig.platformFeeBps = 100; // 1%
+
+        simpleClaimHook.setFeeConfig(address(erc721), feeConfig);
+
         // Developer installs `AllowlistMintHook` hook
         erc721.installHook(IHook(hookProxyAddress));
         erc721.installHook(IHook(lazyMintHookProxyAddress));
-        erc721.installHook(IHook(distributeHookProxyAddress));
 
         vm.stopPrank();
 
@@ -190,7 +190,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: 0.1 ether}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
@@ -215,7 +215,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: 1 ether}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -238,7 +238,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc721.mint{value: 0.1 ether}(claimer, quantityToClaim, encodedArgs);
+        erc721.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
 
         uint256 tokenId = 0;
         address to = address(0x121212);

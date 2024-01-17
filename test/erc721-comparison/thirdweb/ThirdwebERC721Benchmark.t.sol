@@ -11,13 +11,11 @@ import {IHook} from "src/interface/extension/IHook.sol";
 import {ERC721Core} from "src/erc721/ERC721Core.sol";
 import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
 import {SimpleMetadataHook} from "src/erc721/hooks/SimpleMetadataHook.sol";
-import {SimpleDistributeHook} from "src/erc721/hooks/SimpleDistributeHook.sol";
 import {Permission} from "src/extension/Permission.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
     AllowlistMintHook public simpleClaim;
     SimpleMetadataHook public simpleMetadataHook;
-    SimpleDistributeHook public distributeHook;
 
     function setUp() public override {
         // Deploy infra/shared-state contracts pre-setup
@@ -28,17 +26,12 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
             address(new MinimalUpgradeableRouter(admin, address(new SimpleMetadataHook())));
         simpleMetadataHook = SimpleMetadataHook(simpleMetadataHookProxyAddress);
 
-        address distributeHookProxyAddress =
-            address(new MinimalUpgradeableRouter(admin, address(new SimpleDistributeHook())));
-        distributeHook = SimpleDistributeHook(distributeHookProxyAddress);
-
         super.setUp();
 
         // Set `AllowlistMintHook` contract as minter
         vm.startPrank(admin);
         ERC721Core(erc721Contract).installHook(IHook(address(simpleClaim)));
         ERC721Core(erc721Contract).installHook(IHook(address(simpleMetadataHook)));
-        ERC721Core(erc721Contract).installHook(IHook(address(distributeHook)));
         vm.stopPrank();
 
         // Setup claim condition
@@ -54,6 +47,14 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
         vm.prank(admin);
         simpleClaim.setClaimCondition(erc721Contract, condition);
+
+        AllowlistMintHook.FeeConfig memory feeConfig;
+        feeConfig.primarySaleRecipient = admin;
+        feeConfig.platformFeeRecipient = address(0x789);
+        feeConfig.platformFeeBps = 100; // 1%
+
+        vm.prank(admin);
+        simpleClaim.setFeeConfig(erc721Contract, feeConfig);
     }
 
     /// @dev Optional: deploy the target erc721 contract's implementation.

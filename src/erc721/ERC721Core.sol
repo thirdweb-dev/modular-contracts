@@ -34,9 +34,6 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
     /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
-    /// @notice Bits representing the sale value distribution hook.
-    uint256 public constant DISTRIBUTE_SALE_VALUE_FLAG = 2 ** 7;
-
     /*//////////////////////////////////////////////////////////////
                             STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -76,8 +73,7 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
             beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
             beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
             tokenURI: getHookImplementation(TOKEN_URI_FLAG),
-            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG),
-            distributeSaleValue: getHookImplementation(DISTRIBUTE_SALE_VALUE_FLAG)
+            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
         });
     }
 
@@ -162,12 +158,7 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
      */
     function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
         IERC721Hook.MintParams memory mintParams = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
-        
         _mint(_to, mintParams.tokenIdToMint, mintParams.quantityToMint);
-        
-        if(mintParams.totalPrice > 0) {
-            _distributeSaleValue(_to, mintParams.totalPrice, mintParams.currency);
-        }
     }
 
     /**
@@ -210,7 +201,7 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint256) {
-        return DISTRIBUTE_SALE_VALUE_FLAG;
+        return ROYALTY_INFO_FLAG;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -226,7 +217,7 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            mintParams = IERC721Hook(hook).beforeMint(_to, _quantity, _data);
+            mintParams = IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
         } else {
             revert ERC721CoreMintingDisabled();
         }
@@ -279,19 +270,6 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
 
         if (hook != address(0)) {
             (receiver, royaltyAmount) = IERC721Hook(hook).royaltyInfo(_tokenId, _salePrice);
-        }
-    }
-
-    /// @dev Calls the distribute sale value hook, if installed.
-    function _distributeSaleValue(
-        address _minter,
-        uint256 _totalPrice,
-        address _currency
-    ) internal virtual {
-        address hook = getHookImplementation(DISTRIBUTE_SALE_VALUE_FLAG);
-
-        if (hook != address(0)) {
-            IERC721Hook(hook).distributeSaleValue{value: msg.value}(_minter, _totalPrice, _currency);
         }
     }
 }

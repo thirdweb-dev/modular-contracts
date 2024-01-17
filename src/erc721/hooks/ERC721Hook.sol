@@ -26,9 +26,6 @@ abstract contract ERC721Hook is IERC721Hook {
     /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
-    /// @notice Bits representing the sale value distribution hook.
-    uint256 public constant DISTRIBUTE_SALE_VALUE_FLAG = 2 ** 7;
-
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -51,6 +48,7 @@ abstract contract ERC721Hook is IERC721Hook {
      */
     function beforeMint(address _to, uint256 _quantity, bytes memory _encodedArgs)
         external
+        payable
         virtual
         returns (MintParams memory details)
     {
@@ -105,16 +103,6 @@ abstract contract ERC721Hook is IERC721Hook {
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
     function royaltyInfo(uint256 tokenId, uint256 salePrice) external view virtual returns (address receiver, uint256 royaltyAmount) {
-        revert ERC721HookNotImplemented();
-    }
-
-    /**
-     *  @notice Distributes the sale value of a mint.
-     *  @param minter The address of the claimer.
-     *  @param totalPrice The total price of the mint.
-     *  @param currency The currency in which the sale was made.
-     */
-    function distributeSaleValue(address minter, uint256 totalPrice, address currency) external payable virtual {
         revert ERC721HookNotImplemented();
     }
 }

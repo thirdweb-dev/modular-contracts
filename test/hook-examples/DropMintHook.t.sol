@@ -7,7 +7,6 @@ import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 
 import {DropMintHook} from "src/erc721/hooks/DropMintHook.sol";
 import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
-import {SimpleDistributeHook} from "src/erc721/hooks/SimpleDistributeHook.sol";
 import {RoyaltyHook} from "src/erc721/hooks/RoyaltyHook.sol";
 
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
@@ -29,7 +28,6 @@ contract DropMintHookTest is Test {
     DropMintHook public dropHook;
     LazyMintMetadataHook public lazyMintHook;
     RoyaltyHook public royaltyHook;
-    SimpleDistributeHook public distributeHook;
 
     function setUp() public {
         // Setup up to enabling minting on ERC-721 contract.
@@ -50,10 +48,6 @@ contract DropMintHookTest is Test {
         address royaltyHookProxyAddress =
             address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
         royaltyHook = RoyaltyHook(royaltyHookProxyAddress);
-
-        address distributeHookProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new SimpleDistributeHook())));
-        distributeHook = SimpleDistributeHook(distributeHookProxyAddress);
 
         address erc721Implementation = address(new ERC721Core());
 
@@ -92,7 +86,7 @@ contract DropMintHookTest is Test {
         vm.prank(platformUser);
         royaltyHook.setDefaultRoyaltyInfo(address(erc721), royaltyRecipient, royaltyBps);
 
-        // [3] Developer: sets claim condition on drop mint hook and fee config on distribute hook
+        // [3] Developer: sets claim condition and fee config on drop mint hook
         DropMintHook.ClaimCondition memory condition;
 
         condition.maxClaimableSupply = quantityToLazymint;
@@ -100,7 +94,7 @@ contract DropMintHookTest is Test {
         condition.pricePerToken = 0.1 ether;
         condition.currency = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-        SimpleDistributeHook.FeeConfig memory feeConfig;
+        DropMintHook.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
@@ -108,7 +102,7 @@ contract DropMintHookTest is Test {
         vm.startPrank(platformUser);
 
         dropHook.setClaimCondition(address(erc721), condition, true);
-        distributeHook.setFeeConfig(address(erc721), feeConfig);
+        dropHook.setFeeConfig(address(erc721), feeConfig);
 
         vm.stopPrank();
 
@@ -118,7 +112,6 @@ contract DropMintHookTest is Test {
         erc721.installHook(IHook(address(dropHook)));
         erc721.installHook(IHook(address(lazyMintHook)));
         erc721.installHook(IHook(address(royaltyHook)));
-        erc721.installHook(IHook(address(distributeHook)));
 
         vm.stopPrank();
 

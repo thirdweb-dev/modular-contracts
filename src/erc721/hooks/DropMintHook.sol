@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {IClaimCondition} from "../../interface/extension/IClaimCondition.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
 import {ERC721Hook} from "./ERC721Hook.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
+import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-contract DropMintHook is IClaimCondition, ERC721Hook {
+contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The bits that represent the admin role.
-    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
+    uint96 public constant ADMIN_ROLE_BITS = 2 ** 1;
+
+    /// @notice The address considered as native token.
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -60,6 +65,9 @@ contract DropMintHook is IClaimCondition, ERC721Hook {
     /// @notice Emitted when the claim condition has not started yet.
     error DropMintHookMintNotStarted();
 
+    /// @notice Emitted when incorrect native token value is sent.
+    error DropMintHookIncorrectValueSent();
+
     /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -75,6 +83,9 @@ contract DropMintHook is IClaimCondition, ERC721Hook {
 
     /// @notice Mapping from token => condition ID.
     mapping(address => bytes32) private _conditionId;
+
+    /// @notice Mapping from token => fee config for the token.
+    mapping(address => FeeConfig) private _feeConfig;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -186,6 +197,11 @@ contract DropMintHook is IClaimCondition, ERC721Hook {
         return _supplyClaimedByWallet[_conditionId[_token]][keccak256(abi.encode(_claimer, _token))];
     }
 
+    /// @notice Returns the fee config for a token.
+    function getFeeConfig(address _token) external view returns (FeeConfig memory) {
+        return _feeConfig[_token];
+    }
+
     /*//////////////////////////////////////////////////////////////
                             BEFORE MINT HOOK
     //////////////////////////////////////////////////////////////*/
@@ -199,6 +215,7 @@ contract DropMintHook is IClaimCondition, ERC721Hook {
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
+        payable
         override
         returns (MintParams memory mintParams)
     {
@@ -217,6 +234,8 @@ contract DropMintHook is IClaimCondition, ERC721Hook {
 
         _claimCondition[token].supplyClaimed += _quantity;
         _supplyClaimedByWallet[_conditionId[token]][keccak256(abi.encode(_claimer, token))] += _quantity;
+
+        _collectPrice(_claimer, _quantity * pricePerToken, currency);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -270,5 +289,58 @@ contract DropMintHook is IClaimCondition, ERC721Hook {
         _conditionId[_token] = targetConditionId;
 
         emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
+    }
+
+    /**
+     *  @notice Sets the fee config for a given token.
+     *  @param _token The token address.
+     *  @param _config The fee config for the token.
+     */
+    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+        _feeConfig[_token] = _config;
+        emit FeeConfigUpdate(_token, _config);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
+        if (_totalPrice == 0) {
+            if(msg.value > 0) {
+                revert DropMintHookIncorrectValueSent();
+            }
+            return;
+        }
+
+        address token = msg.sender;
+        FeeConfig memory feeConfig = _feeConfig[token];
+
+        bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
+        uint256 platformFees = 0;
+
+        if (payoutPlatformFees) {
+            platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
+        }
+
+        if (_currency == NATIVE_TOKEN) {
+            if(msg.value != _totalPrice) {
+                revert DropMintHookIncorrectValueSent();
+            }
+            if (payoutPlatformFees) {
+                SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
+            }
+            SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
+        } else {
+            if(msg.value > 0) {
+                revert DropMintHookIncorrectValueSent();
+            }
+            if (payoutPlatformFees) {
+                SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
+            }
+            SafeTransferLib.safeTransferFrom(
+                token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
+            );
+        }
     }
 }

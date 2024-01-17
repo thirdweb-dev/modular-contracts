@@ -7,7 +7,6 @@ import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 
 import {SignatureMintHook} from "src/erc721/hooks/SignatureMintHook.sol";
 import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
-import {SimpleDistributeHook} from "src/erc721/hooks/SimpleDistributeHook.sol";
 import {RoyaltyHook} from "src/erc721/hooks/RoyaltyHook.sol";
 
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
@@ -30,7 +29,6 @@ contract SignatureMintHookTest is Test {
     SignatureMintHook public sigmintHook;
     LazyMintMetadataHook public lazyMintHook;
     RoyaltyHook public royaltyHook;
-    SimpleDistributeHook public distributeHook;
 
     // Signature mint params
     bytes32 internal typehashMintRequest;
@@ -61,10 +59,6 @@ contract SignatureMintHookTest is Test {
         address royaltyHookProxyAddress =
             address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
         royaltyHook = RoyaltyHook(royaltyHookProxyAddress);
-
-        address distributeHookProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new SimpleDistributeHook())));
-        distributeHook = SimpleDistributeHook(distributeHookProxyAddress);
 
         address erc721Implementation = address(new ERC721Core());
 
@@ -138,14 +132,14 @@ contract SignatureMintHookTest is Test {
         vm.prank(platformUser);
         royaltyHook.setDefaultRoyaltyInfo(address(erc721), royaltyRecipient, royaltyBps);
 
-        // [3] Developer: sets fee config on distribute hook
-        SimpleDistributeHook.FeeConfig memory feeConfig;
+        // [3] Developer: sets fee config on mint hook
+        SignatureMintHook.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        vm.prank(platformUser);
-        distributeHook.setFeeConfig(address(erc721), feeConfig);
+        vm.startPrank(platformUser);
+        sigmintHook.setFeeConfig(address(erc721), feeConfig);
 
         // [4] Developer: installs hooks in ERC-721 contract
 
@@ -154,7 +148,6 @@ contract SignatureMintHookTest is Test {
         erc721.installHook(IHook(address(sigmintHook)));
         erc721.installHook(IHook(address(lazyMintHook)));
         erc721.installHook(IHook(address(royaltyHook)));
-        erc721.installHook(IHook(address(distributeHook)));
 
         vm.stopPrank();
 

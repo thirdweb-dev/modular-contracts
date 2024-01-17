@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {IMintRequestERC721} from "../../interface/extension/IMintRequestERC721.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
 import {ECDSA} from "../../lib/ECDSA.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 import {EIP712} from "../../extension/EIP712.sol";
 import {ERC721Hook} from "./ERC721Hook.sol";
+import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-contract SignatureMintHook is IMintRequestERC721, EIP712, ERC721Hook {
+contract SignatureMintHook is IFeeConfig, IMintRequestERC721, EIP712, ERC721Hook {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -52,6 +54,9 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, ERC721Hook {
     /// @notice Emitted when minting to an invalid recipient.
     error SignatureMintHookInvalidRecipient();
 
+    /// @notice Emitted when incorrect native token value is sent.
+    error SignatureMintHookIncorrectValueSent();
+
     /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -61,6 +66,9 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, ERC721Hook {
 
     /// @dev Mapping from request UID => whether the mint request is processed.
     mapping(bytes32 => bool) private minted;
+
+    /// @notice Mapping from token => fee config for the token.
+    mapping(address => FeeConfig) private _feeConfig;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -93,6 +101,11 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, ERC721Hook {
         return _nextTokenIdToMint[_token];
     }
 
+    /// @notice Returns the fee config for a token.
+    function getFeeConfig(address _token) external view returns (FeeConfig memory) {
+        return _feeConfig[_token];
+    }
+
     /**
      *  @notice Verifies the mint request for minting a given token.
      *  @param _token The token address.
@@ -121,6 +134,7 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, ERC721Hook {
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
+        payable
         override
         returns (MintParams memory mintParams)
     {
@@ -137,6 +151,7 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, ERC721Hook {
         mintParams.currency = req.currency;
 
         _processRequest(token, req, signature);
+        _collectPrice(_claimer, req.pricePerToken * _quantity, req.currency);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -154,9 +169,58 @@ contract SignatureMintHook is IMintRequestERC721, EIP712, ERC721Hook {
         emit NextTokenIdUpdate(_token, _nextIdToMint);
     }
 
+    /**
+     *  @notice Sets the fee config for a given token.
+     *  @param _token The token address.
+     *  @param _config The fee config for the token.
+     */
+    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+        _feeConfig[_token] = _config;
+        emit FeeConfigUpdate(_token, _config);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
+        if (_totalPrice == 0) {
+            if(msg.value > 0) {
+                revert SignatureMintHookIncorrectValueSent();
+            }
+            return;
+        }
+
+        address token = msg.sender;
+        FeeConfig memory feeConfig = _feeConfig[token];
+
+        bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
+        uint256 platformFees = 0;
+
+        if (payoutPlatformFees) {
+            platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
+        }
+
+        if (_currency == NATIVE_TOKEN) {
+            if(msg.value != _totalPrice) {
+                revert SignatureMintHookIncorrectValueSent();
+            }
+            if (payoutPlatformFees) {
+                SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
+            }
+            SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
+        } else {
+            if(msg.value > 0) {
+                revert SignatureMintHookIncorrectValueSent();
+            }
+            if (payoutPlatformFees) {
+                SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
+            }
+            SafeTransferLib.safeTransferFrom(
+                token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
+            );
+        }
+    }
 
     /// @dev Returns the domain name and version for the EIP-712 domain separator
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
