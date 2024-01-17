@@ -15,22 +15,22 @@
 | Action | Gas consumption |
 | ------------- | ------------- |
 | Deploy (developer-facing) | 196_411 |
-| Mint 1 token | 171_412 |
-| Mint 10 tokens | 391_432 |
-| Transfer token | 22_984 |
-| Install 1 hook | 72_182 |
-| Install 5 hooks | 80_089 |
-| Uninstall 1 hook | 10_068 |
-| Uninstall 5 hooks | 9_155 |
+| Mint 1 token | 196_976 |
+| Mint 10 tokens | 417_090 |
+| Transfer token | 22_967 |
+| Install 1 hook | 67_810 |
+| Install 5 hooks | 76_592 |
+| Uninstall 1 hook | 5_709 |
+| Uninstall 5 hooks | 6_552 |
 | Beacon upgrade (via platform) | 30_313 |
 
 **ERC-721 Benchmarks Comparison** ([test/erc721-comparison/](https://github.com/thirdweb-dev/contracts-next/tree/main/test/erc721-comparison))
 | Action | Thirdweb | Zora | Manifold |
 | ------------- | ------------- | ------------- | ------------- |
-| Deploy (developer-facing) | 191_946 | 477_739 | 299_526 |
-| Claim 1 token | 172_268 | 151_865 | 175_723 |
-| Transfer token | 23_230 | 37_354 | 29_255 |
-| Setup token metadata | 44_019 | 31_946 | 14_205 |
+| Deploy (developer-facing) | 191_921 | 477_739 | 299_526 |
+| Claim 1 token | 195_824 | 151_865 | 175_723 |
+| Transfer token | 23_300 | 37_354 | 29_255 |
+| Setup token metadata | 43_953 | 31_946 | 14_205 |
 
 # Design Overview
 
