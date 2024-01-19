@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {ECDSA} from "../../lib/ECDSA.sol";
-import {EIP712} from "../../extension/EIP712.sol";
 import {ERC20Hook} from "./ERC20Hook.sol";
 
 contract PermitHook is ERC20Hook {
-    using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
