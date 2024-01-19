@@ -72,20 +72,9 @@ abstract contract ERC20Initializable is
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function approve(address _spender, uint256 _amount) public virtual returns (bool) {
-        address _owner = msg.sender;
+    function approve(address _owner, address _spender, uint256 _amount) public virtual returns (bool) {
 
-        if (_owner == address(0)) {
-            revert ERC20FromZeroAddress(msg.sender, _amount);
-        }
-
-        if (_spender == address(0)) {
-            revert ERC20ToZeroAddress(_spender, _amount);
-        }
-
-        _allowances[_owner][_spender] = _amount;
-
-        emit Approval(_owner, _spender, _amount);
+        _approve(_owner, _spender, _amount);
 
         return true;
     }
@@ -193,5 +182,19 @@ abstract contract ERC20Initializable is
         }
 
         emit Transfer(_owner, address(0), _amount);
+    }
+
+    function _approve(address _owner, address _spender, uint256 _amount) public virtual {
+        if (_owner == address(0)) {
+            revert ERC20FromZeroAddress(_owner, _amount);
+        }
+
+        if (_spender == address(0)) {
+            revert ERC20ToZeroAddress(_spender, _amount);
+        }
+
+        _allowances[_owner][_spender] = _amount;
+
+        emit Approval(_owner, _spender, _amount);
     }
 }

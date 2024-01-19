@@ -10,7 +10,7 @@ import {HookInstaller} from "../extension/HookInstaller.sol";
 import {Initializable} from "../extension/Initializable.sol";
 import {Permission} from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC20Initializable, HookInstaller, Permission, IERC20HookInstaller, IERC20CoreCustomErrors, IERC7572 {
+contract ERC20Core is Initializable, ERC20Initializable, HookInstaller, Permission, IERC20HookInstaller, IERC20CoreCustomErrors, IERC7572 {
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -27,6 +27,9 @@ contract ERC721Core is Initializable, ERC20Initializable, HookInstaller, Permiss
 
     /// @notice Bits representing the before approve hook.
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+
+    /// @notice Bits representing permit flag.
+    uint256 public constant PERMIT_FLAG = 2 ** 5;
 
     /*//////////////////////////////////////////////////////////////
                             STORAGE
@@ -59,7 +62,8 @@ contract ERC721Core is Initializable, ERC20Initializable, HookInstaller, Permiss
             beforeMint: getHookImplementation(BEFORE_MINT_FLAG),
             beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
             beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
-            beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG)
+            beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
+            permit: getHookImplementation(PERMIT_FLAG)
         });
     }
 
@@ -102,7 +106,50 @@ contract ERC721Core is Initializable, ERC20Initializable, HookInstaller, Permiss
 
     function approve(address _spender, uint256 _amount) public override returns(bool) {
         _beforeApprove(msg.sender, _spender, _amount);
-        return super.approve(_spender, _amount);
+        return super.approve(msg.sender, _spender, _amount);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        EIP 2612 related functions
+    //////////////////////////////////////////////////////////////*/
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public {
+        address hook = getHookImplementation(PERMIT_FLAG);
+
+        if (hook != address(0)) {
+            IERC20Hook(hook).permit(name, owner, spender, value, deadline, v, r, s);
+            super._approve(owner, spender, value);
+        } else {
+            revert ERC20CorePermitDisabled();
+        }
+    }
+
+    function nonces(address owner) external view returns (uint256) {
+        address hook = getHookImplementation(PERMIT_FLAG);
+
+        if (hook != address(0)) {
+            return IERC20Hook(hook).nonces(owner);
+        } else {
+            revert ERC20CorePermitDisabled();
+        }
+    }
+    
+    function DOMAIN_SEPARATOR() external view returns (bytes32) {
+        address hook = getHookImplementation(PERMIT_FLAG);
+
+        if (hook != address(0)) {
+            return IERC20Hook(hook).computeDomainSeparator(name);
+        } else {
+            revert ERC20CorePermitDisabled();
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -122,7 +169,7 @@ contract ERC721Core is Initializable, ERC20Initializable, HookInstaller, Permiss
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint256) {
-        return BEFORE_APPROVE_FLAG;
+        return PERMIT_FLAG;
     }
 
     /*//////////////////////////////////////////////////////////////

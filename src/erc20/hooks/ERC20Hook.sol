@@ -20,6 +20,9 @@ abstract contract ERC20Hook is IERC20Hook {
     /// @notice Bits representing the before approve hook.
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
+    /// @notice Bits representing permit flag.
+    uint256 public constant PERMIT_FLAG = 2 ** 5;
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -51,6 +54,27 @@ abstract contract ERC20Hook is IERC20Hook {
     }
 
     function beforeApprove(address _from, address _to, uint256 _amount) external virtual {
+        revert ERC20HookNotImplemented();
+    }
+
+    function permit(
+        string memory name,
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external virtual {
+        revert ERC20HookNotImplemented();
+    }
+
+    function nonces(address owner) external view virtual returns (uint256) {
+        revert ERC20HookNotImplemented();
+    }
+    
+    function computeDomainSeparator(string memory name) external view virtual returns (bytes32) {
         revert ERC20HookNotImplemented();
     }
 }

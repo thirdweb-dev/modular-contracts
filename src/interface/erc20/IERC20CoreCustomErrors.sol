@@ -8,4 +8,6 @@ interface IERC20CoreCustomErrors {
 
     /// @notice Emitted on an attempt to mint tokens when either beforeMint hook is absent or unsuccessful.
     error ERC20CoreMintingDisabled();
+
+    error ERC20CorePermitDisabled();
 }

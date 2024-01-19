@@ -42,4 +42,19 @@ interface IERC20Hook is IHook {
     function beforeBurn(address from, uint256 amount) external;
 
     function beforeApprove(address from, address to, uint256 amount) external;
+
+    function permit(
+        string memory name,
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    function nonces(address owner) external view returns (uint256);
+    
+    function computeDomainSeparator(string memory name) external view returns (bytes32);
 }

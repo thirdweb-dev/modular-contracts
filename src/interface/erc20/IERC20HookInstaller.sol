@@ -14,7 +14,7 @@ interface IERC20HookInstaller is IHookInstaller {
         address beforeTransfer;
         address beforeBurn;
         address beforeApprove;
-        // TODO add more
+        address permit;
     }
 
     /*//////////////////////////////////////////////////////////////
