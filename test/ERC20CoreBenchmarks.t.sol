@@ -13,11 +13,11 @@ import {IERC20} from "src/interface/erc20/IERC20.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
 
 /**
- *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
+ *  This test showcases how users would use ERC-20 contracts on the thirdweb platform.
  *
  *  CORE CONTRACTS:
  *
- *  Developers will deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-721 Core contract.
+ *  Developers will deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-20 Core contract.
  *
  *      - This contract is initializable, and meant to be used with proxy contracts.
  *      - Implements the token standard (and the respective token metadata standard).
@@ -28,10 +28,10 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *
  *  Core contracts work with "hooks". There is a fixed set of 5 hooks supported by the core contract:
  *
- *      - BeforeMint: called before a token is minted in the ERC721Core.mint call.
- *      - BeforeTransfer: called before a token is transferred in the ERC721.transferFrom call.
- *      - BeforeBurn: called before a token is burned in the ERC721.burn call.
- *      - BeforeApprove: called before the ERC721.approve call.
+ *      - BeforeMint: called before a token is minted in the ERC20Core.mint call.
+ *      - BeforeTransfer: called before a token is transferred in the ERC20.transfer call.
+ *      - BeforeBurn: called before a token is burned in the ERC20.burn call.
+ *      - BeforeApprove: called before the ERC20.approve call.
  *      - Permit: 
  *
  *  Each of these hooks is an external call made to a contract that implements the `IHook` interface. 
@@ -43,7 +43,7 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *
  *  UPGRADEABILITY:
  *
- *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc721/hooks/). These hook contracts are
+ *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc20/hooks/). These hook contracts are
  *  designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make
  *  beacon upgrades to developer contracts using these hooks.
  */
