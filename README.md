@@ -37,6 +37,11 @@
 | Uninstall 1 hook | 43_468 | [ref](https://goerli.etherscan.io/tx/0x30c678277603c80b1f412049b13ba6742712c64ef9973b00d8866169589ad40f) |
 | Uninstall 5 hooks | 57_839 | [ref](https://goerli.etherscan.io/tx/0xf1869d1b6fdc0f7e340cd30df2f0b57408cf0d752e4898ef14836a7672877050) |
 
+**Note:**
+
+- 'Minting tokens' benchmarks use the `AllowlistMintHook` contract as the `beforeMint` hook. All token minting benchmarks include distributing non-zero primary sale value and platform fee.
+- All hooks used in these benchnmarks are minimal clone proxy contracts pointing to hook contract implementations.
+
 **ERC-721 Benchmarks Comparison** ([test/erc721-comparison/](https://github.com/thirdweb-dev/contracts-next/tree/main/test/erc721-comparison))
 | Action | Thirdweb | Zora | Manifold |
 | ------------- | ------------- | ------------- | ------------- |
