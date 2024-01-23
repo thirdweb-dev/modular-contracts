@@ -40,7 +40,7 @@
 **Note:**
 
 - 'Minting tokens' benchmarks use the `AllowlistMintHook` contract as the `beforeMint` hook. All token minting benchmarks include distributing non-zero primary sale value and platform fee.
-- All hooks used in these benchnmarks are minimal clone proxy contracts pointing to hook contract implementations.
+- All hooks used in these benchmarks are minimal clone proxy contracts pointing to hook contract implementations.
 
 **ERC-721 Benchmarks Comparison** ([test/erc721-comparison/](https://github.com/thirdweb-dev/contracts-next/tree/main/test/erc721-comparison))
 | Action | Thirdweb | Zora | Manifold |
