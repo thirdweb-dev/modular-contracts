@@ -290,11 +290,11 @@ contract ERC1155Core is
   /// @dev Fetches token URI from the token metadata hook.
   function _getTokenURI(
     uint256 _id
-  ) internal view virtual returns (string memory uri) {
+  ) internal view virtual returns (string memory _uri) {
     address hook = getHookImplementation(TOKEN_URI_FLAG);
 
     if (hook != address(0)) {
-      uri = IERC1155Hook(hook).uri(_id);
+      _uri = IERC1155Hook(hook).uri(_id);
     }
   }
 
