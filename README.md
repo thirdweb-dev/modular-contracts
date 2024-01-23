@@ -24,6 +24,19 @@
 | Uninstall 5 hooks | 6_552 |
 | Beacon upgrade (via platform) | 30_313 |
 
+**ERC-721 Core Benchmarks** via transactions on Goerli
+| Action | Gas consumption | Transaction |
+| ------------- | ------------- | ------- |
+| Mint 1 token (token ID `0`) | 145_373 | [ref](https://goerli.etherscan.io/tx/0x1de1431200f6d39e9f4ddba3386e413078308a6eae1ebcc722884443b643d7d0) |
+| Mint 1 token (token ID `>0`) | 116_173 | [ref](https://goerli.etherscan.io/tx/0xc38e82228a1f8cf877abfeeb28e3f294bb38b90f51cbb2df1c899f03fad4e355) |
+| Mint 10 tokens (including token ID `0`) | 365_414 | [ref](https://goerli.etherscan.io/tx/0x1e8a79bd1806a3410a46f8d0ec0fcff099e3aeff6d4e64815c1f400ab092c77e) |
+| Mint 10 tokens (not including token ID `0`) | 331_214 | [ref](https://goerli.etherscan.io/tx/0xe4ab2650f8827d52d2ec15956da910915b2b08f67d3f59ac8091da2fbd0369a0) |
+| Transfer token | 64_389 | [ref](https://goerli.etherscan.io/tx/0x3ca2c4c74d6c8a4859fd78af5091c4dc4dc0fc0452202b18b611e4f0308c3673) |
+| Install 1 hook | 105_455 | [ref](https://goerli.etherscan.io/tx/0x8df68fefe6f0318220795f4c56aec81fdafea2a3d17da2d45a0a762aac6cf6d0) |
+| Install 5 hooks | 191_918 | [ref](https://goerli.etherscan.io/tx/0x184f59ce6f83a6927e2269879bdec9ccd29f8ed3fd98be9d4d359e34cfde4ce5) |
+| Uninstall 1 hook | 43_468 | [ref](https://goerli.etherscan.io/tx/0x30c678277603c80b1f412049b13ba6742712c64ef9973b00d8866169589ad40f) |
+| Uninstall 5 hooks | 57_839 | [ref](https://goerli.etherscan.io/tx/0xf1869d1b6fdc0f7e340cd30df2f0b57408cf0d752e4898ef14836a7672877050) |
+
 **ERC-721 Benchmarks Comparison** ([test/erc721-comparison/](https://github.com/thirdweb-dev/contracts-next/tree/main/test/erc721-comparison))
 | Action | Thirdweb | Zora | Manifold |
 | ------------- | ------------- | ------------- | ------------- |
