@@ -228,7 +228,7 @@ contract AllowlistMintHook is IFeeConfig, ERC1155Hook {
     FeeConfig memory feeConfig = _feeConfig[token][_id];
 
     if (
-      feeConfig.primarySaleRecipient == address(0) &&
+      feeConfig.primarySaleRecipient == address(0) ||
       feeConfig.platformFeeRecipient == address(0)
     ) {
       feeConfig = _feeConfig[token][type(uint256).max];
