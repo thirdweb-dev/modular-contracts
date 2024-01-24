@@ -71,7 +71,7 @@ contract LazyMintMetadataHook is ERC721Hook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all hook functions implemented by this hook contract.
-    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
+    function getHooks() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = TOKEN_URI_FLAG;
     }
 

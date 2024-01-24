@@ -8,5 +8,5 @@ interface IHook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all hooks implemented by the contract -- represented in the bits of the returned integer.
-    function getHooksImplemented() external view returns (uint256 hooksImplemented);
+    function getHooks() external view returns (uint256 hooksImplemented);
 }
