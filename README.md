@@ -7,7 +7,7 @@
 <p align="center"><strong>Next iteration of thirdweb smart contracts. Install hooks in core contracts.</strong></p>
 <br />
 
-> :mega: **Call for feedback**: This design update is WIP and we encourage opening an issue with feedback.
+> :mega: **Call for feedback**: These contracts are NOT AUDITED. This design update is WIP and we encourage opening an issue with feedback.
 
 # Run this repo
 
