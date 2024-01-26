@@ -57,10 +57,11 @@ contract ERC1155Core is
   }
 
   /**
-   *  @notice Initializes the ERC-721 Core contract.
+   *  @notice Initializes the ERC-1155 Core contract.
    *  @param _defaultAdmin The default admin for the contract.
    *  @param _name The name of the token collection.
    *  @param _symbol The symbol of the token collection.
+   *  @param _uri Contract URI
    */
   function initialize(
     address _defaultAdmin,
@@ -100,11 +101,11 @@ contract ERC1155Core is
   /**
    *  @notice Returns the token metadata of an NFT.
    *  @dev Always returns metadata queried from the metadata source.
-   *  @param _id The token ID of the NFT.
+   *  @param _tokenId The token ID of the NFT.
    *  @return metadata The URI to fetch metadata from.
    */
-  function uri(uint256 _id) public view returns (string memory) {
-    return _getTokenURI(_id);
+  function uri(uint256 _tokenId) public view returns (string memory) {
+    return _getTokenURI(_tokenId);
   }
 
   /**
@@ -150,28 +151,43 @@ contract ERC1155Core is
     _setupContractURI(_uri);
   }
 
-  function burn(address _from, uint256 _id, uint256 _value) external {
+  /**
+   *  @notice Burns given amount of tokens.
+   *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
+   *  @param _from Owner of the tokens
+   *  @param _tokenId The token ID of the NFTs to burn.
+   *  @param _value The amount of tokens to burn.
+   */
+  function burn(address _from, uint256 _tokenId, uint256 _value) external {
     if (_from != msg.sender && isApprovedForAll[_from][msg.sender]) {
       revert ERC1155NotApprovedOrOwner(msg.sender);
     }
 
-    _beforeBurn(_from, _id, _value);
-    _burn(_from, _id, _value);
+    _beforeBurn(_from, _tokenId, _value);
+    _burn(_from, _tokenId, _value);
   }
 
+  /**
+   *  @notice Mints tokens with a given tokenId. Calls the beforeMint hook.
+   *  @dev Reverts if beforeMint hook is absent or unsuccessful.
+   *  @param _to The address to mint the token to.
+   *  @param _tokenId The tokenId to mint.
+   *  @param _value The amount of tokens to mint.
+   *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
+   */
   function mint(
     address _to,
-    uint256 _id,
+    uint256 _tokenId,
     uint256 _value,
     bytes memory _encodedBeforeMintArgs
   ) external payable {
     IERC1155Hook.MintParams memory mintParams = _beforeMint(
       _to,
-      _id,
+      _tokenId,
       _value,
       _encodedBeforeMintArgs
     );
-    _mint(_to, mintParams.idToMint, mintParams.quantityToMint, "");
+    _mint(_to, mintParams.tokenIdToMint, mintParams.quantityToMint, "");
   }
 
   /**
@@ -179,19 +195,25 @@ contract ERC1155Core is
    *  @dev Overriden to call the beforeTransfer hook. Skips calling the hook if it doesn't exist.
    *  @param _from The address to transfer from
    *  @param _to The address to transfer to
-   *  @param _id The token ID of the NFT
+   *  @param _tokenId The token ID of the NFT
    */
   function safeTransferFrom(
     address _from,
     address _to,
-    uint256 _id,
+    uint256 _tokenId,
     uint256 _value,
     bytes calldata _data
   ) public override {
-    _beforeTransfer(_from, _to, _id, _value);
-    super.safeTransferFrom(_from, _to, _id, _value, _data);
+    _beforeTransfer(_from, _to, _tokenId, _value);
+    super.safeTransferFrom(_from, _to, _tokenId, _value, _data);
   }
 
+  /**
+   *  @notice Approves an address to transfer all NFTs. Reverts if caller is not owner or approved operator.
+   *  @dev Overriden to call the beforeApprove hook. Skips calling the hook if it doesn't exist.
+   *  @param _operator The address to approve
+   *  @param _approved To grant or revoke approval
+   */
   function setApprovalForAll(
     address _operator,
     bool _approved
@@ -229,7 +251,7 @@ contract ERC1155Core is
   /// @dev Calls the beforeMint hook.
   function _beforeMint(
     address _to,
-    uint256 _id,
+    uint256 _tokenId,
     uint256 _value,
     bytes memory _data
   ) internal virtual returns (IERC1155Hook.MintParams memory mintParams) {
@@ -238,7 +260,7 @@ contract ERC1155Core is
     if (hook != address(0)) {
       mintParams = IERC1155Hook(hook).beforeMint{ value: msg.value }(
         _to,
-        _id,
+        _tokenId,
         _value,
         _data
       );
@@ -251,26 +273,26 @@ contract ERC1155Core is
   function _beforeTransfer(
     address _from,
     address _to,
-    uint256 _id,
+    uint256 _tokenId,
     uint256 _value
   ) internal virtual {
     address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
     if (hook != address(0)) {
-      IERC1155Hook(hook).beforeTransfer(_from, _to, _id, _value);
+      IERC1155Hook(hook).beforeTransfer(_from, _to, _tokenId, _value);
     }
   }
 
   /// @dev Calls the beforeBurn hook, if installed.
   function _beforeBurn(
     address _from,
-    uint256 _id,
+    uint256 _tokenId,
     uint256 _value
   ) internal virtual {
     address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
     if (hook != address(0)) {
-      IERC1155Hook(hook).beforeBurn(_from, _id, _value);
+      IERC1155Hook(hook).beforeBurn(_from, _tokenId, _value);
     }
   }
 
@@ -289,12 +311,12 @@ contract ERC1155Core is
 
   /// @dev Fetches token URI from the token metadata hook.
   function _getTokenURI(
-    uint256 _id
+    uint256 _tokenId
   ) internal view virtual returns (string memory _uri) {
     address hook = getHookImplementation(TOKEN_URI_FLAG);
 
     if (hook != address(0)) {
-      _uri = IERC1155Hook(hook).uri(_id);
+      _uri = IERC1155Hook(hook).uri(_tokenId);
     }
   }
 

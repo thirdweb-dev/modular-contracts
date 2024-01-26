@@ -159,7 +159,7 @@ contract AllowlistMintHook is IFeeConfig, ERC1155Hook {
     mintParams.quantityToMint = uint96(_value);
     mintParams.currency = NATIVE_TOKEN;
     mintParams.totalPrice = _value * condition.price;
-    mintParams.idToMint = _id;
+    mintParams.tokenIdToMint = _id;
 
     claimCondition[token][_id].availableSupply -= _value;
 

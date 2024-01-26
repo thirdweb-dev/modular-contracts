@@ -10,13 +10,13 @@ interface IERC1155Hook is IHook {
 
   /**
    *  @notice A struct for internal use. The details around which to execute a mint, returned by the beforeMint hook.
-   *  @param idToMint The token ID to start minting the given quantity tokens from.
+   *  @param tokenIdToMint The token ID to start minting the given quantity tokens from.
    *  @param totalPrice The total price to pay to mint the tokens.
    *  @param currency The currency in which to pay for the tokens.
    *  @param quantityToMint The quantity of tokens to mint.
    */
   struct MintParams {
-    uint256 idToMint;
+    uint256 tokenIdToMint;
     uint256 totalPrice;
     address currency;
     uint96 quantityToMint;

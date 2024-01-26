@@ -273,7 +273,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC1155Hook {
     );
 
     // Update contract state.
-    mintParams.idToMint = _id;
+    mintParams.tokenIdToMint = _id;
     mintParams.quantityToMint = uint96(_quantity);
     mintParams.currency = currency;
     mintParams.totalPrice = _quantity * pricePerToken;

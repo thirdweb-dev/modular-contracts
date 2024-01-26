@@ -66,16 +66,16 @@ abstract contract ERC1155Initializable is
    */
   function balanceOf(
     address _owner,
-    uint256 _id
+    uint256 _tokenId
   ) public view virtual returns (uint256) {
-    return _balanceOf[_owner][_id];
+    return _balanceOf[_owner][_tokenId];
   }
 
   function balanceOfBatch(
     address[] calldata _owners,
-    uint256[] calldata _ids
+    uint256[] calldata _tokenIds
   ) external view returns (uint256[] memory _balances) {
-    if (_owners.length != _ids.length) {
+    if (_owners.length != _tokenIds.length) {
       revert ERC1155ArrayLengthMismatch();
     }
 
@@ -85,7 +85,7 @@ abstract contract ERC1155Initializable is
     // the array index counter which cannot possibly overflow.
     unchecked {
       for (uint256 i = 0; i < _owners.length; ++i) {
-        _balances[i] = _balanceOf[_owners[i]][_ids[i]];
+        _balances[i] = _balanceOf[_owners[i]][_tokenIds[i]];
       }
     }
   }
@@ -94,8 +94,8 @@ abstract contract ERC1155Initializable is
    *  @notice Returns the total circulating supply of NFTs.
    *  @return supply The total circulating supply of NFTs
    */
-  function totalSupply(uint256 _id) public view virtual returns (uint256) {
-    return _totalSupply[_id];
+  function totalSupply(uint256 _tokenId) public view virtual returns (uint256) {
+    return _totalSupply[_tokenId];
   }
 
   /**
@@ -128,17 +128,17 @@ abstract contract ERC1155Initializable is
 
   /**
    *  @notice Transfers ownership of an NFT from one address to another. If transfer is recipient is a smart contract,
-   *          checks if recipient implements ERC721Receiver interface and calls the `onERC721Received` function.
+   *          checks if recipient implements ERC1155Receiver interface and calls the `onERC1155Received` function.
    *  @param _from The address to transfer from
    *  @param _to The address to transfer to
-   *  @param _id The token ID of the NFT
+   *  @param _tokenId The token ID of the NFT
    *  @param _value Total number of NFTs with that id
    *  @param _data data
    */
   function safeTransferFrom(
     address _from,
     address _to,
-    uint256 _id,
+    uint256 _tokenId,
     uint256 _value,
     bytes calldata _data
   ) public virtual {
@@ -147,10 +147,10 @@ abstract contract ERC1155Initializable is
       "NOT_AUTHORIZED"
     );
 
-    _balanceOf[_from][_id] -= _value;
-    _balanceOf[_to][_id] += _value;
+    _balanceOf[_from][_tokenId] -= _value;
+    _balanceOf[_to][_tokenId] += _value;
 
-    emit TransferSingle(msg.sender, _from, _to, _id, _value);
+    emit TransferSingle(msg.sender, _from, _to, _tokenId, _value);
 
     if (
       _to.code.length == 0
@@ -158,7 +158,7 @@ abstract contract ERC1155Initializable is
         : IERC1155Receiver(_to).onERC1155Received(
           msg.sender,
           _from,
-          _id,
+          _tokenId,
           _value,
           _data
         ) != IERC1155Receiver.onERC1155Received.selector
@@ -167,14 +167,23 @@ abstract contract ERC1155Initializable is
     }
   }
 
+  /**
+   *  @notice Transfers ownership of tokens from one address to another. If transfer is recipient is a smart contract,
+   *          checks if recipient implements ERC1155Receiver interface and calls the `onERC1155Received` function.
+   *  @param _from The address to transfer from
+   *  @param _to The address to transfer to
+   *  @param _tokenIds The token IDs of the NFT
+   *  @param _values Total amounts of NFTs with those ids
+   *  @param _data data
+   */
   function safeBatchTransferFrom(
     address _from,
     address _to,
-    uint256[] calldata _ids,
+    uint256[] calldata _tokenIds,
     uint256[] calldata _values,
     bytes calldata _data
   ) public virtual {
-    if (_ids.length != _values.length) {
+    if (_tokenIds.length != _values.length) {
       revert ERC1155ArrayLengthMismatch();
     }
 
@@ -186,8 +195,8 @@ abstract contract ERC1155Initializable is
     uint256 id;
     uint256 value;
 
-    for (uint256 i = 0; i < _ids.length; ) {
-      id = _ids[i];
+    for (uint256 i = 0; i < _tokenIds.length; ) {
+      id = _tokenIds[i];
       value = _values[i];
 
       _balanceOf[_from][id] -= value;
@@ -200,7 +209,7 @@ abstract contract ERC1155Initializable is
       }
     }
 
-    emit TransferBatch(msg.sender, _from, _to, _ids, _values);
+    emit TransferBatch(msg.sender, _from, _to, _tokenIds, _values);
 
     if (
       _to.code.length == 0
@@ -208,7 +217,7 @@ abstract contract ERC1155Initializable is
         : IERC1155Receiver(_to).onERC1155BatchReceived(
           msg.sender,
           _from,
-          _ids,
+          _tokenIds,
           _values,
           _data
         ) != IERC1155Receiver.onERC1155BatchReceived.selector
@@ -223,13 +232,13 @@ abstract contract ERC1155Initializable is
 
   function _mint(
     address _to,
-    uint256 _id,
+    uint256 _tokenId,
     uint256 _value,
     bytes memory _data
   ) internal virtual {
-    _balanceOf[_to][_id] += _value;
+    _balanceOf[_to][_tokenId] += _value;
 
-    emit TransferSingle(msg.sender, address(0), _to, _id, _value);
+    emit TransferSingle(msg.sender, address(0), _to, _tokenId, _value);
 
     if (
       _to.code.length == 0
@@ -237,7 +246,7 @@ abstract contract ERC1155Initializable is
         : IERC1155Receiver(_to).onERC1155Received(
           msg.sender,
           address(0),
-          _id,
+          _tokenId,
           _value,
           _data
         ) != IERC1155Receiver.onERC1155BatchReceived.selector
@@ -248,18 +257,18 @@ abstract contract ERC1155Initializable is
 
   function _batchMint(
     address _to,
-    uint256[] memory _ids,
+    uint256[] memory _tokenIds,
     uint256[] memory _values,
     bytes memory _data
   ) internal virtual {
-    uint256 idsLength = _ids.length; // Saves MLOADs.
+    uint256 idsLength = _tokenIds.length; // Saves MLOADs.
 
     if (idsLength != _values.length) {
       revert ERC1155ArrayLengthMismatch();
     }
 
     for (uint256 i = 0; i < idsLength; ) {
-      _balanceOf[_to][_ids[i]] += _values[i];
+      _balanceOf[_to][_tokenIds[i]] += _values[i];
 
       // An array can't have a total length
       // larger than the max uint256 value.
@@ -268,7 +277,7 @@ abstract contract ERC1155Initializable is
       }
     }
 
-    emit TransferBatch(msg.sender, address(0), _to, _ids, _values);
+    emit TransferBatch(msg.sender, address(0), _to, _tokenIds, _values);
 
     if (
       _to.code.length == 0
@@ -276,7 +285,7 @@ abstract contract ERC1155Initializable is
         : IERC1155Receiver(_to).onERC1155BatchReceived(
           msg.sender,
           address(0),
-          _ids,
+          _tokenIds,
           _values,
           _data
         ) != IERC1155Receiver.onERC1155BatchReceived.selector
@@ -285,54 +294,58 @@ abstract contract ERC1155Initializable is
     }
   }
 
-  function _burn(address _from, uint256 _id, uint256 _value) internal virtual {
+  function _burn(
+    address _from,
+    uint256 _tokenId,
+    uint256 _value
+  ) internal virtual {
     if (_from == address(0)) {
       revert ERC1155BurnFromZeroAddress();
     }
 
-    uint256 balance = _balanceOf[_from][_id];
+    uint256 balance = _balanceOf[_from][_tokenId];
 
     if (balance < _value) {
-      revert ERC1155NotBalance(_from, _id, _value);
+      revert ERC1155NotBalance(_from, _tokenId, _value);
     }
 
     unchecked {
-      _balanceOf[_from][_id] -= _value;
+      _balanceOf[_from][_tokenId] -= _value;
     }
 
-    emit TransferSingle(msg.sender, _from, address(0), _id, _value);
+    emit TransferSingle(msg.sender, _from, address(0), _tokenId, _value);
   }
 
   function _burnBatch(
     address _from,
-    uint256[] memory _ids,
+    uint256[] memory _tokenIds,
     uint256[] memory _values
   ) internal virtual {
     if (_from == address(0)) {
       revert ERC1155BurnFromZeroAddress();
     }
 
-    uint256 idsLength = _ids.length; // Saves MLOADs.
+    uint256 idsLength = _tokenIds.length; // Saves MLOADs.
 
     if (idsLength != _values.length) {
       revert ERC1155ArrayLengthMismatch();
     }
 
     for (uint256 i = 0; i < idsLength; ) {
-      _balanceOf[_from][_ids[i]] -= _values[i];
+      _balanceOf[_from][_tokenIds[i]] -= _values[i];
 
-      uint256 balance = _balanceOf[_from][_ids[i]];
+      uint256 balance = _balanceOf[_from][_tokenIds[i]];
 
       if (balance < _values[i]) {
-        revert ERC1155NotBalance(_from, _ids[i], _values[i]);
+        revert ERC1155NotBalance(_from, _tokenIds[i], _values[i]);
       }
 
       unchecked {
-        _balanceOf[_from][_ids[i]] -= _values[i];
+        _balanceOf[_from][_tokenIds[i]] -= _values[i];
         ++i;
       }
     }
 
-    emit TransferBatch(msg.sender, _from, address(0), _ids, _values);
+    emit TransferBatch(msg.sender, _from, address(0), _tokenIds, _values);
   }
 }

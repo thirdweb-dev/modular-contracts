@@ -162,7 +162,7 @@ contract SignatureMintHook is
       revert SignatureMintHookInvalidQuantity();
     }
 
-    mintParams.idToMint = _id;
+    mintParams.tokenIdToMint = _id;
     mintParams.quantityToMint = uint96(_quantity);
     mintParams.totalPrice = req.pricePerToken * _quantity;
     mintParams.currency = req.currency;
