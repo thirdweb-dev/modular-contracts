@@ -47,6 +47,7 @@ contract ERC20Core is
   /// @notice The contract URI of the contract.
   string private _contractURI;
 
+  /// @notice nonces for EIP-2612 Permit functionality.
   mapping(address => uint256) private _nonces;
 
   /*//////////////////////////////////////////////////////////////
@@ -57,6 +58,13 @@ contract ERC20Core is
     _disableInitializers();
   }
 
+  /**
+   *  @notice Initializes the ERC-20 Core contract.
+   *  @param _defaultAdmin The default admin for the contract.
+   *  @param _name The name of the token collection.
+   *  @param _symbol The symbol of the token collection.
+   *  @param _uri Contract URI.
+   */
   function initialize(
     address _defaultAdmin,
     string memory _name,
@@ -105,11 +113,23 @@ contract ERC20Core is
     _setupContractURI(_uri);
   }
 
+  /**
+   *  @notice Burns tokens.
+   *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
+   *  @param _amount The amount of tokens to burn.
+   */
   function burn(uint256 _amount) external {
     _beforeBurn(msg.sender, _amount);
     _burn(msg.sender, _amount);
   }
 
+  /**
+   *  @notice Mints tokens. Calls the beforeMint hook.
+   *  @dev Reverts if beforeMint hook is absent or unsuccessful.
+   *  @param _to The address to mint the tokens to.
+   *  @param _amount The amount of tokens to mint.
+   *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
+   */
   function mint(
     address _to,
     uint256 _amount,
@@ -123,6 +143,13 @@ contract ERC20Core is
     _mint(_to, mintParams.quantityToMint);
   }
 
+  /**
+   *  @notice Transfers ownership of tokens from one address to another.
+   *  @dev Overriden to call the beforeTransfer hook. Skips calling the hook if it doesn't exist.
+   *  @param _from The address to transfer from
+   *  @param _to The address to transfer to
+   *  @param _amount The amount of tokens to transfer
+   */
   function transferFrom(
     address _from,
     address _to,
@@ -132,6 +159,12 @@ contract ERC20Core is
     return super.transferFrom(_from, _to, _amount);
   }
 
+  /**
+   *  @notice Approves an address to transfer tokens. Reverts if caller is not owner or approved operator.
+   *  @dev Overriden to call the beforeApprove hook. Skips calling the hook if it doesn't exist.
+   *  @param _spender The address to approve
+   *  @param _amount The amount of tokens to approve
+   */
   function approve(
     address _spender,
     uint256 _amount
@@ -144,6 +177,16 @@ contract ERC20Core is
                         EIP 2612 related functions
     //////////////////////////////////////////////////////////////*/
 
+  /**
+   * @notice Sets allowance based on token owner's signed approval.
+   *
+   * See https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
+   * section].
+   *
+   *  @param owner The account approving the tokens
+   *  @param spender The address to approve
+   *  @param value Amount of tokens to approve
+   */
   function permit(
     address owner,
     address spender,
@@ -190,10 +233,22 @@ contract ERC20Core is
     }
   }
 
+  /**
+   * @notice Returns the current nonce for token owner.
+   *
+   * See https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
+   * section].
+   */
   function nonces(address owner) external view returns (uint256) {
     return _nonces[owner];
   }
 
+  /**
+   * @notice Returns the domain separator used in the encoding of the signature for permit.
+   *
+   * See https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
+   * section].
+   */
   function DOMAIN_SEPARATOR() public view virtual returns (bytes32) {
     return computeDomainSeparator();
   }

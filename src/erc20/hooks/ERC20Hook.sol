@@ -38,6 +38,13 @@ abstract contract ERC20Hook is IERC20Hook {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+  /**
+   *  @notice The beforeMint hook that is called by a core token before minting tokens.
+   *  @param _to The address that is minting tokens.
+   *  @param _amount The amount of tokens to mint.
+   *  @param _encodedArgs The encoded arguments for the beforeMint hook.
+   *  @return details The details around which to execute a mint.
+   */
   function beforeMint(
     address _to,
     uint256 _amount,
@@ -46,6 +53,12 @@ abstract contract ERC20Hook is IERC20Hook {
     revert ERC20HookNotImplemented();
   }
 
+  /**
+   *  @notice The beforeTransfer hook that is called by a core token before transferring tokens.
+   *  @param _from The address that is transferring tokens.
+   *  @param _to The address that is receiving tokens.
+   *  @param _amount The amount of tokens being transferred.
+   */
   function beforeTransfer(
     address _from,
     address _to,
@@ -54,10 +67,21 @@ abstract contract ERC20Hook is IERC20Hook {
     revert ERC20HookNotImplemented();
   }
 
+  /**
+   *  @notice The beforeBurn hook that is called by a core token before burning tokens.
+   *  @param _from The address that is burning tokens.
+   *  @param _amount The amount of tokens being burned.
+   */
   function beforeBurn(address _from, uint256 _amount) external virtual {
     revert ERC20HookNotImplemented();
   }
 
+  /**
+   *  @notice The beforeApprove hook that is called by a core token before approving tokens.
+   *  @param _from The address that is approving tokens.
+   *  @param _to The address that is being approved.
+   *  @param _amount The amount of tokens being approved.
+   */
   function beforeApprove(
     address _from,
     address _to,
