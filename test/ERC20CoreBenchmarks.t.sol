@@ -5,20 +5,19 @@ import {Test} from "forge-std/Test.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
+import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/MockHookImpl.sol";
 
-import {ERC1155Core, ERC1155Initializable} from "src/erc1155/ERC1155Core.sol";
-import {AllowlistMintHook} from "src/erc1155/hooks/AllowlistMintHook.sol";
-import {LazyMintMetadataHook} from "src/erc1155/hooks/LazyMintMetadataHook.sol";
-import {IERC1155} from "src/interface/erc1155/IERC1155.sol";
+import {ERC20Core, ERC20Initializable} from "src/erc20/ERC20Core.sol";
+import {AllowlistMintHook} from "src/erc20/hooks/AllowlistMintHook.sol";
+import {IERC20} from "src/interface/erc20/IERC20.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
 
 /**
- *  This test showcases how users would use ERC-1155 contracts on the thirdweb platform.
+ *  This test showcases how users would use ERC-20 contracts on the thirdweb platform.
  *
  *  CORE CONTRACTS:
  *
- *  Developers will deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-1155 Core contract.
+ *  Developers will deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-20 Core contract.
  *
  *      - This contract is initializable, and meant to be used with proxy contracts.
  *      - Implements the token standard (and the respective token metadata standard).
@@ -27,14 +26,12 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *
  *  HOOKS:
  *
- *  Core contracts work with "hooks". There is a fixed set of 6 hooks supported by the core contract:
+ *  Core contracts work with "hooks". There is a fixed set of 4 hooks supported by the core contract:
  *
- *      - BeforeMint: called before a token is minted in the ERC1155Core.mint call.
- *      - BeforeTransfer: called before a token is transferred in the ERC1155.transferFrom call.
- *      - BeforeBurn: called before a token is burned in the ERC1155.burn call.
- *      - BeforeApprove: called before the ERC1155.approve call.
- *      - Token URI: called when the ERC1155Metadata.uri function is called.
- *      - Royalty: called when the ERC2981.royaltyInfo function is called.
+ *      - BeforeMint: called before a token is minted in the ERC20Core.mint call.
+ *      - BeforeTransfer: called before a token is transferred in the ERC20.transfer call.
+ *      - BeforeBurn: called before a token is burned in the ERC20.burn call.
+ *      - BeforeApprove: called before the ERC20.approve call.
  *
  *  Each of these hooks is an external call made to a contract that implements the `IHook` interface.
  *
@@ -45,11 +42,11 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *
  *  UPGRADEABILITY:
  *
- *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc1155/hooks/). These hook contracts are
+ *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc20/hooks/). These hook contracts are
  *  designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make
  *  beacon upgrades to developer contracts using these hooks.
  */
-contract ERC1155CoreBenchmarkTest is Test {
+contract ERC20CoreBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -63,19 +60,18 @@ contract ERC1155CoreBenchmarkTest is Test {
     CloneFactory public cloneFactory;
 
     // Target test contracts
-    address public erc1155Implementation;
+    address public erc20Implementation;
     address public hookProxyAddress;
 
-    ERC1155Core public erc1155;
+    ERC20Core public erc20;
     AllowlistMintHook public simpleClaimHook;
-    LazyMintMetadataHook public lazyMintHook;
 
     // Token claim params
-    uint256 public pricePerToken = 0.1 ether;
-    uint256 public availableSupply = 100;
+    uint256 public pricePerToken = 1 ether;
+    uint256 public availableSupply = 100 ether;
 
     function setUp() public {
-        // Setup up to enabling minting on ERC-1155 contract.
+        // Setup up to enabling minting on ERC-20 contract.
 
         // Platform contracts: gas incurred by platform.
         vm.startPrank(platformAdmin);
@@ -85,11 +81,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHook())));
         simpleClaimHook = AllowlistMintHook(hookProxyAddress);
 
-        address lazyMintHookProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
-        lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
-
-        erc1155Implementation = address(new ERC1155Core());
+        erc20Implementation = address(new ERC20Core());
 
         vm.stopPrank();
 
@@ -97,13 +89,13 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
-        erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
+            abi.encodeWithSelector(ERC20Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+        erc20 = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
 
-        vm.label(address(erc1155), "ERC1155Core");
-        vm.label(erc1155Implementation, "ERC1155CoreImpl");
+        vm.label(address(erc20), "ERC20Core");
+        vm.label(erc20Implementation, "ERC20CoreImpl");
         vm.label(hookProxyAddress, "AllowlistMintHook");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
@@ -111,8 +103,6 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         // Developer sets up token metadata and claim conditions: gas incurred by developer.
         vm.startPrank(platformUser);
-
-        lazyMintHook.lazyMint(address(erc1155), 3, "https://example.com/", "");
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -127,22 +117,21 @@ contract ERC1155CoreBenchmarkTest is Test {
             allowlistMerkleRoot: root
         });
 
-        simpleClaimHook.setClaimCondition(address(erc1155), 0, condition);
+        simpleClaimHook.setClaimCondition(address(erc20), condition);
 
         AllowlistMintHook.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        simpleClaimHook.setDefaultFeeConfig(address(erc1155), feeConfig);
+        simpleClaimHook.setFeeConfig(address(erc20), feeConfig);
 
         // Developer installs `AllowlistMintHook` hook
-        erc1155.installHook(IHook(hookProxyAddress));
-        erc1155.installHook(IHook(lazyMintHookProxyAddress));
+        erc20.installHook(IHook(hookProxyAddress));
 
         vm.stopPrank();
 
-        vm.deal(claimer, 10 ether);
+        vm.deal(claimer, 100 ether);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -150,13 +139,13 @@ contract ERC1155CoreBenchmarkTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_deployEndUserContract() public {
-        // Deploy a minimal proxy to the ERC1155Core implementation contract.
+        // Deploy a minimal proxy to the ERC20Core implementation contract.
 
         vm.pauseGasMetering();
 
-        address impl = erc1155Implementation;
+        address impl = erc20Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC20Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();
@@ -178,20 +167,19 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
-        uint256 quantityToClaim = 1;
+        uint256 quantityToClaim = 1 ether;
 
         bytes memory encodedArgs = abi.encode(proofs);
 
-        ERC1155Core claimContract = erc1155;
+        ERC20Core claimContract = erc20;
         address claimerAddress = claimer;
-        uint256 tokenId = 0;
 
         vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
@@ -204,20 +192,19 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         bytes memory result = vm.ffi(inputs);
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
-        uint256 quantityToClaim = 10;
+        uint256 quantityToClaim = 10 ether;
 
         bytes memory encodedArgs = abi.encode(proofs);
 
-        ERC1155Core claimContract = erc1155;
+        ERC20Core claimContract = erc20;
         address claimerAddress = claimer;
-        uint256 tokenId = 0;
 
         vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -234,26 +221,24 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         bytes memory claimResult = vm.ffi(claimInputs);
         bytes32[] memory proofs = abi.decode(claimResult, (bytes32[]));
-        uint256 quantityToClaim = 1;
+        uint256 quantityToClaim = 1 ether;
 
         bytes memory encodedArgs = abi.encode(proofs);
-        uint256 tokenId = 0;
 
         // Claim token
         vm.prank(claimer);
-        erc1155.mint{value: pricePerToken}(claimer, tokenId, quantityToClaim, encodedArgs);
+        erc20.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
 
         address to = address(0x121212);
         address from = claimer;
-        uint256 quantityToTransfer = 1;
 
-        ERC1155Core erc1155Contract = erc1155;
+        ERC20Core erc20Contract = erc20;
         vm.prank(from);
 
         vm.resumeGasMetering();
 
         // Transfer token
-        erc1155Contract.safeTransferFrom(from, to, tokenId, quantityToTransfer, "");
+        erc20Contract.transfer(to, 1);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -283,8 +268,8 @@ contract ERC1155CoreBenchmarkTest is Test {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
-        ERC1155Core hookConsumer = erc1155;
+        IHook mockHook = IHook(address(new MockOneHookImpl20()));
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
 
@@ -296,8 +281,8 @@ contract ERC1155CoreBenchmarkTest is Test {
     function test_installfiveHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
-        ERC1155Core hookConsumer = erc1155;
+        IHook mockHook = IHook(address(new MockFourHookImpl20()));
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
@@ -312,8 +297,8 @@ contract ERC1155CoreBenchmarkTest is Test {
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
-        ERC1155Core hookConsumer = erc1155;
+        IHook mockHook = IHook(address(new MockOneHookImpl20()));
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
         hookConsumer.installHook(mockHook);
@@ -328,8 +313,8 @@ contract ERC1155CoreBenchmarkTest is Test {
     function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
-        ERC1155Core hookConsumer = erc1155;
+        IHook mockHook = IHook(address(new MockFourHookImpl20()));
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
         hookConsumer.uninstallHook(IHook(hookProxyAddress));

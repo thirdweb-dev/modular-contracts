@@ -37,7 +37,7 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *      - Royalty: called when the ERC2981.royaltyInfo function is called.
  *
  *  Each of these hooks is an external call made to a contract that implements the `IHook` interface.
- *  
+ *
  *  The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic
  *  right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
  *
