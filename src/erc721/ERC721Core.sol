@@ -10,8 +10,15 @@ import {HookInstaller} from "../extension/HookInstaller.sol";
 import {Initializable} from "../extension/Initializable.sol";
 import {Permission} from "../extension/Permission.sol";
 
-contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permission, IERC721HookInstaller, IERC721CoreCustomErrors, IERC7572 {
-
+contract ERC721Core is
+    Initializable,
+    ERC721Initializable,
+    HookInstaller,
+    Permission,
+    IERC721HookInstaller,
+    IERC721CoreCustomErrors,
+    IERC7572
+{
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -40,7 +47,7 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
 
     /// @notice The contract URI of the contract.
     string private _contractURI;
-    
+
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
     //////////////////////////////////////////////////////////////*/
@@ -55,7 +62,10 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      */
-    function initialize(address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri) external initializer {
+    function initialize(address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
+        external
+        initializer
+    {
         _setupContractURI(_uri);
         __ERC721_init(_name, _symbol);
         _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
@@ -102,11 +112,7 @@ contract ERC721Core is Initializable, ERC721Initializable, HookInstaller, Permis
      *  @return recipient The royalty recipient address
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
      */
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
-        external
-        view
-        returns (address, uint256)
-    {
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice) external view returns (address, uint256) {
         return _getRoyaltyInfo(_tokenId, _salePrice);
     }
 

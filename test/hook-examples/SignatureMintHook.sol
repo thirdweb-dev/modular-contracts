@@ -67,7 +67,8 @@ contract SignatureMintHookTest is Test {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+        bytes memory data =
+            abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
         vm.stopPrank();

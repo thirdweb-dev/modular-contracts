@@ -93,7 +93,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert DropMintHookNotAuthorized();
         }
         _;
@@ -307,7 +307,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
 
     function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
         if (_totalPrice == 0) {
-            if(msg.value > 0) {
+            if (msg.value > 0) {
                 revert DropMintHookIncorrectValueSent();
             }
             return;
@@ -324,7 +324,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
         }
 
         if (_currency == NATIVE_TOKEN) {
-            if(msg.value != _totalPrice) {
+            if (msg.value != _totalPrice) {
                 revert DropMintHookIncorrectValueSent();
             }
             if (payoutPlatformFees) {
@@ -332,15 +332,13 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
             }
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         } else {
-            if(msg.value > 0) {
+            if (msg.value > 0) {
                 revert DropMintHookIncorrectValueSent();
             }
             if (payoutPlatformFees) {
                 SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
-            SafeTransferLib.safeTransferFrom(
-                token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
-            );
+            SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         }
     }
 }

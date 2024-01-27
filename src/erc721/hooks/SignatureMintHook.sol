@@ -41,7 +41,7 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC721, EIP712, ERC721Hook
 
     /// @notice Emitted when caller is not token core admin.
     error SignatureMintHookNotAuthorized();
-    
+
     /// @notice Emitted when minting invalid quantity.
     error SignatureMintHookInvalidQuantity();
 
@@ -76,7 +76,7 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC721, EIP712, ERC721Hook
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert SignatureMintHookNotAuthorized();
         }
         _;
@@ -141,7 +141,7 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC721, EIP712, ERC721Hook
         address token = msg.sender;
 
         (MintRequestERC721 memory req, bytes memory signature) = abi.decode(_encodedArgs, (MintRequestERC721, bytes));
-        if(req.quantity != _quantity) {
+        if (req.quantity != _quantity) {
             revert SignatureMintHookInvalidQuantity();
         }
 
@@ -185,7 +185,7 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC721, EIP712, ERC721Hook
 
     function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
         if (_totalPrice == 0) {
-            if(msg.value > 0) {
+            if (msg.value > 0) {
                 revert SignatureMintHookIncorrectValueSent();
             }
             return;
@@ -202,7 +202,7 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC721, EIP712, ERC721Hook
         }
 
         if (_currency == NATIVE_TOKEN) {
-            if(msg.value != _totalPrice) {
+            if (msg.value != _totalPrice) {
                 revert SignatureMintHookIncorrectValueSent();
             }
             if (payoutPlatformFees) {
@@ -210,15 +210,13 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC721, EIP712, ERC721Hook
             }
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         } else {
-            if(msg.value > 0) {
+            if (msg.value > 0) {
                 revert SignatureMintHookIncorrectValueSent();
             }
             if (payoutPlatformFees) {
                 SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
-            SafeTransferLib.safeTransferFrom(
-                token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
-            );
+            SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         }
     }
 
@@ -260,10 +258,10 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC721, EIP712, ERC721Hook
         if (_req.validityStartTimestamp > block.timestamp || block.timestamp > _req.validityEndTimestamp) {
             revert SignatureMintHookRequestExpired();
         }
-        if(_req.to == address(0)) {
+        if (_req.to == address(0)) {
             revert SignatureMintHookInvalidRecipient();
         }
-        if(_req.quantity == 0) {
+        if (_req.quantity == 0) {
             revert SignatureMintHookInvalidQuantity();
         }
 

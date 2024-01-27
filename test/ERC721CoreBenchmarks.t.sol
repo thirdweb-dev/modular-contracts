@@ -36,8 +36,8 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *      - Token URI: called when the ERC721Metadata.tokenURI function is called.
  *      - Royalty: called when the ERC2981.royaltyInfo function is called.
  *
- *  Each of these hooks is an external call made to a contract that implements the `IHook` interface. 
- 
+ *  Each of these hooks is an external call made to a contract that implements the `IHook` interface.
+ *  
  *  The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic
  *  right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
  *
@@ -49,7 +49,6 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *  designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make
  *  beacon upgrades to developer contracts using these hooks.
  */
-
 contract ERC721CoreBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
@@ -98,7 +97,8 @@ contract ERC721CoreBenchmarkTest is Test {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+        bytes memory data =
+            abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -156,7 +156,8 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         address impl = erc721Implementation;
-        bytes memory data = abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+        bytes memory data =
+            abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();

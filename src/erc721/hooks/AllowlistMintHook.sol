@@ -8,7 +8,6 @@ import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
 contract AllowlistMintHook is IFeeConfig, ERC721Hook {
-
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -80,7 +79,7 @@ contract AllowlistMintHook is IFeeConfig, ERC721Hook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert AllowlistMintHookNotAuthorized();
         }
         _;
@@ -197,7 +196,7 @@ contract AllowlistMintHook is IFeeConfig, ERC721Hook {
     //////////////////////////////////////////////////////////////*/
 
     function _collectPrice(uint256 _totalPrice) internal {
-        if(msg.value != _totalPrice) {
+        if (msg.value != _totalPrice) {
             revert AllowlistMintHookIncorrectValueSent();
         }
         if (_totalPrice == 0) {
@@ -209,7 +208,7 @@ contract AllowlistMintHook is IFeeConfig, ERC721Hook {
 
         uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
 
-        if(msg.value != _totalPrice) {
+        if (msg.value != _totalPrice) {
             revert AllowlistMintHookIncorrectValueSent();
         }
         if (platformFees > 0) {

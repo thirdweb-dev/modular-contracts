@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
-import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
+import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
-import { ERC1155Core, ERC1155Initializable } from "src/erc1155/ERC1155Core.sol";
-import { AllowlistMintHook } from "src/erc1155/hooks/AllowlistMintHook.sol";
-import { LazyMintMetadataHook } from "src/erc1155/hooks/LazyMintMetadataHook.sol";
-import { IERC1155 } from "src/interface/erc1155/IERC1155.sol";
-import { IHook } from "src/interface/extension/IHook.sol";
+import {ERC1155Core, ERC1155Initializable} from "src/erc1155/ERC1155Core.sol";
+import {AllowlistMintHook} from "src/erc1155/hooks/AllowlistMintHook.sol";
+import {LazyMintMetadataHook} from "src/erc1155/hooks/LazyMintMetadataHook.sol";
+import {IERC1155} from "src/interface/erc1155/IERC1155.sol";
+import {IHook} from "src/interface/extension/IHook.sol";
 
 /**
  *  This test showcases how users would use ERC-1155 contracts on the thirdweb platform.
@@ -36,8 +36,8 @@ import { IHook } from "src/interface/extension/IHook.sol";
  *      - Token URI: called when the ERC1155Metadata.uri function is called.
  *      - Royalty: called when the ERC2981.royaltyInfo function is called.
  *
- *  Each of these hooks is an external call made to a contract that implements the `IHook` interface. 
- 
+ *  Each of these hooks is an external call made to a contract that implements the `IHook` interface.
+ *  
  *  The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic
  *  right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
  *
@@ -49,342 +49,298 @@ import { IHook } from "src/interface/extension/IHook.sol";
  *  designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make
  *  beacon upgrades to developer contracts using these hooks.
  */
-
 contract ERC1155CoreBenchmarkTest is Test {
-  /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
 
-  // Participants
-  address public platformAdmin = address(0x123);
-  address public platformUser = address(0x456);
-  address public claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
+    // Participants
+    address public platformAdmin = address(0x123);
+    address public platformUser = address(0x456);
+    address public claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
 
-  // Test util
-  CloneFactory public cloneFactory;
+    // Test util
+    CloneFactory public cloneFactory;
 
-  // Target test contracts
-  address public erc1155Implementation;
-  address public hookProxyAddress;
+    // Target test contracts
+    address public erc1155Implementation;
+    address public hookProxyAddress;
 
-  ERC1155Core public erc1155;
-  AllowlistMintHook public simpleClaimHook;
-  LazyMintMetadataHook public lazyMintHook;
+    ERC1155Core public erc1155;
+    AllowlistMintHook public simpleClaimHook;
+    LazyMintMetadataHook public lazyMintHook;
 
-  // Token claim params
-  uint256 public pricePerToken = 0.1 ether;
-  uint256 public availableSupply = 100;
+    // Token claim params
+    uint256 public pricePerToken = 0.1 ether;
+    uint256 public availableSupply = 100;
 
-  function setUp() public {
-    // Setup up to enabling minting on ERC-1155 contract.
+    function setUp() public {
+        // Setup up to enabling minting on ERC-1155 contract.
 
-    // Platform contracts: gas incurred by platform.
-    vm.startPrank(platformAdmin);
+        // Platform contracts: gas incurred by platform.
+        vm.startPrank(platformAdmin);
 
-    cloneFactory = new CloneFactory();
+        cloneFactory = new CloneFactory();
 
-    hookProxyAddress = address(
-      new MinimalUpgradeableRouter(
-        platformAdmin,
-        address(new AllowlistMintHook())
-      )
-    );
-    simpleClaimHook = AllowlistMintHook(hookProxyAddress);
+        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHook())));
+        simpleClaimHook = AllowlistMintHook(hookProxyAddress);
 
-    address lazyMintHookProxyAddress = address(
-      new MinimalUpgradeableRouter(
-        platformAdmin,
-        address(new LazyMintMetadataHook())
-      )
-    );
-    lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
+        address lazyMintHookProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
+        lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
 
-    erc1155Implementation = address(new ERC1155Core());
+        erc1155Implementation = address(new ERC1155Core());
 
-    vm.stopPrank();
+        vm.stopPrank();
 
-    // Developer contract: gas incurred by developer.
-    vm.startPrank(platformUser);
+        // Developer contract: gas incurred by developer.
+        vm.startPrank(platformUser);
 
-    bytes memory data = abi.encodeWithSelector(
-      ERC1155Core.initialize.selector,
-      platformUser,
-      "Test",
-      "TST",
-      "contractURI://"
-    );
-    erc1155 = ERC1155Core(
-      cloneFactory.deployProxyByImplementation(
-        erc1155Implementation,
-        data,
-        bytes32("salt")
-      )
-    );
+        bytes memory data =
+            abi.encodeWithSelector(ERC1155Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+        erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
 
-    vm.stopPrank();
+        vm.stopPrank();
 
-    vm.label(address(erc1155), "ERC1155Core");
-    vm.label(erc1155Implementation, "ERC1155CoreImpl");
-    vm.label(hookProxyAddress, "AllowlistMintHook");
-    vm.label(platformAdmin, "Admin");
-    vm.label(platformUser, "Developer");
-    vm.label(claimer, "Claimer");
+        vm.label(address(erc1155), "ERC1155Core");
+        vm.label(erc1155Implementation, "ERC1155CoreImpl");
+        vm.label(hookProxyAddress, "AllowlistMintHook");
+        vm.label(platformAdmin, "Admin");
+        vm.label(platformUser, "Developer");
+        vm.label(claimer, "Claimer");
 
-    // Developer sets up token metadata and claim conditions: gas incurred by developer.
-    vm.startPrank(platformUser);
+        // Developer sets up token metadata and claim conditions: gas incurred by developer.
+        vm.startPrank(platformUser);
 
-    lazyMintHook.lazyMint(address(erc1155), 3, "https://example.com/", "");
+        lazyMintHook.lazyMint(address(erc1155), 3, "https://example.com/", "");
 
-    string[] memory inputs = new string[](2);
-    inputs[0] = "node";
-    inputs[1] = "test/scripts/generateRoot.ts";
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/generateRoot.ts";
 
-    bytes memory result = vm.ffi(inputs);
-    bytes32 root = abi.decode(result, (bytes32));
+        bytes memory result = vm.ffi(inputs);
+        bytes32 root = abi.decode(result, (bytes32));
 
-    AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook
-      .ClaimCondition({
-        price: pricePerToken,
-        availableSupply: availableSupply,
-        allowlistMerkleRoot: root
-      });
+        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
+            price: pricePerToken,
+            availableSupply: availableSupply,
+            allowlistMerkleRoot: root
+        });
 
-    simpleClaimHook.setClaimCondition(address(erc1155), 0, condition);
+        simpleClaimHook.setClaimCondition(address(erc1155), 0, condition);
 
-    AllowlistMintHook.FeeConfig memory feeConfig;
-    feeConfig.primarySaleRecipient = platformUser;
-    feeConfig.platformFeeRecipient = address(0x789);
-    feeConfig.platformFeeBps = 100; // 1%
+        AllowlistMintHook.FeeConfig memory feeConfig;
+        feeConfig.primarySaleRecipient = platformUser;
+        feeConfig.platformFeeRecipient = address(0x789);
+        feeConfig.platformFeeBps = 100; // 1%
 
-    simpleClaimHook.setDefaultFeeConfig(address(erc1155), feeConfig);
+        simpleClaimHook.setDefaultFeeConfig(address(erc1155), feeConfig);
 
-    // Developer installs `AllowlistMintHook` hook
-    erc1155.installHook(IHook(hookProxyAddress));
-    erc1155.installHook(IHook(lazyMintHookProxyAddress));
+        // Developer installs `AllowlistMintHook` hook
+        erc1155.installHook(IHook(hookProxyAddress));
+        erc1155.installHook(IHook(lazyMintHookProxyAddress));
 
-    vm.stopPrank();
+        vm.stopPrank();
 
-    vm.deal(claimer, 10 ether);
-  }
+        vm.deal(claimer, 10 ether);
+    }
 
-  /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
                         DEPLOY END-USER CONTRACT
     //////////////////////////////////////////////////////////////*/
 
-  function test_deployEndUserContract() public {
-    // Deploy a minimal proxy to the ERC1155Core implementation contract.
+    function test_deployEndUserContract() public {
+        // Deploy a minimal proxy to the ERC1155Core implementation contract.
 
-    vm.pauseGasMetering();
+        vm.pauseGasMetering();
 
-    address impl = erc1155Implementation;
-    bytes memory data = abi.encodeWithSelector(
-      ERC1155Core.initialize.selector,
-      platformUser,
-      "Test",
-      "TST",
-      "contractURI://"
-    );
-    bytes32 salt = bytes32("salt");
+        address impl = erc1155Implementation;
+        bytes memory data =
+            abi.encodeWithSelector(ERC1155Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+        bytes32 salt = bytes32("salt");
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    cloneFactory.deployProxyByImplementation(impl, data, salt);
-  }
+        cloneFactory.deployProxyByImplementation(impl, data, salt);
+    }
 
-  /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
                         MINT 1 TOKEN AND 10 TOKENS
     //////////////////////////////////////////////////////////////*/
 
-  function test_mintOneToken() public {
-    vm.pauseGasMetering();
+    function test_mintOneToken() public {
+        vm.pauseGasMetering();
 
-    // Check pre-mint state
-    string[] memory inputs = new string[](2);
-    inputs[0] = "node";
-    inputs[1] = "test/scripts/getProof.ts";
+        // Check pre-mint state
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/getProof.ts";
 
-    bytes memory result = vm.ffi(inputs);
-    bytes32[] memory proofs = abi.decode(result, (bytes32[]));
-    uint256 quantityToClaim = 1;
+        bytes memory result = vm.ffi(inputs);
+        bytes32[] memory proofs = abi.decode(result, (bytes32[]));
+        uint256 quantityToClaim = 1;
 
-    bytes memory encodedArgs = abi.encode(proofs);
+        bytes memory encodedArgs = abi.encode(proofs);
 
-    ERC1155Core claimContract = erc1155;
-    address claimerAddress = claimer;
-    uint256 tokenId = 0;
+        ERC1155Core claimContract = erc1155;
+        address claimerAddress = claimer;
+        uint256 tokenId = 0;
 
-    vm.prank(claimerAddress);
+        vm.prank(claimerAddress);
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    // Claim token
-    claimContract.mint{ value: pricePerToken }(
-      claimerAddress,
-      tokenId,
-      quantityToClaim,
-      encodedArgs
-    );
-  }
+        // Claim token
+        claimContract.mint{value: pricePerToken}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+    }
 
-  function test_mintTenTokens() public {
-    vm.pauseGasMetering();
+    function test_mintTenTokens() public {
+        vm.pauseGasMetering();
 
-    // Check pre-mint state
-    string[] memory inputs = new string[](2);
-    inputs[0] = "node";
-    inputs[1] = "test/scripts/getProof.ts";
+        // Check pre-mint state
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/getProof.ts";
 
-    bytes memory result = vm.ffi(inputs);
-    bytes32[] memory proofs = abi.decode(result, (bytes32[]));
-    uint256 quantityToClaim = 10;
+        bytes memory result = vm.ffi(inputs);
+        bytes32[] memory proofs = abi.decode(result, (bytes32[]));
+        uint256 quantityToClaim = 10;
 
-    bytes memory encodedArgs = abi.encode(proofs);
+        bytes memory encodedArgs = abi.encode(proofs);
 
-    ERC1155Core claimContract = erc1155;
-    address claimerAddress = claimer;
-    uint256 tokenId = 0;
+        ERC1155Core claimContract = erc1155;
+        address claimerAddress = claimer;
+        uint256 tokenId = 0;
 
-    vm.prank(claimerAddress);
+        vm.prank(claimerAddress);
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    // Claim token
-    claimContract.mint{ value: pricePerToken * 10 }(
-      claimerAddress,
-      tokenId,
-      quantityToClaim,
-      encodedArgs
-    );
-  }
+        // Claim token
+        claimContract.mint{value: pricePerToken * 10}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+    }
 
-  /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
                             TRANSFER 1 TOKEN
     //////////////////////////////////////////////////////////////*/
 
-  function test_transferOneToken() public {
-    vm.pauseGasMetering();
+    function test_transferOneToken() public {
+        vm.pauseGasMetering();
 
-    // Claimer claims one token
-    string[] memory claimInputs = new string[](2);
-    claimInputs[0] = "node";
-    claimInputs[1] = "test/scripts/getProof.ts";
+        // Claimer claims one token
+        string[] memory claimInputs = new string[](2);
+        claimInputs[0] = "node";
+        claimInputs[1] = "test/scripts/getProof.ts";
 
-    bytes memory claimResult = vm.ffi(claimInputs);
-    bytes32[] memory proofs = abi.decode(claimResult, (bytes32[]));
-    uint256 quantityToClaim = 1;
+        bytes memory claimResult = vm.ffi(claimInputs);
+        bytes32[] memory proofs = abi.decode(claimResult, (bytes32[]));
+        uint256 quantityToClaim = 1;
 
-    bytes memory encodedArgs = abi.encode(proofs);
-    uint256 tokenId = 0;
+        bytes memory encodedArgs = abi.encode(proofs);
+        uint256 tokenId = 0;
 
-    // Claim token
-    vm.prank(claimer);
-    erc1155.mint{ value: pricePerToken }(
-      claimer,
-      tokenId,
-      quantityToClaim,
-      encodedArgs
-    );
+        // Claim token
+        vm.prank(claimer);
+        erc1155.mint{value: pricePerToken}(claimer, tokenId, quantityToClaim, encodedArgs);
 
-    address to = address(0x121212);
-    address from = claimer;
-    uint256 quantityToTransfer = 1;
+        address to = address(0x121212);
+        address from = claimer;
+        uint256 quantityToTransfer = 1;
 
-    ERC1155Core erc1155Contract = erc1155;
-    vm.prank(from);
+        ERC1155Core erc1155Contract = erc1155;
+        vm.prank(from);
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    // Transfer token
-    erc1155Contract.safeTransferFrom(from, to, tokenId, quantityToTransfer, "");
-  }
+        // Transfer token
+        erc1155Contract.safeTransferFrom(from, to, tokenId, quantityToTransfer, "");
+    }
 
-  /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
                         PERFORM A BEACON UPGRADE
     //////////////////////////////////////////////////////////////*/
 
-  function test_beaconUpgrade() public {
-    vm.pauseGasMetering();
+    function test_beaconUpgrade() public {
+        vm.pauseGasMetering();
 
-    bytes4 sel = AllowlistMintHook.beforeMint.selector;
-    address newImpl = address(new AllowlistMintHook());
-    address proxyAdmin = platformAdmin;
-    MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(
-      payable(hookProxyAddress)
-    );
+        bytes4 sel = AllowlistMintHook.beforeMint.selector;
+        address newImpl = address(new AllowlistMintHook());
+        address proxyAdmin = platformAdmin;
+        MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
 
-    vm.prank(proxyAdmin);
+        vm.prank(proxyAdmin);
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    // Perform upgrade
-    proxy.setImplementationForFunction(sel, newImpl);
-  }
+        // Perform upgrade
+        proxy.setImplementationForFunction(sel, newImpl);
+    }
 
-  /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
             ADD NEW FUNCTIONALITY AND UPDATE FUNCTIONALITY
     //////////////////////////////////////////////////////////////*/
 
-  function test_installOneHook() public {
-    vm.pauseGasMetering();
+    function test_installOneHook() public {
+        vm.pauseGasMetering();
 
-    IHook mockHook = IHook(address(new MockOneHookImpl()));
-    ERC1155Core hookConsumer = erc1155;
+        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        ERC1155Core hookConsumer = erc1155;
 
-    vm.prank(platformUser);
+        vm.prank(platformUser);
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    hookConsumer.installHook(mockHook);
-  }
+        hookConsumer.installHook(mockHook);
+    }
 
-  function test_installfiveHooks() public {
-    vm.pauseGasMetering();
+    function test_installfiveHooks() public {
+        vm.pauseGasMetering();
 
-    IHook mockHook = IHook(address(new MockFourHookImpl()));
-    ERC1155Core hookConsumer = erc1155;
+        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        ERC1155Core hookConsumer = erc1155;
 
-    vm.prank(platformUser);
-    hookConsumer.uninstallHook(IHook(hookProxyAddress));
+        vm.prank(platformUser);
+        hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
-    vm.prank(platformUser);
+        vm.prank(platformUser);
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    hookConsumer.installHook(mockHook);
-  }
+        hookConsumer.installHook(mockHook);
+    }
 
-  function test_uninstallOneHook() public {
-    vm.pauseGasMetering();
+    function test_uninstallOneHook() public {
+        vm.pauseGasMetering();
 
-    IHook mockHook = IHook(address(new MockOneHookImpl()));
-    ERC1155Core hookConsumer = erc1155;
+        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        ERC1155Core hookConsumer = erc1155;
 
-    vm.prank(platformUser);
-    hookConsumer.installHook(mockHook);
+        vm.prank(platformUser);
+        hookConsumer.installHook(mockHook);
 
-    vm.prank(platformUser);
+        vm.prank(platformUser);
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    hookConsumer.uninstallHook(mockHook);
-  }
+        hookConsumer.uninstallHook(mockHook);
+    }
 
-  function test_uninstallFiveHooks() public {
-    vm.pauseGasMetering();
+    function test_uninstallFiveHooks() public {
+        vm.pauseGasMetering();
 
-    IHook mockHook = IHook(address(new MockFourHookImpl()));
-    ERC1155Core hookConsumer = erc1155;
+        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        ERC1155Core hookConsumer = erc1155;
 
-    vm.prank(platformUser);
-    hookConsumer.uninstallHook(IHook(hookProxyAddress));
+        vm.prank(platformUser);
+        hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
-    vm.prank(platformUser);
-    hookConsumer.installHook(mockHook);
+        vm.prank(platformUser);
+        hookConsumer.installHook(mockHook);
 
-    vm.prank(platformUser);
+        vm.prank(platformUser);
 
-    vm.resumeGasMetering();
+        vm.resumeGasMetering();
 
-    hookConsumer.uninstallHook(mockHook);
-  }
+        hookConsumer.uninstallHook(mockHook);
+    }
 }

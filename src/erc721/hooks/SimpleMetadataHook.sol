@@ -8,7 +8,7 @@ import {LibString} from "../../lib/LibString.sol";
 
 contract SimpleMetadataHook is ERC721Hook {
     using LibString for uint256;
-    
+
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -43,7 +43,7 @@ contract SimpleMetadataHook is ERC721Hook {
 
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
-        if(!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
             revert SimpleMetadataHookNotAuthorized();
         }
         _;

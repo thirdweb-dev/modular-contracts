@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../extension/IHook.sol";
 
 interface IERC721Hook is IHook {
-
     /*//////////////////////////////////////////////////////////////
                                 STRUCT
     //////////////////////////////////////////////////////////////*/
@@ -92,5 +91,8 @@ interface IERC721Hook is IHook {
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice) external view returns (address receiver, uint256 royaltyAmount);
+    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+        external
+        view
+        returns (address receiver, uint256 royaltyAmount);
 }
