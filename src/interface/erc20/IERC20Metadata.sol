@@ -12,5 +12,6 @@ interface IERC20Metadata {
     /// @notice Returns the symbol of the token collection.
     function symbol() external view returns (string memory);
 
+    /// @notice Returns the number of decimals used to get its user representation.
     function decimals() external view returns (uint8);
 }
