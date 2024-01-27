@@ -142,10 +142,9 @@ abstract contract ERC1155Initializable is
     uint256 _value,
     bytes calldata _data
   ) public virtual {
-    require(
-      msg.sender == _from || isApprovedForAll[_from][msg.sender],
-      "NOT_AUTHORIZED"
-    );
+    if(msg.sender != _from && isApprovedForAll[_from][msg.sender]) {
+      revert ERC1155NotApprovedOrOwner(msg.sender);
+    }
 
     _balanceOf[_from][_tokenId] -= _value;
     _balanceOf[_to][_tokenId] += _value;
