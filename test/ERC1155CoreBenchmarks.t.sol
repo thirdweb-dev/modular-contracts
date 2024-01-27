@@ -33,7 +33,7 @@ import { IHook } from "src/interface/extension/IHook.sol";
  *      - BeforeTransfer: called before a token is transferred in the ERC1155.transferFrom call.
  *      - BeforeBurn: called before a token is burned in the ERC1155.burn call.
  *      - BeforeApprove: called before the ERC1155.approve call.
- *      - Token URI: called when the ERC1155Metadata.tokenURI function is called.
+ *      - Token URI: called when the ERC1155Metadata.uri function is called.
  *      - Royalty: called when the ERC2981.royaltyInfo function is called.
  *
  *  Each of these hooks is an external call made to a contract that implements the `IHook` interface. 
