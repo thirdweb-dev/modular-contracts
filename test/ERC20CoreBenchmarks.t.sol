@@ -26,7 +26,7 @@ import { IHook } from "src/interface/extension/IHook.sol";
  *
  *  HOOKS:
  *
- *  Core contracts work with "hooks". There is a fixed set of 5 hooks supported by the core contract:
+ *  Core contracts work with "hooks". There is a fixed set of 4 hooks supported by the core contract:
  *
  *      - BeforeMint: called before a token is minted in the ERC20Core.mint call.
  *      - BeforeTransfer: called before a token is transferred in the ERC20.transfer call.
