@@ -8,16 +8,16 @@ interface IERC20Hook is IHook {
                                   STRUCT
     //////////////////////////////////////////////////////////////*/
 
-	/**
+    /**
      *  @notice A struct for internal use. The details around which to execute a mint, returned by the beforeMint hook.
      *  @param totalPrice The total price to pay to mint the tokens.
      *  @param currency The currency in which to pay for the tokens.
      *  @param quantityToMint The quantity of tokens to mint.
      */
     struct MintParams {
-      uint256 totalPrice;
-      address currency;
-      uint96 quantityToMint;
+        uint256 totalPrice;
+        address currency;
+        uint96 quantityToMint;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -32,29 +32,25 @@ interface IERC20Hook is IHook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature()
-      external
-      view
-      returns (string memory argSignature);
+    function getBeforeMintArgSignature() external view returns (string memory argSignature);
 
     /*//////////////////////////////////////////////////////////////
                               HOOK FUNCTIONS
       //////////////////////////////////////////////////////////////*/
 
-	/**
+    /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
      *  @param to The address that is minting tokens.
      *  @param amount The quantity of tokens to mint.
      *  @param encodedArgs The encoded arguments for the beforeMint hook.
      *  @return details The details around which to execute a mint.
      */
-    function beforeMint(
-      address to,
-      uint256 amount,
-      bytes memory encodedArgs
-    ) external payable returns (MintParams memory details);
+    function beforeMint(address to, uint256 amount, bytes memory encodedArgs)
+        external
+        payable
+        returns (MintParams memory details);
 
-	/**
+    /**
      *  @notice The beforeTransfer hook that is called by a core token before transferring a token.
      *  @param from The address that is transferring tokens.
      *  @param to The address that is receiving tokens.
@@ -62,14 +58,14 @@ interface IERC20Hook is IHook {
      */
     function beforeTransfer(address from, address to, uint256 amount) external;
 
-	/**
+    /**
      *  @notice The beforeBurn hook that is called by a core token before burning a token.
      *  @param from The address that is burning tokens.
      *  @param amount The quantity of tokens to burn.
      */
     function beforeBurn(address from, uint256 amount) external;
 
-	/**
+    /**
      *  @notice The beforeApprove hook that is called by a core token before approving a token.
      *  @param from The address that is approving tokens.
      *  @param to The address that is being approved.

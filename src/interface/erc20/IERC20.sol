@@ -8,7 +8,7 @@ interface IERC20 {
 
     /// @notice Emitted when tokens are transferrred.
     event Transfer(address indexed from, address indexed to, uint256 value);
-    
+
     /// @notice Emitted when an owner updates their allowance to a spender.
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -18,7 +18,7 @@ interface IERC20 {
 
     /// @notice Returns the total circulating supply of tokens.
     function totalSupply() external view returns (uint256);
-    
+
     /**
      *  @notice Returns the balance of the given address.
      *  @param owner The address to query balance for.

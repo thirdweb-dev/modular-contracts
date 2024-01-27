@@ -5,7 +5,7 @@ interface IERC20CustomErrors {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
-    
+
     /// @notice Emitted when burning or approving tokens from zero address as owner.
     error ERC20FromZeroAddress(address owner, uint256 amount);
 

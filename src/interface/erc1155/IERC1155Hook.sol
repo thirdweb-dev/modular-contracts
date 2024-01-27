@@ -39,7 +39,7 @@ interface IERC1155Hook is IHook {
     /*//////////////////////////////////////////////////////////////
                             HOOK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    
+
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
      *  @param to The address that is minting tokens.
