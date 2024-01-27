@@ -170,7 +170,7 @@ contract ERC20Core is
     uint256 _amount
   ) public override returns (bool) {
     _beforeApprove(msg.sender, _spender, _amount);
-    return super.approve(msg.sender, _spender, _amount);
+    return super.approve(_spender, _amount);
   }
 
   /*//////////////////////////////////////////////////////////////

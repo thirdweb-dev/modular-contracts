@@ -80,16 +80,14 @@ abstract contract ERC20Initializable is
 
   /**
    *  @notice Approves an address to transfer tokens. Reverts if caller is not owner or approved operator.
-   *  @param _owner The address approving tokens
    *  @param _spender The address to approve
    *  @param _amount The amount of tokens to approve
    */
   function approve(
-    address _owner,
     address _spender,
     uint256 _amount
   ) public virtual returns (bool) {
-    _approve(_owner, _spender, _amount);
+    _approve(msg.sender, _spender, _amount);
 
     return true;
   }
