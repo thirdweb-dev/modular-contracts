@@ -77,7 +77,7 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC1155, EIP712, ERC1155Ho
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all hook functions implemented by this hook contract.
-    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
+    function getHooks() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = BEFORE_MINT_FLAG;
     }
 
