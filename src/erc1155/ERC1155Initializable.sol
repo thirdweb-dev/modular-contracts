@@ -254,45 +254,6 @@ abstract contract ERC1155Initializable is
     }
   }
 
-  function _batchMint(
-    address _to,
-    uint256[] memory _tokenIds,
-    uint256[] memory _values,
-    bytes memory _data
-  ) internal virtual {
-    uint256 idsLength = _tokenIds.length; // Saves MLOADs.
-
-    if (idsLength != _values.length) {
-      revert ERC1155ArrayLengthMismatch();
-    }
-
-    for (uint256 i = 0; i < idsLength; ) {
-      _balanceOf[_to][_tokenIds[i]] += _values[i];
-
-      // An array can't have a total length
-      // larger than the max uint256 value.
-      unchecked {
-        ++i;
-      }
-    }
-
-    emit TransferBatch(msg.sender, address(0), _to, _tokenIds, _values);
-
-    if (
-      _to.code.length == 0
-        ? _to == address(0)
-        : IERC1155Receiver(_to).onERC1155BatchReceived(
-          msg.sender,
-          address(0),
-          _tokenIds,
-          _values,
-          _data
-        ) != IERC1155Receiver.onERC1155BatchReceived.selector
-    ) {
-      revert ERC1155UnsafeRecipient(_to);
-    }
-  }
-
   function _burn(
     address _from,
     uint256 _tokenId,
@@ -313,38 +274,5 @@ abstract contract ERC1155Initializable is
     }
 
     emit TransferSingle(msg.sender, _from, address(0), _tokenId, _value);
-  }
-
-  function _burnBatch(
-    address _from,
-    uint256[] memory _tokenIds,
-    uint256[] memory _values
-  ) internal virtual {
-    if (_from == address(0)) {
-      revert ERC1155BurnFromZeroAddress();
-    }
-
-    uint256 idsLength = _tokenIds.length; // Saves MLOADs.
-
-    if (idsLength != _values.length) {
-      revert ERC1155ArrayLengthMismatch();
-    }
-
-    for (uint256 i = 0; i < idsLength; ) {
-      _balanceOf[_from][_tokenIds[i]] -= _values[i];
-
-      uint256 balance = _balanceOf[_from][_tokenIds[i]];
-
-      if (balance < _values[i]) {
-        revert ERC1155NotBalance(_from, _tokenIds[i], _values[i]);
-      }
-
-      unchecked {
-        _balanceOf[_from][_tokenIds[i]] -= _values[i];
-        ++i;
-      }
-    }
-
-    emit TransferBatch(msg.sender, _from, address(0), _tokenIds, _values);
   }
 }
