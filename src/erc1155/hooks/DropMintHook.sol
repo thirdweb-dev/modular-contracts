@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
 import {IClaimCondition} from "../../interface/extension/IClaimCondition.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
-import {ERC721Hook} from "./ERC721Hook.sol";
+import {ERC1155Hook} from "./ERC1155Hook.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
+contract DropMintHook is IClaimCondition, IFeeConfig, ERC1155Hook {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -41,10 +41,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when the claim condition for a given token is updated.
-    event ClaimConditionUpdate(address indexed token, ClaimCondition condition, bool resetEligibility);
-
-    /// @notice Emitted when the next token ID to mint is updated.
-    event NextTokenIdUpdate(address indexed token, uint256 nextTokenIdToMint);
+    event ClaimConditionUpdate(address indexed token, uint256 id, ClaimCondition condition, bool resetEligibility);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -72,20 +69,17 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mapping from token => the next token ID to mint.
-    mapping(address => uint256) private _nextTokenIdToMint;
+    /// @notice Mapping from token => token-id => the claim conditions for minting the token.
+    mapping(address => mapping(uint256 => ClaimCondition)) private _claimCondition;
 
-    /// @notice Mapping from token => the claim conditions for minting the token.
-    mapping(address => ClaimCondition) private _claimCondition;
-
-    /// @notice Mapping from condition ID => hash(claimer, token) => supply claimed by wallet.
+    /// @notice Mapping from condition ID => hash(claimer, token, token-id) => supply claimed by wallet.
     mapping(bytes32 => mapping(bytes32 => uint256)) private _supplyClaimedByWallet;
 
-    /// @notice Mapping from token => condition ID.
-    mapping(address => bytes32) private _conditionId;
+    /// @notice Mapping from token => token-id => condition ID.
+    mapping(address => mapping(uint256 => bytes32)) private _conditionId;
 
-    /// @notice Mapping from token => fee config for the token.
-    mapping(address => FeeConfig) private _feeConfig;
+    /// @notice Mapping from token => token-id => fee config for the token.
+    mapping(address => mapping(uint256 => FeeConfig)) private _feeConfig;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -113,11 +107,6 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
         argSignature = "address,uint256,bytes32[],uint256,uint256,address";
     }
 
-    /// @notice Returns the next token ID to mint for a given token.
-    function getNextTokenIdToMint(address _token) external view returns (uint256) {
-        return _nextTokenIdToMint[_token];
-    }
-
     /**
      *  @notice Checks a request to claim NFTs against the active claim condition's criteria.
      *  @param _token The token to claim.
@@ -129,22 +118,23 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
      */
     function verifyClaim(
         address _token,
+        uint256 _id,
         address _claimer,
         uint256 _quantity,
         address _currency,
         uint256 _pricePerToken,
         AllowlistProof memory _allowlistProof
     ) public view virtual returns (bool isOverride) {
-        ClaimCondition memory currentClaimPhase = _claimCondition[_token];
+        ClaimCondition memory currentClaimPhase = _claimCondition[_token][_id];
 
         uint256 claimLimit = currentClaimPhase.quantityLimitPerWallet;
         uint256 claimPrice = currentClaimPhase.pricePerToken;
         address claimCurrency = currentClaimPhase.currency;
 
         /*
-         * Here `isOverride` implies that if the merkle proof verification fails,
-         * the claimer would claim through open claim limit instead of allowlisted limit.
-         */
+     * Here `isOverride` implies that if the merkle proof verification fails,
+     * the claimer would claim through open claim limit instead of allowlisted limit.
+     */
         if (currentClaimPhase.merkleRoot != bytes32(0)) {
             isOverride = MerkleProofLib.verify(
                 _allowlistProof.proof,
@@ -169,7 +159,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
                 : claimCurrency;
         }
 
-        uint256 supplyClaimedByWallet = getSupplyClaimedByWallet(_token, _claimer);
+        uint256 supplyClaimedByWallet = getSupplyClaimedByWallet(_token, _id, _claimer);
 
         if (_currency != claimCurrency || _pricePerToken != claimPrice) {
             revert DropMintHookUnexpectedPriceOrCurrency();
@@ -193,13 +183,18 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
      *  @param _token The token to get the claim condition for.
      *  @param _claimer The address to get the supply claimed for
      */
-    function getSupplyClaimedByWallet(address _token, address _claimer) public view returns (uint256) {
-        return _supplyClaimedByWallet[_conditionId[_token]][keccak256(abi.encode(_claimer, _token))];
+    function getSupplyClaimedByWallet(address _token, uint256 _id, address _claimer) public view returns (uint256) {
+        return _supplyClaimedByWallet[_conditionId[_token][_id]][keccak256(abi.encode(_claimer, _token, _id))];
     }
 
     /// @notice Returns the fee config for a token.
-    function getFeeConfig(address _token) external view returns (FeeConfig memory) {
-        return _feeConfig[_token];
+    function getFeeConfigForToken(address _token, uint256 _id) external view returns (FeeConfig memory) {
+        return _feeConfig[_token][_id];
+    }
+
+    /// @notice Returns the fee config for a token.
+    function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
+        return _feeConfig[_token][type(uint256).max];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -213,7 +208,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
      *  @return mintParams The details around which to execute a mint.
      */
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+    function beforeMint(address _claimer, uint256 _id, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
         override
@@ -224,34 +219,23 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
         (address currency, uint256 pricePerToken, AllowlistProof memory allowlistProof) =
             abi.decode(_encodedArgs, (address, uint256, AllowlistProof));
 
-        verifyClaim(token, _claimer, _quantity, currency, pricePerToken, allowlistProof);
+        verifyClaim(token, _id, _claimer, _quantity, currency, pricePerToken, allowlistProof);
 
         // Update contract state.
-        mintParams.tokenIdToMint = _nextTokenIdToMint[token]++;
+        mintParams.tokenIdToMint = _id;
         mintParams.quantityToMint = uint96(_quantity);
         mintParams.currency = currency;
         mintParams.totalPrice = _quantity * pricePerToken;
 
-        _claimCondition[token].supplyClaimed += _quantity;
-        _supplyClaimedByWallet[_conditionId[token]][keccak256(abi.encode(_claimer, token))] += _quantity;
+        _claimCondition[token][_id].supplyClaimed += _quantity;
+        _supplyClaimedByWallet[_conditionId[token][_id]][keccak256(abi.encode(_claimer, token, _id))] += _quantity;
 
-        _collectPrice(_claimer, _quantity * pricePerToken, currency);
+        _collectPrice(_claimer, _id, _quantity * pricePerToken, currency);
     }
 
     /*//////////////////////////////////////////////////////////////
                             SETTER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     *  @notice Sets the next token ID to mint for a given token.
-     *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the next token ID to mint for.
-     *  @param _nextIdToMint The next token ID to mint.
-     */
-    function setNextIdToMint(address _token, uint256 _nextIdToMint) external onlyAdmin(_token) {
-        _nextTokenIdToMint[_token] = _nextIdToMint;
-        emit NextTokenIdUpdate(_token, _nextIdToMint);
-    }
 
     /**
      *  @notice Sets the claim condition for a given token.
@@ -260,23 +244,25 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
      *  @param _condition The claim condition to set.
      *  @param _resetClaimEligibility Whether to reset the claim eligibility of all wallets.
      */
-    function setClaimCondition(address _token, ClaimCondition calldata _condition, bool _resetClaimEligibility)
-        external
-        onlyAdmin(_token)
-    {
-        bytes32 targetConditionId = _conditionId[_token];
-        uint256 supplyClaimedAlready = _claimCondition[_token].supplyClaimed;
+    function setClaimCondition(
+        address _token,
+        uint256 _id,
+        ClaimCondition calldata _condition,
+        bool _resetClaimEligibility
+    ) external onlyAdmin(_token) {
+        bytes32 targetConditionId = _conditionId[_token][_id];
+        uint256 supplyClaimedAlready = _claimCondition[_token][_id].supplyClaimed;
 
         if (_resetClaimEligibility) {
             supplyClaimedAlready = 0;
-            targetConditionId = keccak256(abi.encodePacked(msg.sender, block.number));
+            targetConditionId = keccak256(abi.encodePacked(msg.sender, block.number, _id));
         }
 
         if (supplyClaimedAlready > _condition.maxClaimableSupply) {
             revert DropMintHookMaxSupplyClaimed();
         }
 
-        _claimCondition[_token] = ClaimCondition({
+        _claimCondition[_token][_id] = ClaimCondition({
             startTimestamp: _condition.startTimestamp,
             maxClaimableSupply: _condition.maxClaimableSupply,
             supplyClaimed: supplyClaimedAlready,
@@ -286,9 +272,9 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
             currency: _condition.currency,
             metadata: _condition.metadata
         });
-        _conditionId[_token] = targetConditionId;
+        _conditionId[_token][_id] = targetConditionId;
 
-        emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
+        emit ClaimConditionUpdate(_token, _id, _condition, _resetClaimEligibility);
     }
 
     /**
@@ -296,16 +282,26 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
      *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
+    function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
+        _feeConfig[_token][_id] = _config;
+        emit FeeConfigUpdateERC1155(_token, _id, _config);
+    }
+
+    /**
+     *  @notice Sets the fee config for a given token.
+     *  @param _token The token address.
+     *  @param _config The fee config for the token.
+     */
+    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+        _feeConfig[_token][type(uint256).max] = _config;
+        emit FeeConfigUpdateERC1155(_token, type(uint256).max, _config);
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
+    function _collectPrice(address _minter, uint256 _id, uint256 _totalPrice, address _currency) internal {
         if (_totalPrice == 0) {
             if (msg.value > 0) {
                 revert DropMintHookIncorrectValueSent();
@@ -314,7 +310,11 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
         }
 
         address token = msg.sender;
-        FeeConfig memory feeConfig = _feeConfig[token];
+        FeeConfig memory feeConfig = _feeConfig[token][_id];
+
+        if (feeConfig.primarySaleRecipient == address(0) || feeConfig.platformFeeRecipient == address(0)) {
+            feeConfig = _feeConfig[token][type(uint256).max];
+        }
 
         bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
         uint256 platformFees = 0;

@@ -7,7 +7,7 @@ import "src/erc20/hooks/ERC20Hook.sol";
 contract MockOneHookImpl is ERC721Hook {
     constructor() {}
 
-    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
+    function getHooks() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = BEFORE_TRANSFER_FLAG;
     }
 }
@@ -15,7 +15,7 @@ contract MockOneHookImpl is ERC721Hook {
 contract MockFourHookImpl is ERC721Hook {
     constructor() {}
 
-    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
+    function getHooks() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = BEFORE_MINT_FLAG | BEFORE_TRANSFER_FLAG | BEFORE_BURN_FLAG | BEFORE_APPROVE_FLAG;
     }
 }

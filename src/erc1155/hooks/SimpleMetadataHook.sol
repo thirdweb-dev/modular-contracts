@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IPermission} from "../../interface/extension/IPermission.sol";
 
-import {ERC721Hook} from "./ERC721Hook.sol";
+import {ERC1155Hook} from "./ERC1155Hook.sol";
 import {LibString} from "../../lib/LibString.sol";
 
-contract SimpleMetadataHook is ERC721Hook {
+contract SimpleMetadataHook is ERC1155Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -21,7 +21,7 @@ contract SimpleMetadataHook is ERC721Hook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when the base URI for a token is updated.
-    event MetadataUpdate(address indexed token);
+    event MetadataUpdate(address indexed token, uint256 id);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -35,7 +35,7 @@ contract SimpleMetadataHook is ERC721Hook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Mapping from token => base URI
-    mapping(address => string) private _baseURI;
+    mapping(address => mapping(uint256 => string)) private _uris;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -63,16 +63,16 @@ contract SimpleMetadataHook is ERC721Hook {
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function tokenURI(uint256 _id) external view override returns (string memory) {
-        return string(abi.encodePacked(_baseURI[msg.sender], _id.toString()));
+    function uri(uint256 _id) external view override returns (string memory) {
+        return _uris[msg.sender][_id];
     }
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function setBaseURI(address _token, string calldata _uri) external onlyAdmin(_token) {
-        _baseURI[_token] = _uri;
-        emit MetadataUpdate(_token);
+    function setTokenURI(address _token, uint256 _id, string calldata _uri) external onlyAdmin(_token) {
+        _uris[_token][_id] = _uri;
+        emit MetadataUpdate(_token, _id);
     }
 }

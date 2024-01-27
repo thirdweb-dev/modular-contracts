@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../extension/IHook.sol";
 
-interface IERC721Hook is IHook {
+interface IERC1155Hook is IHook {
     /*//////////////////////////////////////////////////////////////
                                 STRUCT
     //////////////////////////////////////////////////////////////*/
@@ -27,7 +27,7 @@ interface IERC721Hook is IHook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted on an attempt to call a hook that is not implemented.
-    error ERC721HookNotImplemented();
+    error ERC1155HookNotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -39,15 +39,16 @@ interface IERC721Hook is IHook {
     /*//////////////////////////////////////////////////////////////
                             HOOK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
+    
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
      *  @param to The address that is minting tokens.
-     *  @param quantity The quantity of tokens to mint.
+     *  @param id The token ID being minted.
+     *  @param value The quantity of tokens to mint.
      *  @param encodedArgs The encoded arguments for the beforeMint hook.
      *  @return details The details around which to execute a mint.
      */
-    function beforeMint(address to, uint256 quantity, bytes memory encodedArgs)
+    function beforeMint(address to, uint256 id, uint256 value, bytes memory encodedArgs)
         external
         payable
         returns (MintParams memory details);
@@ -56,42 +57,42 @@ interface IERC721Hook is IHook {
      *  @notice The beforeTransfer hook that is called by a core token before transferring a token.
      *  @param from The address that is transferring tokens.
      *  @param to The address that is receiving tokens.
-     *  @param tokenId The token ID being transferred.
+     *  @param id The token ID being transferred.
+     *  @param value The quantity of tokens being transferred.
      */
-    function beforeTransfer(address from, address to, uint256 tokenId) external;
+    function beforeTransfer(address from, address to, uint256 id, uint256 value) external;
 
     /**
      *  @notice The beforeBurn hook that is called by a core token before burning a token.
      *  @param from The address that is burning tokens.
-     *  @param tokenId The token ID being burned.
+     *  @param id The token ID being burned.
+     *  @param value The quantity of tokens being burned.
      */
-    function beforeBurn(address from, uint256 tokenId) external;
+    function beforeBurn(address from, uint256 id, uint256 value) external;
 
     /**
      *  @notice The beforeApprove hook that is called by a core token before approving a token.
      *  @param from The address that is approving tokens.
      *  @param to The address that is being approved.
-     *  @param tokenId The token ID being approved.
+     *  @param approved Whether to grant or revoke approval.
      */
-    function beforeApprove(address from, address to, uint256 tokenId) external;
+    function beforeApprove(address from, address to, bool approved) external;
 
     /**
-     *  @notice Returns the URI to fetch token metadata from.
-     *  @dev Meant to be called by the core token contract.
-     *  @param tokenId The token ID of the NFT.
-     *  @return metadata The URI to fetch token metadata from.
+     *  @notice The uri hook that is called by a core token to retrieve the URI for a token.
+     *  @param id The token ID to retrieve the URI for.
+     *  @return metadata The URI for the token.
      */
-    function tokenURI(uint256 tokenId) external view returns (string memory metadata);
+    function uri(uint256 id) external view returns (string memory metadata);
 
     /**
-     *  @notice Returns the royalty recipient and amount for a given sale.
-     *  @dev Meant to be called by a token contract.
-     *  @param tokenId The token ID of the NFT.
-     *  @param salePrice The sale price of the NFT.
-     *  @return receiver The royalty recipient address.
-     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
+     *  @notice The royaltyInfo hook that is called by a core token to retrieve the royalty information for a token.
+     *  @param id The token ID to retrieve the royalty information for.
+     *  @param salePrice The sale price of the token.
+     *  @return receiver The address to send the royalty payment to.
+     *  @return royaltyAmount The amount of royalty to pay.
      */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+    function royaltyInfo(uint256 id, uint256 salePrice)
         external
         view
         returns (address receiver, uint256 royaltyAmount);

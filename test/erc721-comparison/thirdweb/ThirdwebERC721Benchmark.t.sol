@@ -21,7 +21,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         // Deploy infra/shared-state contracts pre-setup
         address hookProxyAddress = address(new MinimalUpgradeableRouter(admin, address(new AllowlistMintHook())));
         simpleClaim = AllowlistMintHook(hookProxyAddress);
-        
+
         address simpleMetadataHookProxyAddress =
             address(new MinimalUpgradeableRouter(admin, address(new SimpleMetadataHook())));
         simpleMetadataHook = SimpleMetadataHook(simpleMetadataHookProxyAddress);

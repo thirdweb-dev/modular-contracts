@@ -48,7 +48,7 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookNotAuthorized();
         }
 
-        uint256 hooksToInstall = _hook.getHooksImplemented();
+        uint256 hooksToInstall = _hook.getHooks();
 
         _updateHooks(hooksToInstall, address(_hook), _addHook);
         _hookImplementations.set(uint160(address(_hook)));
@@ -69,7 +69,7 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookIsNotInstalled();
         }
 
-        uint256 hooksToUninstall = _hook.getHooksImplemented();
+        uint256 hooksToUninstall = _hook.getHooks();
 
         _updateHooks(hooksToUninstall, address(0), _removeHook);
         _hookImplementations.unset(uint160(address(_hook)));
