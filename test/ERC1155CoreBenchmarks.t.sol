@@ -7,18 +7,18 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
-import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
-import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
-import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
-import {IERC721} from "src/interface/erc721/IERC721.sol";
+import {ERC1155Core, ERC1155Initializable} from "src/erc1155/ERC1155Core.sol";
+import {AllowlistMintHook} from "src/erc1155/hooks/AllowlistMintHook.sol";
+import {LazyMintMetadataHook} from "src/erc1155/hooks/LazyMintMetadataHook.sol";
+import {IERC1155} from "src/interface/erc1155/IERC1155.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
 
 /**
- *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
+ *  This test showcases how users would use ERC-1155 contracts on the thirdweb platform.
  *
  *  CORE CONTRACTS:
  *
- *  Developers will deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-721 Core contract.
+ *  Developers will deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-1155 Core contract.
  *
  *      - This contract is initializable, and meant to be used with proxy contracts.
  *      - Implements the token standard (and the respective token metadata standard).
@@ -29,11 +29,11 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *
  *  Core contracts work with "hooks". There is a fixed set of 6 hooks supported by the core contract:
  *
- *      - BeforeMint: called before a token is minted in the ERC721Core.mint call.
- *      - BeforeTransfer: called before a token is transferred in the ERC721.transferFrom call.
- *      - BeforeBurn: called before a token is burned in the ERC721.burn call.
- *      - BeforeApprove: called before the ERC721.approve call.
- *      - Token URI: called when the ERC721Metadata.tokenURI function is called.
+ *      - BeforeMint: called before a token is minted in the ERC1155Core.mint call.
+ *      - BeforeTransfer: called before a token is transferred in the ERC1155.transferFrom call.
+ *      - BeforeBurn: called before a token is burned in the ERC1155.burn call.
+ *      - BeforeApprove: called before the ERC1155.approve call.
+ *      - Token URI: called when the ERC1155Metadata.uri function is called.
  *      - Royalty: called when the ERC2981.royaltyInfo function is called.
  *
  *  Each of these hooks is an external call made to a contract that implements the `IHook` interface.
@@ -45,11 +45,11 @@ import {IHook} from "src/interface/extension/IHook.sol";
  *
  *  UPGRADEABILITY:
  *
- *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc721/hooks/). These hook contracts are
+ *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc1155/hooks/). These hook contracts are
  *  designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make
  *  beacon upgrades to developer contracts using these hooks.
  */
-contract ERC721CoreBenchmarkTest is Test {
+contract ERC1155CoreBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -63,10 +63,10 @@ contract ERC721CoreBenchmarkTest is Test {
     CloneFactory public cloneFactory;
 
     // Target test contracts
-    address public erc721Implementation;
+    address public erc1155Implementation;
     address public hookProxyAddress;
 
-    ERC721Core public erc721;
+    ERC1155Core public erc1155;
     AllowlistMintHook public simpleClaimHook;
     LazyMintMetadataHook public lazyMintHook;
 
@@ -75,7 +75,7 @@ contract ERC721CoreBenchmarkTest is Test {
     uint256 public availableSupply = 100;
 
     function setUp() public {
-        // Setup up to enabling minting on ERC-721 contract.
+        // Setup up to enabling minting on ERC-1155 contract.
 
         // Platform contracts: gas incurred by platform.
         vm.startPrank(platformAdmin);
@@ -84,13 +84,12 @@ contract ERC721CoreBenchmarkTest is Test {
 
         hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHook())));
         simpleClaimHook = AllowlistMintHook(hookProxyAddress);
-        assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
 
         address lazyMintHookProxyAddress =
             address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
         lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
 
-        erc721Implementation = address(new ERC721Core());
+        erc1155Implementation = address(new ERC1155Core());
 
         vm.stopPrank();
 
@@ -98,13 +97,13 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         bytes memory data =
-            abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
-        erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
+            abi.encodeWithSelector(ERC1155Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+        erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
 
-        vm.label(address(erc721), "ERC721Core");
-        vm.label(erc721Implementation, "ERC721CoreImpl");
+        vm.label(address(erc1155), "ERC1155Core");
+        vm.label(erc1155Implementation, "ERC1155CoreImpl");
         vm.label(hookProxyAddress, "AllowlistMintHook");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
@@ -113,7 +112,7 @@ contract ERC721CoreBenchmarkTest is Test {
         // Developer sets up token metadata and claim conditions: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        lazyMintHook.lazyMint(address(erc721), 10_000, "https://example.com/", "");
+        lazyMintHook.lazyMint(address(erc1155), 3, "https://example.com/", "");
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -128,18 +127,18 @@ contract ERC721CoreBenchmarkTest is Test {
             allowlistMerkleRoot: root
         });
 
-        simpleClaimHook.setClaimCondition(address(erc721), condition);
+        simpleClaimHook.setClaimCondition(address(erc1155), 0, condition);
 
         AllowlistMintHook.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        simpleClaimHook.setFeeConfig(address(erc721), feeConfig);
+        simpleClaimHook.setDefaultFeeConfig(address(erc1155), feeConfig);
 
         // Developer installs `AllowlistMintHook` hook
-        erc721.installHook(IHook(hookProxyAddress));
-        erc721.installHook(IHook(lazyMintHookProxyAddress));
+        erc1155.installHook(IHook(hookProxyAddress));
+        erc1155.installHook(IHook(lazyMintHookProxyAddress));
 
         vm.stopPrank();
 
@@ -151,13 +150,13 @@ contract ERC721CoreBenchmarkTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_deployEndUserContract() public {
-        // Deploy a minimal proxy to the ERC721Core implementation contract.
+        // Deploy a minimal proxy to the ERC1155Core implementation contract.
 
         vm.pauseGasMetering();
 
-        address impl = erc721Implementation;
+        address impl = erc1155Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC1155Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();
@@ -183,15 +182,16 @@ contract ERC721CoreBenchmarkTest is Test {
 
         bytes memory encodedArgs = abi.encode(proofs);
 
-        ERC721Core claimContract = erc721;
+        ERC1155Core claimContract = erc1155;
         address claimerAddress = claimer;
+        uint256 tokenId = 0;
 
         vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
@@ -208,15 +208,16 @@ contract ERC721CoreBenchmarkTest is Test {
 
         bytes memory encodedArgs = abi.encode(proofs);
 
-        ERC721Core claimContract = erc721;
+        ERC1155Core claimContract = erc1155;
         address claimerAddress = claimer;
+        uint256 tokenId = 0;
 
         vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken * 10}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -236,22 +237,23 @@ contract ERC721CoreBenchmarkTest is Test {
         uint256 quantityToClaim = 1;
 
         bytes memory encodedArgs = abi.encode(proofs);
+        uint256 tokenId = 0;
 
         // Claim token
         vm.prank(claimer);
-        erc721.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
+        erc1155.mint{value: pricePerToken}(claimer, tokenId, quantityToClaim, encodedArgs);
 
-        uint256 tokenId = 0;
         address to = address(0x121212);
         address from = claimer;
+        uint256 quantityToTransfer = 1;
 
-        ERC721Core erc721Contract = erc721;
+        ERC1155Core erc1155Contract = erc1155;
         vm.prank(from);
 
         vm.resumeGasMetering();
 
         // Transfer token
-        erc721Contract.transferFrom(from, to, tokenId);
+        erc1155Contract.safeTransferFrom(from, to, tokenId, quantityToTransfer, "");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -282,7 +284,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         IHook mockHook = IHook(address(new MockOneHookImpl()));
-        ERC721Core hookConsumer = erc721;
+        ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
 
@@ -295,7 +297,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         IHook mockHook = IHook(address(new MockFourHookImpl()));
-        ERC721Core hookConsumer = erc721;
+        ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
@@ -311,7 +313,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         IHook mockHook = IHook(address(new MockOneHookImpl()));
-        ERC721Core hookConsumer = erc721;
+        ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
         hookConsumer.installHook(mockHook);
@@ -327,7 +329,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         IHook mockHook = IHook(address(new MockFourHookImpl()));
-        ERC721Core hookConsumer = erc721;
+        ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
         hookConsumer.uninstallHook(IHook(hookProxyAddress));

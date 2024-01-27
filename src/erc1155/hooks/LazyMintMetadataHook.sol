@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IPermission} from "../../interface/extension/IPermission.sol";
 
-import {ERC721Hook} from "./ERC721Hook.sol";
+import {ERC1155Hook} from "./ERC1155Hook.sol";
 import {LibString} from "../../lib/LibString.sol";
 
-contract LazyMintMetadataHook is ERC721Hook {
+contract LazyMintMetadataHook is ERC1155Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -71,7 +71,7 @@ contract LazyMintMetadataHook is ERC721Hook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all hook functions implemented by this hook contract.
-    function getHooks() external pure returns (uint256 hooksImplemented) {
+    function getHooksImplemented() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = TOKEN_URI_FLAG;
     }
 
@@ -88,7 +88,7 @@ contract LazyMintMetadataHook is ERC721Hook {
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function tokenURI(uint256 _id) external view override returns (string memory) {
+    function uri(uint256 _id) external view override returns (string memory) {
         address token = msg.sender;
         string memory batchUri = _getBaseURI(token, _id);
 

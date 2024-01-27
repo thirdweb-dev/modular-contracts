@@ -16,7 +16,9 @@
     "@openzeppelin/contracts-upgradeable": "4.9.3",
     "@thirdweb-dev/dynamic-contracts": "^1.2.5",
     "@zoralabs/protocol-rewards": "1.0.2",
-    "erc721a-upgradeable": "^3.2.0"
+    "erc721a-upgradeable": "^3.2.0",
+    "prettier": "^2.8.8",
+    "prettier-plugin-solidity": "^1.2.0"
   },
   "resolutions": {
     "typescript": "^5.3.2"

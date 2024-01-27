@@ -52,7 +52,7 @@ contract MinimalUpgradeableRouter is RouterPayable {
     //////////////////////////////////////////////////////////////*/
 
     function setImplementationForFunction(bytes4 _functionSelector, address _implementationAddress) public {
-        if(msg.sender != admin) {
+        if (msg.sender != admin) {
             revert MinimalUpgradeableRouterNotAuthorized();
         }
         _implementation[_functionSelector] = _implementationAddress;
