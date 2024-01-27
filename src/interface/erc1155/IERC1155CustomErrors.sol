@@ -18,7 +18,9 @@ interface IERC1155CustomErrors {
     /// @notice Emitted on an attempt to transfer a token to a contract not implementing ERC-1155 Receiver interface.
     error ERC1155UnsafeRecipient(address recipient);
 
+    /// @notice Emitted on length mismatch or token ID and value arrays in batch functions.
     error ERC1155ArrayLengthMismatch();
 
+    /// @notice Emitted on an attempt to burn tokens from the zero address.
     error ERC1155BurnFromZeroAddress();
 }
