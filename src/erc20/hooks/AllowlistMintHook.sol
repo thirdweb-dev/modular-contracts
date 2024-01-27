@@ -173,6 +173,7 @@ contract AllowlistMintHook is IFeeConfig, ERC20Hook {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Distributes the sale value of minting a token.
     function _collectPrice(uint256 _totalPrice) internal {
         if (msg.value != _totalPrice) {
             revert AllowlistMintHookIncorrectValueSent();

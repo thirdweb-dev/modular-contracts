@@ -284,6 +284,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC20Hook {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Distributes the sale value of minting a token.
     function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
         if (_totalPrice == 0) {
             if (msg.value > 0) {

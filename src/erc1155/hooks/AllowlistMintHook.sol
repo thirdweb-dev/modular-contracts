@@ -110,6 +110,14 @@ contract AllowlistMintHook is IFeeConfig, ERC1155Hook {
                             BEFORE MINT HOOK
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     *  @notice The beforeMint hook that is called by a core token before minting a token.
+     *  @param _claimer The address that is minting tokens.
+     *  @param _id The token ID being minted.
+     *  @param _value The quantity of tokens to mint.
+     *  @param _encodedArgs The encoded arguments for the beforeMint hook.
+     *  @return mintParams The details around which to execute a mint.
+     */
     function beforeMint(address _claimer, uint256 _id, uint256 _value, bytes memory _encodedArgs)
         external
         payable
@@ -187,6 +195,7 @@ contract AllowlistMintHook is IFeeConfig, ERC1155Hook {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Distributes the sale value of minting a token.
     function _collectPrice(uint256 _totalPrice, uint256 _id) internal {
         if (msg.value != _totalPrice) {
             revert AllowlistMintHookIncorrectValueSent();
