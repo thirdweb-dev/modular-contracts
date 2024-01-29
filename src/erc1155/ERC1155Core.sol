@@ -169,8 +169,8 @@ contract ERC1155Core is
         external
         payable
     {
-        IERC1155Hook.MintParams memory mintParams = _beforeMint(_to, _tokenId, _value, _encodedBeforeMintArgs);
-        _mint(_to, mintParams.tokenIdToMint, mintParams.quantityToMint, "");
+        (uint256 tokenIdToMint, uint256 quantityToMint) = _beforeMint(_to, _tokenId, _value, _encodedBeforeMintArgs);
+        _mint(_to, tokenIdToMint, quantityToMint, "");
     }
 
     /**
@@ -227,12 +227,12 @@ contract ERC1155Core is
     function _beforeMint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data)
         internal
         virtual
-        returns (IERC1155Hook.MintParams memory mintParams)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            mintParams = IERC1155Hook(hook).beforeMint{value: msg.value}(_to, _tokenId, _value, _data);
+            (tokenIdToMint, quantityToMint) = IERC1155Hook(hook).beforeMint{value: msg.value}(_to, _tokenId, _value, _data);
         } else {
             revert ERC1155CoreMintingDisabled();
         }
