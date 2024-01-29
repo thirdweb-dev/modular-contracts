@@ -44,13 +44,14 @@ abstract contract ERC721Hook is IERC721Hook {
      *  @param _to The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return details The details around which to execute a mint.
+     *  @return tokenIdToMint The start tokenId to mint.
+     *  @return quantityToMint The quantity of tokens to mint.
      */
     function beforeMint(address _to, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
         virtual
-        returns (MintParams memory details)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         revert ERC721HookNotImplemented();
     }
