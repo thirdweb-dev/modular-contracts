@@ -163,8 +163,8 @@ contract ERC721Core is
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
     function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
-        IERC721Hook.MintParams memory mintParams = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
-        _mint(_to, mintParams.tokenIdToMint, mintParams.quantityToMint);
+        (uint256 startTokenId, uint256 quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
+        _mint(_to, startTokenId, quantityToMint);
     }
 
     /**
@@ -218,12 +218,12 @@ contract ERC721Core is
     function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
         internal
         virtual
-        returns (IERC721Hook.MintParams memory mintParams)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            mintParams = IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
+            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
         } else {
             revert ERC721CoreMintingDisabled();
         }
