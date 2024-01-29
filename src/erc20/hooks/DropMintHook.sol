@@ -200,13 +200,13 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC20Hook {
      *  @param _claimer The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return mintParams The details around which to execute a mint.
+     *  @return quantityToMint The quantity of tokens to mint.s
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
         override
-        returns (MintParams memory mintParams)
+        returns (uint256 quantityToMint)
     {
         address token = msg.sender;
 
@@ -216,16 +216,14 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC20Hook {
         verifyClaim(token, _claimer, _quantity, currency, pricePerToken, allowlistProof);
 
         // Update contract state.
-        mintParams.quantityToMint = uint96(_quantity);
-        mintParams.currency = currency;
-
+        quantityToMint = uint96(_quantity);
         // `pricePerToken` is interpreted as price per 1 ether unit of the ERC20 tokens.
-        mintParams.totalPrice = (_quantity * pricePerToken) / 1 ether;
+        uint256 totalPrice = (_quantity * pricePerToken) / 1 ether;
 
         _claimCondition[token].supplyClaimed += _quantity;
         _supplyClaimedByWallet[_conditionId[token]][keccak256(abi.encode(_claimer, token))] += _quantity;
 
-        _collectPrice(_claimer, mintParams.totalPrice, currency);
+        _collectPrice(_claimer, totalPrice, currency);
     }
 
     /*//////////////////////////////////////////////////////////////

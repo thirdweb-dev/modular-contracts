@@ -115,14 +115,14 @@ contract AllowlistMintHook is IFeeConfig, ERC1155Hook {
      *  @param _claimer The address that is minting tokens.
      *  @param _id The token ID being minted.
      *  @param _value The quantity of tokens to mint.
-     *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return mintParams The details around which to execute a mint.
+     *  @return tokenIdToMint The start tokenId to mint.
+     *  @return quantityToMint The quantity of tokens to mint.
      */
     function beforeMint(address _claimer, uint256 _id, uint256 _value, bytes memory _encodedArgs)
         external
         payable
         override
-        returns (MintParams memory mintParams)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
 
@@ -142,15 +142,13 @@ contract AllowlistMintHook is IFeeConfig, ERC1155Hook {
                 revert AllowlistMintHookNotInAllowlist(token, _claimer);
             }
         }
-
-        mintParams.quantityToMint = uint96(_value);
-        mintParams.currency = NATIVE_TOKEN;
-        mintParams.totalPrice = _value * condition.price;
-        mintParams.tokenIdToMint = _id;
+        
+        tokenIdToMint = _id;
+        quantityToMint = _value;
 
         claimCondition[token][_id].availableSupply -= _value;
 
-        _collectPrice(mintParams.totalPrice, _id);
+        _collectPrice(condition.price * _value, _id);
     }
 
     /*//////////////////////////////////////////////////////////////

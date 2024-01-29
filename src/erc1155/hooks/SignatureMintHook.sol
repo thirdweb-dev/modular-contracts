@@ -120,13 +120,14 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC1155, EIP712, ERC1155Ho
      *  @param _claimer The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return mintParams The details around which to execute a mint.
+     *  @return tokenIdToMint The start tokenId to mint.
+     *  @return quantityToMint The quantity of tokens to mint.
      */
     function beforeMint(address _claimer, uint256 _id, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
         override
-        returns (MintParams memory mintParams)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
 
@@ -135,10 +136,8 @@ contract SignatureMintHook is IFeeConfig, IMintRequestERC1155, EIP712, ERC1155Ho
             revert SignatureMintHookInvalidQuantity();
         }
 
-        mintParams.tokenIdToMint = _id;
-        mintParams.quantityToMint = uint96(_quantity);
-        mintParams.totalPrice = req.pricePerToken * _quantity;
-        mintParams.currency = req.currency;
+        tokenIdToMint = _id;
+        quantityToMint = _quantity;
 
         _processRequest(token, req, signature);
         _collectPrice(_claimer, _id, req.pricePerToken * _quantity, req.currency);

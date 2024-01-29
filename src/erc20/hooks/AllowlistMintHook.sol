@@ -107,13 +107,13 @@ contract AllowlistMintHook is IFeeConfig, ERC20Hook {
      *  @param _claimer The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return mintParams The details around which to execute a mint.
+     *  @return quantityToMint The quantity of tokens to mint.s
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
         override
-        returns (MintParams memory mintParams)
+        returns (uint256 quantityToMint)
     {
         address token = msg.sender;
 
@@ -134,14 +134,13 @@ contract AllowlistMintHook is IFeeConfig, ERC20Hook {
             }
         }
 
-        mintParams.quantityToMint = uint96(_quantity);
-        mintParams.currency = NATIVE_TOKEN;
+        quantityToMint = uint96(_quantity);
         // `price` is interpreted as price per 1 ether unit of the ERC20 tokens.
-        mintParams.totalPrice = (_quantity * condition.price) / 1 ether;
+        uint256 totalPrice = (_quantity * condition.price) / 1 ether;
 
         claimCondition[token].availableSupply -= _quantity;
 
-        _collectPrice(mintParams.totalPrice);
+        _collectPrice(totalPrice);
     }
 
     /*//////////////////////////////////////////////////////////////

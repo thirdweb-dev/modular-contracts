@@ -5,22 +5,6 @@ import "../extension/IHook.sol";
 
 interface IERC20Hook is IHook {
     /*//////////////////////////////////////////////////////////////
-                                  STRUCT
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     *  @notice A struct for internal use. The details around which to execute a mint, returned by the beforeMint hook.
-     *  @param totalPrice The total price to pay to mint the tokens.
-     *  @param currency The currency in which to pay for the tokens.
-     *  @param quantityToMint The quantity of tokens to mint.
-     */
-    struct MintParams {
-        uint256 totalPrice;
-        address currency;
-        uint96 quantityToMint;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                   ERRORS
     //////////////////////////////////////////////////////////////*/
 
@@ -43,12 +27,12 @@ interface IERC20Hook is IHook {
      *  @param to The address that is minting tokens.
      *  @param amount The quantity of tokens to mint.
      *  @param encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return details The details around which to execute a mint.
+     *  @return quantityToMint The quantity of tokens to mint.s
      */
     function beforeMint(address to, uint256 amount, bytes memory encodedArgs)
         external
         payable
-        returns (MintParams memory details);
+        returns (uint256 quantityToMint);
 
     /**
      *  @notice The beforeTransfer hook that is called by a core token before transferring a token.
