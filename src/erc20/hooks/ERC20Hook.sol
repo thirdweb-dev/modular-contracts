@@ -38,13 +38,13 @@ abstract contract ERC20Hook is IERC20Hook {
      *  @param _to The address that is minting tokens.
      *  @param _amount The amount of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return details The details around which to execute a mint.
+     *  @return quantityToMint The quantity of tokens to mint.s
      */
     function beforeMint(address _to, uint256 _amount, bytes memory _encodedArgs)
         external
         payable
         virtual
-        returns (MintParams memory details)
+        returns (uint256 quantityToMint)
     {
         revert ERC20HookNotImplemented();
     }
