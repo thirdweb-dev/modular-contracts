@@ -189,7 +189,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     {
 
         if(
-            _req.vetoSignature.length == 0
+            _req.permissionSignature.length == 0
                 || _req.sigValidityStartTimestamp > block.timestamp
                 || block.timestamp > _req.sigValidityEndTimestamp
                 || _uidUsed[_req.sigUid]
@@ -387,12 +387,12 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
                     _req.pricePerToken,
                     _req.currency,
                     _req.allowlistProof,
-                    keccak256(_req.vetoSignature),
+                    keccak256(_req.permissionSignature),
                     _req.sigValidityStartTimestamp,
                     _req.sigValidityEndTimestamp,
                     _req.sigUid
                 )
             )
-        ).recover(_req.vetoSignature);
+        ).recover(_req.permissionSignature);
     }
 }

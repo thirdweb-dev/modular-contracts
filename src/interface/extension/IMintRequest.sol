@@ -11,7 +11,7 @@ interface IMintRequest {
         address currency;
         bytes32[] allowlistProof;
 
-        bytes vetoSignature;
+        bytes permissionSignature;
         uint128 sigValidityStartTimestamp;
         uint128 sigValidityEndTimestamp;
         bytes32 sigUid;
