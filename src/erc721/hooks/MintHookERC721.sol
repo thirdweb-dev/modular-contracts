@@ -224,13 +224,14 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @param _claimer The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return mintParams The details around which to execute a mint.
+     *  @return tokenIdToMint The start tokenId to mint.
+     *  @return quantityToMint The quantity of tokens to mint.
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
         override
-        returns (MintParams memory mintParams)
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         (MintRequest memory req) = abi.decode(_encodedArgs, (MintRequest));
         
@@ -255,10 +256,8 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
         _uidUsed[req.sigUid] = true;
 
-        mintParams.tokenIdToMint = _nextTokenIdToMint[req.token]++;
-        mintParams.quantityToMint = uint96(req.quantity);
-        mintParams.currency = req.currency;
-        mintParams.totalPrice = req.quantity * req.pricePerToken;
+        tokenIdToMint = _nextTokenIdToMint[req.token]++;
+        quantityToMint = req.quantity;
 
         _collectPrice(req.minter, req.pricePerToken * req.quantity, req.currency);
     }
