@@ -97,7 +97,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     /// @notice Mapping from token => condition ID.
     mapping(address => bytes32) private _conditionId;
 
-    /// @dev Mapping from veto request UID => whether the mint request is processed.
+    /// @dev Mapping from permissioned mint request UID => whether the mint request is processed.
     mapping(bytes32 => bool) private _uidUsed;
 
     /*//////////////////////////////////////////////////////////////
@@ -185,7 +185,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     function isPermissionedClaim(MintRequest memory _req)
         public
         view
-        returns (bool isVeto)
+        returns (bool isPermissioned)
     {
 
         if(
@@ -198,7 +198,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
 
         address signer = _recoverAddress(_req);
-        isVeto = !IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS);
+        isPermissioned = !IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS);
     }
 
     /**
@@ -246,7 +246,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
             revert MintHookInvalidRecipient();
         } 
 
-        // Check against active claim condition unless vetoed.
+        // Check against active claim condition unless permissioned.
         if(!isPermissionedClaim(req)) {
             verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
 
