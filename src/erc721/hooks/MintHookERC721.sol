@@ -182,7 +182,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
     }
 
-    function isVetoClaim(MintRequest memory _req)
+    function isPermissionedClaim(MintRequest memory _req)
         public
         view
         returns (bool isVeto)
@@ -246,7 +246,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         } 
 
         // Check against active claim condition unless vetoed.
-        if(!isVetoClaim(req)) {
+        if(!isPermissionedClaim(req)) {
             verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
 
             _claimCondition[req.token].supplyClaimed += req.quantity;
