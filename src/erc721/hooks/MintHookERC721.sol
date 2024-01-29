@@ -249,12 +249,11 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         // Check against active claim condition unless permissioned.
         if(!isPermissionedClaim(req)) {
             verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
-
             _claimCondition[req.token].supplyClaimed += req.quantity;
             _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[req.token], req.minter))] += req.quantity;
+        } else {
+            _uidUsed[req.sigUid] = true;
         }
-
-        _uidUsed[req.sigUid] = true;
 
         tokenIdToMint = _nextTokenIdToMint[req.token]++;
         quantityToMint = req.quantity;
