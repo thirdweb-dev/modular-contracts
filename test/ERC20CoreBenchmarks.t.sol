@@ -7,11 +7,11 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/MockHookImpl.sol";
 
-import {ERC20Core, ERC20Initializable} from "src/erc20/ERC20Core.sol";
-import {AllowlistMintHook} from "src/erc20/hooks/AllowlistMintHook.sol";
-import {IERC20} from "src/interface/erc20/IERC20.sol";
-import {IHook} from "src/interface/extension/IHook.sol";
-import {IInitCall} from "src/interface/extension/IInitCall.sol";
+import {ERC20Core, ERC20Initializable} from "src/core/token/ERC20Core.sol";
+import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
+import {IERC20} from "src/interface/eip/IERC20.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
+import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-20 contracts on the thirdweb platform.
@@ -65,7 +65,7 @@ contract ERC20CoreBenchmarkTest is Test {
     address public hookProxyAddress;
 
     ERC20Core public erc20;
-    AllowlistMintHook public simpleClaimHook;
+    AllowlistMintHookERC20 public simpleClaimHook;
 
     // Token claim params
     uint256 public pricePerToken = 1 ether;
@@ -79,8 +79,8 @@ contract ERC20CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHook())));
-        simpleClaimHook = AllowlistMintHook(hookProxyAddress);
+        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC20())));
+        simpleClaimHook = AllowlistMintHookERC20(hookProxyAddress);
 
         erc20Implementation = address(new ERC20Core());
 
@@ -98,7 +98,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.label(address(erc20), "ERC20Core");
         vm.label(erc20Implementation, "ERC20CoreImpl");
-        vm.label(hookProxyAddress, "AllowlistMintHook");
+        vm.label(hookProxyAddress, "AllowlistMintHookERC20");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
@@ -113,7 +113,7 @@ contract ERC20CoreBenchmarkTest is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
+        AllowlistMintHookERC20.ClaimCondition memory condition = AllowlistMintHookERC20.ClaimCondition({
             price: pricePerToken,
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
@@ -121,14 +121,14 @@ contract ERC20CoreBenchmarkTest is Test {
 
         simpleClaimHook.setClaimCondition(address(erc20), condition);
 
-        AllowlistMintHook.FeeConfig memory feeConfig;
+        AllowlistMintHookERC20.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
         simpleClaimHook.setFeeConfig(address(erc20), feeConfig);
 
-        // Developer installs `AllowlistMintHook` hook
+        // Developer installs `AllowlistMintHookERC20` hook
         erc20.installHook(IHook(hookProxyAddress));
 
         vm.stopPrank();
@@ -252,8 +252,8 @@ contract ERC20CoreBenchmarkTest is Test {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        bytes4 sel = AllowlistMintHook.beforeMint.selector;
-        address newImpl = address(new AllowlistMintHook());
+        bytes4 sel = AllowlistMintHookERC20.beforeMint.selector;
+        address newImpl = address(new AllowlistMintHookERC20());
         address proxyAdmin = platformAdmin;
         MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
 

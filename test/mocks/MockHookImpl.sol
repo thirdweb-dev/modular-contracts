@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "src/erc721/hooks/ERC721Hook.sol";
-import "src/erc20/hooks/ERC20Hook.sol";
+import "src/hook/ERC721Hook.sol";
+import "src/hook/ERC20Hook.sol";
 
 contract MockOneHookImpl is ERC721Hook {
     constructor() {}
