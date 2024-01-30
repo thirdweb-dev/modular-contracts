@@ -7,14 +7,14 @@ import {IClaimCondition} from "../../interface/extension/IClaimConditionTwo.sol"
 import {IMintRequest} from "../../interface/extension/IMintRequest.sol";
 import {IMintRequestERC721} from "../../interface/extension/IMintRequestERC721.sol";
 
-import {ERC721Hook} from "./ERC721Hook.sol";
+import {ERC20Hook} from "./ERC20Hook.sol";
 import {EIP712} from "../../extension/EIP712.sol";
 
 import {ECDSA} from "../../lib/ECDSA.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC721Hook {
+contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC20Hook {
 
     using ECDSA for bytes32;
 
@@ -39,9 +39,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @notice Emitted when the claim condition for a given token is updated.
     event ClaimConditionUpdate(address indexed token, ClaimCondition condition, bool resetEligibility);
-
-    /// @notice Emitted when the next token ID to mint is updated.
-    event NextTokenIdUpdate(address indexed token, uint256 nextTokenIdToMint);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -77,9 +74,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => the next token ID to mint.
-    mapping(address => uint256) private _nextTokenIdToMint;
 
     /// @notice Mapping from token => fee config for the token.
     mapping(address => FeeConfig) private _feeConfig;
@@ -120,11 +114,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     /// @notice Returns the signature of the arguments expected by the beforeMint hook.
     function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
         argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
-    }
-
-    /// @notice Returns the next token ID to mint for a given token.
-    function getNextTokenIdToMint(address _token) external view returns (uint256) {
-        return _nextTokenIdToMint[_token];
     }
 
     /**
@@ -237,14 +226,13 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @param _claimer The address that is minting tokens.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
         override
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+        returns (uint256 quantityToMint)
     {
         (MintRequest memory req) = abi.decode(_encodedArgs, (MintRequest));
         
@@ -268,10 +256,11 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
             _uidUsed[req.sigUid] = true;
         }
 
-        tokenIdToMint = _nextTokenIdToMint[req.token]++;
         quantityToMint = req.quantity;
+        // `pricePerToken` is interpreted as price per 1 ether unit of the ERC20 tokens.
+        uint256 totalPrice = (_quantity * req.pricePerToken) / 1 ether;
 
-        _collectPrice(req.minter, req.pricePerToken * req.quantity, req.currency);
+        _collectPrice(req.minter, totalPrice, req.currency);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -286,17 +275,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
         _feeConfig[_token] = _config;
         emit FeeConfigUpdate(_token, _config);
-    }
-
-    /**
-     *  @notice Sets the next token ID to mint for a given token.
-     *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the next token ID to mint for.
-     *  @param _nextIdToMint The next token ID to mint.
-     */
-    function setNextIdToMint(address _token, uint256 _nextIdToMint) external onlyAdmin(_token) {
-        _nextTokenIdToMint[_token] = _nextIdToMint;
-        emit NextTokenIdUpdate(_token, _nextIdToMint);
     }
 
     /**
@@ -382,7 +360,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @dev Returns the domain name and version for the EIP-712 domain separator
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "MintHookERC721";
+        name = "MintHookERC20";
         version = "1";
     }
 
