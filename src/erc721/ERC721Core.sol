@@ -187,8 +187,18 @@ contract ERC721Core is
      *  @param _id The token ID of the NFT
      */
     function approve(address _spender, uint256 _id) public override {
-        _beforeApprove(msg.sender, _spender, _id);
+        _beforeApprove(msg.sender, _spender, _id, true);
         super.approve(_spender, _id);
+    }
+
+    /**
+     *  @notice Approves or revokes approval from an operator to transfer or issue approval for all of the caller's NFTs.
+     *  @param _operator The address to approve or revoke approval from
+     *  @param _approved Whether the operator is approved
+     */
+    function setApprovalForAll(address _operator, bool _approved) public override {
+        _beforeApprove(msg.sender, _operator, type(uint256).max, _approved);
+        super.setApprovalForAll(_operator, _approved);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -249,11 +259,11 @@ contract ERC721Core is
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(address _from, address _to, uint256 _tokenId) internal virtual {
+    function _beforeApprove(address _from, address _to, uint256 _tokenId, bool _approve) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {
-            IERC721Hook(hook).beforeApprove(_from, _to, _tokenId);
+            IERC721Hook(hook).beforeApprove(_from, _to, _tokenId, _approve);
         }
     }
 

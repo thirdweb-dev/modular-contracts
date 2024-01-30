@@ -86,8 +86,9 @@ abstract contract ERC721Hook is IERC721Hook {
      *  @param _from The address that is approving tokens.
      *  @param _to The address that is being approved.
      *  @param _tokenId The token ID being approved.
+     *  @param _approve The approval status to set.
      */
-    function beforeApprove(address _from, address _to, uint256 _tokenId) external virtual {
+    function beforeApprove(address _from, address _to, uint256 _tokenId, bool _approve) external virtual {
         revert ERC721HookNotImplemented();
     }
 
