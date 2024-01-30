@@ -47,13 +47,7 @@ abstract contract HookInstaller is IHookInstaller {
         if (!_canUpdateHooks(msg.sender)) {
             revert HookNotAuthorized();
         }
-
-        uint256 hooksToInstall = _hook.getHooks();
-
-        _updateHooks(hooksToInstall, address(_hook), _addHook);
-        _hookImplementations.set(uint160(address(_hook)));
-
-        emit HooksInstalled(address(_hook), hooksToInstall);
+        _installHook(_hook);
     }
 
     /**
@@ -65,16 +59,7 @@ abstract contract HookInstaller is IHookInstaller {
         if (!_canUpdateHooks(msg.sender)) {
             revert HookNotAuthorized();
         }
-        if (!_hookImplementations.get(uint160(address(_hook)))) {
-            revert HookIsNotInstalled();
-        }
-
-        uint256 hooksToUninstall = _hook.getHooks();
-
-        _updateHooks(hooksToUninstall, address(0), _removeHook);
-        _hookImplementations.unset(uint160(address(_hook)));
-
-        emit HooksUninstalled(address(_hook), hooksToUninstall);
+        _uninstallHook(_hook);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -87,6 +72,30 @@ abstract contract HookInstaller is IHookInstaller {
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure virtual returns (uint256) {
         return 0;
+    }
+
+    /// @dev Installs a hook in the contract.
+    function _installHook(IHook _hook) internal {
+        uint256 hooksToInstall = _hook.getHooks();
+
+        _updateHooks(hooksToInstall, address(_hook), _addHook);
+        _hookImplementations.set(uint160(address(_hook)));
+
+        emit HooksInstalled(address(_hook), hooksToInstall);
+    }
+
+    /// @dev Uninstalls a hook in the contract.
+    function _uninstallHook(IHook _hook) internal {
+        if (!_hookImplementations.get(uint160(address(_hook)))) {
+            revert HookNotInstalled();
+        }
+
+        uint256 hooksToUninstall = _hook.getHooks();
+
+        _updateHooks(hooksToUninstall, address(0), _removeHook);
+        _hookImplementations.unset(uint160(address(_hook)));
+
+        emit HooksUninstalled(address(_hook), hooksToUninstall);
     }
 
     /// @dev Adds a hook to the given integer represented hooks.

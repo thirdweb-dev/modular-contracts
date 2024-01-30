@@ -89,7 +89,7 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         bytes memory data =
-            abi.encodeWithSelector(ERC20Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC20Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
         erc20 = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -145,7 +145,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         address impl = erc20Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC20Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC20Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();

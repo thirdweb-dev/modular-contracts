@@ -97,7 +97,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC1155Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
         erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -156,7 +156,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         address impl = erc1155Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC1155Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();

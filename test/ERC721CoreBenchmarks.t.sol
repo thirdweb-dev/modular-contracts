@@ -10,6 +10,7 @@ import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
 import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
 import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
+import {RoyaltyHook} from "src/erc721/hooks/RoyaltyHook.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
 
@@ -69,6 +70,7 @@ contract ERC721CoreBenchmarkTest is Test {
     ERC721Core public erc721;
     AllowlistMintHook public simpleClaimHook;
     LazyMintMetadataHook public lazyMintHook;
+    RoyaltyHook public royaltyHook;
 
     // Token claim params
     uint256 public pricePerToken = 0.1 ether;
@@ -90,6 +92,9 @@ contract ERC721CoreBenchmarkTest is Test {
             address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
         lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
 
+        address royaltyHookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
+        royaltyHook = RoyaltyHook(royaltyHookProxyAddress);
+
         erc721Implementation = address(new ERC721Core());
 
         vm.stopPrank();
@@ -98,7 +103,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         bytes memory data =
-            abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC721Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -157,7 +162,27 @@ contract ERC721CoreBenchmarkTest is Test {
 
         address impl = erc721Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC721Core.initialize.selector, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC721Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
+        bytes32 salt = bytes32("salt");
+
+        vm.resumeGasMetering();
+
+        cloneFactory.deployProxyByImplementation(impl, data, salt);
+    }
+
+    function test_deployEndUserContract_withHooks() public {
+        // Deploy a minimal proxy to the ERC721Core implementation contract.
+
+        vm.pauseGasMetering();
+
+        address[] memory hooks = new address[](3);
+        hooks[0] = address(simpleClaimHook);
+        hooks[1] = address(lazyMintHook);
+        hooks[2] = address(royaltyHook);
+
+        address impl = erc721Implementation;
+        bytes memory data =
+            abi.encodeWithSelector(ERC721Core.initialize.selector, hooks, platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();
