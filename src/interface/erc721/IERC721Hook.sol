@@ -57,8 +57,9 @@ interface IERC721Hook is IHook {
      *  @param from The address that is approving tokens.
      *  @param to The address that is being approved.
      *  @param tokenId The token ID being approved.
+     *  @param approve The approval status to set.
      */
-    function beforeApprove(address from, address to, uint256 tokenId) external;
+    function beforeApprove(address from, address to, uint256 tokenId, bool approve) external;
 
     /**
      *  @notice Returns the URI to fetch token metadata from.
