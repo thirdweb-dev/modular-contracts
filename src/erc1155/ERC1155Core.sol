@@ -6,7 +6,7 @@ import {IERC1155CoreCustomErrors} from "../interface/erc1155/IERC1155CoreCustomE
 import {IERC1155Hook} from "../interface/erc1155/IERC1155Hook.sol";
 import {IERC1155HookInstaller} from "../interface/erc1155/IERC1155HookInstaller.sol";
 import {ERC1155Initializable} from "./ERC1155Initializable.sol";
-import {HookInstaller} from "../extension/HookInstaller.sol";
+import {IHook, HookInstaller} from "../extension/HookInstaller.sol";
 import {Initializable} from "../extension/Initializable.sol";
 import {Permission} from "../extension/Permission.sol";
 
@@ -58,18 +58,24 @@ contract ERC1155Core is
 
     /**
      *  @notice Initializes the ERC-1155 Core contract.
+     *  @param _hooks The hooks to install.
      *  @param _defaultAdmin The default admin for the contract.
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      *  @param _uri Contract URI
      */
-    function initialize(address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
+    function initialize(address[] memory _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
         external
         initializer
     {
         _setupContractURI(_uri);
         __ERC1155_init(_name, _symbol);
         _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
+
+        uint256 len = _hooks.length;
+        for(uint256 i = 0; i < len; i++) {
+            _installHook(IHook(_hooks[i]));
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

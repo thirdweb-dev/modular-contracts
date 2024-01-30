@@ -25,7 +25,7 @@ interface IHookInstaller {
     error HookAlreadyInstalled();
 
     /// @notice Emitted when the caller attempts to uninstall a hook that is not installed.
-    error HookIsNotInstalled();
+    error HookNotInstalled();
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
