@@ -5,6 +5,7 @@ import {IERC7572} from "../interface/eip/IERC7572.sol";
 import {IERC721CoreCustomErrors} from "../interface/erc721/IERC721CoreCustomErrors.sol";
 import {IERC721Hook} from "../interface/erc721/IERC721Hook.sol";
 import {IERC721HookInstaller} from "../interface/erc721/IERC721HookInstaller.sol";
+import {IInitCall} from "../interface/extension/IInitCall.sol";
 import {ERC721Initializable} from "./ERC721Initializable.sol";
 import {IHook, HookInstaller} from "../extension/HookInstaller.sol";
 import {Initializable} from "../extension/Initializable.sol";
@@ -15,6 +16,7 @@ contract ERC721Core is
     ERC721Initializable,
     HookInstaller,
     Permission,
+    IInitCall,
     IERC721HookInstaller,
     IERC721CoreCustomErrors,
     IERC7572
@@ -63,7 +65,7 @@ contract ERC721Core is
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      */
-    function initialize(address[] memory _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
+    function initialize(InitCall calldata _initCall, address[] calldata _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
         external
         initializer
     {
@@ -74,6 +76,21 @@ contract ERC721Core is
         uint256 len = _hooks.length;
         for(uint256 i = 0; i < len; i++) {
             _installHook(IHook(_hooks[i]));
+        }
+
+        if (_initCall.target != address(0)) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
+            if (!success) {
+                if (returnData.length > 0) {
+                    // solhint-disable-next-line no-inline-assembly
+                    assembly {
+                        revert(add(returnData, 32), mload(returnData))
+                    }
+                } else {
+                    revert ERC721CoreInitializationFailed();
+                }
+            }
         }
     }
 

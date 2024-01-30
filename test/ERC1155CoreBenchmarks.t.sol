@@ -12,6 +12,7 @@ import {AllowlistMintHook} from "src/erc1155/hooks/AllowlistMintHook.sol";
 import {LazyMintMetadataHook} from "src/erc1155/hooks/LazyMintMetadataHook.sol";
 import {IERC1155} from "src/interface/erc1155/IERC1155.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
+import {IInitCall} from "src/interface/extension/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-1155 contracts on the thirdweb platform.
@@ -96,8 +97,9 @@ contract ERC1155CoreBenchmarkTest is Test {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
+        IInitCall.InitCall memory initCall;
         bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
         erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -154,9 +156,11 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.pauseGasMetering();
 
+        IInitCall.InitCall memory initCall;
+
         address impl = erc1155Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();

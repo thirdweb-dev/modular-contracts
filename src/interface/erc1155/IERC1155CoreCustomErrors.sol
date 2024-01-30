@@ -8,4 +8,7 @@ interface IERC1155CoreCustomErrors {
 
     /// @notice Emitted on an attempt to mint tokens when either beforeMint hook is absent or unsuccessful.
     error ERC1155CoreMintingDisabled();
+
+    /// @notice Emitted on a failed attempt to initialize the contract.
+    error ERC1155CoreInitializationFailed();
 }

@@ -14,4 +14,7 @@ interface IERC20CoreCustomErrors {
 
     /// @notice Emitted on an attempt to permit approve tokens past the permit deadline.
     error ERC20PermitDeadlineExpired();
+
+    /// @notice Emitted on a failed attempt to initialize the contract.
+    error ERC20CoreInitializationFailed();
 }

@@ -11,6 +11,7 @@ import {ERC20Core, ERC20Initializable} from "src/erc20/ERC20Core.sol";
 import {AllowlistMintHook} from "src/erc20/hooks/AllowlistMintHook.sol";
 import {IERC20} from "src/interface/erc20/IERC20.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
+import {IInitCall} from "src/interface/extension/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-20 contracts on the thirdweb platform.
@@ -88,8 +89,9 @@ contract ERC20CoreBenchmarkTest is Test {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
+        IInitCall.InitCall memory initCall;
         bytes memory data =
-            abi.encodeWithSelector(ERC20Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC20Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
         erc20 = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -143,9 +145,11 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.pauseGasMetering();
 
+        IInitCall.InitCall memory initCall;
+        
         address impl = erc20Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC20Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC20Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();
