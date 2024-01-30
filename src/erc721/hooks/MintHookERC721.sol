@@ -2,13 +2,22 @@
 pragma solidity ^0.8.0;
 
 import {IFeeConfig} from "../../interface/extension/IFeeConfig.sol";
-import {IClaimCondition} from "../../interface/extension/IClaimCondition.sol";
 import {IPermission} from "../../interface/extension/IPermission.sol";
+import {IClaimCondition} from "../../interface/extension/IClaimConditionTwo.sol";
+import {IMintRequest} from "../../interface/extension/IMintRequest.sol";
+import {IMintRequestERC721} from "../../interface/extension/IMintRequestERC721.sol";
+
 import {ERC721Hook} from "./ERC721Hook.sol";
+import {EIP712} from "../../extension/EIP712.sol";
+
+import {ECDSA} from "../../lib/ECDSA.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
+contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC721Hook {
+
+    using ECDSA for bytes32;
+
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -19,22 +28,10 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
     /// @notice The address considered as native token.
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    /*//////////////////////////////////////////////////////////////
-                               STRUCTS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     *  @param proof Proof of concerned wallet's inclusion in an allowlist.
-     *  @param quantityLimitPerWallet The total quantity of tokens the allowlisted wallet is eligible to claim over time.
-     *  @param pricePerToken The price per token the allowlisted wallet must pay to claim tokens.
-     *  @param currency The currency in which the allowlisted wallet must pay the price for claiming tokens.
-     */
-    struct AllowlistProof {
-        bytes32[] proof;
-        uint256 quantityLimitPerWallet;
-        uint256 pricePerToken;
-        address currency;
-    }
+    /// @notice The EIP-712 typehash for the mint request struct.
+    bytes32 private constant TYPEHASH = keccak256(
+        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+    );
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -50,23 +47,32 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when caller is not token.
+    error MintHookNotToken();
+
     /// @notice Emitted when caller is not token core admin.
-    error DropMintHookNotAuthorized();
+    error MintHookNotAuthorized();
 
-    /// @notice Emitted when the condition price or currency is unexpected.
-    error DropMintHookUnexpectedPriceOrCurrency();
+    /// @notice Emitted when minting invalid quantity.
+    error MintHookInvalidQuantity(uint256 quantityToMint);
 
-    /// @notice Emitted when claiming an invalid quantity of tokens.
-    error DropMintHookInvalidQuantity();
+    /// @notice Emitted when minting with incorrect price.
+    error MintHookInvalidPrice(uint256 expectedPrice, uint256 actualPrice);
 
-    /// @notice Emitted when the max supply of tokens has been claimed.
-    error DropMintHookMaxSupplyClaimed();
+    /// @notice Emittted when minting with invalid currency.
+    error MintHookInvalidCurrency(address expectedCurrency, address actualCurrency);
+
+    /// @notice Emitted when maximum available supply has been minted.
+    error MintHookMaxSupplyClaimed();
+
+    /// @notice Emitted when minter not in allowlist.
+    error MintHookNotInAllowlist();
 
     /// @notice Emitted when the claim condition has not started yet.
-    error DropMintHookMintNotStarted();
+    error MintHookMintNotStarted();
 
-    /// @notice Emitted when incorrect native token value is sent.
-    error DropMintHookIncorrectValueSent();
+    /// @notice Emitted when minting to an invalid recipient.
+    error MintHookInvalidRecipient();
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -75,17 +81,24 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
     /// @notice Mapping from token => the next token ID to mint.
     mapping(address => uint256) private _nextTokenIdToMint;
 
+    /// @notice Mapping from token => fee config for the token.
+    mapping(address => FeeConfig) private _feeConfig;
+
+    /*//////////////////////////////////////////////////////////////
+                               DROP STORAGE
+    //////////////////////////////////////////////////////////////*/
+
     /// @notice Mapping from token => the claim conditions for minting the token.
     mapping(address => ClaimCondition) private _claimCondition;
 
-    /// @notice Mapping from condition ID => hash(claimer, token) => supply claimed by wallet.
-    mapping(bytes32 => mapping(bytes32 => uint256)) private _supplyClaimedByWallet;
+    /// @notice Mapping from hash(claimer, conditionID) => supply claimed by wallet.
+    mapping(bytes32 =>  uint256) private _supplyClaimedByWallet;
 
     /// @notice Mapping from token => condition ID.
     mapping(address => bytes32) private _conditionId;
 
-    /// @notice Mapping from token => fee config for the token.
-    mapping(address => FeeConfig) private _feeConfig;
+    /// @dev Mapping from permissioned mint request UID => whether the mint request is processed.
+    mapping(bytes32 => bool) private _uidUsed;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -94,7 +107,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
     /// @notice Checks whether the caller is an admin of the given token.
     modifier onlyAdmin(address _token) {
         if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert DropMintHookNotAuthorized();
+            revert MintHookNotAuthorized();
         }
         _;
     }
@@ -110,7 +123,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
 
     /// @notice Returns the signature of the arguments expected by the beforeMint hook.
     function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "address,uint256,bytes32[],uint256,uint256,address";
+        argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
     }
 
     /// @notice Returns the next token ID to mint for a given token.
@@ -119,73 +132,90 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
     }
 
     /**
-     *  @notice Checks a request to claim NFTs against the active claim condition's criteria.
-     *  @param _token The token to claim.
-     *  @param _claimer The address that is claiming tokens.
-     *  @param _quantity The quantity of tokens to claim.
-     *  @param _currency The currency in which the claimer must pay the price for claiming tokens.
-     *  @param _pricePerToken The price per token claimed the claimer must pay.
-     *  @param _allowlistProof The proof of the claimer's inclusion in an allowlist.
+     *  @notice Verifies that a given claim is valid.
+     *
+     *  @param _token The token to mint.
+     *  @param _claimer The address to mint tokens for.
+     *  @param _quantity The quantity of tokens to mint.
+     *  @param _pricePerToken The price per token.
+     *  @param _currency The currency to pay with.
+     *  @param _allowlistProof The proof of the claimer's inclusion in an allowlist, if any.
+     *  @return isAllowlisted Whether the claimer is allowlisted.
      */
     function verifyClaim(
         address _token,
         address _claimer,
         uint256 _quantity,
-        address _currency,
         uint256 _pricePerToken,
-        AllowlistProof memory _allowlistProof
-    ) public view virtual returns (bool isOverride) {
+        address _currency,
+        bytes32[] memory _allowlistProof
+    ) public view virtual returns (bool isAllowlisted) {
         ClaimCondition memory currentClaimPhase = _claimCondition[_token];
-
-        uint256 claimLimit = currentClaimPhase.quantityLimitPerWallet;
-        uint256 claimPrice = currentClaimPhase.pricePerToken;
-        address claimCurrency = currentClaimPhase.currency;
+        
+        if (currentClaimPhase.startTimestamp > block.timestamp) {
+            revert MintHookMintNotStarted();
+        }
 
         /*
          * Here `isOverride` implies that if the merkle proof verification fails,
          * the claimer would claim through open claim limit instead of allowlisted limit.
          */
         if (currentClaimPhase.merkleRoot != bytes32(0)) {
-            isOverride = MerkleProofLib.verify(
-                _allowlistProof.proof,
+            isAllowlisted = MerkleProofLib.verify(
+                _allowlistProof,
                 currentClaimPhase.merkleRoot,
                 keccak256(
                     abi.encodePacked(
-                        _claimer,
-                        _allowlistProof.quantityLimitPerWallet,
-                        _allowlistProof.pricePerToken,
-                        _allowlistProof.currency
+                        _claimer
                     )
                 )
             );
+
+            if(!isAllowlisted) {
+                revert MintHookNotInAllowlist();
+            }
         }
 
-        if (isOverride) {
-            claimLimit =
-                _allowlistProof.quantityLimitPerWallet != 0 ? _allowlistProof.quantityLimitPerWallet : claimLimit;
-            claimPrice = _allowlistProof.pricePerToken != type(uint256).max ? _allowlistProof.pricePerToken : claimPrice;
-            claimCurrency = _allowlistProof.pricePerToken != type(uint256).max && _allowlistProof.currency != address(0)
-                ? _allowlistProof.currency
-                : claimCurrency;
+        if (_currency != currentClaimPhase.currency) {
+            revert MintHookInvalidCurrency(currentClaimPhase.currency, _currency);
         }
 
-        uint256 supplyClaimedByWallet = getSupplyClaimedByWallet(_token, _claimer);
-
-        if (_currency != claimCurrency || _pricePerToken != claimPrice) {
-            revert DropMintHookUnexpectedPriceOrCurrency();
+        if (_pricePerToken != currentClaimPhase.pricePerToken) {
+            revert MintHookInvalidPrice(currentClaimPhase.pricePerToken, _pricePerToken);
         }
 
-        if (_quantity == 0 || (_quantity + supplyClaimedByWallet > claimLimit)) {
-            revert DropMintHookInvalidQuantity();
+        if (_quantity == 0 || (_quantity + getSupplyClaimedByWallet(_token, _claimer) > currentClaimPhase.quantityLimitPerWallet)) {
+            revert MintHookInvalidQuantity(_quantity);
         }
 
         if (currentClaimPhase.supplyClaimed + _quantity > currentClaimPhase.maxClaimableSupply) {
-            revert DropMintHookMaxSupplyClaimed();
+            revert MintHookMaxSupplyClaimed();
+        }
+    }
+
+    /**
+     *  @notice Returns whether a mint request is permissioned.
+     *
+     *  @param _req The mint request to check.
+     *  @return isPermissioned Whether the mint request is permissioned.
+     */
+    function isPermissionedClaim(MintRequest memory _req)
+        public
+        view
+        returns (bool isPermissioned)
+    {
+
+        if(
+            _req.permissionSignature.length == 0
+                || _req.sigValidityStartTimestamp > block.timestamp
+                || block.timestamp > _req.sigValidityEndTimestamp
+                || _uidUsed[_req.sigUid]
+        ) {
+            return false;
         }
 
-        if (currentClaimPhase.startTimestamp > block.timestamp) {
-            revert DropMintHookMintNotStarted();
-        }
+        address signer = _recoverAddress(_req);
+        isPermissioned = !IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS);
     }
 
     /**
@@ -194,7 +224,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
      *  @param _claimer The address to get the supply claimed for
      */
     function getSupplyClaimedByWallet(address _token, address _claimer) public view returns (uint256) {
-        return _supplyClaimedByWallet[_conditionId[_token]][keccak256(abi.encode(_claimer, _token))];
+        return _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[_token], _claimer))];
     }
 
     /// @notice Returns the fee config for a token.
@@ -220,26 +250,47 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
         override
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
-        address token = msg.sender;
+        (MintRequest memory req) = abi.decode(_encodedArgs, (MintRequest));
+        
+        if(req.token != msg.sender) {
+            revert MintHookNotToken();
+        }
+        if(req.quantity != _quantity) {
+            revert MintHookInvalidQuantity(_quantity);
+        }
 
-        (address currency, uint256 pricePerToken, AllowlistProof memory allowlistProof) =
-            abi.decode(_encodedArgs, (address, uint256, AllowlistProof));
+        if(req.minter != _claimer) {
+            revert MintHookInvalidRecipient();
+        } 
 
-        verifyClaim(token, _claimer, _quantity, currency, pricePerToken, allowlistProof);
+        // Check against active claim condition unless permissioned.
+        if(!isPermissionedClaim(req)) {
+            verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
+            _claimCondition[req.token].supplyClaimed += req.quantity;
+            _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[req.token], req.minter))] += req.quantity;
+        } else {
+            _uidUsed[req.sigUid] = true;
+        }
 
-        // Update contract state.
-        tokenIdToMint = _nextTokenIdToMint[token]++;
-        quantityToMint = _quantity;
+        tokenIdToMint = _nextTokenIdToMint[req.token]++;
+        quantityToMint = req.quantity;
 
-        _claimCondition[token].supplyClaimed += _quantity;
-        _supplyClaimedByWallet[_conditionId[token]][keccak256(abi.encode(_claimer, token))] += _quantity;
-
-        _collectPrice(_claimer, _quantity * pricePerToken, currency);
+        _collectPrice(req.minter, req.pricePerToken * req.quantity, req.currency);
     }
 
     /*//////////////////////////////////////////////////////////////
                             SETTER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @notice Sets the fee config for a given token.
+     *  @param _token The token address.
+     *  @param _config The fee config for the token.
+     */
+    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+        _feeConfig[_token] = _config;
+        emit FeeConfigUpdate(_token, _config);
+    }
 
     /**
      *  @notice Sets the next token ID to mint for a given token.
@@ -268,15 +319,16 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
 
         if (_resetClaimEligibility) {
             supplyClaimedAlready = 0;
-            targetConditionId = keccak256(abi.encodePacked(msg.sender, block.number));
+            targetConditionId = keccak256(abi.encodePacked(_token, targetConditionId));
         }
 
         if (supplyClaimedAlready > _condition.maxClaimableSupply) {
-            revert DropMintHookMaxSupplyClaimed();
+            revert MintHookMaxSupplyClaimed();
         }
 
         _claimCondition[_token] = ClaimCondition({
             startTimestamp: _condition.startTimestamp,
+            endTimestamp: _condition.endTimestamp,
             maxClaimableSupply: _condition.maxClaimableSupply,
             supplyClaimed: supplyClaimedAlready,
             quantityLimitPerWallet: _condition.quantityLimitPerWallet,
@@ -290,16 +342,6 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
         emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
     }
 
-    /**
-     *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
-     *  @param _config The fee config for the token.
-     */
-    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
-    }
-
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -308,7 +350,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
     function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
         if (_totalPrice == 0) {
             if (msg.value > 0) {
-                revert DropMintHookIncorrectValueSent();
+                revert MintHookInvalidPrice(0, msg.value);
             }
             return;
         }
@@ -325,7 +367,7 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
 
         if (_currency == NATIVE_TOKEN) {
             if (msg.value != _totalPrice) {
-                revert DropMintHookIncorrectValueSent();
+                revert MintHookInvalidPrice(_totalPrice, msg.value);
             }
             if (payoutPlatformFees) {
                 SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
@@ -333,12 +375,40 @@ contract DropMintHook is IClaimCondition, IFeeConfig, ERC721Hook {
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         } else {
             if (msg.value > 0) {
-                revert DropMintHookIncorrectValueSent();
+                revert MintHookInvalidPrice(0, msg.value);
             }
             if (payoutPlatformFees) {
                 SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
             SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         }
+    }
+
+    /// @dev Returns the domain name and version for the EIP-712 domain separator
+    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
+        name = "MintHookERC721";
+        version = "1";
+    }
+
+    /// @dev Returns the address of the signer of the mint request.
+    function _recoverAddress(MintRequest memory _req) internal view returns (address) {
+        return _hashTypedData(
+            keccak256(
+                abi.encode(
+                    TYPEHASH,
+                    _req.token,
+                    _req.tokenId,
+                    _req.minter,
+                    _req.quantity,
+                    _req.pricePerToken,
+                    _req.currency,
+                    _req.allowlistProof,
+                    keccak256(_req.permissionSignature),
+                    _req.sigValidityStartTimestamp,
+                    _req.sigValidityEndTimestamp,
+                    _req.sigUid
+                )
+            )
+        ).recover(_req.permissionSignature);
     }
 }
