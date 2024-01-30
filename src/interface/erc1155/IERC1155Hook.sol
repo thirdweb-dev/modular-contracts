@@ -50,8 +50,9 @@ interface IERC1155Hook is IHook {
      *  @param from The address that is burning tokens.
      *  @param id The token ID being burned.
      *  @param value The quantity of tokens being burned.
+     *  @param encodedArgs The encoded arguments for the beforeBurn hook.
      */
-    function beforeBurn(address from, uint256 id, uint256 value) external;
+    function beforeBurn(address from, uint256 id, uint256 value, bytes memory encodedArgs) external;
 
     /**
      *  @notice The beforeApprove hook that is called by a core token before approving a token.
