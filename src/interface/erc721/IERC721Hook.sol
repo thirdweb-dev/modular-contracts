@@ -48,8 +48,9 @@ interface IERC721Hook is IHook {
      *  @notice The beforeBurn hook that is called by a core token before burning a token.
      *  @param from The address that is burning tokens.
      *  @param tokenId The token ID being burned.
+     *  @param encodedArgs The encoded arguments for the beforeBurn hook.
      */
-    function beforeBurn(address from, uint256 tokenId) external;
+    function beforeBurn(address from, uint256 tokenId, bytes memory encodedArgs) external;
 
     /**
      *  @notice The beforeApprove hook that is called by a core token before approving a token.

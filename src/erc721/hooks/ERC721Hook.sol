@@ -35,6 +35,11 @@ abstract contract ERC721Hook is IERC721Hook {
         argSignature = "";
     }
 
+    /// @notice Returns the signature of the arguments expected by the beforeBurn hook.
+    function getBeforeBurnArgSignature() external view virtual returns (string memory argSignature) {
+        argSignature = "";
+    }
+
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -70,8 +75,9 @@ abstract contract ERC721Hook is IERC721Hook {
      *  @notice The beforeBurn hook that is called by a core token before burning a token.
      *  @param _from The address that is burning tokens.
      *  @param _tokenId The token ID being burned.
+     *  @param _encodedArgs The encoded arguments for the beforeBurn hook.
      */
-    function beforeBurn(address _from, uint256 _tokenId) external virtual {
+    function beforeBurn(address _from, uint256 _tokenId, bytes memory _encodedArgs) external virtual {
         revert ERC721HookNotImplemented();
     }
 

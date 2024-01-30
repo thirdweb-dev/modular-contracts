@@ -46,8 +46,9 @@ interface IERC20Hook is IHook {
      *  @notice The beforeBurn hook that is called by a core token before burning a token.
      *  @param from The address that is burning tokens.
      *  @param amount The quantity of tokens to burn.
+     *  @param encodedArgs The encoded arguments for the beforeBurn hook.
      */
-    function beforeBurn(address from, uint256 amount) external;
+    function beforeBurn(address from, uint256 amount, bytes memory encodedArgs) external;
 
     /**
      *  @notice The beforeApprove hook that is called by a core token before approving a token.

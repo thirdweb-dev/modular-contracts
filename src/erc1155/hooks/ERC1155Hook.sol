@@ -34,6 +34,11 @@ abstract contract ERC1155Hook is IERC1155Hook {
     function getBeforeMintArgSignature() external view virtual returns (string memory argSignature) {
         argSignature = "";
     }
+    
+    /// @notice Returns the signature of the arguments expected by the beforeBurn hook.
+    function getBeforeBurnArgSignature() external view virtual returns (string memory argSignature) {
+        argSignature = "";
+    }
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -73,8 +78,9 @@ abstract contract ERC1155Hook is IERC1155Hook {
      *  @param _from The address that is burning tokens.
      *  @param _id The token ID being burned.
      *  @param _value The quantity of tokens being burned.
+     *  @param _encodedArgs The encoded arguments for the beforeBurn hook.
      */
-    function beforeBurn(address _from, uint256 _id, uint256 _value) external virtual {
+    function beforeBurn(address _from, uint256 _id, uint256 _value, bytes memory _encodedArgs) external virtual {
         revert ERC1155HookNotImplemented();
     }
 

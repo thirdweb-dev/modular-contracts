@@ -144,14 +144,15 @@ contract ERC721Core is
      *  @notice Burns an NFT.
      *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
      *  @param _tokenId The token ID of the NFT to burn.
+     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
-    function burn(uint256 _tokenId) external {
+    function burn(uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) external {
         address owner = ownerOf(_tokenId);
         if (owner != msg.sender) {
             revert ERC721NotOwner(msg.sender, _tokenId);
         }
 
-        _beforeBurn(owner, _tokenId);
+        _beforeBurn(owner, _tokenId, _encodedBeforeBurnArgs);
         _burn(_tokenId);
     }
 
@@ -239,11 +240,11 @@ contract ERC721Core is
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _tokenId) internal virtual {
+    function _beforeBurn(address _from, uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            IERC721Hook(hook).beforeBurn(_from, _tokenId);
+            IERC721Hook(hook).beforeBurn(_from, _tokenId, _encodedBeforeBurnArgs);
         }
     }
 

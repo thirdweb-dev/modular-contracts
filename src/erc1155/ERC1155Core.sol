@@ -147,13 +147,14 @@ contract ERC1155Core is
      *  @param _from Owner of the tokens
      *  @param _tokenId The token ID of the NFTs to burn.
      *  @param _value The amount of tokens to burn.
+     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
-    function burn(address _from, uint256 _tokenId, uint256 _value) external {
+    function burn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs) external {
         if (_from != msg.sender && isApprovedForAll[_from][msg.sender]) {
             revert ERC1155NotApprovedOrOwner(msg.sender);
         }
 
-        _beforeBurn(_from, _tokenId, _value);
+        _beforeBurn(_from, _tokenId, _value, _encodedBeforeBurnArgs);
         _burn(_from, _tokenId, _value);
     }
 
@@ -248,11 +249,11 @@ contract ERC1155Core is
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _tokenId, uint256 _value) internal virtual {
+    function _beforeBurn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            IERC1155Hook(hook).beforeBurn(_from, _tokenId, _value);
+            IERC1155Hook(hook).beforeBurn(_from, _tokenId, _value, _encodedBeforeBurnArgs);
         }
     }
 

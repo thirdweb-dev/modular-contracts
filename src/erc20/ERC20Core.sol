@@ -112,9 +112,10 @@ contract ERC20Core is
      *  @notice Burns tokens.
      *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
      *  @param _amount The amount of tokens to burn.
+     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
-    function burn(uint256 _amount) external {
-        _beforeBurn(msg.sender, _amount);
+    function burn(uint256 _amount, bytes memory _encodedBeforeBurnArgs) external {
+        _beforeBurn(msg.sender, _amount, _encodedBeforeBurnArgs);
         _burn(msg.sender, _amount);
     }
 
@@ -284,11 +285,11 @@ contract ERC20Core is
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _amount) internal virtual {
+    function _beforeBurn(address _from, uint256 _amount, bytes memory _encodedBeforeBurnArgs) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            IERC20Hook(hook).beforeBurn(_from, _amount);
+            IERC20Hook(hook).beforeBurn(_from, _amount, _encodedBeforeBurnArgs);
         }
     }
 
