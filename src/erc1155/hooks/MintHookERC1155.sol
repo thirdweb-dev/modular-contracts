@@ -7,14 +7,14 @@ import {IClaimCondition} from "../../interface/extension/IClaimConditionTwo.sol"
 import {IMintRequest} from "../../interface/extension/IMintRequest.sol";
 import {IMintRequestERC721} from "../../interface/extension/IMintRequestERC721.sol";
 
-import {ERC721Hook} from "./ERC721Hook.sol";
+import {ERC1155Hook} from "./ERC1155Hook.sol";
 import {EIP712} from "../../extension/EIP712.sol";
 
 import {ECDSA} from "../../lib/ECDSA.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC721Hook {
+contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC1155Hook {
 
     using ECDSA for bytes32;
 
@@ -40,9 +40,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     /// @notice Emitted when the claim condition for a given token is updated.
     event ClaimConditionUpdate(address indexed token, ClaimCondition condition, bool resetEligibility);
 
-    /// @notice Emitted when the next token ID to mint is updated.
-    event NextTokenIdUpdate(address indexed token, uint256 nextTokenIdToMint);
-
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -52,6 +49,9 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @notice Emitted when caller is not token core admin.
     error MintHookNotAuthorized();
+
+    /// @notice Emitted when minting invalid tokenId.
+    error MintHookInvalidTokenId(uint256 tokenId);
 
     /// @notice Emitted when minting invalid quantity.
     error MintHookInvalidQuantity(uint256 quantityToMint);
@@ -78,20 +78,17 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mapping from token => the next token ID to mint.
-    mapping(address => uint256) private _nextTokenIdToMint;
-
     /// @notice Mapping from token => fee config for the token.
     mapping(address => FeeConfig) private _feeConfig;
 
-    /// @notice Mapping from token => the claim conditions for minting the token.
-    mapping(address => ClaimCondition) private _claimCondition;
+    /// @notice Mapping from token => token-id => the claim conditions for minting the token.
+    mapping(address => mapping(uint256 => ClaimCondition)) private _claimCondition;
 
     /// @notice Mapping from hash(claimer, conditionID) => supply claimed by wallet.
     mapping(bytes32 =>  uint256) private _supplyClaimedByWallet;
 
-    /// @notice Mapping from token => condition ID.
-    mapping(address => bytes32) private _conditionId;
+    /// @notice Mapping from token => token-id => condition ID.
+    mapping(address => mapping(uint256 => bytes32)) private _conditionId;
 
     /// @dev Mapping from permissioned mint request UID => whether the mint request is processed.
     mapping(bytes32 => bool) private _uidUsed;
@@ -122,15 +119,11 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
     }
 
-    /// @notice Returns the next token ID to mint for a given token.
-    function getNextTokenIdToMint(address _token) external view returns (uint256) {
-        return _nextTokenIdToMint[_token];
-    }
-
     /**
      *  @notice Verifies that a given claim is valid.
      *
      *  @param _token The token to mint.
+     *  @param _tokenId The token ID to mint.
      *  @param _claimer The address to mint tokens for.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _pricePerToken The price per token.
@@ -140,13 +133,14 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      */
     function verifyClaim(
         address _token,
+        uint256 _tokenId,
         address _claimer,
         uint256 _quantity,
         uint256 _pricePerToken,
         address _currency,
         bytes32[] memory _allowlistProof
     ) public view virtual returns (bool isAllowlisted) {
-        ClaimCondition memory currentClaimPhase = _claimCondition[_token];
+        ClaimCondition memory currentClaimPhase = _claimCondition[_token][_tokenId];
         
         if (currentClaimPhase.startTimestamp > block.timestamp) {
             revert MintHookMintNotStarted();
@@ -180,7 +174,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
             revert MintHookInvalidPrice(currentClaimPhase.pricePerToken, _pricePerToken);
         }
 
-        if (_quantity == 0 || (_quantity + getSupplyClaimedByWallet(_token, _claimer) > currentClaimPhase.quantityLimitPerWallet)) {
+        if (_quantity == 0 || (_quantity + getSupplyClaimedByWallet(_token, _tokenId, _claimer) > currentClaimPhase.quantityLimitPerWallet)) {
             revert MintHookInvalidQuantity(_quantity);
         }
 
@@ -215,12 +209,13 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     }
 
     /**
-     *  @notice Returns the claim condition for a given token.
+     *  @notice Returns the supply claimed by a wallet in the given claim condition.
      *  @param _token The token to get the claim condition for.
+     *  @param _tokenId The token ID to get the claim condition for.
      *  @param _claimer The address to get the supply claimed for
      */
-    function getSupplyClaimedByWallet(address _token, address _claimer) public view returns (uint256) {
-        return _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[_token], _claimer))];
+    function getSupplyClaimedByWallet(address _token, uint256 _tokenId, address _claimer) public view returns (uint256) {
+        return _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[_token][_tokenId], _claimer))];
     }
 
     /// @notice Returns the fee config for a token.
@@ -235,12 +230,13 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
      *  @param _claimer The address that is minting tokens.
+     *  @param _tokenId The token ID being minted.
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+    function beforeMint(address _claimer, uint256 _tokenId, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
         override
@@ -257,18 +253,21 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
         if(req.minter != _claimer) {
             revert MintHookInvalidRecipient();
-        } 
+        }
+        if(req.tokenId != _tokenId) {
+            revert MintHookInvalidTokenId(_tokenId);
+        }
 
         // Check against active claim condition unless permissioned.
         if(!isPermissionedClaim(req)) {
-            verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
-            _claimCondition[req.token].supplyClaimed += req.quantity;
-            _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[req.token], req.minter))] += req.quantity;
+            verifyClaim(req.token, req.tokenId, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
+            _claimCondition[req.token][req.tokenId].supplyClaimed += req.quantity;
+            _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[req.token][req.tokenId], req.minter))] += req.quantity;
         } else {
             _uidUsed[req.sigUid] = true;
         }
 
-        tokenIdToMint = _nextTokenIdToMint[req.token]++;
+        tokenIdToMint = req.tokenId;
         quantityToMint = req.quantity;
 
         _collectPrice(req.minter, req.pricePerToken * req.quantity, req.currency);
@@ -289,40 +288,30 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     }
 
     /**
-     *  @notice Sets the next token ID to mint for a given token.
-     *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the next token ID to mint for.
-     *  @param _nextIdToMint The next token ID to mint.
-     */
-    function setNextIdToMint(address _token, uint256 _nextIdToMint) external onlyAdmin(_token) {
-        _nextTokenIdToMint[_token] = _nextIdToMint;
-        emit NextTokenIdUpdate(_token, _nextIdToMint);
-    }
-
-    /**
      *  @notice Sets the claim condition for a given token.
      *  @dev Only callable by an admin of the given token.
      *  @param _token The token to set the claim condition for.
+     *  @param _tokenId The token ID to set the claim condition for.
      *  @param _condition The claim condition to set.
      *  @param _resetClaimEligibility Whether to reset the claim eligibility of all wallets.
      */
-    function setClaimCondition(address _token, ClaimCondition calldata _condition, bool _resetClaimEligibility)
+    function setClaimCondition(address _token, uint256 _tokenId, ClaimCondition calldata _condition, bool _resetClaimEligibility)
         external
         onlyAdmin(_token)
     {
-        bytes32 targetConditionId = _conditionId[_token];
-        uint256 supplyClaimedAlready = _claimCondition[_token].supplyClaimed;
+        bytes32 targetConditionId = _conditionId[_token][_tokenId];
+        uint256 supplyClaimedAlready = _claimCondition[_token][_tokenId].supplyClaimed;
 
         if (_resetClaimEligibility) {
             supplyClaimedAlready = 0;
-            targetConditionId = keccak256(abi.encodePacked(_token, targetConditionId));
+            targetConditionId = keccak256(abi.encodePacked(_token, _tokenId, targetConditionId));
         }
 
         if (supplyClaimedAlready > _condition.maxClaimableSupply) {
             revert MintHookMaxSupplyClaimed();
         }
 
-        _claimCondition[_token] = ClaimCondition({
+        _claimCondition[_token][_tokenId] = ClaimCondition({
             startTimestamp: _condition.startTimestamp,
             endTimestamp: _condition.endTimestamp,
             maxClaimableSupply: _condition.maxClaimableSupply,
@@ -333,7 +322,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
             currency: _condition.currency,
             metadata: _condition.metadata
         });
-        _conditionId[_token] = targetConditionId;
+        _conditionId[_token][_tokenId] = targetConditionId;
 
         emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
     }
@@ -382,7 +371,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @dev Returns the domain name and version for the EIP-712 domain separator
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "MintHookERC721";
+        name = "MintHookERC1155";
         version = "1";
     }
 
