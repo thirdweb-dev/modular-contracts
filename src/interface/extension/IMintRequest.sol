@@ -5,6 +5,7 @@ interface IMintRequest {
 
     struct MintRequest {
         address token;
+        uint256 tokenId;
         address minter;
         uint256 quantity;
         uint256 pricePerToken;

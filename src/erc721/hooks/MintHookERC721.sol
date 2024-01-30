@@ -30,7 +30,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @notice The EIP-712 typehash for the mint request struct.
     bytes32 private constant TYPEHASH = keccak256(
-        "MintRequest(address token,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -380,6 +380,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
                 abi.encode(
                     TYPEHASH,
                     _req.token,
+                    _req.tokenId,
                     _req.minter,
                     _req.quantity,
                     _req.pricePerToken,
