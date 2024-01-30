@@ -131,6 +131,17 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         return _nextTokenIdToMint[_token];
     }
 
+    /**
+     *  @notice Verifies that a given claim is valid.
+     *
+     *  @param _token The token to mint.
+     *  @param _claimer The address to mint tokens for.
+     *  @param _quantity The quantity of tokens to mint.
+     *  @param _pricePerToken The price per token.
+     *  @param _currency The currency to pay with.
+     *  @param _allowlistProof The proof of the claimer's inclusion in an allowlist, if any.
+     *  @return isAllowlisted Whether the claimer is allowlisted.
+     */
     function verifyClaim(
         address _token,
         address _claimer,
@@ -182,6 +193,12 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
     }
 
+    /**
+     *  @notice Returns whether a mint request is permissioned.
+     *
+     *  @param _req The mint request to check.
+     *  @return isPermissioned Whether the mint request is permissioned.
+     */
     function isPermissionedClaim(MintRequest memory _req)
         public
         view
