@@ -5,6 +5,7 @@ import {IERC7572} from "../interface/eip/IERC7572.sol";
 import {IERC20CoreCustomErrors} from "../interface/erc20/IERC20CoreCustomErrors.sol";
 import {IERC20Hook} from "../interface/erc20/IERC20Hook.sol";
 import {IERC20HookInstaller} from "../interface/erc20/IERC20HookInstaller.sol";
+import {IInitCall} from "../interface/extension/IInitCall.sol";
 import {ERC20Initializable} from "./ERC20Initializable.sol";
 import {IHook, HookInstaller} from "../extension/HookInstaller.sol";
 import {Initializable} from "../extension/Initializable.sol";
@@ -15,6 +16,7 @@ contract ERC20Core is
     ERC20Initializable,
     HookInstaller,
     Permission,
+    IInitCall,
     IERC20HookInstaller,
     IERC20CoreCustomErrors,
     IERC7572
@@ -65,7 +67,7 @@ contract ERC20Core is
      *  @param _symbol The symbol of the token collection.
      *  @param _uri Contract URI.
      */
-    function initialize(address[] memory _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
+    function initialize(InitCall calldata _initCall, address[] memory _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
         external
         initializer
     {
@@ -76,6 +78,21 @@ contract ERC20Core is
         uint256 len = _hooks.length;
         for(uint256 i = 0; i < len; i++) {
             _installHook(IHook(_hooks[i]));
+        }
+
+        if (_initCall.target != address(0)) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
+            if (!success) {
+                if (returnData.length > 0) {
+                    // solhint-disable-next-line no-inline-assembly
+                    assembly {
+                        revert(add(returnData, 32), mload(returnData))
+                    }
+                } else {
+                    revert ERC20CoreInitializationFailed();
+                }
+            }
         }
     }
 

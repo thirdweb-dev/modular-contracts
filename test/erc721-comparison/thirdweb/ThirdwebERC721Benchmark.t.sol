@@ -6,6 +6,7 @@ import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
+import {IInitCall} from "src/interface/extension/IInitCall.sol";
 
 // Target test contracts
 import {ERC721Core} from "src/erc721/ERC721Core.sol";
@@ -69,29 +70,30 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         vm.pauseGasMetering();
 
         CloneFactory factory = new CloneFactory();
-
-        // vm.resumeGasMetering();
-
-        // // NOTE: Below, we use the inline hex for `abi.encodeWithSelector(...)` for more accurate gas measurement -- this is because
-        // //       forge will account for the gas cost of all computation such as `abi.encodeWithSelector(...)`.
-        // //
-        // return address(
-        //     ERC721Core(
-        //         factory.deployProxyByImplementation(
-        //             _implementation,
-        //             abi.encodeWithSelector(ERC721Core.initialize.selector, new address[](0), admin, "Test", "TST", "contractURI://"),
-        //             bytes32(block.number)
-        //         )
-        //     )
-        // );
+        IInitCall.InitCall memory initCall;
 
         vm.resumeGasMetering();
 
-        return factory.deployProxyByImplementation(
-            _implementation,
-            hex"61edddb500000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012300000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e636f6e74726163745552493a2f2f000000000000000000000000000000000000",
-            bytes32(block.number)
+        // NOTE: Below, we use the inline hex for `abi.encodeWithSelector(...)` for more accurate gas measurement -- this is because
+        //       forge will account for the gas cost of all computation such as `abi.encodeWithSelector(...)`.
+        //
+        return address(
+            ERC721Core(
+                factory.deployProxyByImplementation(
+                    _implementation,
+                    abi.encodeWithSelector(ERC721Core.initialize.selector, initCall, new address[](0), admin, "Test", "TST", "contractURI://"),
+                    bytes32(block.number)
+                )
+            )
         );
+
+        // vm.resumeGasMetering();
+
+        // return factory.deployProxyByImplementation(
+        //     _implementation,
+        //     hex"61edddb500000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012300000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e636f6e74726163745552493a2f2f000000000000000000000000000000000000",
+        //     bytes32(block.number)
+        // );
     }
 
     /// @dev Setup token metadata

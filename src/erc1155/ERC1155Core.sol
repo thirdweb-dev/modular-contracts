@@ -5,6 +5,7 @@ import {IERC7572} from "../interface/eip/IERC7572.sol";
 import {IERC1155CoreCustomErrors} from "../interface/erc1155/IERC1155CoreCustomErrors.sol";
 import {IERC1155Hook} from "../interface/erc1155/IERC1155Hook.sol";
 import {IERC1155HookInstaller} from "../interface/erc1155/IERC1155HookInstaller.sol";
+import {IInitCall} from "../interface/extension/IInitCall.sol";
 import {ERC1155Initializable} from "./ERC1155Initializable.sol";
 import {IHook, HookInstaller} from "../extension/HookInstaller.sol";
 import {Initializable} from "../extension/Initializable.sol";
@@ -15,6 +16,7 @@ contract ERC1155Core is
     ERC1155Initializable,
     HookInstaller,
     Permission,
+    IInitCall,
     IERC1155HookInstaller,
     IERC1155CoreCustomErrors,
     IERC7572
@@ -64,7 +66,7 @@ contract ERC1155Core is
      *  @param _symbol The symbol of the token collection.
      *  @param _uri Contract URI
      */
-    function initialize(address[] memory _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
+    function initialize(InitCall calldata _initCall, address[] memory _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
         external
         initializer
     {
@@ -75,6 +77,21 @@ contract ERC1155Core is
         uint256 len = _hooks.length;
         for(uint256 i = 0; i < len; i++) {
             _installHook(IHook(_hooks[i]));
+        }
+
+        if (_initCall.target != address(0)) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
+            if (!success) {
+                if (returnData.length > 0) {
+                    // solhint-disable-next-line no-inline-assembly
+                    assembly {
+                        revert(add(returnData, 32), mload(returnData))
+                    }
+                } else {
+                    revert ERC1155CoreInitializationFailed();
+                }
+            }
         }
     }
 

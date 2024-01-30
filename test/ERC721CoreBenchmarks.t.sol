@@ -13,6 +13,7 @@ import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
 import {RoyaltyHook} from "src/erc721/hooks/RoyaltyHook.sol";
 import {IERC721} from "src/interface/erc721/IERC721.sol";
 import {IHook} from "src/interface/extension/IHook.sol";
+import {IInitCall} from "src/interface/extension/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -102,8 +103,9 @@ contract ERC721CoreBenchmarkTest is Test {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
+        IInitCall.InitCall memory initCall;
         bytes memory data =
-            abi.encodeWithSelector(ERC721Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -160,9 +162,11 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.pauseGasMetering();
 
+        IInitCall.InitCall memory initCall;
+
         address impl = erc721Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC721Core.initialize.selector, new address[](0), platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();
@@ -180,9 +184,11 @@ contract ERC721CoreBenchmarkTest is Test {
         hooks[1] = address(lazyMintHook);
         hooks[2] = address(royaltyHook);
 
+        IInitCall.InitCall memory initCall;
+
         address impl = erc721Implementation;
         bytes memory data =
-            abi.encodeWithSelector(ERC721Core.initialize.selector, hooks, platformUser, "Test", "TST", "contractURI://");
+            abi.encodeWithSelector(ERC721Core.initialize.selector, initCall, hooks, platformUser, "Test", "TST", "contractURI://");
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();
