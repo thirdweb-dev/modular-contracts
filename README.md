@@ -77,6 +77,15 @@ You can find testnet deployments of this hooks design setup, and JS scripts to i
 | Transfer token            | 23_300   | 37_354  | 29_255   |
 | Setup token metadata      | 43_953   | 31_946  | 14_205   |
 
+### ERC-721 Existing Contracts Benchmarks Comparison via transactions on Sepolia
+
+| Action                    | Thirdweb Drop | Zora    | Manifold |
+| ------------------------- | ------------- | ------- | -------- |
+| Deploy (developer-facing) | 719_842       | 499_968 | 232_917  |
+| Claim 1 token             | 196_540       | 160_447 | 184_006  |
+| Transfer token            | 76_102        | 71_362  | 69_042   |
+| Setup token metadata      | 47_528        | 54_612  | 29_789   |
+
 # Design Overview
 
 Developers deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-721 Core contract.
