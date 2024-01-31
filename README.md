@@ -82,12 +82,12 @@ Hooks are an external call made to a contract that implements the [`IHook`](http
 
 The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
 
-There is a fixed, defined set of 6 hooks:
+For example, there is a fixed, defined set of 6 ERC-721 hooks:
 
 - **BeforeMint**: called before a token is minted in the ERC721Core.mint call.
 - **BeforeTransfer**: called before a token is transferred in the ERC721.transferFrom call.
 - **BeforeBurn**: called before a token is burned in the ERC721.burn call.
-- **BeforeApprove**: called before the ERC721.approve call.
+- **BeforeApprove**: called before the ERC721.approve and ERC721.setApprovalForAll call.
 - **Token URI**: called when the ERC721Metadata.tokenURI function is called.
 - **Royalty**: called when the ERC2981.royaltyInfo function is called.
 
@@ -97,7 +97,7 @@ Developers can install hooks into their core contracts, and uninstall hooks at a
 
 ![beacon upgrade](https://ipfs.io/ipfs/QmS1zU629FoDZM1X3oRmMZyxi7ThW2UiFybK7mkpZ2DzBS/contracts-next-beacon-upgrade.png)
 
-thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/hooks](https://github.com/thirdweb-dev/contracts-next/tree/main/src/hook).
+thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/hooks](https://github.com/thirdweb-dev/contracts-next/tree/main/src/hook)).
 
 These hook contracts are designed to be used by developers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make beacon upgrades to developer contracts using these hooks.
 
