@@ -7,12 +7,12 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
-import {ERC1155Core, ERC1155Initializable} from "src/erc1155/ERC1155Core.sol";
-import {AllowlistMintHook} from "src/erc1155/hooks/AllowlistMintHook.sol";
-import {LazyMintMetadataHook} from "src/erc1155/hooks/LazyMintMetadataHook.sol";
-import {IERC1155} from "src/interface/erc1155/IERC1155.sol";
-import {IHook} from "src/interface/extension/IHook.sol";
-import {IInitCall} from "src/interface/extension/IInitCall.sol";
+import {ERC1155Core, ERC1155Initializable} from "src/core/token/ERC1155Core.sol";
+import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.sol";
+import {LazyMintMetadataHook} from "src/hook/metadata/LazyMintMetadataHook.sol";
+import {IERC1155} from "src/interface/eip/IERC1155.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
+import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-1155 contracts on the thirdweb platform.
@@ -68,7 +68,7 @@ contract ERC1155CoreBenchmarkTest is Test {
     address public hookProxyAddress;
 
     ERC1155Core public erc1155;
-    AllowlistMintHook public simpleClaimHook;
+    AllowlistMintHookERC1155 public simpleClaimHook;
     LazyMintMetadataHook public lazyMintHook;
 
     // Token claim params
@@ -83,8 +83,8 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHook())));
-        simpleClaimHook = AllowlistMintHook(hookProxyAddress);
+        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC1155())));
+        simpleClaimHook = AllowlistMintHookERC1155(hookProxyAddress);
 
         address lazyMintHookProxyAddress =
             address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
@@ -106,7 +106,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.label(address(erc1155), "ERC1155Core");
         vm.label(erc1155Implementation, "ERC1155CoreImpl");
-        vm.label(hookProxyAddress, "AllowlistMintHook");
+        vm.label(hookProxyAddress, "AllowlistMintHookERC1155");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
@@ -123,7 +123,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
+        AllowlistMintHookERC1155.ClaimCondition memory condition = AllowlistMintHookERC1155.ClaimCondition({
             price: pricePerToken,
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
@@ -131,14 +131,14 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         simpleClaimHook.setClaimCondition(address(erc1155), 0, condition);
 
-        AllowlistMintHook.FeeConfig memory feeConfig;
+        AllowlistMintHookERC1155.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
         simpleClaimHook.setDefaultFeeConfig(address(erc1155), feeConfig);
 
-        // Developer installs `AllowlistMintHook` hook
+        // Developer installs `AllowlistMintHookERC1155` hook
         erc1155.installHook(IHook(hookProxyAddress));
         erc1155.installHook(IHook(lazyMintHookProxyAddress));
 
@@ -267,8 +267,8 @@ contract ERC1155CoreBenchmarkTest is Test {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        bytes4 sel = AllowlistMintHook.beforeMint.selector;
-        address newImpl = address(new AllowlistMintHook());
+        bytes4 sel = AllowlistMintHookERC1155.beforeMint.selector;
+        address newImpl = address(new AllowlistMintHookERC1155());
         address proxyAdmin = platformAdmin;
         MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
 

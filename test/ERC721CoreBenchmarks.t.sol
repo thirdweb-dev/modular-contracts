@@ -7,13 +7,13 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
-import {ERC721Core, ERC721Initializable} from "src/erc721/ERC721Core.sol";
-import {AllowlistMintHook} from "src/erc721/hooks/AllowlistMintHook.sol";
-import {LazyMintMetadataHook} from "src/erc721/hooks/LazyMintMetadataHook.sol";
-import {RoyaltyHook} from "src/erc721/hooks/RoyaltyHook.sol";
-import {IERC721} from "src/interface/erc721/IERC721.sol";
-import {IHook} from "src/interface/extension/IHook.sol";
-import {IInitCall} from "src/interface/extension/IInitCall.sol";
+import {ERC721Core, ERC721Initializable} from "src/core/token/ERC721Core.sol";
+import {AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
+import {LazyMintMetadataHook} from "src/hook/metadata/LazyMintMetadataHook.sol";
+import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
+import {IERC721} from "src/interface/eip/IERC721.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
+import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -69,7 +69,7 @@ contract ERC721CoreBenchmarkTest is Test {
     address public hookProxyAddress;
 
     ERC721Core public erc721;
-    AllowlistMintHook public simpleClaimHook;
+    AllowlistMintHookERC721 public simpleClaimHook;
     LazyMintMetadataHook public lazyMintHook;
     RoyaltyHook public royaltyHook;
 
@@ -85,8 +85,8 @@ contract ERC721CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHook())));
-        simpleClaimHook = AllowlistMintHook(hookProxyAddress);
+        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC721())));
+        simpleClaimHook = AllowlistMintHookERC721(hookProxyAddress);
         assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
 
         address lazyMintHookProxyAddress =
@@ -112,7 +112,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.label(address(erc721), "ERC721Core");
         vm.label(erc721Implementation, "ERC721CoreImpl");
-        vm.label(hookProxyAddress, "AllowlistMintHook");
+        vm.label(hookProxyAddress, "AllowlistMintHookERC721");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
@@ -129,7 +129,7 @@ contract ERC721CoreBenchmarkTest is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintHook.ClaimCondition memory condition = AllowlistMintHook.ClaimCondition({
+        AllowlistMintHookERC721.ClaimCondition memory condition = AllowlistMintHookERC721.ClaimCondition({
             price: pricePerToken,
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
@@ -137,14 +137,14 @@ contract ERC721CoreBenchmarkTest is Test {
 
         simpleClaimHook.setClaimCondition(address(erc721), condition);
 
-        AllowlistMintHook.FeeConfig memory feeConfig;
+        AllowlistMintHookERC721.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
         simpleClaimHook.setFeeConfig(address(erc721), feeConfig);
 
-        // Developer installs `AllowlistMintHook` hook
+        // Developer installs `AllowlistMintHookERC721` hook
         erc721.installHook(IHook(hookProxyAddress));
         erc721.installHook(IHook(lazyMintHookProxyAddress));
 
@@ -292,8 +292,8 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        bytes4 sel = AllowlistMintHook.beforeMint.selector;
-        address newImpl = address(new AllowlistMintHook());
+        bytes4 sel = AllowlistMintHookERC721.beforeMint.selector;
+        address newImpl = address(new AllowlistMintHookERC721());
         address proxyAdmin = platformAdmin;
         MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
 
