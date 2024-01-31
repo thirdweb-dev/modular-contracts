@@ -48,7 +48,7 @@ contract ERC721Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The contract URI of the contract.
-    string private _contractURI;
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -65,11 +65,11 @@ contract ERC721Core is
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      */
-    function initialize(InitCall calldata _initCall, address[] calldata _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _uri)
+    function initialize(InitCall calldata _initCall, address[] calldata _hooks, address _defaultAdmin, string memory _name, string memory _symbol, string memory _contractURI)
         external
         initializer
     {
-        _setupContractURI(_uri);
+        _setupContractURI(_contractURI);
         __ERC721_init(_name, _symbol);
         _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
 
@@ -115,7 +115,7 @@ contract ERC721Core is
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view override returns (string memory) {
-        return _contractURI;
+        return contractURI_;
     }
 
     /**
@@ -230,7 +230,7 @@ contract ERC721Core is
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _uri) internal {
-        _contractURI = _uri;
+        contractURI_ = _uri;
         emit ContractURIUpdated();
     }
 
