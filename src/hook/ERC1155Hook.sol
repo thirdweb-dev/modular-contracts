@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {IERC1155Hook} from "../interface/hook/IERC1155Hook.sol";
+import { IERC1155Hook } from "../interface/hook/IERC1155Hook.sol";
 
 abstract contract ERC1155Hook is IERC1155Hook {
     /*//////////////////////////////////////////////////////////////
@@ -34,7 +34,7 @@ abstract contract ERC1155Hook is IERC1155Hook {
     function getBeforeMintArgSignature() external view virtual returns (string memory argSignature) {
         argSignature = "";
     }
-    
+
     /// @notice Returns the signature of the arguments expected by the beforeBurn hook.
     function getBeforeBurnArgSignature() external view virtual returns (string memory argSignature) {
         argSignature = "";
@@ -53,12 +53,12 @@ abstract contract ERC1155Hook is IERC1155Hook {
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _to, uint256 _id, uint256 _value, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _to,
+        uint256 _id,
+        uint256 _value,
+        bytes memory _encodedArgs
+    ) external payable virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         revert ERC1155HookNotImplemented();
     }
 
@@ -110,12 +110,10 @@ abstract contract ERC1155Hook is IERC1155Hook {
      *  @return receiver The address to send the royalty payment to.
      *  @return royaltyAmount The amount of royalty to pay.
      */
-    function royaltyInfo(uint256 _id, uint256 _salePrice)
-        external
-        view
-        virtual
-        returns (address receiver, uint256 royaltyAmount)
-    {
+    function royaltyInfo(
+        uint256 _id,
+        uint256 _salePrice
+    ) external view virtual returns (address receiver, uint256 royaltyAmount) {
         revert ERC1155HookNotImplemented();
     }
 }

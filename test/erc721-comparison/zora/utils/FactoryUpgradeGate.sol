@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import {IFactoryUpgradeGate} from "./IFactoryUpgradeGate.sol";
+import { IFactoryUpgradeGate } from "./IFactoryUpgradeGate.sol";
 import "./Ownable2Step.sol";
 
 /**

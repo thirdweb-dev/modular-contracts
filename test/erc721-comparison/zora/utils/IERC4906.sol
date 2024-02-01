@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
-import {IERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC721Upgradeable.sol";
+import { IERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
+import { IERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC721Upgradeable.sol";
 
 /// @title EIP-721 Metadata Update Extension
 interface IERC4906 is IERC165Upgradeable, IERC721Upgradeable {

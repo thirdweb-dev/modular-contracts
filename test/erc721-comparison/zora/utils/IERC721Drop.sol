@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IMetadataRenderer} from "./IMetadataRenderer.sol";
+import { IMetadataRenderer } from "./IMetadataRenderer.sol";
 
 /**
  * ________   _____   ____    ______      ____
@@ -85,7 +85,10 @@ interface IERC721Drop {
     /// @param pricePerToken price for each token
     /// @param firstPurchasedTokenId first purchased token ID (to get range add to quantity for max)
     event Sale(
-        address indexed to, uint256 indexed quantity, uint256 indexed pricePerToken, uint256 firstPurchasedTokenId
+        address indexed to,
+        uint256 indexed quantity,
+        uint256 indexed pricePerToken,
+        uint256 firstPurchasedTokenId
     );
 
     /// @notice Event emitted for each sale
@@ -95,7 +98,11 @@ interface IERC721Drop {
     /// @param quantity quantity of the minted nfts
     /// @param comment caller provided comment
     event MintComment(
-        address indexed sender, address indexed tokenContract, uint256 indexed tokenId, uint256 quantity, string comment
+        address indexed sender,
+        address indexed tokenContract,
+        uint256 indexed tokenId,
+        uint256 quantity,
+        string comment
     );
 
     /// @notice Sales configuration has been changed
@@ -229,10 +236,12 @@ interface IERC721Drop {
     /// @param pricePerToken price per token allowed (verified by merkle root)
     /// @param merkleProof input for merkle proof leaf verified by merkle root
     /// @return first minted token ID
-    function purchasePresale(uint256 quantity, uint256 maxQuantity, uint256 pricePerToken, bytes32[] memory merkleProof)
-        external
-        payable
-        returns (uint256);
+    function purchasePresale(
+        uint256 quantity,
+        uint256 maxQuantity,
+        uint256 pricePerToken,
+        bytes32[] memory merkleProof
+    ) external payable returns (uint256);
 
     /// @notice Function to return the global sales details for the given drop
     function saleDetails() external view returns (SaleDetails memory);

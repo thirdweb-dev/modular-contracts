@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface IMintRequest {
-
     /**
      *  @notice Represents a mint request on a Mint Hook.
      *
@@ -26,7 +25,6 @@ interface IMintRequest {
         uint256 pricePerToken;
         address currency;
         bytes32[] allowlistProof;
-
         bytes permissionSignature;
         uint128 sigValidityStartTimestamp;
         uint128 sigValidityEndTimestamp;

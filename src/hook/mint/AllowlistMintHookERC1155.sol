@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
-import {IPermission} from "../../interface/common/IPermission.sol";
-import {ERC1155Hook} from "../ERC1155Hook.sol";
-import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
-import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
+import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
+import { IPermission } from "../../interface/common/IPermission.sol";
+import { ERC1155Hook } from "../ERC1155Hook.sol";
+import { MerkleProofLib } from "../../lib/MerkleProofLib.sol";
+import { SafeTransferLib } from "../../lib/SafeTransferLib.sol";
 
 contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
     /*//////////////////////////////////////////////////////////////
@@ -118,12 +118,12 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _claimer, uint256 _id, uint256 _value, bytes memory _encodedArgs)
-        external
-        payable
-        override
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _claimer,
+        uint256 _id,
+        uint256 _value,
+        bytes memory _encodedArgs
+    ) external payable override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         address token = msg.sender;
 
         ClaimCondition memory condition = claimCondition[token][_id];
@@ -136,13 +136,15 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
             bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
+                allowlistProof,
+                condition.allowlistMerkleRoot,
+                keccak256(abi.encodePacked(_claimer))
             );
             if (!isAllowlisted) {
                 revert AllowlistMintHookNotInAllowlist(token, _claimer);
             }
         }
-        
+
         tokenIdToMint = _id;
         quantityToMint = _value;
 
@@ -161,10 +163,11 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      *  @param _token The token to set the claim condition for.
      *  @param _claimCondition The claim condition to set.
      */
-    function setClaimCondition(address _token, uint256 _id, ClaimCondition memory _claimCondition)
-        public
-        onlyAdmin(_token)
-    {
+    function setClaimCondition(
+        address _token,
+        uint256 _id,
+        ClaimCondition memory _claimCondition
+    ) public onlyAdmin(_token) {
         claimCondition[_token][_id] = _claimCondition;
         emit ClaimConditionUpdate(_token, _id, _claimCondition);
     }
