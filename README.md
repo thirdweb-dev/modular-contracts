@@ -35,20 +35,6 @@ You can find testnet deployments of this hooks design setup, and JS scripts to i
 
 # Benchmarks
 
-### ERC-721 Core Benchmarks ([test/ERC721CoreBenchmarks.t.sol](https://github.com/thirdweb-dev/contracts-next/blob/main/test/ERC721CoreBenchmarks.t.sol))
-
-| Action                        | Gas consumption |
-| ----------------------------- | --------------- |
-| Deploy (developer-facing)     | 196_411         |
-| Mint 1 token                  | 196_976         |
-| Mint 10 tokens                | 417_090         |
-| Transfer token                | 22_967          |
-| Install 1 hook                | 67_810          |
-| Install 5 hooks               | 76_592          |
-| Uninstall 1 hook              | 5_709           |
-| Uninstall 5 hooks             | 6_552           |
-| Beacon upgrade (via platform) | 30_313          |
-
 ### ERC-721 Core Benchmarks via transactions on Goerli
 
 | Action                                      | Gas consumption | Transaction                                                                                              |
@@ -92,8 +78,8 @@ Developers deploy non-upgradeable minimal clones of token core contracts e.g. th
 
 - This contract is initializable, and meant to be used with proxy contracts.
 - Implements the token standard (and the respective token metadata standard).
-- Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/Permission.sol) contract.
-- Implements the [`HookInstaller`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/extension/HookInstaller.sol) interface.
+- Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/common/Permission.sol) contract.
+- Implements the [`HookInstaller`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/hook/HookInstaller.sol) interface.
 
 Core contracts are deliberately written as non-upgradeable foundations that contain minimal code with fixed behaviour. These contracts are meant to be extended by developers using hooks.
 
@@ -101,7 +87,7 @@ Core contracts are deliberately written as non-upgradeable foundations that cont
 
 ![mint tokens via hooks](https://ipfs.io/ipfs/QmXfN8GFsJNEgkwa9F44kRWFFnahPbyPb8yV2L9LmFomnj/contracts-next-mint-tokens.png)
 
-Hooks are an external call made to a contract that implements the [`IHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/extension/IHook.sol) interface.
+Hooks are an external call made to a contract that implements the [`IHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/hook/IHook.sol) interface.
 
 The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
 
@@ -120,7 +106,7 @@ Developers can install hooks into their core contracts, and uninstall hooks at a
 
 ![beacon upgrade](https://ipfs.io/ipfs/QmS1zU629FoDZM1X3oRmMZyxi7ThW2UiFybK7mkpZ2DzBS/contracts-next-beacon-upgrade.png)
 
-thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/erc721/hooks/](https://github.com/thirdweb-dev/contracts-next/tree/main/src/erc721/hooks) and [test/hook-examples](https://github.com/thirdweb-dev/contracts-next/tree/main/test/hook-examples) which contains the familiar Drop and Signature Mint contracts as shared state hooks).
+thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/hooks](https://github.com/thirdweb-dev/contracts-next/tree/main/src/hook).
 
 These hook contracts are designed to be used by developers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make beacon upgrades to developer contracts using these hooks.
 
