@@ -54,15 +54,6 @@ You can find testnet deployments of this hooks design setup, and JS scripts to i
 - 'Minting tokens' benchmarks use the `AllowlistMintHook` contract as the `beforeMint` hook. All token minting benchmarks include distributing non-zero primary sale value and platform fee.
 - All hooks used in these benchmarks are minimal clone proxy contracts pointing to hook contract implementations.
 
-### ERC-721 Benchmarks Comparison ([test/erc721-comparison/](https://github.com/thirdweb-dev/contracts-next/tree/main/test/erc721-comparison))
-
-| Action                    | Thirdweb | Zora    | Manifold |
-| ------------------------- | -------- | ------- | -------- |
-| Deploy (developer-facing) | 191_921  | 477_739 | 299_526  |
-| Claim 1 token             | 195_824  | 151_865 | 175_723  |
-| Transfer token            | 23_300   | 37_354  | 29_255   |
-| Setup token metadata      | 43_953   | 31_946  | 14_205   |
-
 ### ERC-721 Contracts Benchmarks Comparison via transactions on Sepolia
 
 | Action                    | Thirdweb New | Thirdweb Drop | Zora    | Manifold |
