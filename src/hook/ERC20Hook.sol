@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {IERC20Hook} from "../interface/hook/IERC20Hook.sol";
+import { IERC20Hook } from "../interface/hook/IERC20Hook.sol";
 
 abstract contract ERC20Hook is IERC20Hook {
     /*//////////////////////////////////////////////////////////////
@@ -45,12 +45,11 @@ abstract contract ERC20Hook is IERC20Hook {
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
      *  @return quantityToMint The quantity of tokens to mint.s
      */
-    function beforeMint(address _to, uint256 _amount, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        returns (uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _to,
+        uint256 _amount,
+        bytes memory _encodedArgs
+    ) external payable virtual returns (uint256 quantityToMint) {
         revert ERC20HookNotImplemented();
     }
 

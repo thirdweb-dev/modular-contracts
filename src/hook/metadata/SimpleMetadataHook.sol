@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IPermission} from "../../interface/common/IPermission.sol";
+import { IPermission } from "../../interface/common/IPermission.sol";
 
-import {ERC1155Hook} from "../ERC1155Hook.sol";
-import {LibString} from "../../lib/LibString.sol";
+import { ERC1155Hook } from "../ERC1155Hook.sol";
+import { LibString } from "../../lib/LibString.sol";
 
 contract SimpleMetadataHook is ERC1155Hook {
     using LibString for uint256;

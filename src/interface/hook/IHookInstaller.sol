@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IHook} from "./IHook.sol";
+import { IHook } from "./IHook.sol";
 
 interface IHookInstaller {
     /*//////////////////////////////////////////////////////////////

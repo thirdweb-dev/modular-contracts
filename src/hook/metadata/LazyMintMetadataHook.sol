@@ -20,14 +20,14 @@ contract LazyMintMetadataHook is ERC721Hook {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-  /// @dev Emitted when tokens are lazy minted.
-  event TokensLazyMinted(
-    address indexed token,
-    uint256 indexed startTokenId,
-    uint256 endTokenId,
-    string baseURI,
-    bytes encryptedBaseURI
-  );
+    /// @dev Emitted when tokens are lazy minted.
+    event TokensLazyMinted(
+        address indexed token,
+        uint256 indexed startTokenId,
+        uint256 endTokenId,
+        string baseURI,
+        bytes encryptedBaseURI
+    );
 
   /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -128,22 +128,31 @@ contract LazyMintMetadataHook is ERC721Hook {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-  /**
-   *  @notice Lazy mints a given amount of NFTs.
-   *  @param _token The token address.
-   *  @param _amount The number of NFTs to lazy mint.
-   *  @param _baseURIForTokens Base URI for a batch of NFTs.
-   *  @param _data Additional bytes data
-   *  @return batchId A unique integer identifier for the batch of NFTs lazy minted together.
-   */
-  function lazyMint(
-    address _token,
-    uint256 _amount,
-    string calldata _baseURIForTokens,
-    bytes calldata _data
-  ) public virtual onlyAdmin(_token) returns (uint256 batchId) {
-    if (_amount == 0) {
-      revert LazyMintMetadataHookZeroAmount();
+    /**
+     *  @notice Lazy mints a given amount of NFTs.
+     *  @param _token The token address.
+     *  @param _amount The number of NFTs to lazy mint.
+     *  @param _baseURIForTokens Base URI for a batch of NFTs.
+     *  @param _data Additional bytes data
+     *  @return batchId A unique integer identifier for the batch of NFTs lazy minted together.
+     */
+    function lazyMint(
+        address _token,
+        uint256 _amount,
+        string calldata _baseURIForTokens,
+        bytes calldata _data
+    ) public virtual onlyAdmin(_token) returns (uint256 batchId) {
+        if (_amount == 0) {
+            revert LazyMintMetadataHookZeroAmount();
+        }
+
+        uint256 startId = _nextTokenIdToLazyMint[_token];
+
+        (_nextTokenIdToLazyMint[_token], batchId) = _batchMintMetadata(_token, startId, _amount, _baseURIForTokens);
+
+        emit TokensLazyMinted(_token, startId, startId + _amount - 1, _baseURIForTokens, _data);
+
+        return batchId;
     }
 
     uint256 startId = _nextTokenIdToLazyMint[_token];

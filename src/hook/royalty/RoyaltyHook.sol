@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 /// @author thirdweb
 
-import {IPermission} from "../../interface/common/IPermission.sol";
-import {ERC1155Hook} from "../ERC1155Hook.sol";
+import { IPermission } from "../../interface/common/IPermission.sol";
+import { ERC1155Hook } from "../ERC1155Hook.sol";
 
 contract RoyaltyHook is ERC1155Hook {
     /*//////////////////////////////////////////////////////////////
@@ -87,13 +87,10 @@ contract RoyaltyHook is ERC1155Hook {
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
-        external
-        view
-        virtual
-        override
-        returns (address receiver, uint256 royaltyAmount)
-    {
+    function royaltyInfo(
+        uint256 _tokenId,
+        uint256 _salePrice
+    ) external view virtual override returns (address receiver, uint256 royaltyAmount) {
         address token = msg.sender;
         (address recipient, uint256 bps) = getRoyaltyInfoForToken(token, _tokenId);
         receiver = recipient;
@@ -111,9 +108,10 @@ contract RoyaltyHook is ERC1155Hook {
         RoyaltyInfo memory royaltyForToken = _royaltyInfoForToken[_token][_tokenId];
         RoyaltyInfo memory defaultRoyaltyInfo = _defaultRoyaltyInfo[_token];
 
-        return royaltyForToken.recipient == address(0)
-            ? (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps))
-            : (royaltyForToken.recipient, uint16(royaltyForToken.bps));
+        return
+            royaltyForToken.recipient == address(0)
+                ? (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps))
+                : (royaltyForToken.recipient, uint16(royaltyForToken.bps));
     }
 
     /**
@@ -137,10 +135,11 @@ contract RoyaltyHook is ERC1155Hook {
      *  @param _royaltyRecipient The royalty recipient address.
      *  @param _royaltyBps The basis points of the sale price that is taken as royalty.
      */
-    function setDefaultRoyaltyInfo(address _token, address _royaltyRecipient, uint256 _royaltyBps)
-        external
-        onlyAdmin(_token)
-    {
+    function setDefaultRoyaltyInfo(
+        address _token,
+        address _royaltyRecipient,
+        uint256 _royaltyBps
+    ) external onlyAdmin(_token) {
         _setupDefaultRoyaltyInfo(_token, _royaltyRecipient, _royaltyBps);
     }
 
@@ -151,10 +150,12 @@ contract RoyaltyHook is ERC1155Hook {
      *  @param _recipient The royalty recipient address.
      *  @param _bps The basis points of the sale price that is taken as royalty.
      */
-    function setRoyaltyInfoForToken(address _token, uint256 _tokenId, address _recipient, uint256 _bps)
-        external
-        onlyAdmin(_token)
-    {
+    function setRoyaltyInfoForToken(
+        address _token,
+        uint256 _tokenId,
+        address _recipient,
+        uint256 _bps
+    ) external onlyAdmin(_token) {
         _setupRoyaltyInfoForToken(_token, _tokenId, _recipient, _bps);
     }
 
@@ -168,7 +169,7 @@ contract RoyaltyHook is ERC1155Hook {
             revert RoyaltyHookExceedsMaxBps();
         }
 
-        _defaultRoyaltyInfo[_token] = RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
+        _defaultRoyaltyInfo[_token] = RoyaltyInfo({ recipient: _royaltyRecipient, bps: _royaltyBps });
 
         emit DefaultRoyaltyUpdate(_token, _royaltyRecipient, _royaltyBps);
     }
@@ -179,7 +180,7 @@ contract RoyaltyHook is ERC1155Hook {
             revert RoyaltyHookExceedsMaxBps();
         }
 
-        _royaltyInfoForToken[_token][_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
+        _royaltyInfoForToken[_token][_tokenId] = RoyaltyInfo({ recipient: _recipient, bps: _bps });
 
         emit TokenRoyaltyUpdate(_token, _tokenId, _recipient, _bps);
     }

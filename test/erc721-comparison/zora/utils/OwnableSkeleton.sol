@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import {IOwnable} from "./IOwnable.sol";
+import { IOwnable } from "./IOwnable.sol";
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
