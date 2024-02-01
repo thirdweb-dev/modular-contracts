@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.00;
 
-import {IERC721Drop} from "./IERC721Drop.sol";
+import { IERC721Drop } from "./IERC721Drop.sol";
 
 contract MetadataRenderAdminCheck {
     error Access_OnlyAdmin();

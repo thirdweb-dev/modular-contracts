@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-import {IMetadataRenderer} from "./IMetadataRenderer.sol";
-import {MetadataRenderAdminCheck} from "./MetadataRenderAdminCheck.sol";
+import { StringsUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
+import { IMetadataRenderer } from "./IMetadataRenderer.sol";
+import { MetadataRenderAdminCheck } from "./MetadataRenderAdminCheck.sol";
 
 /// @notice Drops metadata system
 contract DropMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck {
@@ -11,7 +11,11 @@ contract DropMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck {
 
     /// Event to mark updated metadata information
     event MetadataUpdated(
-        address indexed target, string metadataBase, string metadataExtension, string contractURI, uint256 freezeAt
+        address indexed target,
+        string metadataBase,
+        string metadataExtension,
+        string contractURI,
+        uint256 freezeAt
     );
 
     /// @notice Hash to mark updated provenance hash
@@ -50,10 +54,11 @@ contract DropMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck {
     /// @notice Update metadata base URI and contract URI
     /// @param baseUri new base URI
     /// @param newContractUri new contract URI (can be an empty string)
-    function updateMetadataBase(address target, string memory baseUri, string memory newContractUri)
-        external
-        requireSenderAdmin(target)
-    {
+    function updateMetadataBase(
+        address target,
+        string memory baseUri,
+        string memory newContractUri
+    ) external requireSenderAdmin(target) {
         _updateMetadataDetails(target, baseUri, "", newContractUri, 0);
     }
 

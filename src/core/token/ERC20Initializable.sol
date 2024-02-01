@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {Initializable} from "../../common/Initializable.sol";
-import {IERC20} from "../../interface/eip/IERC20.sol";
-import {IERC20Metadata} from "../../interface/eip/IERC20Metadata.sol";
-import {IERC20CustomErrors} from "../../interface/errors/IERC20CustomErrors.sol";
+import { Initializable } from "../../common/Initializable.sol";
+import { IERC20 } from "../../interface/eip/IERC20.sol";
+import { IERC20Metadata } from "../../interface/eip/IERC20Metadata.sol";
+import { IERC20CustomErrors } from "../../interface/errors/IERC20CustomErrors.sol";
 
 abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, IERC20CustomErrors {
     /*//////////////////////////////////////////////////////////////

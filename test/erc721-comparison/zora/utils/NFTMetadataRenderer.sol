@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 
 /// NFT metadata library for rendering metadata associated with editions
 library NFTMetadataRenderer {
@@ -44,24 +44,25 @@ library NFTMetadataRenderer {
             animationSpace = abi.encodePacked('", "animation_url": "', animationURI);
         }
 
-        return string(
-            encodeMetadataJSON(
-                abi.encodePacked(
-                    '{"name": "',
-                    name,
-                    '", "description": "',
-                    description,
-                    // this is for opensea since they don't respect ERC2981 right now
-                    '", "seller_fee_basis_points": ',
-                    Strings.toString(royaltyBPS),
-                    ', "fee_recipient": "',
-                    Strings.toHexString(uint256(uint160(royaltyRecipient)), 20),
-                    imageSpace,
-                    animationSpace,
-                    '"}'
+        return
+            string(
+                encodeMetadataJSON(
+                    abi.encodePacked(
+                        '{"name": "',
+                        name,
+                        '", "description": "',
+                        description,
+                        // this is for opensea since they don't respect ERC2981 right now
+                        '", "seller_fee_basis_points": ',
+                        Strings.toString(royaltyBPS),
+                        ', "fee_recipient": "',
+                        Strings.toHexString(uint256(uint160(royaltyRecipient)), 20),
+                        imageSpace,
+                        animationSpace,
+                        '"}'
+                    )
                 )
-            )
-        );
+            );
     }
 
     /// Function to create the metadata json string for the nft edition
@@ -81,23 +82,24 @@ library NFTMetadataRenderer {
         if (editionSize > 0) {
             editionSizeText = abi.encodePacked("/", Strings.toString(editionSize));
         }
-        return abi.encodePacked(
-            '{"name": "',
-            name,
-            " ",
-            Strings.toString(tokenOfEdition),
-            editionSizeText,
-            '", "',
-            'description": "',
-            description,
-            '", "',
-            mediaData,
-            'properties": {"number": ',
-            Strings.toString(tokenOfEdition),
-            ', "name": "',
-            name,
-            '"}}'
-        );
+        return
+            abi.encodePacked(
+                '{"name": "',
+                name,
+                " ",
+                Strings.toString(tokenOfEdition),
+                editionSizeText,
+                '", "',
+                'description": "',
+                description,
+                '", "',
+                mediaData,
+                'properties": {"number": ',
+                Strings.toString(tokenOfEdition),
+                ', "name": "',
+                name,
+                '"}}'
+            );
     }
 
     /// Encodes the argument json bytes into base64-data uri format

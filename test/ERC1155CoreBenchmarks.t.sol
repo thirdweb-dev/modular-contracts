@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-import {CloneFactory} from "src/infra/CloneFactory.sol";
-import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
+import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
+import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
 
-import {ERC1155Core, ERC1155Initializable} from "src/core/token/ERC1155Core.sol";
-import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.sol";
-import {LazyMintMetadataHook} from "src/hook/metadata/LazyMintMetadataHook.sol";
-import {IERC1155} from "src/interface/eip/IERC1155.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import { ERC1155Core, ERC1155Initializable } from "src/core/token/ERC1155Core.sol";
+import { AllowlistMintHookERC1155 } from "src/hook/mint/AllowlistMintHookERC1155.sol";
+import { LazyMintMetadataHook } from "src/hook/metadata/LazyMintMetadataHook.sol";
+import { IERC1155 } from "src/interface/eip/IERC1155.sol";
+import { IHook } from "src/interface/hook/IHook.sol";
+import { IInitCall } from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-1155 contracts on the thirdweb platform.
@@ -83,11 +83,14 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC1155())));
+        hookProxyAddress = address(
+            new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC1155()))
+        );
         simpleClaimHook = AllowlistMintHookERC1155(hookProxyAddress);
 
-        address lazyMintHookProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook())));
+        address lazyMintHookProxyAddress = address(
+            new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook()))
+        );
         lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
 
         erc1155Implementation = address(new ERC1155Core());
@@ -98,8 +101,15 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         IInitCall.InitCall memory initCall;
-        bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
+        bytes memory data = abi.encodeWithSelector(
+            ERC1155Core.initialize.selector,
+            initCall,
+            new address[](0),
+            platformUser,
+            "Test",
+            "TST",
+            "contractURI://"
+        );
         erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -159,8 +169,15 @@ contract ERC1155CoreBenchmarkTest is Test {
         IInitCall.InitCall memory initCall;
 
         address impl = erc1155Implementation;
-        bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
+        bytes memory data = abi.encodeWithSelector(
+            ERC1155Core.initialize.selector,
+            initCall,
+            new address[](0),
+            platformUser,
+            "Test",
+            "TST",
+            "contractURI://"
+        );
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();
@@ -195,7 +212,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+        claimContract.mint{ value: pricePerToken }(claimerAddress, tokenId, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
@@ -221,7 +238,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+        claimContract.mint{ value: pricePerToken * 10 }(claimerAddress, tokenId, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -245,7 +262,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc1155.mint{value: pricePerToken}(claimer, tokenId, quantityToClaim, encodedArgs);
+        erc1155.mint{ value: pricePerToken }(claimer, tokenId, quantityToClaim, encodedArgs);
 
         address to = address(0x121212);
         address from = claimer;

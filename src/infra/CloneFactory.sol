@@ -28,10 +28,11 @@ contract CloneFactory {
      *  @param _data The data to initialize the clone with.
      *  @param _salt The salt to use for the deployment of the clone.
      */
-    function deployProxyByImplementation(address _implementation, bytes memory _data, bytes32 _salt)
-        public
-        returns (address deployedProxy)
-    {
+    function deployProxyByImplementation(
+        address _implementation,
+        bytes memory _data,
+        bytes32 _salt
+    ) public returns (address deployedProxy) {
         bytes32 salthash = keccak256(abi.encodePacked(msg.sender, _salt));
         deployedProxy = LibClone.cloneDeterministic(_implementation, salthash);
 

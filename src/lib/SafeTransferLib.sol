@@ -95,7 +95,9 @@ library SafeTransferLib {
                 mstore(0x00, to) // Store the address in scratch space.
                 mstore8(0x0b, 0x73) // Opcode `PUSH20`.
                 mstore8(0x20, 0xff) // Opcode `SELFDESTRUCT`.
-                if iszero(create(amount, 0x0b, 0x16)) { revert(codesize(), codesize()) } // For gas estimation.
+                if iszero(create(amount, 0x0b, 0x16)) {
+                    revert(codesize(), codesize())
+                } // For gas estimation.
             }
         }
     }
@@ -108,7 +110,9 @@ library SafeTransferLib {
                 mstore(0x00, to) // Store the address in scratch space.
                 mstore8(0x0b, 0x73) // Opcode `PUSH20`.
                 mstore8(0x20, 0xff) // Opcode `SELFDESTRUCT`.
-                if iszero(create(selfbalance(), 0x0b, 0x16)) { revert(codesize(), codesize()) } // For gas estimation.
+                if iszero(create(selfbalance(), 0x0b, 0x16)) {
+                    revert(codesize(), codesize())
+                } // For gas estimation.
             }
         }
     }
@@ -125,7 +129,9 @@ library SafeTransferLib {
                 mstore(0x00, to) // Store the address in scratch space.
                 mstore8(0x0b, 0x73) // Opcode `PUSH20`.
                 mstore8(0x20, 0xff) // Opcode `SELFDESTRUCT`.
-                if iszero(create(amount, 0x0b, 0x16)) { revert(codesize(), codesize()) } // For gas estimation.
+                if iszero(create(amount, 0x0b, 0x16)) {
+                    revert(codesize(), codesize())
+                } // For gas estimation.
             }
         }
     }
@@ -139,7 +145,9 @@ library SafeTransferLib {
                 mstore(0x00, to) // Store the address in scratch space.
                 mstore8(0x0b, 0x73) // Opcode `PUSH20`.
                 mstore8(0x20, 0xff) // Opcode `SELFDESTRUCT`.
-                if iszero(create(selfbalance(), 0x0b, 0x16)) { revert(codesize(), codesize()) } // For gas estimation.
+                if iszero(create(selfbalance(), 0x0b, 0x16)) {
+                    revert(codesize(), codesize())
+                } // For gas estimation.
             }
         }
     }
@@ -179,7 +187,8 @@ library SafeTransferLib {
             mstore(0x0c, 0x23b872dd000000000000000000000000) // `transferFrom(address,address,uint256)`.
             // Perform the transfer, reverting upon failure.
             if iszero(
-                and( // The arguments of `and` are evaluated from right to left.
+                and(
+                    // The arguments of `and` are evaluated from right to left.
                     or(eq(mload(0x00), 1), iszero(returndatasize())), // Returned 1 or nothing.
                     call(gas(), token, 0, 0x1c, 0x64, 0x00, 0x20)
                 )
@@ -206,7 +215,8 @@ library SafeTransferLib {
             mstore(0x0c, 0x70a08231000000000000000000000000) // `balanceOf(address)`.
             // Read the balance, reverting upon failure.
             if iszero(
-                and( // The arguments of `and` are evaluated from right to left.
+                and(
+                    // The arguments of `and` are evaluated from right to left.
                     gt(returndatasize(), 0x1f), // At least 32 bytes returned.
                     staticcall(gas(), token, 0x1c, 0x24, 0x60, 0x20)
                 )
@@ -218,7 +228,8 @@ library SafeTransferLib {
             amount := mload(0x60) // The `amount` is already at 0x60. We'll need to return it.
             // Perform the transfer, reverting upon failure.
             if iszero(
-                and( // The arguments of `and` are evaluated from right to left.
+                and(
+                    // The arguments of `and` are evaluated from right to left.
                     or(eq(mload(0x00), 1), iszero(returndatasize())), // Returned 1 or nothing.
                     call(gas(), token, 0, 0x1c, 0x64, 0x00, 0x20)
                 )
@@ -241,7 +252,8 @@ library SafeTransferLib {
             mstore(0x00, 0xa9059cbb000000000000000000000000) // `transfer(address,uint256)`.
             // Perform the transfer, reverting upon failure.
             if iszero(
-                and( // The arguments of `and` are evaluated from right to left.
+                and(
+                    // The arguments of `and` are evaluated from right to left.
                     or(eq(mload(0x00), 1), iszero(returndatasize())), // Returned 1 or nothing.
                     call(gas(), token, 0, 0x10, 0x44, 0x00, 0x20)
                 )
@@ -262,7 +274,8 @@ library SafeTransferLib {
             mstore(0x20, address()) // Store the address of the current contract.
             // Read the balance, reverting upon failure.
             if iszero(
-                and( // The arguments of `and` are evaluated from right to left.
+                and(
+                    // The arguments of `and` are evaluated from right to left.
                     gt(returndatasize(), 0x1f), // At least 32 bytes returned.
                     staticcall(gas(), token, 0x1c, 0x24, 0x34, 0x20)
                 )
@@ -275,7 +288,8 @@ library SafeTransferLib {
             mstore(0x00, 0xa9059cbb000000000000000000000000) // `transfer(address,uint256)`.
             // Perform the transfer, reverting upon failure.
             if iszero(
-                and( // The arguments of `and` are evaluated from right to left.
+                and(
+                    // The arguments of `and` are evaluated from right to left.
                     or(eq(mload(0x00), 1), iszero(returndatasize())), // Returned 1 or nothing.
                     call(gas(), token, 0, 0x10, 0x44, 0x00, 0x20)
                 )
@@ -297,7 +311,8 @@ library SafeTransferLib {
             mstore(0x00, 0x095ea7b3000000000000000000000000) // `approve(address,uint256)`.
             // Perform the approval, reverting upon failure.
             if iszero(
-                and( // The arguments of `and` are evaluated from right to left.
+                and(
+                    // The arguments of `and` are evaluated from right to left.
                     or(eq(mload(0x00), 1), iszero(returndatasize())), // Returned 1 or nothing.
                     call(gas(), token, 0, 0x10, 0x44, 0x00, 0x20)
                 )
@@ -321,7 +336,8 @@ library SafeTransferLib {
             mstore(0x00, 0x095ea7b3000000000000000000000000) // `approve(address,uint256)`.
             // Perform the approval, retrying upon failure.
             if iszero(
-                and( // The arguments of `and` are evaluated from right to left.
+                and(
+                    // The arguments of `and` are evaluated from right to left.
                     or(eq(mload(0x00), 1), iszero(returndatasize())), // Returned 1 or nothing.
                     call(gas(), token, 0, 0x10, 0x44, 0x00, 0x20)
                 )
@@ -352,14 +368,14 @@ library SafeTransferLib {
         assembly {
             mstore(0x14, account) // Store the `account` argument.
             mstore(0x00, 0x70a08231000000000000000000000000) // `balanceOf(address)`.
-            amount :=
-                mul(
-                    mload(0x20),
-                    and( // The arguments of `and` are evaluated from right to left.
-                        gt(returndatasize(), 0x1f), // At least 32 bytes returned.
-                        staticcall(gas(), token, 0x10, 0x24, 0x20, 0x20)
-                    )
+            amount := mul(
+                mload(0x20),
+                and(
+                    // The arguments of `and` are evaluated from right to left.
+                    gt(returndatasize(), 0x1f), // At least 32 bytes returned.
+                    staticcall(gas(), token, 0x10, 0x24, 0x20, 0x20)
                 )
+            )
         }
     }
 }

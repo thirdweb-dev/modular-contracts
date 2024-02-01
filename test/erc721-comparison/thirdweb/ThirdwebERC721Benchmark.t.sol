@@ -2,17 +2,17 @@
 pragma solidity ^0.8.0;
 
 // Test util
-import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
-import {CloneFactory} from "src/infra/CloneFactory.sol";
-import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
+import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
+import { IHook } from "src/interface/hook/IHook.sol";
+import { IInitCall } from "src/interface/common/IInitCall.sol";
 
 // Target test contracts
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
-import {SimpleMetadataHook} from "src/hook/metadata/SimpleMetadataHook.sol";
-import {Permission} from "src/common/Permission.sol";
+import { ERC721Core } from "src/core/token/ERC721Core.sol";
+import { AllowlistMintHookERC721 } from "src/hook/mint/AllowlistMintHookERC721.sol";
+import { SimpleMetadataHook } from "src/hook/metadata/SimpleMetadataHook.sol";
+import { Permission } from "src/common/Permission.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
     AllowlistMintHookERC721 public simpleClaim;
@@ -23,8 +23,9 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         address hookProxyAddress = address(new MinimalUpgradeableRouter(admin, address(new AllowlistMintHookERC721())));
         simpleClaim = AllowlistMintHookERC721(hookProxyAddress);
 
-        address simpleMetadataHookProxyAddress =
-            address(new MinimalUpgradeableRouter(admin, address(new SimpleMetadataHook())));
+        address simpleMetadataHookProxyAddress = address(
+            new MinimalUpgradeableRouter(admin, address(new SimpleMetadataHook()))
+        );
         simpleMetadataHook = SimpleMetadataHook(simpleMetadataHookProxyAddress);
 
         super.setUp();
@@ -43,8 +44,11 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintHookERC721.ClaimCondition memory condition =
-            AllowlistMintHookERC721.ClaimCondition({price: pricePerToken, availableSupply: 5, allowlistMerkleRoot: root});
+        AllowlistMintHookERC721.ClaimCondition memory condition = AllowlistMintHookERC721.ClaimCondition({
+            price: pricePerToken,
+            availableSupply: 5,
+            allowlistMerkleRoot: root
+        });
 
         vm.prank(admin);
         simpleClaim.setClaimCondition(erc721Contract, condition);
@@ -77,15 +81,24 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         // NOTE: Below, we use the inline hex for `abi.encodeWithSelector(...)` for more accurate gas measurement -- this is because
         //       forge will account for the gas cost of all computation such as `abi.encodeWithSelector(...)`.
         //
-        return address(
-            ERC721Core(
-                factory.deployProxyByImplementation(
-                    _implementation,
-                    abi.encodeWithSelector(ERC721Core.initialize.selector, initCall, new address[](0), admin, "Test", "TST", "contractURI://"),
-                    bytes32(block.number)
+        return
+            address(
+                ERC721Core(
+                    factory.deployProxyByImplementation(
+                        _implementation,
+                        abi.encodeWithSelector(
+                            ERC721Core.initialize.selector,
+                            initCall,
+                            new address[](0),
+                            admin,
+                            "Test",
+                            "TST",
+                            "contractURI://"
+                        ),
+                        bytes32(block.number)
+                    )
                 )
-            )
-        );
+            );
 
         // vm.resumeGasMetering();
 
@@ -125,7 +138,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         vm.resumeGasMetering();
 
         vm.prank(_claimer);
-        claimContract.mint{value: _price}(_claimer, 1, encodedArgs);
+        claimContract.mint{ value: _price }(_claimer, 1, encodedArgs);
     }
 
     /// @dev Claims a token from the target erc721 contract.
@@ -142,7 +155,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory encodedArgs = abi.encode(proofs);
 
         vm.prank(_claimer);
-        claimContract.mint{value: _price}(claimer, 1, encodedArgs);
+        claimContract.mint{ value: _price }(claimer, 1, encodedArgs);
 
         return 0;
     }
