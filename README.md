@@ -67,10 +67,10 @@ You can find testnet deployments of this hooks design setup, and JS scripts to i
 
 | Action                    | Thirdweb New | Thirdweb Drop | Zora    | Manifold |
 | ------------------------- | ------------ | ------------- | ------- | -------- |
-| Deploy (developer-facing) | 213_434      | 719_842       | 499_968 | 232_917  |
-| Claim 1 token             | 149_142      | 196_540       | 160_447 | 184_006  |
-| Transfer token            | 59_587       | 76_102        | 71_362  | 69_042   |
-| Setup token metadata      | 60_217       | 47_528        | 54_612  | 29_789   |
+| Deploy (developer-facing) | 213_434 [tx](https://sepolia.etherscan.io/tx/0x4899fd74e09b4994162f0ce4ea8783a93712825cb20373612263cbfcf83137dc)      | 719_842 [tx](https://sepolia.etherscan.io/tx/0x69bf0d597b4db864d50b1c592451156e23a0eca598fd337f0888f3f0d45eda85)      | 499_968 [tx](https://sepolia.etherscan.io/tx/0x1d3e653ab587f3203abdcb233ca3502f5a99b2ba38c62b9097b4d9cecac39016) | 232_917 [tx](https://sepolia.etherscan.io/tx/0x80fcff853e07bb99475e0258c315eaf4f91f6e954f9edc170e05a833568401d3)  |
+| Claim 1 token             | 149_142 [tx](https://sepolia.etherscan.io/tx/0xce9155496a5e1705fd91e25fa5c4b6a2664ee8951010e0d236b8f1bc1bebb2a9)      | 196_540 [tx](https://sepolia.etherscan.io/tx/0xd2d5eaa191ebe342f34a2647a253782795d93cecc90ae0e3de4bb6a6afe29d0a)      | 160_447 [tx](https://sepolia.etherscan.io/tx/0xe1b431c28f0cc8d03489ea1a54fb6b70eea4dc0210cbf24f9cf6b22c3a68f99d) | 184_006 [tx](https://sepolia.etherscan.io/tx/0x149ac1f2aec78753f73a7b16bdea9dd81dc5823893a128422499ba49af3b07f4)  |
+| Transfer token            | 59_587 [tx](https://sepolia.etherscan.io/tx/0x252311fc0ada4873d8fcc036ec7145b1dfb76bef7d974aae15111623cf4e889b)      | 76_102 [tx](https://sepolia.etherscan.io/tx/0xd5dd3f3f33e6755fd07617795a382e7e34005771a6374dacbfb686c6b4d981cc)       | 71_362 [tx](https://sepolia.etherscan.io/tx/0x4f3d79e1b5582ebab5ff6e1f343d640b2e47ded458223de4e1cf248f1c72776d) | 69_042 [tx](https://sepolia.etherscan.io/tx/0xb3eb80ea9cf88d3a731490f6c9fd8c3f9d8b8283e5b376e4aaf001fb46e84ae2)  |
+| Setup token metadata      | 60_217 [tx](https://sepolia.etherscan.io/tx/0xfe99caf84e543f1b73055da7ef23f8071d3b8d893c838c12b9b3567f0a4cdcb8)      | 47_528 [tx](https://sepolia.etherscan.io/tx/0x6526f514b47d60785eb3951046dc1e30b175d2aa74aa2693932ea68ed2054d4d)       | 54_612 [tx](https://sepolia.etherscan.io/tx/0xd959c6dfc531994bca58df41c30952a04a6f1ab7e86b3ab3457ed4f4d5bd1846)  | 29_789 [tx](https://sepolia.etherscan.io/tx/0x1d3e653ab587f3203abdcb233ca3502f5a99b2ba38c62b9097b4d9cecac39016)  |
 
 # Design Overview
 
