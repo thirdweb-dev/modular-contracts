@@ -63,7 +63,7 @@ You can find testnet deployments of this hooks design setup, and JS scripts to i
 | Transfer token            | 23_300   | 37_354  | 29_255   |
 | Setup token metadata      | 43_953   | 31_946  | 14_205   |
 
-### ERC-721 Existing Contracts Benchmarks Comparison via transactions on Sepolia
+### ERC-721 Contracts Benchmarks Comparison via transactions on Sepolia
 
 | Action                    | Thirdweb New | Thirdweb Drop | Zora    | Manifold |
 | ------------------------- | ------------ | ------------- | ------- | -------- |
