@@ -65,12 +65,12 @@ You can find testnet deployments of this hooks design setup, and JS scripts to i
 
 ### ERC-721 Existing Contracts Benchmarks Comparison via transactions on Sepolia
 
-| Action                    | Thirdweb Drop | Zora    | Manifold |
-| ------------------------- | ------------- | ------- | -------- |
-| Deploy (developer-facing) | 719_842       | 499_968 | 232_917  |
-| Claim 1 token             | 196_540       | 160_447 | 184_006  |
-| Transfer token            | 76_102        | 71_362  | 69_042   |
-| Setup token metadata      | 47_528        | 54_612  | 29_789   |
+| Action                    | Thirdweb New | Thirdweb Drop | Zora    | Manifold |
+| ------------------------- | ------------ | ------------- | ------- | -------- |
+| Deploy (developer-facing) | 213_434      | 719_842       | 499_968 | 232_917  |
+| Claim 1 token             | 149_142      | 196_540       | 160_447 | 184_006  |
+| Transfer token            | 59_587       | 76_102        | 71_362  | 69_042   |
+| Setup token metadata      | 60_217       | 47_528        | 54_612  | 29_789   |
 
 # Design Overview
 
