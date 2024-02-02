@@ -203,10 +203,18 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
         address token = msg.sender;
-        FeeConfig memory feeConfig = data.feeConfig[token][_id];
+        FeeConfig memory defaultFeeConfig = data.feeConfig[token][type(uint256).max];
+        FeeConfig memory feeConfig = data.feeConfig[token][_id]; // overriden fee config
 
-        if (feeConfig.primarySaleRecipient == address(0) || feeConfig.platformFeeRecipient == address(0)) {
-            feeConfig = data.feeConfig[token][type(uint256).max];
+        // If there is no override-primarySaleRecipient, we will use the default primarySaleRecipient.
+        if (feeConfig.primarySaleRecipient == address(0)) {
+            feeConfig.primarySaleRecipient = defaultFeeConfig.primarySaleRecipient;
+        }
+
+        // If there is no override-platformFeeRecipient, we will use the default platformFee recipient and bps.
+        if (feeConfig.platformFeeRecipient == address(0)) {
+            feeConfig.platformFeeRecipient = defaultFeeConfig.platformFeeRecipient;
+            feeConfig.platformFeeBps = defaultFeeConfig.platformFeeBps;
         }
 
         uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
