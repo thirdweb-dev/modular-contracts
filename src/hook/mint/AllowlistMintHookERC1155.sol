@@ -54,9 +54,6 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The bits that represent the admin role.
-    uint96 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
     /// @notice The address considered as native token.
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -80,6 +77,14 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
             revert AllowlistMintHookNotAuthorized();
         }
         _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                INITIALIZE
+    //////////////////////////////////////////////////////////////*/
+
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC1155Hook_init(_upgradeAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////

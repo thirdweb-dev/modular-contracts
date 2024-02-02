@@ -51,9 +51,6 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The bits that represent the admin role.
-    uint96 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
     /// @notice The address considered as native token.
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -77,6 +74,14 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
             revert AllowlistMintHookNotAuthorized();
         }
         _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                INITIALIZE
+    //////////////////////////////////////////////////////////////*/
+
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC20Hook_init(_upgradeAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////

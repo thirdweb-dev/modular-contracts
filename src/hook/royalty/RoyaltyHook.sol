@@ -8,13 +8,6 @@ import {ERC1155Hook} from "../ERC1155Hook.sol";
 
 contract RoyaltyHook is ERC1155Hook {
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The bits that represent the admin role.
-    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
-    /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
@@ -68,6 +61,14 @@ contract RoyaltyHook is ERC1155Hook {
             revert RoyaltyHookNotAuthorized();
         }
         _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                INITIALIZE
+    //////////////////////////////////////////////////////////////*/
+
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC1155Hook_init(_upgradeAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -10,13 +10,6 @@ contract SimpleMetadataHook is ERC1155Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The bits that represent the admin role.
-    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
-    /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
@@ -47,6 +40,14 @@ contract SimpleMetadataHook is ERC1155Hook {
             revert SimpleMetadataHookNotAuthorized();
         }
         _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                INITIALIZE
+    //////////////////////////////////////////////////////////////*/
+
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC1155Hook_init(_upgradeAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////
