@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IPermission} from "../interface/common/IPermission.sol";
+import {PermissionStorage} from "../storage/common/PermissionStorage.sol";
 
 contract Permission is IPermission {
     /*//////////////////////////////////////////////////////////////
@@ -10,13 +11,6 @@ contract Permission is IPermission {
 
     /// @notice The bits that represent the admin role.
     uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
-    /*//////////////////////////////////////////////////////////////
-                               STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from account => permissions assigned to account.
-    mapping(address => uint256) private _permissionBits;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -41,7 +35,7 @@ contract Permission is IPermission {
      *  @return hasPermissions Whether the account has the given permissions.
      */
     function hasRole(address _account, uint256 _roleBits) public view returns (bool) {
-        return _permissionBits[_account] & _roleBits > 0;
+        return PermissionStorage.data().permissionBits[_account] & _roleBits > 0;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -72,18 +66,22 @@ contract Permission is IPermission {
 
     /// @dev Assigns the given permissions to an account, without checking the permissions of the caller.
     function _setupRole(address _account, uint256 _roleBits) internal {
-        uint256 permissions = _permissionBits[_account];
+        PermissionStorage.Data storage data = PermissionStorage.data();
+
+        uint256 permissions = data.permissionBits[_account];
         permissions |= _roleBits;
-        _permissionBits[_account] = permissions;
+        data.permissionBits[_account] = permissions;
 
         emit PermissionUpdated(_account, _roleBits);
     }
 
     /// @dev Revokes the given permissions from an account, without checking the permissions of the caller.
     function _revokeRole(address _account, uint256 _roleBits) internal {
-        uint256 permissions = _permissionBits[_account];
+        PermissionStorage.Data storage data = PermissionStorage.data();
+
+        uint256 permissions = data.permissionBits[_account];
         permissions &= ~_roleBits;
-        _permissionBits[_account] = permissions;
+        data.permissionBits[_account] = permissions;
 
         emit PermissionUpdated(_account, permissions);
     }
