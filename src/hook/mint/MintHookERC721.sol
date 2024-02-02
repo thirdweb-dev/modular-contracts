@@ -20,9 +20,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The bits that represent the admin role.
-    uint96 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
     /// @notice The address considered as native token.
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -108,12 +105,12 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     }
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTRUCTOR
-  //////////////////////////////////////////////////////////////*/
+                                INITIALIZE
+    //////////////////////////////////////////////////////////////*/
 
-    constructor(address _admin) ERC721Hook(_admin) {
-        _disableInitializers();
-    }
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC721Hook_init(_upgradeAdmin);
+    } 
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

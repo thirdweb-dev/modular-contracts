@@ -3,10 +3,11 @@ pragma solidity ^0.8.0;
 
 import "../common/Initializable.sol";
 import "../common/UUPSUpgradeable.sol";
+import "../common/Permission.sol";
 
 import { IERC721Hook } from "../interface/hook/IERC721Hook.sol";
 
-abstract contract ERC721Hook is Initializable, UUPSUpgradeable, IERC721Hook {
+abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC721Hook {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -29,30 +30,29 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, IERC721Hook {
     /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
-    address public immutable admin;
-
     /*//////////////////////////////////////////////////////////////
                                 ERROR
     //////////////////////////////////////////////////////////////*/
 
-    error NotAuthorized();
+    error UnauthorizedUpgrade();
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTRUCTOR
+                     CONSTRUCTOR & INITIALIZE
   //////////////////////////////////////////////////////////////*/
 
-    constructor(address _admin) {
-        admin = _admin;
+    constructor() {
         _disableInitializers();
     }
 
-    function initialize() public initializer {
-        // TODO
+    /// @notice Initializes the contract. Grants admin role (i.e. upgrade authority) to given `_upgradeAdmin`.
+    function __ERC721Hook_init(address _upgradeAdmin) public onlyInitializing() {
+        _setupRole(_upgradeAdmin, ADMIN_ROLE_BITS);
     }
-
-    function _authorizeUpgrade(address) internal override {
-        if (msg.sender != admin) {
-            revert NotAuthorized();
+    
+    /// @notice Checks if `msg.sender` is authorized to upgrade the proxy to `newImplementation`, reverting if not.
+    function _authorizeUpgrade(address) internal view override {
+        if (hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert UnauthorizedUpgrade();
         }
     }
 

@@ -10,13 +10,6 @@ contract LazyMintMetadataHook is ERC721Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The bits that represent the admin role.
-    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
-    /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
@@ -71,12 +64,12 @@ contract LazyMintMetadataHook is ERC721Hook {
     }
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTRUCTOR
-  //////////////////////////////////////////////////////////////*/
+                                INITIALIZE
+    //////////////////////////////////////////////////////////////*/
 
-    constructor(address _admin) ERC721Hook(_admin) {
-        _disableInitializers();
-    }
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC721Hook_init(_upgradeAdmin);
+    } 
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
