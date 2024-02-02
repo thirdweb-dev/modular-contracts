@@ -6,7 +6,7 @@ import {IPermission} from "../../interface/common/IPermission.sol";
 import {ERC721Hook} from "../ERC721Hook.sol";
 import {LibString} from "../../lib/LibString.sol";
 
-contract LazyMintMetadataHook is ERC721Hook {
+contract LazyMintHookERC721 is ERC721Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////

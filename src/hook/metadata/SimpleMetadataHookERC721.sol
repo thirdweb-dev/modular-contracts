@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IPermission} from "../../interface/common/IPermission.sol";
 
-import {ERC1155Hook} from "../ERC1155Hook.sol";
+import {ERC721Hook} from "../ERC721Hook.sol";
 import {LibString} from "../../lib/LibString.sol";
 
-contract SimpleMetadataHook is ERC1155Hook {
+contract SimpleMetadataHookERC721 is ERC721Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -47,7 +47,7 @@ contract SimpleMetadataHook is ERC1155Hook {
     //////////////////////////////////////////////////////////////*/
 
     function initialize(address _upgradeAdmin) public initializer {
-        __ERC1155Hook_init(_upgradeAdmin);
+        __ERC721Hook_init(_upgradeAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ contract SimpleMetadataHook is ERC1155Hook {
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function uri(uint256 _id) external view override returns (string memory) {
+    function tokenURI(uint256 _id) external view override returns (string memory) {
         return _uris[msg.sender][_id];
     }
 

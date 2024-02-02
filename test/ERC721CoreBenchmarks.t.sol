@@ -13,7 +13,7 @@ import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
 import {ERC721Core, ERC721Initializable} from "src/core/token/ERC721Core.sol";
 import {ERC721Hook, AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
-import {LazyMintMetadataHook} from "src/hook/metadata/LazyMintMetadataHook.sol";
+import {LazyMintHookERC721} from "src/hook/metadata/LazyMintHookERC721.sol";
 import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
 import {IERC721} from "src/interface/eip/IERC721.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
@@ -74,7 +74,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
     ERC721Core public erc721;
     AllowlistMintHookERC721 public simpleClaimHook;
-    LazyMintMetadataHook public lazyMintHook;
+    LazyMintHookERC721 public lazyMintHook;
     RoyaltyHook public royaltyHook;
 
     MockOneHookImpl public mockOneHook;
@@ -103,11 +103,11 @@ contract ERC721CoreBenchmarkTest is Test {
 
         address lazyMintHookProxyAddress = address(
             new EIP1967Proxy(
-                address(new LazyMintMetadataHook()),
-                abi.encodeWithSelector(LazyMintMetadataHook.initialize.selector, platformAdmin)
+                address(new LazyMintHookERC721()),
+                abi.encodeWithSelector(LazyMintHookERC721.initialize.selector, platformAdmin)
             )
         );
-        lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
+        lazyMintHook = LazyMintHookERC721(lazyMintHookProxyAddress);
 
         address royaltyHookProxyAddress =
             address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
