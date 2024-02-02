@@ -7,6 +7,8 @@ import {ERC1155Hook} from "../ERC1155Hook.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
+import {AllowlistMintHookERC1155Storage} from "../../storage/hook/mint/AllowlistMintHookERC1155Storage.sol";
+
 contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -58,16 +60,6 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                               STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => token-id => the claim conditions for minting the token.
-    mapping(address => mapping(uint256 => ClaimCondition)) public claimCondition;
-
-    /// @notice Mapping from token => token-id => fee config for the token.
-    mapping(address => mapping(uint256 => FeeConfig)) private _feeConfig;
-
-    /*//////////////////////////////////////////////////////////////
                                MODIFIER
     //////////////////////////////////////////////////////////////*/
 
@@ -103,12 +95,12 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
 
     /// @notice Returns the fee config for a token.
     function getFeeConfigForToken(address _token, uint256 _id) external view returns (FeeConfig memory) {
-        return _feeConfig[_token][_id];
+        return AllowlistMintHookERC1155Storage.data().feeConfig[_token][_id];
     }
 
     /// @notice Returns the fee config for a token.
     function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
-        return _feeConfig[_token][type(uint256).max];
+        return AllowlistMintHookERC1155Storage.data().feeConfig[_token][type(uint256).max];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -130,8 +122,9 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
+        AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
-        ClaimCondition memory condition = claimCondition[token][_id];
+        ClaimCondition memory condition = data.claimCondition[token][_id];
 
         if (condition.availableSupply == 0) {
             revert AllowlistMintHookNotEnoughSupply(token);
@@ -151,7 +144,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         tokenIdToMint = _id;
         quantityToMint = _value;
 
-        claimCondition[token][_id].availableSupply -= _value;
+        data.claimCondition[token][_id].availableSupply -= _value;
 
         _collectPrice(condition.price * _value, _id);
     }
@@ -170,7 +163,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         public
         onlyAdmin(_token)
     {
-        claimCondition[_token][_id] = _claimCondition;
+        AllowlistMintHookERC1155Storage.data().claimCondition[_token][_id] = _claimCondition;
         emit ClaimConditionUpdate(_token, _id, _claimCondition);
     }
 
@@ -180,7 +173,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      *  @param _config The fee config for the token.
      */
     function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token][_id] = _config;
+        AllowlistMintHookERC1155Storage.data().feeConfig[_token][_id] = _config;
         emit FeeConfigUpdateERC1155(_token, _id, _config);
     }
 
@@ -190,7 +183,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      *  @param _config The fee config for the token.
      */
     function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token][type(uint256).max] = _config;
+        AllowlistMintHookERC1155Storage.data().feeConfig[_token][type(uint256).max] = _config;
         emit FeeConfigUpdateERC1155(_token, type(uint256).max, _config);
     }
 
@@ -206,12 +199,14 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         if (_totalPrice == 0) {
             return;
         }
+        
+        AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
         address token = msg.sender;
-        FeeConfig memory feeConfig = _feeConfig[token][_id];
+        FeeConfig memory feeConfig = data.feeConfig[token][_id];
 
         if (feeConfig.primarySaleRecipient == address(0) || feeConfig.platformFeeRecipient == address(0)) {
-            feeConfig = _feeConfig[token][type(uint256).max];
+            feeConfig = data.feeConfig[token][type(uint256).max];
         }
 
         uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;

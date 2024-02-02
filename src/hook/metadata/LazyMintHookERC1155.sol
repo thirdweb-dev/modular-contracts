@@ -6,6 +6,8 @@ import {IPermission} from "../../interface/common/IPermission.sol";
 import {ERC1155Hook} from "../ERC1155Hook.sol";
 import {LibString} from "../../lib/LibString.sol";
 
+import {LazyMintStorage} from "../../storage/hook/metadata/LazyMintStorage.sol";
+
 contract LazyMintHookERC1155 is ERC1155Hook {
     using LibString for uint256;
 
@@ -33,19 +35,6 @@ contract LazyMintHookERC1155 is ERC1155Hook {
 
     /// @notice Emitted when querying URI for a non-existent invalid token ID.
     error LazyMintMetadataHookInvalidTokenId();
-
-    /*//////////////////////////////////////////////////////////////
-                                STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => batch IDs
-    mapping(address => uint256[]) private _batchIds;
-
-    /// @notice Mapping from token => the next token ID to lazy mint.
-    mapping(address => uint256) private _nextTokenIdToLazyMint;
-
-    /// @notice Mapping from token => batchId => baseURI
-    mapping(address => mapping(uint256 => string)) private _baseURI;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -81,7 +70,7 @@ contract LazyMintHookERC1155 is ERC1155Hook {
      *  @param _token The token address.
      */
     function getBaseURICount(address _token) public view returns (uint256) {
-        return _batchIds[_token].length;
+        return LazyMintStorage.data().batchIds[_token].length;
     }
 
     /**
@@ -105,7 +94,7 @@ contract LazyMintHookERC1155 is ERC1155Hook {
         if (_index >= getBaseURICount(_token)) {
             revert LazyMintMetadataHookInvalidIndex();
         }
-        return _batchIds[_token][_index];
+        return LazyMintStorage.data().batchIds[_token][_index];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -130,9 +119,10 @@ contract LazyMintHookERC1155 is ERC1155Hook {
             revert LazyMintMetadataHookZeroAmount();
         }
 
-        uint256 startId = _nextTokenIdToLazyMint[_token];
+        LazyMintStorage.Data storage data = LazyMintStorage.data();
 
-        (_nextTokenIdToLazyMint[_token], batchId) = _batchMintMetadata(_token, startId, _amount, _baseURIForTokens);
+        uint256 startId = data.nextTokenIdToLazyMint[_token];
+        (data.nextTokenIdToLazyMint[_token], batchId) = _batchMintMetadata(_token, startId, _amount, _baseURIForTokens);
 
         emit TokensLazyMinted(_token, startId, startId + _amount - 1, _baseURIForTokens, _data);
 
@@ -153,19 +143,23 @@ contract LazyMintHookERC1155 is ERC1155Hook {
         batchId = _startId + _amountToMint;
         nextTokenIdToMint = batchId;
 
-        _batchIds[_token].push(batchId);
+        LazyMintStorage.Data storage data = LazyMintStorage.data();
 
-        _baseURI[_token][batchId] = _baseURIForTokens;
+        data.batchIds[_token].push(batchId);
+        data.baseURI[_token][batchId] = _baseURIForTokens;
     }
 
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
     function _getBaseURI(address _token, uint256 _tokenId) internal view returns (string memory) {
         uint256 numOfTokenBatches = getBaseURICount(_token);
-        uint256[] memory indices = _batchIds[_token];
+
+        LazyMintStorage.Data storage data = LazyMintStorage.data();
+
+        uint256[] memory indices = data.batchIds[_token];
 
         for (uint256 i = 0; i < numOfTokenBatches; i += 1) {
             if (_tokenId < indices[i]) {
-                return _baseURI[_token][indices[i]];
+                return data.baseURI[_token][indices[i]];
             }
         }
         revert LazyMintMetadataHookInvalidTokenId();

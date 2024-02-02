@@ -13,6 +13,8 @@ import {ECDSA} from "../../lib/ECDSA.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
+import {MintHookERC721Storage} from "../../storage/hook/mint/MintHookERC721Storage.sol";
+
 contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC721Hook {
     using ECDSA for bytes32;
 
@@ -70,28 +72,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     error MintHookInvalidRecipient();
 
     /*//////////////////////////////////////////////////////////////
-                               STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => the next token ID to mint.
-    mapping(address => uint256) private _nextTokenIdToMint;
-
-    /// @notice Mapping from token => fee config for the token.
-    mapping(address => FeeConfig) private _feeConfig;
-
-    /// @notice Mapping from token => the claim conditions for minting the token.
-    mapping(address => ClaimCondition) private _claimCondition;
-
-    /// @notice Mapping from hash(claimer, conditionID) => supply claimed by wallet.
-    mapping(bytes32 => uint256) private _supplyClaimedByWallet;
-
-    /// @notice Mapping from token => condition ID.
-    mapping(address => bytes32) private _conditionId;
-
-    /// @dev Mapping from permissioned mint request UID => whether the mint request is processed.
-    mapping(bytes32 => bool) private _uidUsed;
-
-    /*//////////////////////////////////////////////////////////////
                                MODIFIER
     //////////////////////////////////////////////////////////////*/
 
@@ -127,7 +107,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @notice Returns the next token ID to mint for a given token.
     function getNextTokenIdToMint(address _token) external view returns (uint256) {
-        return _nextTokenIdToMint[_token];
+        return MintHookERC721Storage.data().nextTokenIdToMint[_token];
     }
 
     /**
@@ -149,7 +129,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         address _currency,
         bytes32[] memory _allowlistProof
     ) public view virtual returns (bool isAllowlisted) {
-        ClaimCondition memory currentClaimPhase = _claimCondition[_token];
+        ClaimCondition memory currentClaimPhase = MintHookERC721Storage.data().claimCondition[_token];
 
         if (currentClaimPhase.startTimestamp > block.timestamp) {
             revert MintHookMintNotStarted();
@@ -196,9 +176,13 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @return isPermissioned Whether the mint request is permissioned.
      */
     function isPermissionedClaim(MintRequest memory _req) public view returns (bool isPermissioned) {
+        
+        if(_req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
+                || block.timestamp > _req.sigValidityEndTimestamp) {
+            return false;
+        }
         if (
-            _req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
-                || block.timestamp > _req.sigValidityEndTimestamp || _uidUsed[_req.sigUid]
+             MintHookERC721Storage.data().uidUsed[_req.sigUid]
         ) {
             return false;
         }
@@ -213,12 +197,13 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @param _claimer The address to get the supply claimed for
      */
     function getSupplyClaimedByWallet(address _token, address _claimer) public view returns (uint256) {
-        return _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[_token], _claimer))];
+        MintHookERC721Storage.Data storage data = MintHookERC721Storage.data();
+        return data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[_token], _claimer))];
     }
 
     /// @notice Returns the fee config for a token.
     function getFeeConfig(address _token) external view returns (FeeConfig memory) {
-        return _feeConfig[_token];
+        return MintHookERC721Storage.data().feeConfig[_token];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -253,15 +238,17 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
 
         // Check against active claim condition unless permissioned.
+        MintHookERC721Storage.Data storage data  = MintHookERC721Storage.data();
+
         if (!isPermissionedClaim(req)) {
             verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
-            _claimCondition[req.token].supplyClaimed += req.quantity;
-            _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[req.token], req.minter))] += req.quantity;
+            data.claimCondition[req.token].supplyClaimed += req.quantity;
+            data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[req.token], req.minter))] += req.quantity;
         } else {
-            _uidUsed[req.sigUid] = true;
+            data.uidUsed[req.sigUid] = true;
         }
 
-        tokenIdToMint = _nextTokenIdToMint[req.token]++;
+        tokenIdToMint = data.nextTokenIdToMint[req.token]++;
         quantityToMint = req.quantity;
 
         _collectPrice(req.minter, req.pricePerToken * req.quantity, req.currency);
@@ -277,7 +264,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @param _config The fee config for the token.
      */
     function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token] = _config;
+        MintHookERC721Storage.data().feeConfig[_token] = _config;
         emit FeeConfigUpdate(_token, _config);
     }
 
@@ -288,7 +275,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @param _nextIdToMint The next token ID to mint.
      */
     function setNextIdToMint(address _token, uint256 _nextIdToMint) external onlyAdmin(_token) {
-        _nextTokenIdToMint[_token] = _nextIdToMint;
+        MintHookERC721Storage.data().nextTokenIdToMint[_token] = _nextIdToMint;
         emit NextTokenIdUpdate(_token, _nextIdToMint);
     }
 
@@ -303,8 +290,9 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         external
         onlyAdmin(_token)
     {
-        bytes32 targetConditionId = _conditionId[_token];
-        uint256 supplyClaimedAlready = _claimCondition[_token].supplyClaimed;
+        MintHookERC721Storage.Data storage data = MintHookERC721Storage.data();
+        bytes32 targetConditionId = data.conditionId[_token];
+        uint256 supplyClaimedAlready = data.claimCondition[_token].supplyClaimed;
 
         if (_resetClaimEligibility) {
             supplyClaimedAlready = 0;
@@ -315,7 +303,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
             revert MintHookMaxSupplyClaimed();
         }
 
-        _claimCondition[_token] = ClaimCondition({
+        data.claimCondition[_token] = ClaimCondition({
             startTimestamp: _condition.startTimestamp,
             endTimestamp: _condition.endTimestamp,
             maxClaimableSupply: _condition.maxClaimableSupply,
@@ -326,7 +314,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
             currency: _condition.currency,
             metadata: _condition.metadata
         });
-        _conditionId[_token] = targetConditionId;
+        data.conditionId[_token] = targetConditionId;
 
         emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
     }
@@ -345,7 +333,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
 
         address token = msg.sender;
-        FeeConfig memory feeConfig = _feeConfig[token];
+        FeeConfig memory feeConfig = MintHookERC721Storage.data().feeConfig[token];
 
         bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
         uint256 platformFees = 0;

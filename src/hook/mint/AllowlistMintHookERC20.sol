@@ -7,6 +7,8 @@ import {ERC20Hook} from "../ERC20Hook.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
+import {AllowlistMintHookERC20Storage} from "../../storage/hook/mint/AllowlistMintHookERC20Storage.sol";
+
 contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -55,16 +57,6 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                               STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => the claim conditions for minting the token.
-    mapping(address => ClaimCondition) public claimCondition;
-
-    /// @notice Mapping from token => fee config for the token.
-    mapping(address => FeeConfig) private _feeConfig;
-
-    /*//////////////////////////////////////////////////////////////
                                MODIFIER
     //////////////////////////////////////////////////////////////*/
 
@@ -100,7 +92,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
 
     /// @notice Returns the fee config for a token.
     function getFeeConfig(address _token) external view returns (FeeConfig memory) {
-        return _feeConfig[_token];
+        return AllowlistMintHookERC20Storage.data().feeConfig[_token];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -121,8 +113,9 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
         returns (uint256 quantityToMint)
     {
         address token = msg.sender;
+        AllowlistMintHookERC20Storage.Data storage data = AllowlistMintHookERC20Storage.data();
 
-        ClaimCondition memory condition = claimCondition[token];
+        ClaimCondition memory condition = data.claimCondition[token];
 
         if (condition.availableSupply == 0) {
             revert AllowlistMintHookNotEnoughSupply(token);
@@ -143,7 +136,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
         // `price` is interpreted as price per 1 ether unit of the ERC20 tokens.
         uint256 totalPrice = (_quantity * condition.price) / 1 ether;
 
-        claimCondition[token].availableSupply -= _quantity;
+        data.claimCondition[token].availableSupply -= _quantity;
 
         _collectPrice(totalPrice);
     }
@@ -159,7 +152,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
      *  @param _claimCondition The claim condition to set.
      */
     function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public onlyAdmin(_token) {
-        claimCondition[_token] = _claimCondition;
+        AllowlistMintHookERC20Storage.data().claimCondition[_token] = _claimCondition;
         emit ClaimConditionUpdate(_token, _claimCondition);
     }
 
@@ -169,7 +162,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
      *  @param _config The fee config for the token.
      */
     function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token] = _config;
+        AllowlistMintHookERC20Storage.data().feeConfig[_token] = _config;
         emit FeeConfigUpdate(_token, _config);
     }
 
@@ -187,7 +180,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
         }
 
         address token = msg.sender;
-        FeeConfig memory feeConfig = _feeConfig[token];
+        FeeConfig memory feeConfig = AllowlistMintHookERC20Storage.data().feeConfig[token];
 
         uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
 

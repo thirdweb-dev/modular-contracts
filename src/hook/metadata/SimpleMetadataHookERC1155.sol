@@ -6,6 +6,8 @@ import {IPermission} from "../../interface/common/IPermission.sol";
 import {ERC1155Hook} from "../ERC1155Hook.sol";
 import {LibString} from "../../lib/LibString.sol";
 
+import {SimpleMetadataStorage} from "../../storage/hook/metadata/SimpleMetadataStorage.sol";
+
 contract SimpleMetadataHookERC1155 is ERC1155Hook {
     using LibString for uint256;
 
@@ -22,13 +24,6 @@ contract SimpleMetadataHookERC1155 is ERC1155Hook {
 
     /// @notice Emitted when caller is not token core admin.
     error SimpleMetadataHookNotAuthorized();
-
-    /*//////////////////////////////////////////////////////////////
-                                STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => base URI
-    mapping(address => mapping(uint256 => string)) private _uris;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -65,7 +60,7 @@ contract SimpleMetadataHookERC1155 is ERC1155Hook {
      *  @param _id The token ID of the NFT.
      */
     function uri(uint256 _id) external view override returns (string memory) {
-        return _uris[msg.sender][_id];
+        return SimpleMetadataStorage.data().uris[msg.sender][_id];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -73,7 +68,7 @@ contract SimpleMetadataHookERC1155 is ERC1155Hook {
     //////////////////////////////////////////////////////////////*/
 
     function setTokenURI(address _token, uint256 _id, string calldata _uri) external onlyAdmin(_token) {
-        _uris[_token][_id] = _uri;
+        SimpleMetadataStorage.data().uris[_token][_id] = _uri;
         emit MetadataUpdate(_token, _id);
     }
 }

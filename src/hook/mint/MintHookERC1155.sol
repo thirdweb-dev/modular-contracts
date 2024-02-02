@@ -13,6 +13,8 @@ import {ECDSA} from "../../lib/ECDSA.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
+import {MintHookERC1155Storage} from "../../storage/hook/mint/MintHookERC1155Storage.sol";
+
 contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC1155Hook {
     using ECDSA for bytes32;
 
@@ -70,25 +72,6 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
     error MintHookInvalidRecipient();
 
     /*//////////////////////////////////////////////////////////////
-                               STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => fee config for the token.
-    mapping(address => FeeConfig) private _feeConfig;
-
-    /// @notice Mapping from token => token-id => the claim conditions for minting the token.
-    mapping(address => mapping(uint256 => ClaimCondition)) private _claimCondition;
-
-    /// @notice Mapping from hash(claimer, conditionID) => supply claimed by wallet.
-    mapping(bytes32 => uint256) private _supplyClaimedByWallet;
-
-    /// @notice Mapping from token => token-id => condition ID.
-    mapping(address => mapping(uint256 => bytes32)) private _conditionId;
-
-    /// @dev Mapping from permissioned mint request UID => whether the mint request is processed.
-    mapping(bytes32 => bool) private _uidUsed;
-
-    /*//////////////////////////////////////////////////////////////
                                MODIFIER
     //////////////////////////////////////////////////////////////*/
 
@@ -143,7 +126,7 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
         address _currency,
         bytes32[] memory _allowlistProof
     ) public view virtual returns (bool isAllowlisted) {
-        ClaimCondition memory currentClaimPhase = _claimCondition[_token][_tokenId];
+        ClaimCondition memory currentClaimPhase = MintHookERC1155Storage.data().claimCondition[_token][_tokenId];
 
         if (currentClaimPhase.startTimestamp > block.timestamp) {
             revert MintHookMintNotStarted();
@@ -193,9 +176,13 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
      *  @return isPermissioned Whether the mint request is permissioned.
      */
     function isPermissionedClaim(MintRequest memory _req) public view returns (bool isPermissioned) {
+        
+        if(_req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
+                || block.timestamp > _req.sigValidityEndTimestamp) {
+            return false;
+        }
         if (
-            _req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
-                || block.timestamp > _req.sigValidityEndTimestamp || _uidUsed[_req.sigUid]
+            MintHookERC1155Storage.data().uidUsed[_req.sigUid]
         ) {
             return false;
         }
@@ -215,12 +202,13 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
         view
         returns (uint256)
     {
-        return _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[_token][_tokenId], _claimer))];
+        MintHookERC1155Storage.Data storage data = MintHookERC1155Storage.data();
+        return data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[_token][_tokenId], _claimer))];
     }
 
     /// @notice Returns the fee config for a token.
     function getFeeConfig(address _token) external view returns (FeeConfig memory) {
-        return _feeConfig[_token];
+        return MintHookERC1155Storage.data().feeConfig[_token];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -259,15 +247,16 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
         }
 
         // Check against active claim condition unless permissioned.
+        MintHookERC1155Storage.Data storage data = MintHookERC1155Storage.data();
         if (!isPermissionedClaim(req)) {
             verifyClaim(
                 req.token, req.tokenId, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof
             );
-            _claimCondition[req.token][req.tokenId].supplyClaimed += req.quantity;
-            _supplyClaimedByWallet[keccak256(abi.encode(_conditionId[req.token][req.tokenId], req.minter))] +=
+            data.claimCondition[req.token][req.tokenId].supplyClaimed += req.quantity;
+            data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[req.token][req.tokenId], req.minter))] +=
                 req.quantity;
         } else {
-            _uidUsed[req.sigUid] = true;
+            data.uidUsed[req.sigUid] = true;
         }
 
         tokenIdToMint = req.tokenId;
@@ -286,7 +275,7 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
      *  @param _config The fee config for the token.
      */
     function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token] = _config;
+        MintHookERC1155Storage.data().feeConfig[_token] = _config;
         emit FeeConfigUpdate(_token, _config);
     }
 
@@ -304,8 +293,10 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
         ClaimCondition calldata _condition,
         bool _resetClaimEligibility
     ) external onlyAdmin(_token) {
-        bytes32 targetConditionId = _conditionId[_token][_tokenId];
-        uint256 supplyClaimedAlready = _claimCondition[_token][_tokenId].supplyClaimed;
+        MintHookERC1155Storage.Data storage data = MintHookERC1155Storage.data();
+
+        bytes32 targetConditionId = data.conditionId[_token][_tokenId];
+        uint256 supplyClaimedAlready = data.claimCondition[_token][_tokenId].supplyClaimed;
 
         if (_resetClaimEligibility) {
             supplyClaimedAlready = 0;
@@ -316,7 +307,7 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
             revert MintHookMaxSupplyClaimed();
         }
 
-        _claimCondition[_token][_tokenId] = ClaimCondition({
+        data.claimCondition[_token][_tokenId] = ClaimCondition({
             startTimestamp: _condition.startTimestamp,
             endTimestamp: _condition.endTimestamp,
             maxClaimableSupply: _condition.maxClaimableSupply,
@@ -327,7 +318,7 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
             currency: _condition.currency,
             metadata: _condition.metadata
         });
-        _conditionId[_token][_tokenId] = targetConditionId;
+        data.conditionId[_token][_tokenId] = targetConditionId;
 
         emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
     }
@@ -346,7 +337,7 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
         }
 
         address token = msg.sender;
-        FeeConfig memory feeConfig = _feeConfig[token];
+        FeeConfig memory feeConfig = MintHookERC1155Storage.data().feeConfig[token];
 
         bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
         uint256 platformFees = 0;
