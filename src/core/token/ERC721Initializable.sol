@@ -9,6 +9,8 @@ import {IERC721CustomErrors} from "../../interface/errors/IERC721CustomErrors.so
 import {IERC721Receiver} from "../../interface/eip/IERC721Receiver.sol";
 import {IERC2981} from "../../interface/eip/IERC2981.sol";
 
+import {ERC721InitializableStorage} from "../../storage/core/ERC721InitializableStorage.sol";
+
 abstract contract ERC721Initializable is
     Initializable,
     IERC721,
@@ -21,30 +23,6 @@ abstract contract ERC721Initializable is
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The name of the token collection.
-    string public name;
-
-    /// @notice The symbol of the token collection.
-    string public symbol;
-
-    /**
-     *  @notice The total circulating supply of NFTs.
-     *  @dev Initialized as `1` in `initialize` to save on `mint` gas.
-     */
-    uint256 private _totalSupply;
-
-    /// @notice Mapping from token ID to TokenData i.e. owner and metadata source.
-    mapping(uint256 => address) private _ownerOf;
-
-    /// @notice Mapping from owner address to number of owned token.
-    mapping(address => uint256) private _balanceOf;
-
-    /// @notice Mapping from token ID to approved spender address.
-    mapping(uint256 => address) public getApproved;
-
-    /// @notice Mapping from owner to operator approvals.
-    mapping(address => mapping(address => bool)) public isApprovedForAll;
-
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -55,14 +33,36 @@ abstract contract ERC721Initializable is
 
     /// @dev Initializes the contract with collection name and symbol.
     function __ERC721_init(string memory _name, string memory _symbol) internal onlyInitializing {
-        name = _name;
-        symbol = _symbol;
-        _totalSupply = 1;
+        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
+
+        data.name = _name;
+        data.symbol = _symbol;
+        data.totalSupply = 1;
     }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice The name of the token.
+    function name() public view virtual override returns (string memory) {
+        return ERC721InitializableStorage.data().name;
+    }
+
+    /// @notice The symbol of the token.
+    function symbol() public view virtual override returns (string memory) {
+        return ERC721InitializableStorage.data().symbol;
+    }
+
+    /// @notice Returns the address of the approved spender of a token.
+    function getApproved(uint256 _id) public view virtual override returns (address) {
+        return ERC721InitializableStorage.data().getApproved[_id];
+    }
+
+    /// @notice Returns whether the caller is approved to transfer any of the owner's NFTs.
+    function isApprovedForAll(address _owner, address _operator) public view virtual override returns (bool) {
+        return ERC721InitializableStorage.data().isApprovedForAll[_owner][_operator];
+    }
 
     /**
      *  @notice Returns the owner of an NFT.
@@ -71,7 +71,7 @@ abstract contract ERC721Initializable is
      *  @return owner The address of the owner of the NFT.
      */
     function ownerOf(uint256 _id) public view virtual returns (address owner) {
-        if ((owner = _ownerOf[_id]) == address(0)) {
+        if ((owner = ERC721InitializableStorage.data().ownerOf[_id]) == address(0)) {
             revert ERC721NotMinted(_id);
         }
     }
@@ -82,7 +82,7 @@ abstract contract ERC721Initializable is
      *  @return balance The number of NFTs owned by the queried address
      */
     function balanceOf(address _owner) public view virtual returns (uint256) {
-        return _balanceOf[_owner];
+        return ERC721InitializableStorage.data().balanceOf[_owner];
     }
 
     /**
@@ -90,7 +90,7 @@ abstract contract ERC721Initializable is
      *  @return supply The total circulating supply of NFTs
      */
     function totalSupply() public view virtual returns (uint256) {
-        return _totalSupply - 1; // We initialize totalSupply as `1` in `initialize` to save on `mint` gas.
+        return ERC721InitializableStorage.data().totalSupply - 1; // We initialize totalSupply as `1` in `initialize` to save on `mint` gas.
     }
 
     /**
@@ -112,13 +112,14 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      */
     function approve(address _spender, uint256 _id) public virtual {
-        address owner = _ownerOf[_id];
+        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
+        address owner = data.ownerOf[_id];
 
-        if (msg.sender != owner && !isApprovedForAll[owner][msg.sender]) {
+        if (msg.sender != owner && !data.isApprovedForAll[owner][msg.sender]) {
             revert ERC721NotApproved(msg.sender, _id);
         }
 
-        getApproved[_id] = _spender;
+        data.getApproved[_id] = _spender;
 
         emit Approval(owner, _spender, _id);
     }
@@ -129,7 +130,7 @@ abstract contract ERC721Initializable is
      *  @param _approved Whether the operator is approved
      */
     function setApprovalForAll(address _operator, bool _approved) public virtual {
-        isApprovedForAll[msg.sender][_operator] = _approved;
+        ERC721InitializableStorage.data().isApprovedForAll[msg.sender][_operator] = _approved;
 
         emit ApprovalForAll(msg.sender, _operator, _approved);
     }
@@ -141,7 +142,9 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      */
     function transferFrom(address _from, address _to, uint256 _id) public virtual {
-        if (_from != _ownerOf[_id]) {
+        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
+
+        if (_from != data.ownerOf[_id]) {
             revert ERC721NotOwner(_from, _id);
         }
 
@@ -149,21 +152,21 @@ abstract contract ERC721Initializable is
             revert ERC721InvalidRecipient();
         }
 
-        if (msg.sender != _from && !isApprovedForAll[_from][msg.sender] && msg.sender != getApproved[_id]) {
+        if (msg.sender != _from && !data.isApprovedForAll[_from][msg.sender] && msg.sender != data.getApproved[_id]) {
             revert ERC721NotApproved(msg.sender, _id);
         }
 
         // Underflow of the sender's balance is impossible because we check for
         // ownership above and the recipient's balance can't realistically overflow.
         unchecked {
-            _balanceOf[_from]--;
+            data.balanceOf[_from]--;
 
-            _balanceOf[_to]++;
+            data.balanceOf[_to]++;
         }
 
-        _ownerOf[_id] = _to;
+        data.ownerOf[_id] = _to;
 
-        delete getApproved[_id];
+        delete data.getApproved[_id];
 
         emit Transfer(_from, _to, _id);
     }
@@ -224,18 +227,20 @@ abstract contract ERC721Initializable is
 
         uint256 endId = _startId + _quantity;
 
+        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
+
         // Counter overflow is incredibly unrealistic.
         unchecked {
-            _balanceOf[_to] += _quantity;
-            _totalSupply += _quantity;
+            data.balanceOf[_to] += _quantity;
+            data.totalSupply += _quantity;
         }
 
         for (uint256 id = _startId; id < endId; id++) {
-            if (_ownerOf[id] != address(0)) {
+            if (data.ownerOf[id] != address(0)) {
                 revert ERC721AlreadyMinted(id);
             }
 
-            _ownerOf[id] = _to;
+            data.ownerOf[id] = _to;
 
             emit Transfer(address(0), _to, id);
         }
@@ -246,7 +251,9 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT to burn
      */
     function _burn(uint256 _id) internal virtual {
-        address owner = _ownerOf[_id];
+        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
+
+        address owner = data.ownerOf[_id];
 
         if (owner == address(0)) {
             revert ERC721NotMinted(_id);
@@ -254,12 +261,12 @@ abstract contract ERC721Initializable is
 
         // Ownership check above ensures no underflow.
         unchecked {
-            _balanceOf[owner]--;
-            _totalSupply--;
+            data.balanceOf[owner]--;
+            data.totalSupply--;
         }
 
-        delete _ownerOf[_id];
-        delete getApproved[_id];
+        delete data.ownerOf[_id];
+        delete data.getApproved[_id];
 
         emit Transfer(owner, address(0), _id);
     }

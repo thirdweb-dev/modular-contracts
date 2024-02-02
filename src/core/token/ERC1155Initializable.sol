@@ -9,6 +9,8 @@ import {IERC1155CustomErrors} from "../../interface/errors/IERC1155CustomErrors.
 import {IERC1155Receiver} from "../../interface/eip/IERC1155Receiver.sol";
 import {IERC2981} from "../../interface/eip/IERC2981.sol";
 
+import {ERC1155InitializableStorage} from "../../storage/core/ERC1155InitializableStorage.sol";
+
 abstract contract ERC1155Initializable is
     Initializable,
     IERC1155,
@@ -17,27 +19,6 @@ abstract contract ERC1155Initializable is
     IERC1155CustomErrors,
     IERC2981
 {
-    /*//////////////////////////////////////////////////////////////
-                                STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The name of the token collection.
-    string public name;
-
-    /// @notice The symbol of the token collection.
-    string public symbol;
-
-    /**
-     *  @notice Token ID => total circulating supply of tokens with that ID.
-     */
-    mapping(uint256 => uint256) private _totalSupply;
-
-    /// @notice Mapping from owner address to ID to amount of owned tokens with that ID.
-    mapping(address => mapping(uint256 => uint256)) private _balanceOf;
-
-    /// @notice Mapping from owner to operator approvals.
-    mapping(address => mapping(address => bool)) public isApprovedForAll;
-
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -48,13 +29,30 @@ abstract contract ERC1155Initializable is
 
     /// @dev Initializes the contract with collection name and symbol.
     function __ERC1155_init(string memory _name, string memory _symbol) internal onlyInitializing {
-        name = _name;
-        symbol = _symbol;
+        ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
+
+        data.name = _name;
+        data.symbol = _symbol;
     }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice The name of the token.
+    function name() public view virtual returns (string memory) {
+        return ERC1155InitializableStorage.data().name;
+    }
+
+    /// @notice The symbol of the token.
+    function symbol() public view virtual returns (string memory) {
+        return ERC1155InitializableStorage.data().symbol;
+    }
+
+    /// @notice Returns whether an operator is approved to transfer any NFTs of the owner.
+    function isApprovedForAll(address _owner, address _operator) public view virtual override returns (bool) {
+        return ERC1155InitializableStorage.data().isApprovedForAll[_owner][_operator];
+    }
 
     /**
      *  @notice Returns the total quantity of NFTs owned by an address.
@@ -62,7 +60,7 @@ abstract contract ERC1155Initializable is
      *  @return balance The number of NFTs owned by the queried address
      */
     function balanceOf(address _owner, uint256 _tokenId) public view virtual returns (uint256) {
-        return _balanceOf[_owner][_tokenId];
+        return ERC1155InitializableStorage.data().balanceOf[_owner][_tokenId];
     }
 
     function balanceOfBatch(address[] calldata _owners, uint256[] calldata _tokenIds)
@@ -70,6 +68,8 @@ abstract contract ERC1155Initializable is
         view
         returns (uint256[] memory _balances)
     {
+        ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
+        
         if (_owners.length != _tokenIds.length) {
             revert ERC1155ArrayLengthMismatch();
         }
@@ -80,7 +80,7 @@ abstract contract ERC1155Initializable is
         // the array index counter which cannot possibly overflow.
         unchecked {
             for (uint256 i = 0; i < _owners.length; ++i) {
-                _balances[i] = _balanceOf[_owners[i]][_tokenIds[i]];
+                _balances[i] = data.balanceOf[_owners[i]][_tokenIds[i]];
             }
         }
     }
@@ -90,7 +90,7 @@ abstract contract ERC1155Initializable is
      *  @return supply The total circulating supply of NFTs
      */
     function totalSupply(uint256 _tokenId) public view virtual returns (uint256) {
-        return _totalSupply[_tokenId];
+        return ERC1155InitializableStorage.data().totalSupply[_tokenId];
     }
 
     /**
@@ -113,7 +113,7 @@ abstract contract ERC1155Initializable is
      *  @param _approved Whether the operator is approved
      */
     function setApprovalForAll(address _operator, bool _approved) public virtual {
-        isApprovedForAll[msg.sender][_operator] = _approved;
+        ERC1155InitializableStorage.data().isApprovedForAll[msg.sender][_operator] = _approved;
 
         emit ApprovalForAll(msg.sender, _operator, _approved);
     }
@@ -131,12 +131,14 @@ abstract contract ERC1155Initializable is
         public
         virtual
     {
-        if (msg.sender != _from && isApprovedForAll[_from][msg.sender]) {
+        ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
+        
+        if (msg.sender != _from && data.isApprovedForAll[_from][msg.sender]) {
             revert ERC1155NotApprovedOrOwner(msg.sender);
         }
 
-        _balanceOf[_from][_tokenId] -= _value;
-        _balanceOf[_to][_tokenId] += _value;
+        data.balanceOf[_from][_tokenId] -= _value;
+        data.balanceOf[_to][_tokenId] += _value;
 
         emit TransferSingle(msg.sender, _from, _to, _tokenId, _value);
 
@@ -170,7 +172,8 @@ abstract contract ERC1155Initializable is
             revert ERC1155ArrayLengthMismatch();
         }
 
-        if (msg.sender != _from && !isApprovedForAll[_from][msg.sender]) {
+        ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
+        if (msg.sender != _from && !data.isApprovedForAll[_from][msg.sender]) {
             revert ERC1155NotApprovedOrOwner(msg.sender);
         }
 
@@ -182,8 +185,8 @@ abstract contract ERC1155Initializable is
             id = _tokenIds[i];
             value = _values[i];
 
-            _balanceOf[_from][id] -= value;
-            _balanceOf[_to][id] += value;
+            data.balanceOf[_from][id] -= value;
+            data.balanceOf[_to][id] += value;
 
             // An array can't have a total length
             // larger than the max uint256 value.
@@ -209,7 +212,7 @@ abstract contract ERC1155Initializable is
     //////////////////////////////////////////////////////////////*/
 
     function _mint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
-        _balanceOf[_to][_tokenId] += _value;
+        ERC1155InitializableStorage.data().balanceOf[_to][_tokenId] += _value;
 
         emit TransferSingle(msg.sender, address(0), _to, _tokenId, _value);
 
@@ -228,14 +231,16 @@ abstract contract ERC1155Initializable is
             revert ERC1155BurnFromZeroAddress();
         }
 
-        uint256 balance = _balanceOf[_from][_tokenId];
+        ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
+
+        uint256 balance = data.balanceOf[_from][_tokenId];
 
         if (balance < _value) {
             revert ERC1155NotBalance(_from, _tokenId, _value);
         }
 
         unchecked {
-            _balanceOf[_from][_tokenId] -= _value;
+            data.balanceOf[_from][_tokenId] -= _value;
         }
 
         emit TransferSingle(msg.sender, _from, address(0), _tokenId, _value);

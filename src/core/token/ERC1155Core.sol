@@ -11,6 +11,8 @@ import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
 import {Initializable} from "../../common/Initializable.sol";
 import {Permission} from "../../common/Permission.sol";
 
+import {ERC1155CoreStorage} from "../../storage/core/ERC1155CoreStorage.sol";
+
 contract ERC1155Core is
     Initializable,
     ERC1155Initializable,
@@ -42,13 +44,6 @@ contract ERC1155Core is
 
     /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
-
-    /*//////////////////////////////////////////////////////////////
-                            STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The contract URI of the contract.
-    string private _contractURI;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -120,7 +115,7 @@ contract ERC1155Core is
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view override returns (string memory) {
-        return _contractURI;
+        return ERC1155CoreStorage.data().contractURI;
     }
 
     /**
@@ -177,7 +172,7 @@ contract ERC1155Core is
      *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
     function burn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs) external {
-        if (_from != msg.sender && isApprovedForAll[_from][msg.sender]) {
+        if (_from != msg.sender && isApprovedForAll(_from, msg.sender)) {
             revert ERC1155NotApprovedOrOwner(msg.sender);
         }
 
@@ -233,7 +228,7 @@ contract ERC1155Core is
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _uri) internal {
-        _contractURI = _uri;
+        ERC1155CoreStorage.data().contractURI = _uri;
         emit ContractURIUpdated();
     }
 
