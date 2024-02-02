@@ -12,10 +12,9 @@ library AllowlistMintHookERC1155Storage {
 
     struct Data {
         /// @notice Mapping from token => token-id => the claim conditions for minting the token.
-    mapping(address => mapping(uint256 => AllowlistMintHookERC1155.ClaimCondition)) claimCondition;
-
-    /// @notice Mapping from token => token-id => fee config for the token.
-    mapping(address => mapping(uint256 => IFeeConfig.FeeConfig)) feeConfig;
+        mapping(address => mapping(uint256 => AllowlistMintHookERC1155.ClaimCondition)) claimCondition;
+        /// @notice Mapping from token => token-id => fee config for the token.
+        mapping(address => mapping(uint256 => IFeeConfig.FeeConfig)) feeConfig;
     }
 
     function data() internal pure returns (Data storage data_) {

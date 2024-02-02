@@ -10,18 +10,14 @@ library ERC1155InitializableStorage {
     struct Data {
         /// @notice The name of the token collection.
         string name;
-
         /// @notice The symbol of the token collection.
         string symbol;
-
         /**
-        *  @notice Token ID => total circulating supply of tokens with that ID.
-        */
+         *  @notice Token ID => total circulating supply of tokens with that ID.
+         */
         mapping(uint256 => uint256) totalSupply;
-
         /// @notice Mapping from owner address to ID to amount of owned tokens with that ID.
         mapping(address => mapping(uint256 => uint256)) balanceOf;
-
         /// @notice Mapping from owner to operator approvals.
         mapping(address => mapping(address => bool)) isApprovedForAll;
     }

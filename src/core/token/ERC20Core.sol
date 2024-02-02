@@ -42,7 +42,7 @@ contract ERC20Core is
     /// @notice The EIP-2612 permit typehash.
     bytes32 private constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-    
+
     /*//////////////////////////////////////////////////////////////
                       CONSTRUCTOR + INITIALIZE
     //////////////////////////////////////////////////////////////*/
@@ -206,7 +206,16 @@ contract ERC20Core is
                     abi.encodePacked(
                         "\x19\x01",
                         computeDomainSeparator(),
-                        keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, ERC20CoreStorage.data().nonces[_owner]++, _deadline))
+                        keccak256(
+                            abi.encode(
+                                PERMIT_TYPEHASH,
+                                _owner,
+                                _spender,
+                                _value,
+                                ERC20CoreStorage.data().nonces[_owner]++,
+                                _deadline
+                            )
+                        )
                     )
                 ),
                 _v,

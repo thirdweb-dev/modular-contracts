@@ -199,7 +199,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         if (_totalPrice == 0) {
             return;
         }
-        
+
         AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
         address token = msg.sender;

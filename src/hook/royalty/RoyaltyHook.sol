@@ -10,7 +10,6 @@ import {ERC1155Hook} from "../ERC1155Hook.sol";
 import {RoyaltyHookStorage} from "../../storage/hook/royalty/RoyaltyHookStorage.sol";
 
 contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
-
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -89,7 +88,6 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
      *  @return bps The basis points of the sale price that is taken as royalty.
      */
     function getRoyaltyInfoForToken(address _token, uint256 _tokenId) public view returns (address, uint16) {
-
         RoyaltyHookStorage.Data storage data = RoyaltyHookStorage.data();
 
         RoyaltyInfo memory royaltyForToken = data.royaltyInfoForToken[_token][_tokenId];
@@ -152,7 +150,8 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
             revert RoyaltyHookExceedsMaxBps();
         }
 
-        RoyaltyHookStorage.data().defaultRoyaltyInfo[_token] = RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
+        RoyaltyHookStorage.data().defaultRoyaltyInfo[_token] =
+            RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
 
         emit DefaultRoyaltyUpdate(_token, _royaltyRecipient, _royaltyBps);
     }
@@ -163,7 +162,8 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
             revert RoyaltyHookExceedsMaxBps();
         }
 
-        RoyaltyHookStorage.data().royaltyInfoForToken[_token][_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
+        RoyaltyHookStorage.data().royaltyInfoForToken[_token][_tokenId] =
+            RoyaltyInfo({recipient: _recipient, bps: _bps});
 
         emit TokenRoyaltyUpdate(_token, _tokenId, _recipient, _bps);
     }

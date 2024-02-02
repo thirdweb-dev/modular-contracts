@@ -12,7 +12,6 @@ library RoyaltyHookStorage {
     struct Data {
         /// @notice Mapping from token => default royalty info.
         mapping(address => IRoyaltyInfo.RoyaltyInfo) defaultRoyaltyInfo;
-
         /// @notice Mapping from token => tokenId => royalty info.
         mapping(address => mapping(uint256 => IRoyaltyInfo.RoyaltyInfo)) royaltyInfoForToken;
     }

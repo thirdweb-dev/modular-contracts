@@ -12,10 +12,8 @@ library HookInstallerStorage {
     struct Data {
         /// @notice Bits representing all hooks installed.
         uint256 installedHooks;
-
         /// @notice Whether a given hook is installed in the contract.
         LibBitmap.Bitmap hookImplementations;
-
         /// @notice Mapping from hook bits representation => implementation of the hook.
         mapping(uint256 => address) hookImplementationMap;
     }

@@ -176,14 +176,13 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
      *  @return isPermissioned Whether the mint request is permissioned.
      */
     function isPermissionedClaim(MintRequest memory _req) public view returns (bool isPermissioned) {
-        
-        if(_req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
-                || block.timestamp > _req.sigValidityEndTimestamp) {
+        if (
+            _req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
+                || block.timestamp > _req.sigValidityEndTimestamp
+        ) {
             return false;
         }
-        if (
-            MintHookERC1155Storage.data().uidUsed[_req.sigUid]
-        ) {
+        if (MintHookERC1155Storage.data().uidUsed[_req.sigUid]) {
             return false;
         }
 

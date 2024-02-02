@@ -9,7 +9,7 @@ library ERC1155CoreStorage {
 
     struct Data {
         /// @notice The contract URI of the contract.
-        string contractURI;   
+        string contractURI;
     }
 
     function data() internal pure returns (Data storage data_) {

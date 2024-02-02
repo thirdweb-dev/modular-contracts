@@ -10,16 +10,12 @@ library ERC20InitializableStorage {
     struct Data {
         /// @notice The name of the token.
         string name;
-
         /// @notice The symbol of the token.
         string symbol;
-
         /// @notice The total circulating supply of tokens.
         uint256 totalSupply;
-
         /// @notice Mapping from owner address to number of owned token.
         mapping(address => uint256) balanceOf;
-
         /// @notice Mapping from owner to spender allowance.
         mapping(address => mapping(address => uint256)) allowances;
     }

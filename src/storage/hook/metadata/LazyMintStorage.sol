@@ -10,10 +10,8 @@ library LazyMintStorage {
     struct Data {
         /// @notice Mapping from token => batch IDs
         mapping(address => uint256[]) batchIds;
-
         /// @notice Mapping from token => the next token ID to lazy mint.
         mapping(address => uint256) nextTokenIdToLazyMint;
-
         /// @notice Mapping from token => batchId => baseURI
         mapping(address => mapping(uint256 => string)) baseURI;
     }

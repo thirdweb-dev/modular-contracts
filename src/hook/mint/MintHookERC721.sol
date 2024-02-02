@@ -176,14 +176,13 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @return isPermissioned Whether the mint request is permissioned.
      */
     function isPermissionedClaim(MintRequest memory _req) public view returns (bool isPermissioned) {
-        
-        if(_req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
-                || block.timestamp > _req.sigValidityEndTimestamp) {
+        if (
+            _req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
+                || block.timestamp > _req.sigValidityEndTimestamp
+        ) {
             return false;
         }
-        if (
-             MintHookERC721Storage.data().uidUsed[_req.sigUid]
-        ) {
+        if (MintHookERC721Storage.data().uidUsed[_req.sigUid]) {
             return false;
         }
 
@@ -238,7 +237,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
 
         // Check against active claim condition unless permissioned.
-        MintHookERC721Storage.Data storage data  = MintHookERC721Storage.data();
+        MintHookERC721Storage.Data storage data = MintHookERC721Storage.data();
 
         if (!isPermissionedClaim(req)) {
             verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);

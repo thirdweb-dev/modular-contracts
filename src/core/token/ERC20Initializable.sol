@@ -9,7 +9,6 @@ import {IERC20CustomErrors} from "../../interface/errors/IERC20CustomErrors.sol"
 import {ERC20InitializableStorage} from "../../storage/core/ERC20InitializableStorage.sol";
 
 abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, IERC20CustomErrors {
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -20,7 +19,6 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
 
     /// @dev Initializes the contract with collection name and symbol.
     function __ERC20_init(string memory _name, string memory _symbol) internal onlyInitializing {
-
         ERC20InitializableStorage.Data storage data = ERC20InitializableStorage.data();
         data.name = _name;
         data.symbol = _symbol;

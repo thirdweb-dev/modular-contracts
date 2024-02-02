@@ -13,10 +13,8 @@ library AllowlistMintHookERC721Storage {
     struct Data {
         /// @notice Mapping from token => the next token ID to mint.
         mapping(address => uint256) nextTokenIdToMint;
-
         /// @notice Mapping from token => the claim conditions for minting the token.
         mapping(address => AllowlistMintHookERC721.ClaimCondition) claimCondition;
-
         /// @notice Mapping from token => fee config for the token.
         mapping(address => IFeeConfig.FeeConfig) feeConfig;
     }

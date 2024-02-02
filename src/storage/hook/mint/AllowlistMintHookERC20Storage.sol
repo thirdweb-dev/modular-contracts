@@ -13,7 +13,6 @@ library AllowlistMintHookERC20Storage {
     struct Data {
         /// @notice Mapping from token => the claim conditions for minting the token.
         mapping(address => AllowlistMintHookERC20.ClaimCondition) claimCondition;
-
         /// @notice Mapping from token => fee config for the token.
         mapping(address => IFeeConfig.FeeConfig) feeConfig;
     }

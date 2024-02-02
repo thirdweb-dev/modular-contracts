@@ -10,7 +10,6 @@ library ERC20CoreStorage {
     struct Data {
         /// @notice The contract URI of the contract.
         string contractURI;
-
         /// @notice nonces for EIP-2612 Permit functionality.
         mapping(address => uint256) nonces;
     }

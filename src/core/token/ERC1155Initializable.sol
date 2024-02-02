@@ -69,7 +69,7 @@ abstract contract ERC1155Initializable is
         returns (uint256[] memory _balances)
     {
         ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
-        
+
         if (_owners.length != _tokenIds.length) {
             revert ERC1155ArrayLengthMismatch();
         }
@@ -132,7 +132,7 @@ abstract contract ERC1155Initializable is
         virtual
     {
         ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
-        
+
         if (msg.sender != _from && data.isApprovedForAll[_from][msg.sender]) {
             revert ERC1155NotApprovedOrOwner(msg.sender);
         }
