@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 // Test util
 import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
 import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
 import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
 import { IHook } from "src/interface/hook/IHook.sol";
 import { IInitCall } from "src/interface/common/IInitCall.sol";
@@ -20,9 +21,10 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
 
     function setUp() public override {
         // Deploy infra/shared-state contracts pre-setup
-        address hookProxyAddress = address(
-            new MinimalUpgradeableRouter(admin, address(new AllowlistMintHookERC721(admin)))
-        );
+        address hookProxyAddress = address(new EIP1967Proxy(
+            address(new AllowlistMintHookERC721()),
+            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, admin)
+        ));
         simpleClaim = AllowlistMintHookERC721(hookProxyAddress);
 
         address simpleMetadataHookProxyAddress = address(

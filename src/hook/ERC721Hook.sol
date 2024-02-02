@@ -34,7 +34,7 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC
                                 ERROR
     //////////////////////////////////////////////////////////////*/
 
-    error UnauthorizedUpgrade();
+    error ERC721UnauthorizedUpgrade();
 
     /*//////////////////////////////////////////////////////////////
                      CONSTRUCTOR & INITIALIZE
@@ -51,8 +51,8 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC
     
     /// @notice Checks if `msg.sender` is authorized to upgrade the proxy to `newImplementation`, reverting if not.
     function _authorizeUpgrade(address) internal view override {
-        if (hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert UnauthorizedUpgrade();
+        if (!hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert ERC721UnauthorizedUpgrade();
         }
     }
 

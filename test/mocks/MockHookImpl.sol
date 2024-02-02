@@ -5,8 +5,8 @@ import "src/hook/ERC721Hook.sol";
 import "src/hook/ERC20Hook.sol";
 
 contract MockOneHookImpl is ERC721Hook {
-    constructor(address _admin) ERC721Hook(_admin) {
-        _disableInitializers();
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC721Hook_init(_upgradeAdmin);
     }
 
     function getHooks() external pure returns (uint256 hooksImplemented) {
@@ -15,8 +15,8 @@ contract MockOneHookImpl is ERC721Hook {
 }
 
 contract MockFourHookImpl is ERC721Hook {
-    constructor(address _admin) ERC721Hook(_admin) {
-        _disableInitializers();
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC721Hook_init(_upgradeAdmin);
     }
 
     function getHooks() external pure returns (uint256 hooksImplemented) {
