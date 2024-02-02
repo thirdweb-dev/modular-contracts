@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IPermission } from "../../interface/common/IPermission.sol";
+import {IPermission} from "../../interface/common/IPermission.sol";
 
-import { ERC721Hook } from "../ERC721Hook.sol";
-import { LibString } from "../../lib/LibString.sol";
+import {ERC721Hook} from "../ERC721Hook.sol";
+import {LibString} from "../../lib/LibString.sol";
 
 contract LazyMintMetadataHook is ERC721Hook {
     using LibString for uint256;
@@ -15,11 +15,7 @@ contract LazyMintMetadataHook is ERC721Hook {
 
     /// @dev Emitted when tokens are lazy minted.
     event TokensLazyMinted(
-        address indexed token,
-        uint256 indexed startTokenId,
-        uint256 endTokenId,
-        string baseURI,
-        bytes encryptedBaseURI
+        address indexed token, uint256 indexed startTokenId, uint256 endTokenId, string baseURI, bytes encryptedBaseURI
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -69,7 +65,7 @@ contract LazyMintMetadataHook is ERC721Hook {
 
     function initialize(address _upgradeAdmin) public initializer {
         __ERC721Hook_init(_upgradeAdmin);
-    } 
+    }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -124,12 +120,12 @@ contract LazyMintMetadataHook is ERC721Hook {
      *  @param _data Additional bytes data
      *  @return batchId A unique integer identifier for the batch of NFTs lazy minted together.
      */
-    function lazyMint(
-        address _token,
-        uint256 _amount,
-        string calldata _baseURIForTokens,
-        bytes calldata _data
-    ) public virtual onlyAdmin(_token) returns (uint256 batchId) {
+    function lazyMint(address _token, uint256 _amount, string calldata _baseURIForTokens, bytes calldata _data)
+        public
+        virtual
+        onlyAdmin(_token)
+        returns (uint256 batchId)
+    {
         if (_amount == 0) {
             revert LazyMintMetadataHookZeroAmount();
         }

@@ -164,8 +164,8 @@ library ABDKMath64x64 {
         unchecked {
             if (x == MIN_64x64) {
                 require(
-                    y >= -0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF &&
-                        y <= 0x1000000000000000000000000000000000000000000000000
+                    y >= -0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+                        && y <= 0x1000000000000000000000000000000000000000000000000
                 );
                 return -y << 63;
             } else {

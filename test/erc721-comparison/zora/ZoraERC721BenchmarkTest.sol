@@ -2,15 +2,15 @@
 pragma solidity ^0.8.0;
 
 // Test util
-import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
+import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
 
 // Target test contracts
-import { ProtocolRewards } from "@zoralabs/protocol-rewards/src/ProtocolRewards.sol";
-import { EditionMetadataRenderer } from "./utils/EditionMetadataRenderer.sol";
-import { IMetadataRenderer, DropMetadataRenderer } from "./utils/DropMetadataRenderer.sol";
-import { ERC721Drop } from "./utils/ERC721Drop.sol";
-import { FactoryUpgradeGate, IFactoryUpgradeGate } from "./utils/FactoryUpgradeGate.sol";
-import { ZoraNFTCreatorV1 } from "./utils/ZoraNFTCreatorV1.sol";
+import {ProtocolRewards} from "@zoralabs/protocol-rewards/src/ProtocolRewards.sol";
+import {EditionMetadataRenderer} from "./utils/EditionMetadataRenderer.sol";
+import {IMetadataRenderer, DropMetadataRenderer} from "./utils/DropMetadataRenderer.sol";
+import {ERC721Drop} from "./utils/ERC721Drop.sol";
+import {FactoryUpgradeGate, IFactoryUpgradeGate} from "./utils/FactoryUpgradeGate.sol";
+import {ZoraNFTCreatorV1} from "./utils/ZoraNFTCreatorV1.sol";
 
 contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
     function setUp() public override {
@@ -31,27 +31,20 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
         // Set sale details
         vm.prank(admin);
         ERC721Drop(payable(erc721Contract)).setSaleConfiguration(
-            uint104(pricePerToken),
-            1,
-            10_000,
-            20_000,
-            0,
-            9999,
-            root
+            uint104(pricePerToken), 1, 10_000, 20_000, 0, 9999, root
         );
     }
 
     function _deployERC721ContractImplementation() internal override returns (address) {
-        return
-            address(
-                new ERC721Drop(
-                    address(0),
-                    IFactoryUpgradeGate(address(new FactoryUpgradeGate(admin))),
-                    0,
-                    payable(admin),
-                    address(new ProtocolRewards())
-                )
-            );
+        return address(
+            new ERC721Drop(
+                address(0),
+                IFactoryUpgradeGate(address(new FactoryUpgradeGate(admin))),
+                0,
+                payable(admin),
+                address(new ProtocolRewards())
+            )
+        );
     }
 
     function _createERC721Contract(address _implementation) internal override returns (address) {
@@ -68,26 +61,25 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
 
         vm.resumeGasMetering();
 
-        return
-            zora.createAndConfigureDrop(
-                "Test",
-                "TST",
-                address(0x123),
-                100,
-                0,
-                payable(address(0x123)),
-                new bytes[](0),
-                metadataRenderer,
-                metadataInit,
-                address(0)
-            );
+        return zora.createAndConfigureDrop(
+            "Test",
+            "TST",
+            address(0x123),
+            100,
+            0,
+            payable(address(0x123)),
+            new bytes[](0),
+            metadataRenderer,
+            metadataInit,
+            address(0)
+        );
     }
 
     /// @dev Setup token metadata
     function _setupTokenMetadata() internal override {
         vm.pauseGasMetering();
         address erc721 = erc721Contract;
-        (IMetadataRenderer metadata, , , ) = ERC721Drop(payable(erc721)).config();
+        (IMetadataRenderer metadata,,,) = ERC721Drop(payable(erc721)).config();
         DropMetadataRenderer renderer = DropMetadataRenderer(address(metadata));
 
         vm.resumeGasMetering();
@@ -118,7 +110,7 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
         vm.resumeGasMetering();
 
         vm.prank(_claimer);
-        claimC.purchasePresale{ value: price + fee }(quantity, maxQuantity, price, proof);
+        claimC.purchasePresale{value: price + fee}(quantity, maxQuantity, price, proof);
 
         return 1;
     }
@@ -143,7 +135,7 @@ contract ZoraERC721BenchmarkTest is ERC721BenchmarkBase {
         uint256 fee = 0.000777 ether;
 
         vm.prank(_claimer);
-        claimC.purchasePresale{ value: price + fee }(quantity, maxQuantity, price, proof);
+        claimC.purchasePresale{value: price + fee}(quantity, maxQuantity, price, proof);
 
         return 1;
     }

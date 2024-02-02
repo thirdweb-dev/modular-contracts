@@ -20,11 +20,7 @@ interface IERC1155 is IERC165 {
      *     When burning/destroying tokens, the `_to` argument MUST be set to `0x0` (i.e. zero address).
      */
     event TransferSingle(
-        address indexed _operator,
-        address indexed _from,
-        address indexed _to,
-        uint256 _id,
-        uint256 _value
+        address indexed _operator, address indexed _from, address indexed _to, uint256 _id, uint256 _value
     );
 
     /**
@@ -38,11 +34,7 @@ interface IERC1155 is IERC165 {
      *     When burning/destroying tokens, the `_to` argument MUST be set to `0x0` (i.e. zero address).
      */
     event TransferBatch(
-        address indexed _operator,
-        address indexed _from,
-        address indexed _to,
-        uint256[] _ids,
-        uint256[] _values
+        address indexed _operator, address indexed _from, address indexed _to, uint256[] _ids, uint256[] _values
     );
 
     /**
@@ -111,10 +103,10 @@ interface IERC1155 is IERC165 {
      *     @param _ids    ID of the tokens
      *     @return        The _owner's balance of the token types requested (i.e. balance for each (owner, id) pair)
      */
-    function balanceOfBatch(
-        address[] calldata _owners,
-        uint256[] calldata _ids
-    ) external view returns (uint256[] memory);
+    function balanceOfBatch(address[] calldata _owners, uint256[] calldata _ids)
+        external
+        view
+        returns (uint256[] memory);
 
     /**
      * @notice Enable or disable approval for a third party ("operator") to manage all of the caller's tokens.

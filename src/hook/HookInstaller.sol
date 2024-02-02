@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { LibBitmap } from "../lib/LibBitmap.sol";
-import { IHook } from "../interface/hook/IHook.sol";
-import { IHookInstaller } from "../interface/hook/IHookInstaller.sol";
+import {LibBitmap} from "../lib/LibBitmap.sol";
+import {IHook} from "../interface/hook/IHook.sol";
+import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
 
 abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;

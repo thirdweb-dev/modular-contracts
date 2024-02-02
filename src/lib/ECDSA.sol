@@ -38,11 +38,7 @@ library ECDSA {
         assembly {
             result := 1
             let m := mload(0x40) // Cache the free memory pointer.
-            for {
-
-            } 1 {
-
-            } {
+            for {} 1 {} {
                 mstore(0x00, hash)
                 mstore(0x40, mload(add(signature, 0x20))) // `r`.
                 if eq(mload(signature), 64) {
@@ -59,16 +55,17 @@ library ECDSA {
                 result := 0
                 break
             }
-            result := mload(
-                staticcall(
-                    gas(), // Amount of gas left for the transaction.
-                    result, // Address of `ecrecover`.
-                    0x00, // Start of input.
-                    0x80, // Size of input.
-                    0x01, // Start of output.
-                    0x20 // Size of output.
+            result :=
+                mload(
+                    staticcall(
+                        gas(), // Amount of gas left for the transaction.
+                        result, // Address of `ecrecover`.
+                        0x00, // Start of input.
+                        0x80, // Size of input.
+                        0x01, // Start of output.
+                        0x20 // Size of output.
+                    )
                 )
-            )
             // `returndatasize()` will be `0x20` upon success, and `0x00` otherwise.
             if iszero(returndatasize()) {
                 mstore(0x00, 0x8baa579f) // `InvalidSignature()`.
@@ -86,11 +83,7 @@ library ECDSA {
             result := 1
             let m := mload(0x40) // Cache the free memory pointer.
             mstore(0x00, hash)
-            for {
-
-            } 1 {
-
-            } {
+            for {} 1 {} {
                 if eq(signature.length, 64) {
                     let vs := calldataload(add(signature.offset, 0x20))
                     mstore(0x20, add(shr(255, vs), 27)) // `v`.
@@ -106,16 +99,17 @@ library ECDSA {
                 result := 0
                 break
             }
-            result := mload(
-                staticcall(
-                    gas(), // Amount of gas left for the transaction.
-                    result, // Address of `ecrecover`.
-                    0x00, // Start of input.
-                    0x80, // Size of input.
-                    0x01, // Start of output.
-                    0x20 // Size of output.
+            result :=
+                mload(
+                    staticcall(
+                        gas(), // Amount of gas left for the transaction.
+                        result, // Address of `ecrecover`.
+                        0x00, // Start of input.
+                        0x80, // Size of input.
+                        0x01, // Start of output.
+                        0x20 // Size of output.
+                    )
                 )
-            )
             // `returndatasize()` will be `0x20` upon success, and `0x00` otherwise.
             if iszero(returndatasize()) {
                 mstore(0x00, 0x8baa579f) // `InvalidSignature()`.
@@ -136,16 +130,17 @@ library ECDSA {
             mstore(0x20, add(shr(255, vs), 27)) // `v`.
             mstore(0x40, r)
             mstore(0x60, shr(1, shl(1, vs))) // `s`.
-            result := mload(
-                staticcall(
-                    gas(), // Amount of gas left for the transaction.
-                    1, // Address of `ecrecover`.
-                    0x00, // Start of input.
-                    0x80, // Size of input.
-                    0x01, // Start of output.
-                    0x20 // Size of output.
+            result :=
+                mload(
+                    staticcall(
+                        gas(), // Amount of gas left for the transaction.
+                        1, // Address of `ecrecover`.
+                        0x00, // Start of input.
+                        0x80, // Size of input.
+                        0x01, // Start of output.
+                        0x20 // Size of output.
+                    )
                 )
-            )
             // `returndatasize()` will be `0x20` upon success, and `0x00` otherwise.
             if iszero(returndatasize()) {
                 mstore(0x00, 0x8baa579f) // `InvalidSignature()`.
@@ -166,16 +161,17 @@ library ECDSA {
             mstore(0x20, and(v, 0xff))
             mstore(0x40, r)
             mstore(0x60, s)
-            result := mload(
-                staticcall(
-                    gas(), // Amount of gas left for the transaction.
-                    1, // Address of `ecrecover`.
-                    0x00, // Start of input.
-                    0x80, // Size of input.
-                    0x01, // Start of output.
-                    0x20 // Size of output.
+            result :=
+                mload(
+                    staticcall(
+                        gas(), // Amount of gas left for the transaction.
+                        1, // Address of `ecrecover`.
+                        0x00, // Start of input.
+                        0x80, // Size of input.
+                        0x01, // Start of output.
+                        0x20 // Size of output.
+                    )
                 )
-            )
             // `returndatasize()` will be `0x20` upon success, and `0x00` otherwise.
             if iszero(returndatasize()) {
                 mstore(0x00, 0x8baa579f) // `InvalidSignature()`.
@@ -202,11 +198,7 @@ library ECDSA {
         assembly {
             result := 1
             let m := mload(0x40) // Cache the free memory pointer.
-            for {
-
-            } 1 {
-
-            } {
+            for {} 1 {} {
                 mstore(0x00, hash)
                 mstore(0x40, mload(add(signature, 0x20))) // `r`.
                 if eq(mload(signature), 64) {
@@ -247,11 +239,7 @@ library ECDSA {
             result := 1
             let m := mload(0x40) // Cache the free memory pointer.
             mstore(0x00, hash)
-            for {
-
-            } 1 {
-
-            } {
+            for {} 1 {} {
                 if eq(signature.length, 64) {
                     let vs := calldataload(add(signature.offset, 0x20))
                     mstore(0x20, add(shr(255, vs), 27)) // `v`.
@@ -368,17 +356,11 @@ library ECDSA {
             mstore(o, "\x19Ethereum Signed Message:\n") // 26 bytes, zero-right-padded.
             mstore(0x00, 0x00)
             // Convert the `s.length` to ASCII decimal representation: `base10(s.length)`.
-            for {
-                let temp := sLength
-            } 1 {
-
-            } {
+            for { let temp := sLength } 1 {} {
                 o := sub(o, 1)
                 mstore8(o, add(48, mod(temp, 10)))
                 temp := div(temp, 10)
-                if iszero(temp) {
-                    break
-                }
+                if iszero(temp) { break }
             }
             let n := sub(0x3a, o) // Header length: `26 + 32 - o`.
             // Throw an out-of-offset error (consumes all gas) if the header exceeds 32 bytes.

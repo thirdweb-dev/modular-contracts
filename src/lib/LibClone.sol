@@ -132,11 +132,10 @@ library LibClone {
 
     /// @dev Deploys a deterministic clone of `implementation` with `salt`.
     /// Deposits `value` ETH during deployment.
-    function cloneDeterministic(
-        uint256 value,
-        address implementation,
-        bytes32 salt
-    ) internal returns (address instance) {
+    function cloneDeterministic(uint256 value, address implementation, bytes32 salt)
+        internal
+        returns (address instance)
+    {
         /// @solidity memory-safe-assembly
         assembly {
             mstore(0x21, 0x5af43d3d93803e602a57fd5bf3)
@@ -180,11 +179,11 @@ library LibClone {
     /// @dev Returns the address of the deterministic clone of `implementation`,
     /// with `salt` by `deployer`.
     /// Note: The returned result has dirty upper 96 bits. Please clean if used in assembly.
-    function predictDeterministicAddress(
-        address implementation,
-        bytes32 salt,
-        address deployer
-    ) internal pure returns (address predicted) {
+    function predictDeterministicAddress(address implementation, bytes32 salt, address deployer)
+        internal
+        pure
+        returns (address predicted)
+    {
         bytes32 hash = initCodeHash(implementation);
         predicted = predictDeterministicAddress(hash, salt, deployer);
     }
@@ -279,11 +278,10 @@ library LibClone {
 
     /// @dev Deploys a deterministic PUSH0 clone of `implementation` with `salt`.
     /// Deposits `value` ETH during deployment.
-    function cloneDeterministic_PUSH0(
-        uint256 value,
-        address implementation,
-        bytes32 salt
-    ) internal returns (address instance) {
+    function cloneDeterministic_PUSH0(uint256 value, address implementation, bytes32 salt)
+        internal
+        returns (address instance)
+    {
         /// @solidity memory-safe-assembly
         assembly {
             mstore(0x24, 0x5af43d5f5f3e6029573d5ffd5b3d5ff3) // 16
@@ -327,11 +325,11 @@ library LibClone {
     /// @dev Returns the address of the deterministic PUSH0 clone of `implementation`,
     /// with `salt` by `deployer`.
     /// Note: The returned result has dirty upper 96 bits. Please clean if used in assembly.
-    function predictDeterministicAddress_PUSH0(
-        address implementation,
-        bytes32 salt,
-        address deployer
-    ) internal pure returns (address predicted) {
+    function predictDeterministicAddress_PUSH0(address implementation, bytes32 salt, address deployer)
+        internal
+        pure
+        returns (address predicted)
+    {
         bytes32 hash = initCodeHash_PUSH0(implementation);
         predicted = predictDeterministicAddress(hash, salt, deployer);
     }
@@ -474,22 +472,19 @@ library LibClone {
 
     /// @dev Deploys a deterministic clone of `implementation`
     /// with immutable arguments encoded in `data` and `salt`.
-    function cloneDeterministic(
-        address implementation,
-        bytes memory data,
-        bytes32 salt
-    ) internal returns (address instance) {
+    function cloneDeterministic(address implementation, bytes memory data, bytes32 salt)
+        internal
+        returns (address instance)
+    {
         instance = cloneDeterministic(0, implementation, data, salt);
     }
 
     /// @dev Deploys a deterministic clone of `implementation`
     /// with immutable arguments encoded in `data` and `salt`.
-    function cloneDeterministic(
-        uint256 value,
-        address implementation,
-        bytes memory data,
-        bytes32 salt
-    ) internal returns (address instance) {
+    function cloneDeterministic(uint256 value, address implementation, bytes memory data, bytes32 salt)
+        internal
+        returns (address instance)
+    {
         assembly {
             // Compute the boundaries of the data and cache the memory slots around it.
             let mBefore3 := mload(sub(data, 0x60))
@@ -547,16 +542,10 @@ library LibClone {
             let end := add(o, dataLength)
 
             // Copy the `data` into `result`.
-            for {
-                let d := sub(add(data, 0x20), o)
-            } 1 {
-
-            } {
+            for { let d := sub(add(data, 0x20), o) } 1 {} {
                 mstore(o, mload(add(o, d)))
                 o := add(o, 0x20)
-                if iszero(lt(o, end)) {
-                    break
-                }
+                if iszero(lt(o, end)) { break }
             }
 
             // +2 bytes for telling how much data there is appended to the call.
@@ -619,12 +608,11 @@ library LibClone {
     /// @dev Returns the address of the deterministic clone of
     /// `implementation` using immutable arguments encoded in `data`, with `salt`, by `deployer`.
     /// Note: The returned result has dirty upper 96 bits. Please clean if used in assembly.
-    function predictDeterministicAddress(
-        address implementation,
-        bytes memory data,
-        bytes32 salt,
-        address deployer
-    ) internal pure returns (address predicted) {
+    function predictDeterministicAddress(address implementation, bytes memory data, bytes32 salt, address deployer)
+        internal
+        pure
+        returns (address predicted)
+    {
         bytes32 hash = initCodeHash(implementation, data);
         predicted = predictDeterministicAddress(hash, salt, deployer);
     }
@@ -730,11 +718,10 @@ library LibClone {
 
     /// @dev Deploys a deterministic minimal ERC1967 proxy with `implementation` and `salt`.
     /// Deposits `value` ETH during deployment.
-    function deployDeterministicERC1967(
-        uint256 value,
-        address implementation,
-        bytes32 salt
-    ) internal returns (address instance) {
+    function deployDeterministicERC1967(uint256 value, address implementation, bytes32 salt)
+        internal
+        returns (address instance)
+    {
         /// @solidity memory-safe-assembly
         assembly {
             let m := mload(0x40) // Cache the free memory pointer.
@@ -756,10 +743,10 @@ library LibClone {
     /// @dev Creates a deterministic minimal ERC1967 proxy with `implementation` and `salt`.
     /// Note: This method is intended for use in ERC4337 factories,
     /// which are expected to NOT revert if the proxy is already deployed.
-    function createDeterministicERC1967(
-        address implementation,
-        bytes32 salt
-    ) internal returns (bool alreadyDeployed, address instance) {
+    function createDeterministicERC1967(address implementation, bytes32 salt)
+        internal
+        returns (bool alreadyDeployed, address instance)
+    {
         return createDeterministicERC1967(0, implementation, salt);
     }
 
@@ -767,11 +754,10 @@ library LibClone {
     /// Deposits `value` ETH during deployment.
     /// Note: This method is intended for use in ERC4337 factories,
     /// which are expected to NOT revert if the proxy is already deployed.
-    function createDeterministicERC1967(
-        uint256 value,
-        address implementation,
-        bytes32 salt
-    ) internal returns (bool alreadyDeployed, address instance) {
+    function createDeterministicERC1967(uint256 value, address implementation, bytes32 salt)
+        internal
+        returns (bool alreadyDeployed, address instance)
+    {
         /// @solidity memory-safe-assembly
         assembly {
             let m := mload(0x40) // Cache the free memory pointer.
@@ -786,11 +772,7 @@ library LibClone {
             mstore8(m, 0xff) // Write the prefix.
             mstore(add(m, 0x15), salt)
             instance := keccak256(m, 0x55)
-            for {
-
-            } 1 {
-
-            } {
+            for {} 1 {} {
                 if iszero(extcodesize(instance)) {
                     instance := create2(value, 0x21, 0x5f, salt)
                     if iszero(instance) {
@@ -800,9 +782,7 @@ library LibClone {
                     break
                 }
                 alreadyDeployed := 1
-                if iszero(value) {
-                    break
-                }
+                if iszero(value) { break }
                 if iszero(call(gas(), instance, value, codesize(), 0x00, codesize(), 0x00)) {
                     mstore(0x00, 0xb12d13eb) // `ETHTransferFailed()`.
                     revert(0x1c, 0x04)
@@ -848,11 +828,11 @@ library LibClone {
     /// @dev Returns the address of the deterministic clone of
     /// `implementation` using immutable arguments encoded in `data`, with `salt`, by `deployer`.
     /// Note: The returned result has dirty upper 96 bits. Please clean if used in assembly.
-    function predictDeterministicAddressERC1967(
-        address implementation,
-        bytes32 salt,
-        address deployer
-    ) internal pure returns (address predicted) {
+    function predictDeterministicAddressERC1967(address implementation, bytes32 salt, address deployer)
+        internal
+        pure
+        returns (address predicted)
+    {
         bytes32 hash = initCodeHashERC1967(implementation);
         predicted = predictDeterministicAddress(hash, salt, deployer);
     }
@@ -864,11 +844,11 @@ library LibClone {
     /// @dev Returns the address when a contract with initialization code hash,
     /// `hash`, is deployed with `salt`, by `deployer`.
     /// Note: The returned result has dirty upper 96 bits. Please clean if used in assembly.
-    function predictDeterministicAddress(
-        bytes32 hash,
-        bytes32 salt,
-        address deployer
-    ) internal pure returns (address predicted) {
+    function predictDeterministicAddress(bytes32 hash, bytes32 salt, address deployer)
+        internal
+        pure
+        returns (address predicted)
+    {
         /// @solidity memory-safe-assembly
         assembly {
             // Compute and store the bytecode hash.

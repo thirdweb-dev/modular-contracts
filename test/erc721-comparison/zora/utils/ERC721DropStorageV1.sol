@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import { IERC721Drop } from "./IERC721Drop.sol";
+import {IERC721Drop} from "./IERC721Drop.sol";
 
 contract ERC721DropStorageV1 {
     /// @notice Configuration for NFT minting contract storage

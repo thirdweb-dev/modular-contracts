@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
-import { IPermission } from "../../interface/common/IPermission.sol";
-import { ERC721Hook } from "../ERC721Hook.sol";
-import { MerkleProofLib } from "../../lib/MerkleProofLib.sol";
-import { SafeTransferLib } from "../../lib/SafeTransferLib.sol";
+import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
+import {IPermission} from "../../interface/common/IPermission.sol";
+import {ERC721Hook} from "../ERC721Hook.sol";
+import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
+import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
 contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
     /*//////////////////////////////////////////////////////////////
@@ -88,7 +88,7 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
 
     function initialize(address _upgradeAdmin) public initializer {
         __ERC721Hook_init(_upgradeAdmin);
-    } 
+    }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -126,11 +126,12 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(
-        address _claimer,
-        uint256 _quantity,
-        bytes memory _encodedArgs
-    ) external payable override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+        external
+        payable
+        override
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         address token = msg.sender;
 
         ClaimCondition memory condition = claimCondition[token];
@@ -143,9 +144,7 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
             bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof,
-                condition.allowlistMerkleRoot,
-                keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
             );
             if (!isAllowlisted) {
                 revert AllowlistMintHookNotInAllowlist(token, _claimer);

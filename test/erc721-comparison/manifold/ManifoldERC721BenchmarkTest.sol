@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 // Test util
-import { ERC721BenchmarkBase } from "../ERC721BenchmarkBase.t.sol";
+import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
 
 // Target test contracts
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { ERC721CreatorUpgradeable } from "./utils/ERC721CreatorUpgradeable.sol";
-import { ERC721LazyMintWhitelist } from "./utils/ERC721LazyMintWhitelist.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {ERC721CreatorUpgradeable} from "./utils/ERC721CreatorUpgradeable.sol";
+import {ERC721LazyMintWhitelist} from "./utils/ERC721LazyMintWhitelist.sol";
 
 contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
     ERC721LazyMintWhitelist internal claimContract;
@@ -54,13 +54,12 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
         //     )
         // );
 
-        return
-            address(
-                new ERC1967Proxy(
-                    _implementation,
-                    hex"4cd88b76000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000"
-                )
-            );
+        return address(
+            new ERC1967Proxy(
+                _implementation,
+                hex"4cd88b76000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000004546573740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035453540000000000000000000000000000000000000000000000000000000000"
+            )
+        );
     }
 
     /// @dev Setup token metadata
@@ -88,7 +87,7 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
         vm.resumeGasMetering();
 
         vm.prank(_claimer);
-        claimC.mint{ value: _price }(proofs);
+        claimC.mint{value: _price}(proofs);
 
         return 1;
     }
@@ -105,7 +104,7 @@ contract ManifoldERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes32[] memory proofs = abi.decode(result, (bytes32[]));
 
         vm.prank(_claimer);
-        claimC.mint{ value: _price }(proofs);
+        claimC.mint{value: _price}(proofs);
 
         return 1;
     }

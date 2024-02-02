@@ -4,7 +4,6 @@ pragma solidity ^0.8.11;
 /// @author thirdweb
 
 contract EIP1967Proxy {
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -23,7 +22,7 @@ contract EIP1967Proxy {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
-    
+
     /// @notice Emitted on failure to initialize proxy.
     error EIP1967ProxyFailedToInitialize();
 
@@ -39,7 +38,7 @@ contract EIP1967Proxy {
         if (_initializeData.length > 0) {
             // slither-disable-next-line unused-return
             (bool success, bytes memory returndata) = _implementationAddress.delegatecall(_initializeData);
-            
+
             if (!success) {
                 _revert(returndata);
             }
@@ -107,12 +106,8 @@ contract EIP1967Proxy {
 
             switch result
             // delegatecall returns 0 on error.
-            case 0 {
-                revert(0, returndatasize())
-            }
-            default {
-                return(0, returndatasize())
-            }
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
         }
     }
 }

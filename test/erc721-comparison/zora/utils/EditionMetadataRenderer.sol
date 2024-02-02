@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import { IMetadataRenderer } from "./IMetadataRenderer.sol";
-import { IERC721Drop } from "./IERC721Drop.sol";
-import { IERC721MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC721MetadataUpgradeable.sol";
-import { IERC2981Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
-import { NFTMetadataRenderer } from "./NFTMetadataRenderer.sol";
-import { MetadataRenderAdminCheck } from "./MetadataRenderAdminCheck.sol";
+import {IMetadataRenderer} from "./IMetadataRenderer.sol";
+import {IERC721Drop} from "./IERC721Drop.sol";
+import {IERC721MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC721MetadataUpgradeable.sol";
+import {IERC2981Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
+import {NFTMetadataRenderer} from "./NFTMetadataRenderer.sol";
+import {MetadataRenderAdminCheck} from "./MetadataRenderAdminCheck.sol";
 
 interface DropConfigGetter {
     function config() external view returns (IERC721Drop.Configuration memory config);
@@ -39,14 +39,13 @@ contract EditionMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck 
     /// @param target target for contract to update metadata for
     /// @param imageURI new image uri address
     /// @param animationURI new animation uri address
-    function updateMediaURIs(
-        address target,
-        string memory imageURI,
-        string memory animationURI
-    ) external requireSenderAdmin(target) {
+    function updateMediaURIs(address target, string memory imageURI, string memory animationURI)
+        external
+        requireSenderAdmin(target)
+    {
         tokenInfos[target].imageURI = imageURI;
         tokenInfos[target].animationURI = animationURI;
-        emit MediaURIsUpdated({ target: target, sender: msg.sender, imageURI: imageURI, animationURI: animationURI });
+        emit MediaURIsUpdated({target: target, sender: msg.sender, imageURI: imageURI, animationURI: animationURI});
     }
 
     /// @notice Admin function to update description
@@ -55,23 +54,18 @@ contract EditionMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck 
     function updateDescription(address target, string memory newDescription) external requireSenderAdmin(target) {
         tokenInfos[target].description = newDescription;
 
-        emit DescriptionUpdated({ target: target, sender: msg.sender, newDescription: newDescription });
+        emit DescriptionUpdated({target: target, sender: msg.sender, newDescription: newDescription});
     }
 
     /// @notice Default initializer for edition data from a specific contract
     /// @param data data to init with
     function initializeWithData(bytes memory data) external {
         // data format: description, imageURI, animationURI
-        (string memory description, string memory imageURI, string memory animationURI) = abi.decode(
-            data,
-            (string, string, string)
-        );
+        (string memory description, string memory imageURI, string memory animationURI) =
+            abi.decode(data, (string, string, string));
 
-        tokenInfos[msg.sender] = TokenEditionInfo({
-            description: description,
-            imageURI: imageURI,
-            animationURI: animationURI
-        });
+        tokenInfos[msg.sender] =
+            TokenEditionInfo({description: description, imageURI: imageURI, animationURI: animationURI});
         emit EditionInitialized({
             target: msg.sender,
             description: description,
@@ -87,15 +81,14 @@ contract EditionMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck 
         TokenEditionInfo storage editionInfo = tokenInfos[target];
         IERC721Drop.Configuration memory config = DropConfigGetter(target).config();
 
-        return
-            NFTMetadataRenderer.encodeContractURIJSON({
-                name: IERC721MetadataUpgradeable(target).name(),
-                description: editionInfo.description,
-                imageURI: editionInfo.imageURI,
-                animationURI: editionInfo.animationURI,
-                royaltyBPS: uint256(config.royaltyBPS),
-                royaltyRecipient: config.fundsRecipient
-            });
+        return NFTMetadataRenderer.encodeContractURIJSON({
+            name: IERC721MetadataUpgradeable(target).name(),
+            description: editionInfo.description,
+            imageURI: editionInfo.imageURI,
+            animationURI: editionInfo.animationURI,
+            royaltyBPS: uint256(config.royaltyBPS),
+            royaltyRecipient: config.fundsRecipient
+        });
     }
 
     /// @notice Token URI information getter
@@ -115,14 +108,13 @@ contract EditionMetadataRenderer is IMetadataRenderer, MetadataRenderAdminCheck 
             maxSupply = 0;
         }
 
-        return
-            NFTMetadataRenderer.createMetadataEdition({
-                name: IERC721MetadataUpgradeable(target).name(),
-                description: info.description,
-                imageURI: info.imageURI,
-                animationURI: info.animationURI,
-                tokenOfEdition: tokenId,
-                editionSize: maxSupply
-            });
+        return NFTMetadataRenderer.createMetadataEdition({
+            name: IERC721MetadataUpgradeable(target).name(),
+            description: info.description,
+            imageURI: info.imageURI,
+            animationURI: info.animationURI,
+            tokenOfEdition: tokenId,
+            editionSize: maxSupply
+        });
     }
 }

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IERC7572 } from "../../interface/eip/IERC7572.sol";
-import { IERC721CoreCustomErrors } from "../../interface/errors/IERC721CoreCustomErrors.sol";
-import { IERC721Hook } from "../../interface/hook/IERC721Hook.sol";
-import { IERC721HookInstaller } from "../../interface/hook/IERC721HookInstaller.sol";
-import { IInitCall } from "../../interface/common/IInitCall.sol";
-import { ERC721Initializable } from "./ERC721Initializable.sol";
-import { IHook, HookInstaller } from "../../hook/HookInstaller.sol";
-import { Initializable } from "../../common/Initializable.sol";
-import { Permission } from "../../common/Permission.sol";
+import {IERC7572} from "../../interface/eip/IERC7572.sol";
+import {IERC721CoreCustomErrors} from "../../interface/errors/IERC721CoreCustomErrors.sol";
+import {IERC721Hook} from "../../interface/hook/IERC721Hook.sol";
+import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
+import {IInitCall} from "../../interface/common/IInitCall.sol";
+import {ERC721Initializable} from "./ERC721Initializable.sol";
+import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
+import {Initializable} from "../../common/Initializable.sol";
+import {Permission} from "../../common/Permission.sol";
 
 contract ERC721Core is
     Initializable,
@@ -84,7 +84,7 @@ contract ERC721Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{ value: _initCall.value }(_initCall.data);
+            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -148,11 +148,10 @@ contract ERC721Core is
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public pure override returns (bool) {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            _interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            _interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
-            _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
+            || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
+            || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -254,15 +253,15 @@ contract ERC721Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(
-        address _to,
-        uint256 _quantity,
-        bytes memory _data
-    ) internal virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
+        internal
+        virtual
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{ value: msg.value }(_to, _quantity, _data);
+            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
         } else {
             revert ERC721CoreMintingDisabled();
         }
@@ -305,10 +304,12 @@ contract ERC721Core is
     }
 
     /// @dev Fetches royalty info from the royalty hook.
-    function _getRoyaltyInfo(
-        uint256 _tokenId,
-        uint256 _salePrice
-    ) internal view virtual returns (address receiver, uint256 royaltyAmount) {
+    function _getRoyaltyInfo(uint256 _tokenId, uint256 _salePrice)
+        internal
+        view
+        virtual
+        returns (address receiver, uint256 royaltyAmount)
+    {
         address hook = getHookImplementation(ROYALTY_INFO_FLAG);
 
         if (hook != address(0)) {
