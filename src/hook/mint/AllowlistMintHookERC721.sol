@@ -103,6 +103,11 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
         return AllowlistMintHookERC721Storage.data().feeConfig[_token];
     }
 
+    /// @notice Returns the active claim condition.
+    function getClaimCondition(address _token) external view returns (ClaimCondition memory) {
+        return AllowlistMintHookERC721Storage.data().claimCondition[_token];
+    }
+
     /*//////////////////////////////////////////////////////////////
                             BEFORE MINT HOOK
     //////////////////////////////////////////////////////////////*/
@@ -118,6 +123,7 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
+        virtual
         override
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {

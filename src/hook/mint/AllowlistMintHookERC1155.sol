@@ -103,6 +103,11 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         return AllowlistMintHookERC1155Storage.data().feeConfig[_token][type(uint256).max];
     }
 
+    /// @notice Returns the active claim condition.
+    function getClaimCondition(address _token, uint256 _id) external view returns (ClaimCondition memory) {
+        return AllowlistMintHookERC1155Storage.data().claimCondition[_token][_id];
+    }
+
     /*//////////////////////////////////////////////////////////////
                             BEFORE MINT HOOK
     //////////////////////////////////////////////////////////////*/
@@ -118,6 +123,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
     function beforeMint(address _claimer, uint256 _id, uint256 _value, bytes memory _encodedArgs)
         external
         payable
+        virtual
         override
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {

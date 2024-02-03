@@ -95,6 +95,11 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
         return AllowlistMintHookERC20Storage.data().feeConfig[_token];
     }
 
+    /// @notice Returns the active claim condition.
+    function getClaimCondition(address _token) external view returns (ClaimCondition memory) {
+        return AllowlistMintHookERC20Storage.data().claimCondition[_token];
+    }
+
     /*//////////////////////////////////////////////////////////////
                             BEFORE MINT HOOK
     //////////////////////////////////////////////////////////////*/
@@ -109,6 +114,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
         external
         payable
+        virtual
         override
         returns (uint256 quantityToMint)
     {
