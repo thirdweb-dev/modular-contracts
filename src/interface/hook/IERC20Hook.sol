@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IHook } from "./IHook.sol";
+import {IHook} from "./IHook.sol";
 
 interface IERC20Hook is IHook {
     /*//////////////////////////////////////////////////////////////
@@ -29,11 +29,10 @@ interface IERC20Hook is IHook {
      *  @param encodedArgs The encoded arguments for the beforeMint hook.
      *  @return quantityToMint The quantity of tokens to mint.s
      */
-    function beforeMint(
-        address to,
-        uint256 amount,
-        bytes memory encodedArgs
-    ) external payable returns (uint256 quantityToMint);
+    function beforeMint(address to, uint256 amount, bytes memory encodedArgs)
+        external
+        payable
+        returns (uint256 quantityToMint);
 
     /**
      *  @notice The beforeTransfer hook that is called by a core token before transferring a token.

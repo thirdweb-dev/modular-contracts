@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
-import { IPermission } from "../../interface/common/IPermission.sol";
-import { ERC1155Hook } from "../ERC1155Hook.sol";
-import { MerkleProofLib } from "../../lib/MerkleProofLib.sol";
-import { SafeTransferLib } from "../../lib/SafeTransferLib.sol";
+import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
+import {IPermission} from "../../interface/common/IPermission.sol";
+import {ERC1155Hook} from "../ERC1155Hook.sol";
+import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
+import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
+
+import {AllowlistMintHookERC1155Storage} from "../../storage/hook/mint/AllowlistMintHookERC1155Storage.sol";
 
 contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
     /*//////////////////////////////////////////////////////////////
@@ -54,21 +56,8 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The bits that represent the admin role.
-    uint96 public constant ADMIN_ROLE_BITS = 2 ** 1;
-
     /// @notice The address considered as native token.
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    /*//////////////////////////////////////////////////////////////
-                               STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => token-id => the claim conditions for minting the token.
-    mapping(address => mapping(uint256 => ClaimCondition)) public claimCondition;
-
-    /// @notice Mapping from token => token-id => fee config for the token.
-    mapping(address => mapping(uint256 => FeeConfig)) private _feeConfig;
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -80,6 +69,14 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
             revert AllowlistMintHookNotAuthorized();
         }
         _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                INITIALIZE
+    //////////////////////////////////////////////////////////////*/
+
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC1155Hook_init(_upgradeAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -98,12 +95,17 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
 
     /// @notice Returns the fee config for a token.
     function getFeeConfigForToken(address _token, uint256 _id) external view returns (FeeConfig memory) {
-        return _feeConfig[_token][_id];
+        return AllowlistMintHookERC1155Storage.data().feeConfig[_token][_id];
     }
 
     /// @notice Returns the fee config for a token.
     function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
-        return _feeConfig[_token][type(uint256).max];
+        return AllowlistMintHookERC1155Storage.data().feeConfig[_token][type(uint256).max];
+    }
+
+    /// @notice Returns the active claim condition.
+    function getClaimCondition(address _token, uint256 _id) external view returns (ClaimCondition memory) {
+        return AllowlistMintHookERC1155Storage.data().claimCondition[_token][_id];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -118,15 +120,17 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(
-        address _claimer,
-        uint256 _id,
-        uint256 _value,
-        bytes memory _encodedArgs
-    ) external payable override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function beforeMint(address _claimer, uint256 _id, uint256 _value, bytes memory _encodedArgs)
+        external
+        payable
+        virtual
+        override
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         address token = msg.sender;
+        AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
-        ClaimCondition memory condition = claimCondition[token][_id];
+        ClaimCondition memory condition = data.claimCondition[token][_id];
 
         if (condition.availableSupply == 0) {
             revert AllowlistMintHookNotEnoughSupply(token);
@@ -136,9 +140,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
             bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof,
-                condition.allowlistMerkleRoot,
-                keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
             );
             if (!isAllowlisted) {
                 revert AllowlistMintHookNotInAllowlist(token, _claimer);
@@ -148,7 +150,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         tokenIdToMint = _id;
         quantityToMint = _value;
 
-        claimCondition[token][_id].availableSupply -= _value;
+        data.claimCondition[token][_id].availableSupply -= _value;
 
         _collectPrice(condition.price * _value, _id);
     }
@@ -163,12 +165,11 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      *  @param _token The token to set the claim condition for.
      *  @param _claimCondition The claim condition to set.
      */
-    function setClaimCondition(
-        address _token,
-        uint256 _id,
-        ClaimCondition memory _claimCondition
-    ) public onlyAdmin(_token) {
-        claimCondition[_token][_id] = _claimCondition;
+    function setClaimCondition(address _token, uint256 _id, ClaimCondition memory _claimCondition)
+        public
+        onlyAdmin(_token)
+    {
+        AllowlistMintHookERC1155Storage.data().claimCondition[_token][_id] = _claimCondition;
         emit ClaimConditionUpdate(_token, _id, _claimCondition);
     }
 
@@ -178,7 +179,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      *  @param _config The fee config for the token.
      */
     function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token][_id] = _config;
+        AllowlistMintHookERC1155Storage.data().feeConfig[_token][_id] = _config;
         emit FeeConfigUpdateERC1155(_token, _id, _config);
     }
 
@@ -188,7 +189,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      *  @param _config The fee config for the token.
      */
     function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        _feeConfig[_token][type(uint256).max] = _config;
+        AllowlistMintHookERC1155Storage.data().feeConfig[_token][type(uint256).max] = _config;
         emit FeeConfigUpdateERC1155(_token, type(uint256).max, _config);
     }
 
@@ -205,11 +206,21 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
             return;
         }
 
-        address token = msg.sender;
-        FeeConfig memory feeConfig = _feeConfig[token][_id];
+        AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
-        if (feeConfig.primarySaleRecipient == address(0) || feeConfig.platformFeeRecipient == address(0)) {
-            feeConfig = _feeConfig[token][type(uint256).max];
+        address token = msg.sender;
+        FeeConfig memory defaultFeeConfig = data.feeConfig[token][type(uint256).max];
+        FeeConfig memory feeConfig = data.feeConfig[token][_id]; // overriden fee config
+
+        // If there is no override-primarySaleRecipient, we will use the default primarySaleRecipient.
+        if (feeConfig.primarySaleRecipient == address(0)) {
+            feeConfig.primarySaleRecipient = defaultFeeConfig.primarySaleRecipient;
+        }
+
+        // If there is no override-platformFeeRecipient, we will use the default platformFee recipient and bps.
+        if (feeConfig.platformFeeRecipient == address(0)) {
+            feeConfig.platformFeeRecipient = defaultFeeConfig.platformFeeRecipient;
+            feeConfig.platformFeeBps = defaultFeeConfig.platformFeeBps;
         }
 
         uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;

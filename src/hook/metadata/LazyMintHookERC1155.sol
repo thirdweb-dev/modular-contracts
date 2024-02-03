@@ -1,20 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IPermission } from "../../interface/common/IPermission.sol";
+import {IPermission} from "../../interface/common/IPermission.sol";
 
-import { ERC721Hook } from "../ERC721Hook.sol";
-import { LibString } from "../../lib/LibString.sol";
+import {ERC1155Hook} from "../ERC1155Hook.sol";
+import {LibString} from "../../lib/LibString.sol";
 
-contract LazyMintMetadataHook is ERC721Hook {
+import {LazyMintStorage} from "../../storage/hook/metadata/LazyMintStorage.sol";
+
+contract LazyMintHookERC1155 is ERC1155Hook {
     using LibString for uint256;
-
-    /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The bits that represent the admin role.
-    uint256 public constant ADMIN_ROLE_BITS = 2 ** 1;
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -22,11 +17,7 @@ contract LazyMintMetadataHook is ERC721Hook {
 
     /// @dev Emitted when tokens are lazy minted.
     event TokensLazyMinted(
-        address indexed token,
-        uint256 indexed startTokenId,
-        uint256 endTokenId,
-        string baseURI,
-        bytes encryptedBaseURI
+        address indexed token, uint256 indexed startTokenId, uint256 endTokenId, string baseURI, bytes encryptedBaseURI
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -46,19 +37,6 @@ contract LazyMintMetadataHook is ERC721Hook {
     error LazyMintMetadataHookInvalidTokenId();
 
     /*//////////////////////////////////////////////////////////////
-                                STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Mapping from token => batch IDs
-    mapping(address => uint256[]) private _batchIds;
-
-    /// @notice Mapping from token => the next token ID to lazy mint.
-    mapping(address => uint256) private _nextTokenIdToLazyMint;
-
-    /// @notice Mapping from token => batchId => baseURI
-    mapping(address => mapping(uint256 => string)) private _baseURI;
-
-    /*//////////////////////////////////////////////////////////////
                                MODIFIER
     //////////////////////////////////////////////////////////////*/
 
@@ -68,6 +46,14 @@ contract LazyMintMetadataHook is ERC721Hook {
             revert LazyMintMetadataHookNotAuthorized();
         }
         _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                INITIALIZE
+    //////////////////////////////////////////////////////////////*/
+
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC1155Hook_init(_upgradeAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -84,7 +70,7 @@ contract LazyMintMetadataHook is ERC721Hook {
      *  @param _token The token address.
      */
     function getBaseURICount(address _token) public view returns (uint256) {
-        return _batchIds[_token].length;
+        return LazyMintStorage.data().batchIds[_token].length;
     }
 
     /**
@@ -92,7 +78,7 @@ contract LazyMintMetadataHook is ERC721Hook {
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function tokenURI(uint256 _id) external view override returns (string memory) {
+    function uri(uint256 _id) external view override returns (string memory) {
         address token = msg.sender;
         string memory batchUri = _getBaseURI(token, _id);
 
@@ -108,7 +94,7 @@ contract LazyMintMetadataHook is ERC721Hook {
         if (_index >= getBaseURICount(_token)) {
             revert LazyMintMetadataHookInvalidIndex();
         }
-        return _batchIds[_token][_index];
+        return LazyMintStorage.data().batchIds[_token][_index];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -123,19 +109,20 @@ contract LazyMintMetadataHook is ERC721Hook {
      *  @param _data Additional bytes data
      *  @return batchId A unique integer identifier for the batch of NFTs lazy minted together.
      */
-    function lazyMint(
-        address _token,
-        uint256 _amount,
-        string calldata _baseURIForTokens,
-        bytes calldata _data
-    ) public virtual onlyAdmin(_token) returns (uint256 batchId) {
+    function lazyMint(address _token, uint256 _amount, string calldata _baseURIForTokens, bytes calldata _data)
+        public
+        virtual
+        onlyAdmin(_token)
+        returns (uint256 batchId)
+    {
         if (_amount == 0) {
             revert LazyMintMetadataHookZeroAmount();
         }
 
-        uint256 startId = _nextTokenIdToLazyMint[_token];
+        LazyMintStorage.Data storage data = LazyMintStorage.data();
 
-        (_nextTokenIdToLazyMint[_token], batchId) = _batchMintMetadata(_token, startId, _amount, _baseURIForTokens);
+        uint256 startId = data.nextTokenIdToLazyMint[_token];
+        (data.nextTokenIdToLazyMint[_token], batchId) = _batchMintMetadata(_token, startId, _amount, _baseURIForTokens);
 
         emit TokensLazyMinted(_token, startId, startId + _amount - 1, _baseURIForTokens, _data);
 
@@ -156,19 +143,23 @@ contract LazyMintMetadataHook is ERC721Hook {
         batchId = _startId + _amountToMint;
         nextTokenIdToMint = batchId;
 
-        _batchIds[_token].push(batchId);
+        LazyMintStorage.Data storage data = LazyMintStorage.data();
 
-        _baseURI[_token][batchId] = _baseURIForTokens;
+        data.batchIds[_token].push(batchId);
+        data.baseURI[_token][batchId] = _baseURIForTokens;
     }
 
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
     function _getBaseURI(address _token, uint256 _tokenId) internal view returns (string memory) {
         uint256 numOfTokenBatches = getBaseURICount(_token);
-        uint256[] memory indices = _batchIds[_token];
+
+        LazyMintStorage.Data storage data = LazyMintStorage.data();
+
+        uint256[] memory indices = data.batchIds[_token];
 
         for (uint256 i = 0; i < numOfTokenBatches; i += 1) {
             if (_tokenId < indices[i]) {
-                return _baseURI[_token][indices[i]];
+                return data.baseURI[_token][indices[i]];
             }
         }
         revert LazyMintMetadataHookInvalidTokenId();

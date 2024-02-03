@@ -17,13 +17,15 @@ contract ERC721LazyMintWhitelist is ERC721LazyMintWhitelistBase, AdminControl, I
         _initialize(creator, prefix);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(AdminControl, ERC721LazyMintWhitelistBase) returns (bool) {
-        return
-            interfaceId == type(IERC721LazyMintWhitelist).interfaceId ||
-            AdminControl.supportsInterface(interfaceId) ||
-            ERC721LazyMintWhitelistBase.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(AdminControl, ERC721LazyMintWhitelistBase)
+        returns (bool)
+    {
+        return interfaceId == type(IERC721LazyMintWhitelist).interfaceId || AdminControl.supportsInterface(interfaceId)
+            || ERC721LazyMintWhitelistBase.supportsInterface(interfaceId);
     }
 
     function premint(address[] memory to) external override adminRequired {

@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import { IERC721Hook } from "../interface/hook/IERC721Hook.sol";
+import "../common/Initializable.sol";
+import "../common/UUPSUpgradeable.sol";
+import "../common/Permission.sol";
 
-abstract contract ERC721Hook is IERC721Hook {
+import {IERC721Hook} from "../interface/hook/IERC721Hook.sol";
+
+abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC721Hook {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -25,6 +29,32 @@ abstract contract ERC721Hook is IERC721Hook {
 
     /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+
+    /*//////////////////////////////////////////////////////////////
+                                ERROR
+    //////////////////////////////////////////////////////////////*/
+
+    error ERC721UnauthorizedUpgrade();
+
+    /*//////////////////////////////////////////////////////////////
+                     CONSTRUCTOR & INITIALIZE
+    //////////////////////////////////////////////////////////////*/
+
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the contract. Grants admin role (i.e. upgrade authority) to given `_upgradeAdmin`.
+    function __ERC721Hook_init(address _upgradeAdmin) public onlyInitializing {
+        _setupRole(_upgradeAdmin, ADMIN_ROLE_BITS);
+    }
+
+    /// @notice Checks if `msg.sender` is authorized to upgrade the proxy to `newImplementation`, reverting if not.
+    function _authorizeUpgrade(address) internal view override {
+        if (!hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+            revert ERC721UnauthorizedUpgrade();
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -52,11 +82,12 @@ abstract contract ERC721Hook is IERC721Hook {
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(
-        address _to,
-        uint256 _quantity,
-        bytes memory _encodedArgs
-    ) external payable virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function beforeMint(address _to, uint256 _quantity, bytes memory _encodedArgs)
+        external
+        payable
+        virtual
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         revert ERC721HookNotImplemented();
     }
 
@@ -109,10 +140,12 @@ abstract contract ERC721Hook is IERC721Hook {
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(
-        uint256 tokenId,
-        uint256 salePrice
-    ) external view virtual returns (address receiver, uint256 royaltyAmount) {
+    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+        external
+        view
+        virtual
+        returns (address receiver, uint256 royaltyAmount)
+    {
         revert ERC721HookNotImplemented();
     }
 }

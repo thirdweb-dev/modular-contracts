@@ -1,25 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { LibBitmap } from "../lib/LibBitmap.sol";
-import { IHook } from "../interface/hook/IHook.sol";
-import { IHookInstaller } from "../interface/hook/IHookInstaller.sol";
+import {LibBitmap} from "../lib/LibBitmap.sol";
+import {IHook} from "../interface/hook/IHook.sol";
+import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
+
+import {HookInstallerStorage} from "../storage/hook/HookInstallerStorage.sol";
 
 abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;
-
-    /*//////////////////////////////////////////////////////////////
-                                STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Bits representing all hooks installed.
-    uint256 private _installedHooks;
-
-    /// @notice Whether a given hook is installed in the contract.
-    LibBitmap.Bitmap private _hookImplementations;
-
-    /// @notice Mapping from hook bits representation => implementation of the hook.
-    mapping(uint256 => address) private _hookImplementationMap;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -31,7 +20,7 @@ abstract contract HookInstaller is IHookInstaller {
      *  @return impl The implementation of the hook.
      */
     function getHookImplementation(uint256 _flag) public view returns (address) {
-        return _hookImplementationMap[_flag];
+        return HookInstallerStorage.data().hookImplementationMap[_flag];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -79,21 +68,23 @@ abstract contract HookInstaller is IHookInstaller {
         uint256 hooksToInstall = _hook.getHooks();
 
         _updateHooks(hooksToInstall, address(_hook), _addHook);
-        _hookImplementations.set(uint160(address(_hook)));
+        HookInstallerStorage.data().hookImplementations.set(uint160(address(_hook)));
 
         emit HooksInstalled(address(_hook), hooksToInstall);
     }
 
     /// @dev Uninstalls a hook in the contract.
     function _uninstallHook(IHook _hook) internal {
-        if (!_hookImplementations.get(uint160(address(_hook)))) {
+        HookInstallerStorage.Data storage data = HookInstallerStorage.data();
+
+        if (!data.hookImplementations.get(uint160(address(_hook)))) {
             revert HookNotInstalled();
         }
 
         uint256 hooksToUninstall = _hook.getHooks();
 
         _updateHooks(hooksToUninstall, address(0), _removeHook);
-        _hookImplementations.unset(uint160(address(_hook)));
+        data.hookImplementations.unset(uint160(address(_hook)));
 
         emit HooksUninstalled(address(_hook), hooksToUninstall);
     }
@@ -117,18 +108,20 @@ abstract contract HookInstaller is IHookInstaller {
         address _implementation,
         function(uint256, uint256) internal pure returns (uint256) _addOrRemoveHook
     ) internal {
-        uint256 currentActiveHooks = _installedHooks;
+        HookInstallerStorage.Data storage data = HookInstallerStorage.data();
+
+        uint256 currentActiveHooks = data.installedHooks;
 
         uint256 flag = 2 ** _maxHookFlag();
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActiveHooks = _addOrRemoveHook(flag, currentActiveHooks);
-                _hookImplementationMap[flag] = _implementation;
+                data.hookImplementationMap[flag] = _implementation;
             }
 
             flag >>= 1;
         }
 
-        _installedHooks = currentActiveHooks;
+        data.installedHooks = currentActiveHooks;
     }
 }

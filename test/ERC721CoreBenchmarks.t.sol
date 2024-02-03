@@ -1,19 +1,23 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
-import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
+import "src/lib/LibClone.sol";
+import "src/common/UUPSUpgradeable.sol";
 
-import { ERC721Core, ERC721Initializable } from "src/core/token/ERC721Core.sol";
-import { AllowlistMintHookERC721 } from "src/hook/mint/AllowlistMintHookERC721.sol";
-import { LazyMintMetadataHook } from "src/hook/metadata/LazyMintMetadataHook.sol";
-import { RoyaltyHook } from "src/hook/royalty/RoyaltyHook.sol";
-import { IERC721 } from "src/interface/eip/IERC721.sol";
-import { IHook } from "src/interface/hook/IHook.sol";
-import { IInitCall } from "src/interface/common/IInitCall.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
+import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
+
+import {ERC721Core, ERC721Initializable} from "src/core/token/ERC721Core.sol";
+import {ERC721Hook, AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
+import {LazyMintHookERC721} from "src/hook/metadata/LazyMintHookERC721.sol";
+import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
+import {IERC721} from "src/interface/eip/IERC721.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
+import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -70,8 +74,11 @@ contract ERC721CoreBenchmarkTest is Test {
 
     ERC721Core public erc721;
     AllowlistMintHookERC721 public simpleClaimHook;
-    LazyMintMetadataHook public lazyMintHook;
+    LazyMintHookERC721 public lazyMintHook;
     RoyaltyHook public royaltyHook;
+
+    MockOneHookImpl public mockOneHook;
+    MockFourHookImpl public mockFourHook;
 
     // Token claim params
     uint256 public pricePerToken = 0.1 ether;
@@ -85,19 +92,42 @@ contract ERC721CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC721())));
+        hookProxyAddress = address(
+            new EIP1967Proxy(
+                address(new AllowlistMintHookERC721()),
+                abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin)
+            )
+        );
         simpleClaimHook = AllowlistMintHookERC721(hookProxyAddress);
         assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
 
         address lazyMintHookProxyAddress = address(
-            new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintMetadataHook()))
+            new EIP1967Proxy(
+                address(new LazyMintHookERC721()),
+                abi.encodeWithSelector(LazyMintHookERC721.initialize.selector, platformAdmin)
+            )
         );
-        lazyMintHook = LazyMintMetadataHook(lazyMintHookProxyAddress);
+        lazyMintHook = LazyMintHookERC721(lazyMintHookProxyAddress);
 
-        address royaltyHookProxyAddress = address(
-            new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook()))
-        );
+        address royaltyHookProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
         royaltyHook = RoyaltyHook(royaltyHookProxyAddress);
+
+        address mockAddress = address(
+            new EIP1967Proxy(
+                address(new MockOneHookImpl()),
+                abi.encodeWithSelector(MockOneHookImpl.initialize.selector, platformAdmin)
+            )
+        );
+        mockOneHook = MockOneHookImpl(mockAddress);
+
+        mockAddress = address(
+            new EIP1967Proxy(
+                address(new MockFourHookImpl()),
+                abi.encodeWithSelector(MockFourHookImpl.initialize.selector, platformAdmin)
+            )
+        );
+        mockFourHook = MockFourHookImpl(mockAddress);
 
         erc721Implementation = address(new ERC721Core());
 
@@ -108,13 +138,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         IInitCall.InitCall memory initCall;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector,
-            initCall,
-            new address[](0),
-            platformUser,
-            "Test",
-            "TST",
-            "contractURI://"
+            ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
         );
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
@@ -176,13 +200,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         address impl = erc721Implementation;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector,
-            initCall,
-            new address[](0),
-            platformUser,
-            "Test",
-            "TST",
-            "contractURI://"
+            ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
         );
         bytes32 salt = bytes32("salt");
 
@@ -205,13 +223,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         address impl = erc721Implementation;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector,
-            initCall,
-            hooks,
-            platformUser,
-            "Test",
-            "TST",
-            "contractURI://"
+            ERC721Core.initialize.selector, initCall, hooks, platformUser, "Test", "TST", "contractURI://"
         );
         bytes32 salt = bytes32("salt");
 
@@ -246,7 +258,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{ value: pricePerToken }(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
@@ -271,7 +283,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{ value: pricePerToken * 10 }(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -294,7 +306,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc721.mint{ value: pricePerToken }(claimer, quantityToClaim, encodedArgs);
+        erc721.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
 
         uint256 tokenId = 0;
         address to = address(0x121212);
@@ -313,20 +325,21 @@ contract ERC721CoreBenchmarkTest is Test {
                         PERFORM A BEACON UPGRADE
     //////////////////////////////////////////////////////////////*/
 
-    function test_beaconUpgrade() public {
+    function test_performUpgrade() public {
         vm.pauseGasMetering();
 
-        bytes4 sel = AllowlistMintHookERC721.beforeMint.selector;
+        address newAdmin = address(0x7890);
         address newImpl = address(new AllowlistMintHookERC721());
-        address proxyAdmin = platformAdmin;
-        MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
+        address currentAdmin = platformAdmin;
+        UUPSUpgradeable proxy = UUPSUpgradeable(payable(hookProxyAddress));
 
-        vm.prank(proxyAdmin);
+        vm.prank(currentAdmin);
 
         vm.resumeGasMetering();
 
         // Perform upgrade
-        proxy.setImplementationForFunction(sel, newImpl);
+        proxy.upgradeToAndCall(newImpl, "");
+        // assertEq(ERC721Hook(address(proxy)).admin(), newAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -336,7 +349,9 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        address mockAddress = address(mockOneHook);
+        IHook mockHook = IHook(mockAddress);
+
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
@@ -349,7 +364,8 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_installfiveHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        address mockAddress = address(mockFourHook);
+        IHook mockHook = IHook(mockAddress);
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
@@ -365,7 +381,8 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        address mockAddress = address(mockOneHook);
+        IHook mockHook = IHook(mockAddress);
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
@@ -381,7 +398,8 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        address mockAddress = address(mockFourHook);
+        IHook mockHook = IHook(mockAddress);
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
