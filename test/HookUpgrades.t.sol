@@ -16,10 +16,13 @@ import {AllowlistMintHookERC20, ERC20Hook} from "src/hook/mint/AllowlistMintHook
 import {AllowlistMintHookERC721, ERC721Hook} from "src/hook/mint/AllowlistMintHookERC721.sol";
 import {AllowlistMintHookERC1155, ERC1155Hook} from "src/hook/mint/AllowlistMintHookERC1155.sol";
 
-import {BuggyAllowlistMintHookERC20, BuggyAllowlistMintHookERC721, BuggyAllowlistMintHookERC1155} from "test/mocks/BuggyAllowlistMintHook.sol";
+import {
+    BuggyAllowlistMintHookERC20,
+    BuggyAllowlistMintHookERC721,
+    BuggyAllowlistMintHookERC1155
+} from "test/mocks/BuggyAllowlistMintHook.sol";
 
 contract HookUpgradesTest is Test {
-
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -119,7 +122,7 @@ contract HookUpgradesTest is Test {
 
         // Developer installs hooks.
         vm.startPrank(developer);
-        
+
         erc20Core.installHook(IHook(mintHookERC20Proxy));
         erc721Core.installHook(IHook(mintHookERC721Proxy));
         erc1155Core.installHook(IHook(mintHookERC1155Proxy));
@@ -171,10 +174,10 @@ contract HookUpgradesTest is Test {
         string[] memory inputsProof = new string[](2);
         inputsProof[0] = "node";
         inputsProof[1] = "test/scripts/getProof.ts";
-        
+
         bytes memory resultProof = vm.ffi(inputsProof);
         bytes32[] memory allowlistProof = abi.decode(resultProof, (bytes32[]));
-        
+
         encodedAllowlistProof = abi.encode(allowlistProof);
     }
 
@@ -183,7 +186,6 @@ contract HookUpgradesTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_upgrade_erc20Core() public {
-    
         assertEq(erc20Core.getAllHooks().beforeMint, mintHookERC20Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(AllowlistMintHookERC20(mintHookERC20Proxy).getClaimCondition(address(erc20Core)).price, pricePerToken);
@@ -223,10 +225,11 @@ contract HookUpgradesTest is Test {
     }
 
     function test_upgrade_erc721Core() public {
-    
         assertEq(erc721Core.getAllHooks().beforeMint, mintHookERC721Proxy);
         assertTrue(pricePerToken > 0);
-        assertEq(AllowlistMintHookERC721(mintHookERC721Proxy).getClaimCondition(address(erc721Core)).price, pricePerToken);
+        assertEq(
+            AllowlistMintHookERC721(mintHookERC721Proxy).getClaimCondition(address(erc721Core)).price, pricePerToken
+        );
 
         // End user claims token: BUG: pays price but contract fails to distribute it!
 
@@ -263,12 +266,14 @@ contract HookUpgradesTest is Test {
     }
 
     function test_upgrade_erc1155Core() public {
-
         uint256 tokenId = 0;
-    
+
         assertEq(erc1155Core.getAllHooks().beforeMint, mintHookERC1155Proxy);
         assertTrue(pricePerToken > 0);
-        assertEq(AllowlistMintHookERC1155(mintHookERC1155Proxy).getClaimCondition(address(erc1155Core), tokenId).price, pricePerToken);
+        assertEq(
+            AllowlistMintHookERC1155(mintHookERC1155Proxy).getClaimCondition(address(erc1155Core), tokenId).price,
+            pricePerToken
+        );
 
         // End user claims token: BUG: pays price but contract fails to distribute it!
 

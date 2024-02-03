@@ -78,7 +78,7 @@ contract BuggyAllowlistMintHookERC721 is AllowlistMintHookERC721 {
         quantityToMint = _quantity;
 
         data.claimCondition[token].availableSupply -= _quantity;
-    
+
         // BUG: FORGOT TO COLLECT PRICE!
         // _collectPrice(condition.price * _quantity);
     }
