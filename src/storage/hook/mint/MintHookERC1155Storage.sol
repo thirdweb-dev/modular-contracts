@@ -12,8 +12,8 @@ library MintHookERC1155Storage {
         0xf2f6808e39b972e562f3dacc9e1376d4c56d1c1177b4ec08115a630d0dc1d700;
 
     struct Data {
-        /// @notice Mapping from token => fee config for the token.
-        mapping(address => IFeeConfig.FeeConfig) feeConfig;
+        /// @notice Mapping from token => token-id => fee config for the token.
+        mapping(address => mapping(uint256 => IFeeConfig.FeeConfig)) feeConfig;
         /// @notice Mapping from token => token-id => the claim conditions for minting the token.
         mapping(address => mapping(uint256 => IClaimCondition.ClaimCondition)) claimCondition;
         /// @notice Mapping from hash(claimer, conditionID) => supply claimed by wallet.
