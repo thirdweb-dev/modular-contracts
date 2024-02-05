@@ -224,10 +224,6 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
         }
 
         uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
-
-        if (msg.value != _totalPrice) {
-            revert AllowlistMintHookIncorrectValueSent();
-        }
         if (platformFees > 0) {
             SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
         }
