@@ -8,14 +8,14 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/hook/IHook.sol";
 
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {MintHookERC721, ERC721Hook} from "src/hook/mint/MintHookERC721.sol";
+import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
+import {MintHookERC1155, ERC1155Hook} from "src/hook/mint/MintHookERC1155.sol";
 
 import {IMintRequest} from "src/interface/common/IMintRequest.sol"; 
 import {IClaimCondition} from "src/interface/common/IClaimCondition.sol"; 
 import {IFeeConfig} from "src/interface/common/IFeeConfig.sol"; 
 
-contract MintHookERC721Test is Test {
+contract MintHookERC1155Test is Test {
 
     /*//////////////////////////////////////////////////////////////
                                 SETUP
@@ -27,8 +27,8 @@ contract MintHookERC721Test is Test {
     address public endUser = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
 
     // Target test contracts
-    ERC721Core public erc721Core;
-    MintHookERC721 public mintHook;
+    ERC1155Core public erc1155Core;
+    MintHookERC1155 public mintHook;
 
     // Test params
     bytes32 private constant TYPEHASH = keccak256(
@@ -41,7 +41,7 @@ contract MintHookERC721Test is Test {
     event ClaimConditionUpdate(address indexed token, IClaimCondition.ClaimCondition condition, bool resetEligibility);
 
     function _setupDomainSeparator(address _mintHook) internal {
-        bytes32 nameHash = keccak256(bytes("MintHookERC721"));
+        bytes32 nameHash = keccak256(bytes("MintHookERC1155"));
         bytes32 versionHash = keccak256(bytes("1"));
         bytes32 typehashEip712 = keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
@@ -57,17 +57,17 @@ contract MintHookERC721Test is Test {
 
         vm.startPrank(platformAdmin);
 
-        address mintHookImpl = address(new MintHookERC721());
+        address mintHookImpl = address(new MintHookERC1155());
 
         bytes memory initData = abi.encodeWithSelector(
-            MintHookERC721.initialize.selector,
+            MintHookERC1155.initialize.selector,
             platformAdmin // upgradeAdmin
         );
         address mintHookProxy = address(new EIP1967Proxy(mintHookImpl, initData));
-        mintHook = MintHookERC721(mintHookProxy);
+        mintHook = MintHookERC1155(mintHookProxy);
 
-        // Platform deploys ERC721 core implementation and clone factory.
-        address erc721CoreImpl = address(new ERC721Core());
+        // Platform deploys ERC1155 core implementation and clone factory.
+        address erc1155CoreImpl = address(new ERC1155Core());
         CloneFactory factory = new CloneFactory();
 
         vm.stopPrank();
@@ -75,23 +75,23 @@ contract MintHookERC721Test is Test {
         // Setup domain separator of mint hook for signature minting.
         _setupDomainSeparator(mintHookProxy);
 
-        // Developer deploys proxy for ERC721 core with MintHookERC721 preinstalled.
+        // Developer deploys proxy for ERC1155 core with MintHookERC1155 preinstalled.
         vm.startPrank(developer);
 
-        ERC721Core.InitCall memory initCall;
+        ERC1155Core.InitCall memory initCall;
         address[] memory preinstallHooks = new address[](1);
         preinstallHooks[0] = address(mintHook);
 
-        bytes memory erc721InitData = abi.encodeWithSelector(
-            ERC721Core.initialize.selector,
+        bytes memory erc1155InitData = abi.encodeWithSelector(
+            ERC1155Core.initialize.selector,
             initCall,
             preinstallHooks,
             developer, // core contract admin
-            "Test ERC721",
+            "Test ERC1155",
             "TST",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0" // mock contract URI of actual length
         );
-        erc721Core = ERC721Core(factory.deployProxyByImplementation(erc721CoreImpl, erc721InitData, bytes32("salt")));
+        erc1155Core = ERC1155Core(factory.deployProxyByImplementation(erc1155CoreImpl, erc1155InitData, bytes32("salt")));
 
         vm.stopPrank();
 
@@ -102,9 +102,9 @@ contract MintHookERC721Test is Test {
         vm.label(developer, "Developer");
         vm.label(endUser, "Claimer");
         
-        vm.label(address(erc721Core), "ERC721Core");
-        vm.label(address(mintHookImpl), "MintHookERC721");
-        vm.label(mintHookProxy, "ProxyMintHookERC721");
+        vm.label(address(erc1155Core), "ERC1155Core");
+        vm.label(address(mintHookImpl), "MintHookERC1155");
+        vm.label(mintHookProxy, "ProxyMintHookERC1155");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -150,6 +150,8 @@ contract MintHookERC721Test is Test {
     function test_beforeMint_state_permissionlessMint_erc20Price() public {}
     
     function test_beforeMint_state_permissionlessMint_nativeTokenPrice() public {}
+
+    function test_beforeMint_revert_permissionlessMint_tokenIdNotMintRequestTokenId() public {}
 
     function test_beforeMint_revert_permissionlessMint_callerNotMintRequestToken() public {}
 
