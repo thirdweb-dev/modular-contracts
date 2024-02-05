@@ -64,7 +64,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         feeConfig.platformFeeBps = 100; // 1%
 
         vm.prank(admin);
-        simpleClaim.setFeeConfig(erc721Contract, feeConfig);
+        simpleClaim.setDefaultFeeConfig(erc721Contract, feeConfig);
     }
 
     /// @dev Optional: deploy the target erc721 contract's implementation.

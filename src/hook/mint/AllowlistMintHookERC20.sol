@@ -167,7 +167,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
      *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
         AllowlistMintHookERC20Storage.data().feeConfig[_token] = _config;
         emit DefaultFeeConfigUpdate(_token, _config);
     }

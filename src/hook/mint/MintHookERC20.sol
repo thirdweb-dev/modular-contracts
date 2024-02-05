@@ -253,7 +253,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
      *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
         MintHookERC20Storage.data().feeConfig[_token] = _config;
         emit DefaultFeeConfigUpdate(_token, _config);
     }

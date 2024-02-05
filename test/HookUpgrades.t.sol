@@ -165,8 +165,8 @@ contract HookUpgradesTest is Test {
         feeConfig.primarySaleRecipient = developer;
 
         vm.startPrank(developer);
-        AllowlistMintHookERC20(mintHookERC20Proxy).setFeeConfig(address(erc20Core), feeConfig);
-        AllowlistMintHookERC721(mintHookERC721Proxy).setFeeConfig(address(erc721Core), feeConfig);
+        AllowlistMintHookERC20(mintHookERC20Proxy).setDefaultFeeConfig(address(erc20Core), feeConfig);
+        AllowlistMintHookERC721(mintHookERC721Proxy).setDefaultFeeConfig(address(erc721Core), feeConfig);
         AllowlistMintHookERC1155(mintHookERC1155Proxy).setDefaultFeeConfig(address(erc1155Core), feeConfig);
         vm.stopPrank();
 
