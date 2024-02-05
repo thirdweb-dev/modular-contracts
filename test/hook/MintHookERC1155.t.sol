@@ -51,7 +51,7 @@ contract MintHookERC1155Test is Test {
         );
     }
 
-    function _setUp() public {
+    function setUp() public {
         
         // Platform deploys mint hook.
 
@@ -111,15 +111,15 @@ contract MintHookERC1155Test is Test {
                         TEST: setting claim conditions
     //////////////////////////////////////////////////////////////*/
 
-    function test_setClaimConditions_state() public {}
+    function test_setClaimCondition_state() public {}
 
-    function test_setClaimConditions_state_newConditionResetEligibility() public {}
+    function test_setClaimCondition_state_newConditionResetEligibility() public {}
 
-    function test_setClaimConditions_state_updateCurrentCondition() public {}
+    function test_setClaimCondition_state_updateCurrentCondition() public {}
 
-    function test_setClaimConditions_revert_notAdminOfToken() public {}
+    function test_setClaimCondition_revert_notAdminOfToken() public {}
 
-    function test_setClaimConditions_revert_maxSupplyClaimedAlready() public {}
+    function test_setClaimCondition_revert_maxSupplyClaimedAlready() public {}
 
     /*//////////////////////////////////////////////////////////////
                         TEST: setting fee config
@@ -128,14 +128,6 @@ contract MintHookERC1155Test is Test {
     function test_setDefaultFeeConfig_state() public {}
 
     function test_setFeeConfigForToken_state() public {}
-    
-    function test_setDefaultFeeConfig_state_onlyPrimarySale() public {}
-
-    function test_setDefaultFeeConfig_state_primarySaleWithPlatformFee() public {}
-
-    function test_setFeeConfigForToken_state_overridePrimarySaleRecipient() public {}
-    
-    function test_setFeeConfigForToken_state_overridePlatformFee() public {}
 
     function test_setFeeConfig_revert_notAdminOfToken() public {}
 
