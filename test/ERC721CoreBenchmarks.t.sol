@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
 import "src/lib/LibClone.sol";
 import "src/common/UUPSUpgradeable.sol";
 
-import {CloneFactory} from "src/infra/CloneFactory.sol";
-import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
-import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
+import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
+import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
+import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
 
-import {ERC721Core, ERC721Initializable} from "src/core/token/ERC721Core.sol";
-import {ERC721Hook, AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
-import {LazyMintHookERC721} from "src/hook/metadata/LazyMintHookERC721.sol";
-import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
-import {IERC721} from "src/interface/eip/IERC721.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import { ERC721Core, ERC721Initializable } from "src/core/token/ERC721Core.sol";
+import { ERC721Hook, AllowlistMintHookERC721 } from "src/hook/mint/AllowlistMintHookERC721.sol";
+import { LazyMintHookERC721 } from "src/hook/metadata/LazyMintHookERC721.sol";
+import { RoyaltyHook } from "src/hook/royalty/RoyaltyHook.sol";
+import { IERC721 } from "src/interface/eip/IERC721.sol";
+import { IHook } from "src/interface/hook/IHook.sol";
+import { IInitCall } from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -92,25 +92,22 @@ contract ERC721CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress = address(
-            new EIP1967Proxy(
-                address(new AllowlistMintHookERC721()),
-                abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin)
-            )
+        hookProxyAddress = cloneFactory.deployERC1967(
+            address(new AllowlistMintHookERC721()),
+            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin)
         );
         simpleClaimHook = AllowlistMintHookERC721(hookProxyAddress);
         assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
 
-        address lazyMintHookProxyAddress = address(
-            new EIP1967Proxy(
-                address(new LazyMintHookERC721()),
-                abi.encodeWithSelector(LazyMintHookERC721.initialize.selector, platformAdmin)
-            )
+        address lazyMintHookProxyAddress = cloneFactory.deployERC1967(
+            address(new LazyMintHookERC721()),
+            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin)
         );
         lazyMintHook = LazyMintHookERC721(lazyMintHookProxyAddress);
 
-        address royaltyHookProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
+        address royaltyHookProxyAddress = address(
+            new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook()))
+        );
         royaltyHook = RoyaltyHook(royaltyHookProxyAddress);
 
         address mockAddress = address(
@@ -138,7 +135,13 @@ contract ERC721CoreBenchmarkTest is Test {
 
         IInitCall.InitCall memory initCall;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+            ERC721Core.initialize.selector,
+            initCall,
+            new address[](0),
+            platformUser,
+            "Test",
+            "TST",
+            "contractURI://"
         );
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
@@ -200,7 +203,13 @@ contract ERC721CoreBenchmarkTest is Test {
 
         address impl = erc721Implementation;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+            ERC721Core.initialize.selector,
+            initCall,
+            new address[](0),
+            platformUser,
+            "Test",
+            "TST",
+            "contractURI://"
         );
         bytes32 salt = bytes32("salt");
 
@@ -223,7 +232,13 @@ contract ERC721CoreBenchmarkTest is Test {
 
         address impl = erc721Implementation;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector, initCall, hooks, platformUser, "Test", "TST", "contractURI://"
+            ERC721Core.initialize.selector,
+            initCall,
+            hooks,
+            platformUser,
+            "Test",
+            "TST",
+            "contractURI://"
         );
         bytes32 salt = bytes32("salt");
 
@@ -258,7 +273,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{ value: pricePerToken }(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
@@ -283,7 +298,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{ value: pricePerToken * 10 }(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -306,7 +321,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc721.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
+        erc721.mint{ value: pricePerToken }(claimer, quantityToClaim, encodedArgs);
 
         uint256 tokenId = 0;
         address to = address(0x121212);
