@@ -14,9 +14,6 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when the base URI for a token is updated.
-    event MetadataUpdate(address indexed token, uint256 id);
-
     event BatchMetadataUpdate(address indexed token, uint256 _fromTokenId, uint256 _toTokenId);
 
     /*//////////////////////////////////////////////////////////////
