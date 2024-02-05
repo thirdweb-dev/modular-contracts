@@ -126,6 +126,46 @@ contract MintHookERC721Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_setFeeConfig_state() public {}
+    
+    function test_setFeeConfig_state_onlyPrimarySale() public {}
+
+    function test_setFeeConfig_state_primarySaleWithPlatformFee() public {}
 
     function test_setFeeConfig_revert_notAdminOfToken() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TEST: beforeMint
+    //////////////////////////////////////////////////////////////*/
+
+    function test_beforeMint_revert_nativeTokenPrice_msgValueNotEqPrice() public {}
+
+    function test_beforeMint_revert_erc20Price_sentMsgValue() public {}
+
+    function test_beforeMint_state_permissionlessMint_erc20Price() public {}
+    
+    function test_beforeMint_state_permissionlessMint_nativeTokenPrice() public {}
+
+    function test_beforeMint_revert_permissionlessMint_callerNotMintRequestToken() public {}
+
+    function test_beforeMint_revert_permissionlessMint_minterNotMintRequestMinter() public {}
+
+    function test_beforeMint_revert_permissionlessMint_quantityToMintNotMintRequestQuantity() public {}
+
+    function test_beforeMint_revert_permissionlessMint_mintNotStarted() public {}
+
+    function test_beforeMint_revert_permissionlessMint_mintEnded() public {}
+
+    function test_beforeMint_revert_permissionlessMint_notInAllowlist() public {}
+
+    function test_beforeMint_revert_permissionlessMint_invalidCurrency() public {}
+
+    function test_beforeMint_revert_permissionlessMint_invalidPrice() public {}
+
+    function test_beforeMint_revert_permissionlessMint_invalidQuantity() public {}
+
+    function test_beforeMint_revert_permissionlessMint_maxSupplyClaimed() public {}
+
+    function test_beforeMint_state_permissionedMint_erc20Price() public {}
+    
+    function test_beforeMint_state_permissionedMint_nativeTokenPrice() public {}
 }
