@@ -180,7 +180,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      */
     function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
         AllowlistMintHookERC1155Storage.data().feeConfig[_token][_id] = _config;
-        emit FeeConfigUpdateERC1155(_token, _id, _config);
+        emit TokenFeeConfigUpdate(_token, _id, _config);
     }
 
     /**
@@ -190,7 +190,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
      */
     function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
         AllowlistMintHookERC1155Storage.data().feeConfig[_token][type(uint256).max] = _config;
-        emit FeeConfigUpdateERC1155(_token, type(uint256).max, _config);
+        emit DefaultFeeConfigUpdate(_token, _config);
     }
 
     /*//////////////////////////////////////////////////////////////
