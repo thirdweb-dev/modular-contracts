@@ -169,7 +169,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
      */
     function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
         AllowlistMintHookERC20Storage.data().feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
+        emit DefaultFeeConfigUpdate(_token, _config);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -188,10 +188,9 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
         address token = msg.sender;
         FeeConfig memory feeConfig = AllowlistMintHookERC20Storage.data().feeConfig[token];
 
-        uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
-
-        if (msg.value != _totalPrice) {
-            revert AllowlistMintHookIncorrectValueSent();
+        uint256 platformFees = 0;
+        if (feeConfig.platformFeeRecipient != address(0)) {
+            platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
         }
         if (platformFees > 0) {
             SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
