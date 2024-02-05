@@ -99,8 +99,13 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
     }
 
     /// @notice Returns the fee config for a token.
-    function getFeeConfig(address _token) external view returns (FeeConfig memory) {
-        return AllowlistMintHookERC721Storage.data().feeConfig[_token];
+    function getFeeConfigForToken(address _token, uint256 _id) external view returns (FeeConfig memory) {
+        return AllowlistMintHookERC721Storage.data().feeConfig[_token][_id];
+    }
+
+    /// @notice Returns the fee config for a token.
+    function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
+        return AllowlistMintHookERC721Storage.data().feeConfig[_token][type(uint256).max];
     }
 
     /// @notice Returns the active claim condition.
@@ -152,7 +157,7 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
 
         data.claimCondition[token].availableSupply -= _quantity;
 
-        _collectPrice(condition.price * _quantity);
+        _collectPrice(condition.price * _quantity, tokenIdToMint);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -186,9 +191,19 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
      *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        AllowlistMintHookERC721Storage.data().feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
+    function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
+        AllowlistMintHookERC721Storage.data().feeConfig[_token][_id] = _config;
+        emit TokenFeeConfigUpdate(_token, _id, _config);
+    }
+
+    /**
+     *  @notice Sets the fee config for a given token.
+     *  @param _token The token address.
+     *  @param _config The fee config for the token.
+     */
+    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+        AllowlistMintHookERC721Storage.data().feeConfig[_token][type(uint256).max] = _config;
+        emit DefaultFeeConfigUpdate(_token, _config);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -196,7 +211,7 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Distributes the sale value of minting a token.
-    function _collectPrice(uint256 _totalPrice) internal {
+    function _collectPrice(uint256 _totalPrice, uint256 _id) internal {
         if (msg.value != _totalPrice) {
             revert AllowlistMintHookIncorrectValueSent();
         }
@@ -204,14 +219,24 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
             return;
         }
 
+        AllowlistMintHookERC721Storage.Data storage data = AllowlistMintHookERC721Storage.data();
+
         address token = msg.sender;
-        FeeConfig memory feeConfig = AllowlistMintHookERC721Storage.data().feeConfig[token];
+        FeeConfig memory defaultFeeConfig = data.feeConfig[token][type(uint256).max];
+        FeeConfig memory feeConfig = data.feeConfig[token][_id]; // overriden fee config
+
+        // If there is no override-primarySaleRecipient, we will use the default primarySaleRecipient.
+        if (feeConfig.primarySaleRecipient == address(0)) {
+            feeConfig.primarySaleRecipient = defaultFeeConfig.primarySaleRecipient;
+        }
+
+        // If there is no override-platformFeeRecipient, we will use the default platformFee recipient and bps.
+        if (feeConfig.platformFeeRecipient == address(0)) {
+            feeConfig.platformFeeRecipient = defaultFeeConfig.platformFeeRecipient;
+            feeConfig.platformFeeBps = defaultFeeConfig.platformFeeBps;
+        }
 
         uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
-
-        if (msg.value != _totalPrice) {
-            revert AllowlistMintHookIncorrectValueSent();
-        }
         if (platformFees > 0) {
             SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
         }

@@ -176,7 +176,7 @@ contract ERC721CoreBenchmarkTest is Test {
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        simpleClaimHook.setFeeConfig(address(erc721), feeConfig);
+        simpleClaimHook.setDefaultFeeConfig(address(erc721), feeConfig);
 
         // Developer installs `AllowlistMintHookERC721` hook
         erc721.installHook(IHook(hookProxyAddress));

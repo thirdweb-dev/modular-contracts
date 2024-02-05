@@ -23,7 +23,8 @@ interface IFeeConfig {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when the fee config is updated.
-    event FeeConfigUpdate(address indexed token, FeeConfig feeConfig);
+    event DefaultFeeConfigUpdate(address indexed token, FeeConfig feeConfig);
 
-    event FeeConfigUpdateERC1155(address indexed token, uint256 id, FeeConfig feeConfig);
+    /// @notice Emitted when the fee config is updated for a particular tokenId.
+    event TokenFeeConfigUpdate(address indexed token, uint256 id, FeeConfig feeConfig);
 }

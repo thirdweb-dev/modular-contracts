@@ -201,8 +201,13 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     }
 
     /// @notice Returns the fee config for a token.
-    function getFeeConfig(address _token) external view returns (FeeConfig memory) {
-        return MintHookERC721Storage.data().feeConfig[_token];
+    function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
+        return MintHookERC721Storage.data().feeConfig[_token][type(uint256).max];
+    }
+
+    /// @notice Returns the fee config for a token.
+    function getFeeConfigForToken(address _token, uint256 _tokenId) external view returns (FeeConfig memory) {
+        return MintHookERC721Storage.data().feeConfig[_token][_tokenId];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -250,7 +255,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         tokenIdToMint = data.nextTokenIdToMint[req.token]++;
         quantityToMint = req.quantity;
 
-        _collectPrice(req.minter, req.pricePerToken * req.quantity, req.currency);
+        _collectPrice(req.minter, tokenIdToMint, req.pricePerToken * req.quantity, req.currency);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -262,9 +267,19 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        MintHookERC721Storage.data().feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
+    function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
+        MintHookERC721Storage.data().feeConfig[_token][_id] = _config;
+        emit TokenFeeConfigUpdate(_token, _id, _config);
+    }
+
+    /**
+     *  @notice Sets the fee config for a given token.
+     *  @param _token The token address.
+     *  @param _config The fee config for the token.
+     */
+    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+        MintHookERC721Storage.data().feeConfig[_token][type(uint256).max] = _config;
+        emit DefaultFeeConfigUpdate(_token, _config);
     }
 
     /**
@@ -323,37 +338,46 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Distributes the sale value of minting a token.
-    function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
+    function _collectPrice(address _minter, uint256 _tokenId, uint256 _totalPrice, address _currency) internal {
+
+        // We want to return early when the price is 0. However, we first check if any msg value was sent incorrectly,
+        // preventing native tokens from getting locked.
+        if (msg.value != _totalPrice && _currency == NATIVE_TOKEN) {
+            revert MintHookInvalidPrice(_totalPrice, msg.value);
+        }
+        if(_currency != NATIVE_TOKEN && msg.value > 0) {
+            revert MintHookInvalidPrice(0, msg.value);
+        }
         if (_totalPrice == 0) {
-            if (msg.value > 0) {
-                revert MintHookInvalidPrice(0, msg.value);
-            }
             return;
         }
 
+        MintHookERC721Storage.Data storage data = MintHookERC721Storage.data();
+
         address token = msg.sender;
-        FeeConfig memory feeConfig = MintHookERC721Storage.data().feeConfig[token];
+        FeeConfig memory defaultFeeConfig = data.feeConfig[token][type(uint256).max];
+        FeeConfig memory feeConfig = data.feeConfig[token][_tokenId]; // overriden fee config
 
-        bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
-        uint256 platformFees = 0;
-
-        if (payoutPlatformFees) {
-            platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
+        // If there is no override-primarySaleRecipient, we will use the default primarySaleRecipient.
+        if (feeConfig.primarySaleRecipient == address(0)) {
+            feeConfig.primarySaleRecipient = defaultFeeConfig.primarySaleRecipient;
         }
 
+        // If there is no override-platformFeeRecipient, we will use the default platformFee recipient and bps.
+        if (feeConfig.platformFeeRecipient == address(0)) {
+            feeConfig.platformFeeRecipient = defaultFeeConfig.platformFeeRecipient;
+            feeConfig.platformFeeBps = defaultFeeConfig.platformFeeBps;
+        }
+
+        uint256 platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
+
         if (_currency == NATIVE_TOKEN) {
-            if (msg.value != _totalPrice) {
-                revert MintHookInvalidPrice(_totalPrice, msg.value);
-            }
-            if (payoutPlatformFees) {
+            if (platformFees > 0) {
                 SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
             }
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         } else {
-            if (msg.value > 0) {
-                revert MintHookInvalidPrice(0, msg.value);
-            }
-            if (payoutPlatformFees) {
+            if (platformFees > 0) {
                 SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
             SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
