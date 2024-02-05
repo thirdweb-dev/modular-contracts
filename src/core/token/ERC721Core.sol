@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
-import {IERC721CoreCustomErrors} from "../../interface/errors/IERC721CoreCustomErrors.sol";
-import {IERC721Hook} from "../../interface/hook/IERC721Hook.sol";
-import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
-import {IInitCall} from "../../interface/common/IInitCall.sol";
-import {ERC721Initializable} from "./ERC721Initializable.sol";
-import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
-import {Initializable} from "../../common/Initializable.sol";
-import {Permission} from "../../common/Permission.sol";
+import { IERC7572 } from "../../interface/eip/IERC7572.sol";
+import { IERC4906 } from "../../interface/eip/IERC4906.sol";
+import { IERC721CoreCustomErrors } from "../../interface/errors/IERC721CoreCustomErrors.sol";
+import { IERC721Hook } from "../../interface/hook/IERC721Hook.sol";
+import { IERC721HookInstaller } from "../../interface/hook/IERC721HookInstaller.sol";
+import { IInitCall } from "../../interface/common/IInitCall.sol";
+import { ERC721Initializable } from "./ERC721Initializable.sol";
+import { IHook, HookInstaller } from "../../hook/HookInstaller.sol";
+import { Initializable } from "../../common/Initializable.sol";
+import { Permission } from "../../common/Permission.sol";
 
-import {ERC721CoreStorage} from "../../storage/core/ERC721CoreStorage.sol";
+import { ERC721CoreStorage } from "../../storage/core/ERC721CoreStorage.sol";
 
 contract ERC721Core is
     Initializable,
@@ -21,7 +22,8 @@ contract ERC721Core is
     IInitCall,
     IERC721HookInstaller,
     IERC721CoreCustomErrors,
-    IERC7572
+    IERC7572,
+    IERC4906
 {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -44,6 +46,8 @@ contract ERC721Core is
 
     /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+
+    uint256 public constant METADATA_FLAG = 2 ** 7;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -79,7 +83,7 @@ contract ERC721Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
+            (bool success, bytes memory returnData) = _initCall.target.call{ value: _initCall.value }(_initCall.data);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -105,7 +109,8 @@ contract ERC721Core is
             beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
             beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
             tokenURI: getHookImplementation(TOKEN_URI_FLAG),
-            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
+            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG),
+            metadata: getHookImplementation(METADATA_FLAG)
         });
     }
 
@@ -142,11 +147,16 @@ contract ERC721Core is
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param _interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 _interfaceId) public pure override returns (bool) {
-        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
-            || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
-            || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
-            || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+    function supportsInterface(bytes4 _interfaceId) public view override returns (bool) {
+        address hook = getHookImplementation(METADATA_FLAG);
+        bool isMetadataUpdateable = hook != address(0);
+
+        return
+            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+            _interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
+            _interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
+            _interfaceId == 0x2a55205a || // ERC165 Interface ID for ERC-2981
+            (_interfaceId == 0x49064906 && isMetadataUpdateable); // ERC165 Interface ID for ERC-4906
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -223,9 +233,29 @@ contract ERC721Core is
         super.setApprovalForAll(_operator, _approved);
     }
 
+    function setBatchMetadata(
+        uint256 startTokenId,
+        uint256 endTokenId,
+        bytes memory encodedArgs
+    ) external onlyAuthorized(ADMIN_ROLE_BITS) {
+        _setBatchMetadata(startTokenId, endTokenId, encodedArgs);
+
+        emit BatchMetadataUpdate(startTokenId, endTokenId);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _setBatchMetadata(uint256 startTokenId, uint256 endTokenId, bytes memory encodedArgs) internal {
+        address hook = getHookImplementation(METADATA_FLAG);
+
+        if (hook != address(0)) {
+            IERC721Hook(hook).setBatchMetadata(startTokenId, endTokenId, encodedArgs);
+        } else {
+            revert ERC721CoreMetadataUpdateDisabled();
+        }
+    }
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _uri) internal {
@@ -248,15 +278,15 @@ contract ERC721Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
-        internal
-        virtual
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function _beforeMint(
+        address _to,
+        uint256 _quantity,
+        bytes memory _data
+    ) internal virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
+            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{ value: msg.value }(_to, _quantity, _data);
         } else {
             revert ERC721CoreMintingDisabled();
         }
@@ -299,12 +329,10 @@ contract ERC721Core is
     }
 
     /// @dev Fetches royalty info from the royalty hook.
-    function _getRoyaltyInfo(uint256 _tokenId, uint256 _salePrice)
-        internal
-        view
-        virtual
-        returns (address receiver, uint256 royaltyAmount)
-    {
+    function _getRoyaltyInfo(
+        uint256 _tokenId,
+        uint256 _salePrice
+    ) internal view virtual returns (address receiver, uint256 royaltyAmount) {
         address hook = getHookImplementation(ROYALTY_INFO_FLAG);
 
         if (hook != address(0)) {
