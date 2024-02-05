@@ -65,6 +65,9 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
     /// @notice Emitted when the claim condition has not started yet.
     error MintHookMintNotStarted();
 
+    /// @notice Emitted when the claim condition has ended.
+    error MintHookMintEnded();
+
     /// @notice Emitted when minting to an invalid recipient.
     error MintHookInvalidRecipient();
 
@@ -134,6 +137,10 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
 
         if (currentClaimPhase.startTimestamp > block.timestamp) {
             revert MintHookMintNotStarted();
+        }
+
+        if(currentClaimPhase.endTimestamp < block.timestamp) {
+            revert MintHookMintEnded();
         }
 
         /*
