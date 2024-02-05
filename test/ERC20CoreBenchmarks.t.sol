@@ -127,7 +127,7 @@ contract ERC20CoreBenchmarkTest is Test {
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        simpleClaimHook.setFeeConfig(address(erc20), feeConfig);
+        simpleClaimHook.setDefaultFeeConfig(address(erc20), feeConfig);
 
         // Developer installs `AllowlistMintHookERC20` hook
         erc20.installHook(IHook(hookProxyAddress));

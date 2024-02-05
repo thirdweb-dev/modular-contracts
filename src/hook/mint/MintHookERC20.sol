@@ -253,9 +253,9 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
      *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
+    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
         MintHookERC20Storage.data().feeConfig[_token] = _config;
-        emit FeeConfigUpdate(_token, _config);
+        emit DefaultFeeConfigUpdate(_token, _config);
     }
 
     /**
@@ -305,36 +305,33 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
 
     /// @dev Distributes the sale value of minting a token.
     function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
+        // We want to return early when the price is 0. However, we first check if any msg value was sent incorrectly,
+        // preventing native tokens from getting locked.
+        if (msg.value != _totalPrice && _currency == NATIVE_TOKEN) {
+            revert MintHookInvalidPrice(_totalPrice, msg.value);
+        }
+        if(_currency != NATIVE_TOKEN && msg.value > 0) {
+            revert MintHookInvalidPrice(0, msg.value);
+        }
         if (_totalPrice == 0) {
-            if (msg.value > 0) {
-                revert MintHookInvalidPrice(0, msg.value);
-            }
             return;
         }
 
         address token = msg.sender;
         FeeConfig memory feeConfig = MintHookERC20Storage.data().feeConfig[token];
 
-        bool payoutPlatformFees = feeConfig.platformFeeBps > 0 && feeConfig.platformFeeRecipient != address(0);
         uint256 platformFees = 0;
-
-        if (payoutPlatformFees) {
+        if (feeConfig.platformFeeRecipient != address(0)) {
             platformFees = (_totalPrice * feeConfig.platformFeeBps) / 10_000;
         }
 
         if (_currency == NATIVE_TOKEN) {
-            if (msg.value != _totalPrice) {
-                revert MintHookInvalidPrice(_totalPrice, msg.value);
-            }
-            if (payoutPlatformFees) {
+            if (platformFees > 0) {
                 SafeTransferLib.safeTransferETH(feeConfig.platformFeeRecipient, platformFees);
             }
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         } else {
-            if (msg.value > 0) {
-                revert MintHookInvalidPrice(0, msg.value);
-            }
-            if (payoutPlatformFees) {
+            if (platformFees > 0) {
                 SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
             SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);

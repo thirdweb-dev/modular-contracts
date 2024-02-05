@@ -15,8 +15,8 @@ library AllowlistMintHookERC721Storage {
         mapping(address => uint256) nextTokenIdToMint;
         /// @notice Mapping from token => the claim conditions for minting the token.
         mapping(address => AllowlistMintHookERC721.ClaimCondition) claimCondition;
-        /// @notice Mapping from token => fee config for the token.
-        mapping(address => IFeeConfig.FeeConfig) feeConfig;
+        /// @notice Mapping from token => token-id => fee config for the token.
+        mapping(address => mapping(uint256 => IFeeConfig.FeeConfig)) feeConfig;
     }
 
     function data() internal pure returns (Data storage data_) {
