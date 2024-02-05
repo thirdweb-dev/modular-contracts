@@ -71,6 +71,15 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
     /// @notice Emitted when minting to an invalid recipient.
     error MintHookInvalidRecipient();
 
+    /// @notice Emitted when a signature for permissioned mint is invalid
+    error MintHookInvalidSignature();
+
+    /// @notice Emitted when a permissioned mint request is expired.
+    error MintHookRequestExpired();
+
+    /// @notice Emitted when a permissioned mint request is already used.
+    error MintHookRequestUsed();
+
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
     //////////////////////////////////////////////////////////////*/
@@ -170,24 +179,25 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
     }
 
     /**
-     *  @notice Returns whether a mint request is permissioned.
+     *  @notice Verifies that a given permissioned claim is valid
      *
      *  @param _req The mint request to check.
-     *  @return isPermissioned Whether the mint request is permissioned.
      */
-    function isPermissionedClaim(MintRequest memory _req) public view returns (bool isPermissioned) {
-        if (
-            _req.permissionSignature.length == 0 || _req.sigValidityStartTimestamp > block.timestamp
-                || block.timestamp > _req.sigValidityEndTimestamp
-        ) {
-            return false;
+    function verifyPermissionedClaim(MintRequest memory _req) public view returns (bool) {
+
+        if (_req.sigValidityEndTimestamp > block.timestamp || _req.sigValidityEndTimestamp < block.timestamp) {
+            revert MintHookRequestExpired();
         }
         if (MintHookERC1155Storage.data().uidUsed[_req.sigUid]) {
-            return false;
+            revert MintHookRequestUsed();
         }
 
         address signer = _recoverAddress(_req);
-        isPermissioned = !IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS);
+        if (IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS)) {
+            revert MintHookInvalidSignature();
+        }
+
+        return true;
     }
 
     /**
@@ -252,15 +262,16 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
 
         // Check against active claim condition unless permissioned.
         MintHookERC1155Storage.Data storage data = MintHookERC1155Storage.data();
-        if (!isPermissionedClaim(req)) {
+        if (req.permissionSignature.length > 0) {
+            verifyPermissionedClaim(req);
+            data.uidUsed[req.sigUid] = true;
+        } else {
             verifyClaim(
                 req.token, req.tokenId, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof
             );
             data.claimCondition[req.token][req.tokenId].supplyClaimed += req.quantity;
             data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[req.token][req.tokenId], req.minter))] +=
                 req.quantity;
-        } else {
-            data.uidUsed[req.sigUid] = true;
         }
 
         tokenIdToMint = req.tokenId;
