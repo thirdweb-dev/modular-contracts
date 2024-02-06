@@ -14,7 +14,7 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+    event BatchMetadataUpdate(address indexed token, uint256 _fromTokenId, uint256 _toTokenId);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -22,8 +22,6 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook {
 
     /// @notice Emitted when caller is not token core admin.
     error OpenEditionHookNotAuthorized();
-
-    error OpenEditionHookInvalidRange();
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIER
@@ -51,12 +49,7 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook {
 
     /// @notice Returns all hook functions implemented by this hook contract.
     function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = TOKEN_URI_FLAG & METADATA_FLAG;
-    }
-
-    /// @notice Returns the signature of the arguments expected by the setMetadata hook.
-    function getSetMetadataArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "string,string,string,string";
+        hooksImplemented = TOKEN_URI_FLAG;
     }
 
     /**
@@ -73,13 +66,7 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set shared metadata for NFTs
-    function setBatchMetadata(uint256 startTokenId, uint256 endTokenId, bytes memory _encodedArgs) external override {
-        if (startTokenId != 0 || endTokenId != type(uint256).max) {
-            revert OpenEditionHookInvalidRange();
-        }
-
-        address _token = msg.sender;
-        SharedMetadataInfo memory _metadata = abi.decode(_encodedArgs, (SharedMetadataInfo));
+    function setSharedMetadata(address _token, SharedMetadataInfo calldata _metadata) external onlyAdmin(_token) {
         _setSharedMetadata(_token, _metadata);
     }
 
@@ -87,13 +74,15 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook {
      *  @dev Sets shared metadata for NFTs.
      *  @param _metadata common metadata for all tokens
      */
-    function _setSharedMetadata(address _token, SharedMetadataInfo memory _metadata) internal {
+    function _setSharedMetadata(address _token, SharedMetadataInfo calldata _metadata) internal {
         SharedMetadataStorage.data().sharedMetadata[_token] = SharedMetadataInfo({
             name: _metadata.name,
             description: _metadata.description,
             imageURI: _metadata.imageURI,
             animationURI: _metadata.animationURI
         });
+
+        emit BatchMetadataUpdate(_token, 0, type(uint256).max);
 
         emit SharedMetadataUpdated(
             _token,

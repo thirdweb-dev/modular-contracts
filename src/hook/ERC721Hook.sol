@@ -30,8 +30,6 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC
     /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
-    uint256 public constant METADATA_FLAG = 2 ** 7;
-
     /*//////////////////////////////////////////////////////////////
                                 ERROR
     //////////////////////////////////////////////////////////////*/
@@ -69,11 +67,6 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC
 
     /// @notice Returns the signature of the arguments expected by the beforeBurn hook.
     function getBeforeBurnArgSignature() external view virtual returns (string memory argSignature) {
-        argSignature = "";
-    }
-
-    /// @notice Returns the signature of the arguments expected by the setMetadata hook.
-    function getSetMetadataArgSignature() external view virtual returns (string memory argSignature) {
         argSignature = "";
     }
 
@@ -150,10 +143,6 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC
         uint256 tokenId,
         uint256 salePrice
     ) external view virtual returns (address receiver, uint256 royaltyAmount) {
-        revert ERC721HookNotImplemented();
-    }
-
-    function setBatchMetadata(uint256 startTokenId, uint256 endTokenId, bytes memory encodedArgs) external virtual {
         revert ERC721HookNotImplemented();
     }
 }
