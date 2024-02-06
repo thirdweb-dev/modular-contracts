@@ -47,20 +47,6 @@ contract CloneFactory {
         }
     }
 
-    function deployERC1967(address _implementation, bytes memory _data) public returns (address deployedProxy) {
-        deployedProxy = LibClone.deployERC1967(_implementation);
-
-        emit ProxyDeployed(_implementation, deployedProxy, msg.sender);
-
-        if (_data.length > 0) {
-            (bool success, bytes memory returndata) = deployedProxy.call(_data);
-
-            if (!success) {
-                _revert(returndata);
-            }
-        }
-    }
-
     function deployDeterministicERC1967(
         address _implementation,
         bytes memory _data,

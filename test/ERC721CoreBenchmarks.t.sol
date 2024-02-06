@@ -92,16 +92,18 @@ contract ERC721CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress = cloneFactory.deployERC1967(
+        hookProxyAddress = cloneFactory.deployDeterministicERC1967(
             address(new AllowlistMintHookERC721()),
-            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin)
+            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin),
+            bytes32("salt")
         );
         simpleClaimHook = AllowlistMintHookERC721(hookProxyAddress);
         assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
 
-        address lazyMintHookProxyAddress = cloneFactory.deployERC1967(
+        address lazyMintHookProxyAddress = cloneFactory.deployDeterministicERC1967(
             address(new LazyMintHookERC721()),
-            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin)
+            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin),
+            bytes32("salt")
         );
         lazyMintHook = LazyMintHookERC721(lazyMintHookProxyAddress);
 
