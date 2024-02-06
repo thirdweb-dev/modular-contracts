@@ -213,6 +213,7 @@ abstract contract ERC1155Initializable is
 
     function _mint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
         ERC1155InitializableStorage.data().balanceOf[_to][_tokenId] += _value;
+        ERC1155InitializableStorage.data().totalSupply[_tokenId] += _value;
 
         emit TransferSingle(msg.sender, address(0), _to, _tokenId, _value);
 

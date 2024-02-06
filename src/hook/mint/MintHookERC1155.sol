@@ -433,7 +433,7 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
                     _req.pricePerToken,
                     _req.currency,
                     _req.allowlistProof,
-                    keccak256(_req.permissionSignature),
+                    keccak256(bytes("")),
                     _req.sigValidityStartTimestamp,
                     _req.sigValidityEndTimestamp,
                     _req.sigUid
