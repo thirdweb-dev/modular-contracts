@@ -114,6 +114,16 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
         argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
     }
 
+    /// @notice Returns the fee config for a token.
+    function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
+        return MintHookERC20Storage.data().feeConfig[_token];
+    }
+
+    /// @notice Returns the active claim condition.
+    function getClaimCondition(address _token) external view returns (ClaimCondition memory) {
+        return MintHookERC20Storage.data().claimCondition[_token];
+    }
+
     /**
      *  @notice Verifies that a given claim is valid.
      *
@@ -139,7 +149,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
             revert MintHookMintNotStarted();
         }
 
-        if(currentClaimPhase.endTimestamp < block.timestamp) {
+        if(currentClaimPhase.endTimestamp <= block.timestamp) {
             revert MintHookMintEnded();
         }
 
@@ -184,7 +194,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
      */
     function verifyPermissionedClaim(MintRequest memory _req) public view returns (bool) {
 
-        if (_req.sigValidityEndTimestamp > block.timestamp || _req.sigValidityEndTimestamp < block.timestamp) {
+        if (block.timestamp < _req.sigValidityStartTimestamp || _req.sigValidityEndTimestamp <= block.timestamp) {
             revert MintHookRequestExpired();
         }
         if (MintHookERC20Storage.data().uidUsed[_req.sigUid]) {
@@ -192,7 +202,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
         }
 
         address signer = _recoverAddress(_req);
-        if (IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS)) {
+        if (!IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS)) {
             revert MintHookInvalidSignature();
         }
 
@@ -350,9 +360,9 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         } else {
             if (platformFees > 0) {
-                SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
+                SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
-            SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
+            SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         }
     }
 
@@ -375,7 +385,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
                     _req.pricePerToken,
                     _req.currency,
                     _req.allowlistProof,
-                    keccak256(_req.permissionSignature),
+                    keccak256(bytes("")),
                     _req.sigValidityStartTimestamp,
                     _req.sigValidityEndTimestamp,
                     _req.sigUid

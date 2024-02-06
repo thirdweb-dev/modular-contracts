@@ -122,6 +122,11 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         return MintHookERC721Storage.data().nextTokenIdToMint[_token];
     }
 
+    /// @notice Returns the active claim condition.
+    function getClaimCondition(address _token) external view returns (ClaimCondition memory) {
+        return MintHookERC721Storage.data().claimCondition[_token];
+    }
+
     /**
      *  @notice Verifies that a given claim is valid.
      *
@@ -146,7 +151,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         if (currentClaimPhase.startTimestamp > block.timestamp) {
             revert MintHookMintNotStarted();
         }
-        if(currentClaimPhase.endTimestamp < block.timestamp) {
+        if(currentClaimPhase.endTimestamp <= block.timestamp) {
             revert MintHookMintEnded();
         }
 
@@ -191,7 +196,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      */
     function verifyPermissionedClaim(MintRequest memory _req) public view returns (bool) {
 
-        if (_req.sigValidityEndTimestamp > block.timestamp || _req.sigValidityEndTimestamp < block.timestamp) {
+        if (block.timestamp < _req.sigValidityStartTimestamp || _req.sigValidityEndTimestamp <= block.timestamp) {
             revert MintHookRequestExpired();
         }
         if (MintHookERC721Storage.data().uidUsed[_req.sigUid]) {
@@ -199,7 +204,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
 
         address signer = _recoverAddress(_req);
-        if (IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS)) {
+        if (!IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS)) {
             revert MintHookInvalidSignature();
         }
 
@@ -269,7 +274,9 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
             data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[req.token], req.minter))] += req.quantity;
         }
 
-        tokenIdToMint = data.nextTokenIdToMint[req.token]++;
+        tokenIdToMint = data.nextTokenIdToMint[req.token];
+        data.nextTokenIdToMint[req.token] += req.quantity;
+
         quantityToMint = req.quantity;
 
         _collectPrice(req.minter, tokenIdToMint, req.pricePerToken * req.quantity, req.currency);
@@ -395,9 +402,9 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
             SafeTransferLib.safeTransferETH(feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         } else {
             if (platformFees > 0) {
-                SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.platformFeeRecipient, platformFees);
+                SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
-            SafeTransferLib.safeTransferFrom(token, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
+            SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
         }
     }
 
@@ -420,7 +427,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
                     _req.pricePerToken,
                     _req.currency,
                     _req.allowlistProof,
-                    keccak256(_req.permissionSignature),
+                    keccak256(bytes("")),
                     _req.sigValidityStartTimestamp,
                     _req.sigValidityEndTimestamp,
                     _req.sigUid
