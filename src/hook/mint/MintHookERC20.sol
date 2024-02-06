@@ -114,6 +114,11 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
         argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
     }
 
+    /// @notice Returns the fee config for a token.
+    function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
+        return MintHookERC20Storage.data().feeConfig[_token];
+    }
+
     /// @notice Returns the active claim condition.
     function getClaimCondition(address _token) external view returns (ClaimCondition memory) {
         return MintHookERC20Storage.data().claimCondition[_token];
@@ -380,7 +385,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
                     _req.pricePerToken,
                     _req.currency,
                     _req.allowlistProof,
-                    keccak256(_req.permissionSignature),
+                    keccak256(bytes("")),
                     _req.sigValidityStartTimestamp,
                     _req.sigValidityEndTimestamp,
                     _req.sigUid
