@@ -5,7 +5,7 @@ import "../common/Initializable.sol";
 import "../common/UUPSUpgradeable.sol";
 import "../common/Permission.sol";
 
-import {IERC721Hook} from "../interface/hook/IERC721Hook.sol";
+import { IERC721Hook } from "../interface/hook/IERC721Hook.sol";
 
 abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC721Hook {
     /*//////////////////////////////////////////////////////////////
@@ -82,12 +82,11 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _to, uint256 _quantity, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _to,
+        uint256 _quantity,
+        bytes memory _encodedArgs
+    ) external payable virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         revert ERC721HookNotImplemented();
     }
 
@@ -140,12 +139,10 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice)
-        external
-        view
-        virtual
-        returns (address receiver, uint256 royaltyAmount)
-    {
+    function royaltyInfo(
+        uint256 tokenId,
+        uint256 salePrice
+    ) external view virtual returns (address receiver, uint256 royaltyAmount) {
         revert ERC721HookNotImplemented();
     }
 }

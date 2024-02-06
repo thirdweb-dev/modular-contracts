@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IHook} from "./IHook.sol";
+import { IHook } from "./IHook.sol";
 
 interface IERC721Hook is IHook {
     /*//////////////////////////////////////////////////////////////
@@ -30,10 +30,11 @@ interface IERC721Hook is IHook {
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address to, uint256 quantity, bytes memory encodedArgs)
-        external
-        payable
-        returns (uint256 tokenIdToMint, uint256 quantityToMint);
+    function beforeMint(
+        address to,
+        uint256 quantity,
+        bytes memory encodedArgs
+    ) external payable returns (uint256 tokenIdToMint, uint256 quantityToMint);
 
     /**
      *  @notice The beforeTransfer hook that is called by a core token before transferring a token.
@@ -76,8 +77,8 @@ interface IERC721Hook is IHook {
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice)
-        external
-        view
-        returns (address receiver, uint256 royaltyAmount);
+    function royaltyInfo(
+        uint256 tokenId,
+        uint256 salePrice
+    ) external view returns (address receiver, uint256 royaltyAmount);
 }
