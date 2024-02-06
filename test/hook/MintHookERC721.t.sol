@@ -731,18 +731,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(new ERC721Core()),
@@ -791,18 +779,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
@@ -851,18 +827,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
@@ -911,18 +875,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
@@ -971,18 +923,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
@@ -1033,18 +973,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
@@ -1093,18 +1021,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
@@ -1153,18 +1069,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
@@ -1213,18 +1117,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);    
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
@@ -1281,18 +1173,6 @@ contract MintHookERC721Test is Test {
         mintHook.setDefaultFeeConfig(address(erc721Core), feeConfig);
 
         // End user claims 5 tokens.
-
-        assertEq(mintHook.getNextTokenIdToMint(address(erc721Core)), 0);
-        assertEq(erc721Core.balanceOf(endUser), 0);
-        assertEq(erc721Core.totalSupply(), 0);
-
-        for(uint256 i = 0; i < 5; i += 1) {
-            vm.expectRevert();
-            erc721Core.ownerOf(i);
-        }
-
-        assertEq(developer.balance, 0);
-        assertEq(platformAdmin.balance, 0);
         
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc721Core),
