@@ -97,8 +97,8 @@ contract BuggyAllowlistMintHookERC1155 is AllowlistMintHookERC1155 {
 
         ClaimCondition memory condition = data.claimCondition[token][_id];
 
-        if (condition.availableSupply == 0) {
-            revert AllowlistMintHookNotEnoughSupply(token);
+        if (_value == 0 || _value > condition.availableSupply) {
+            revert AllowlistMintHookInvalidQuantity();
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
