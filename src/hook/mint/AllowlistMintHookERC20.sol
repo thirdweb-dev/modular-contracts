@@ -40,8 +40,8 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
     /// @notice Emitted when caller is not token core admin.
     error AllowlistMintHookNotAuthorized();
 
-    /// @notice Emitted on an attempt to mint when there is no more available supply to mint.
-    error AllowlistMintHookNotEnoughSupply(address token);
+    /// @notice Emitted when minting invalid quantity of tokens.
+    error AllowlistMintHookInvalidQuantity();
 
     /// @notice Emitted on an attempt to mint when the claimer is not in the allowlist.
     error AllowlistMintHookNotInAllowlist(address token, address claimer);
@@ -123,8 +123,8 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
 
         ClaimCondition memory condition = data.claimCondition[token];
 
-        if (condition.availableSupply == 0) {
-            revert AllowlistMintHookNotEnoughSupply(token);
+        if (_quantity == 0 || _quantity > condition.availableSupply) {
+            revert AllowlistMintHookInvalidQuantity();
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
