@@ -40,7 +40,10 @@ contract MintHookERC20Test is Test {
     bytes32 private constant TYPEHASH = keccak256(
         "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
     );
-    bytes32 internal domainSeparator;
+    bytes32 public domainSeparator;
+
+    bytes32 public allowlistRoot;
+    bytes32[] public allowlistProof;
 
     // Test events
     /// @notice Emitted when the claim condition for a given token is updated.
@@ -103,6 +106,21 @@ contract MintHookERC20Test is Test {
 
         vm.stopPrank();
 
+        // Setup allowlist
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "test/scripts/generateRoot.ts";
+
+        bytes memory result = vm.ffi(inputs);
+        allowlistRoot = abi.decode(result, (bytes32));
+
+        string[] memory proofInputs = new string[](2);
+        proofInputs[0] = "node";
+        proofInputs[1] = "test/scripts/getProof.ts";
+
+        bytes memory proofResult = vm.ffi(proofInputs);
+        allowlistProof = abi.decode(proofResult, (bytes32[]));
+
         // Set labels
         vm.deal(endUser, 100 ether);
 
@@ -161,7 +179,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.1 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -179,7 +197,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -214,7 +232,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.1 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -232,7 +250,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -266,7 +284,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.1 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -285,7 +303,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.1 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -303,7 +321,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -339,7 +357,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 1 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -379,7 +397,7 @@ contract MintHookERC20Test is Test {
             quantity: 1 ether,
             pricePerToken: 1 ether,
             currency: NATIVE_TOKEN,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -417,7 +435,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.1 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -435,7 +453,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -455,7 +473,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.1 ether,
             currency: address(new MockERC20()),
             metadata: "ipfs:Qme123"
@@ -473,7 +491,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -496,7 +514,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.2 ether,
             currency: address(currency),
             metadata: "ipfs:Qme123"
@@ -530,7 +548,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -559,7 +577,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -593,7 +611,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -618,7 +636,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -646,7 +664,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -666,7 +684,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -694,7 +712,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -714,7 +732,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -742,7 +760,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -762,7 +780,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -790,7 +808,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -810,7 +828,7 @@ contract MintHookERC20Test is Test {
             maxClaimableSupply: 1000 ether,
             supplyClaimed: 0,
             quantityLimitPerWallet: 10 ether,
-            merkleRoot: bytes32(0),
+            merkleRoot: allowlistRoot,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             metadata: "ipfs:Qme123"
@@ -838,7 +856,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -888,7 +906,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -936,7 +954,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: address(new MockERC20()),
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -984,7 +1002,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: 0.01 ether,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -1032,7 +1050,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -1088,7 +1106,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
@@ -1160,7 +1178,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: 0.2 ether,
             currency: address(currency),
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
@@ -1206,7 +1224,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
@@ -1252,7 +1270,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
@@ -1286,7 +1304,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
@@ -1322,7 +1340,7 @@ contract MintHookERC20Test is Test {
             quantity: 5 ether,
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
-            allowlistProof: new bytes32[](0),
+            allowlistProof: allowlistProof,
             permissionSignature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
