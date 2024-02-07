@@ -59,8 +59,8 @@ contract BuggyAllowlistMintHookERC721 is AllowlistMintHookERC721 {
 
         ClaimCondition memory condition = data.claimCondition[token];
 
-        if (condition.availableSupply == 0) {
-            revert AllowlistMintHookNotEnoughSupply(token);
+        if (_quantity == 0 || _quantity > condition.availableSupply) {
+            revert AllowlistMintHookInvalidQuantity();
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
