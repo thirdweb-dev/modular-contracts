@@ -13,7 +13,7 @@ import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
 
 import { ERC721Core, ERC721Initializable } from "src/core/token/ERC721Core.sol";
 import { ERC721Hook, AllowlistMintHookERC721 } from "src/hook/mint/AllowlistMintHookERC721.sol";
-import { LazyMintHookERC721 } from "src/hook/metadata/LazyMintHookERC721.sol";
+import { LazyMintHook } from "src/hook/metadata/LazyMintHook.sol";
 import { RoyaltyHook } from "src/hook/royalty/RoyaltyHook.sol";
 import { IERC721 } from "src/interface/eip/IERC721.sol";
 import { IHook } from "src/interface/hook/IHook.sol";
@@ -74,7 +74,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
     ERC721Core public erc721;
     AllowlistMintHookERC721 public simpleClaimHook;
-    LazyMintHookERC721 public lazyMintHook;
+    LazyMintHook public lazyMintHook;
     RoyaltyHook public royaltyHook;
 
     MockOneHookImpl public mockOneHook;
@@ -101,11 +101,11 @@ contract ERC721CoreBenchmarkTest is Test {
         assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
 
         address lazyMintHookProxyAddress = cloneFactory.deployDeterministicERC1967(
-            address(new LazyMintHookERC721()),
+            address(new LazyMintHook()),
             abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin),
             bytes32("salt")
         );
-        lazyMintHook = LazyMintHookERC721(lazyMintHookProxyAddress);
+        lazyMintHook = LazyMintHook(lazyMintHookProxyAddress);
 
         address royaltyHookProxyAddress = address(
             new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook()))
