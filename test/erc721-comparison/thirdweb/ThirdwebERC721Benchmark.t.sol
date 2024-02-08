@@ -12,12 +12,12 @@ import {IInitCall} from "src/interface/common/IInitCall.sol";
 // Target test contracts
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
-import {SimpleMetadataHookERC721} from "src/hook/metadata/SimpleMetadataHookERC721.sol";
+import {SimpleMetadataHook} from "src/hook/metadata/SimpleMetadataHook.sol";
 import {Permission} from "src/common/Permission.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
     AllowlistMintHookERC721 public simpleClaim;
-    SimpleMetadataHookERC721 public simpleMetadataHook;
+    SimpleMetadataHook public simpleMetadataHook;
 
     function setUp() public override {
         // Deploy infra/shared-state contracts pre-setup
@@ -30,8 +30,8 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         simpleClaim = AllowlistMintHookERC721(hookProxyAddress);
 
         address simpleMetadataHookProxyAddress =
-            address(new MinimalUpgradeableRouter(admin, address(new SimpleMetadataHookERC721())));
-        simpleMetadataHook = SimpleMetadataHookERC721(simpleMetadataHookProxyAddress);
+            address(new MinimalUpgradeableRouter(admin, address(new SimpleMetadataHook())));
+        simpleMetadataHook = SimpleMetadataHook(simpleMetadataHookProxyAddress);
 
         super.setUp();
 
@@ -116,7 +116,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
     /// @dev Setup token metadata
     function _setupTokenMetadata() internal override {
         vm.pauseGasMetering();
-        SimpleMetadataHookERC721 hook = simpleMetadataHook;
+        SimpleMetadataHook hook = simpleMetadataHook;
         address erc721 = erc721Contract;
         vm.prank(address(0x123));
         vm.resumeGasMetering();

@@ -9,9 +9,9 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 import {LibString} from "src/lib/LibString.sol";
 
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {SimpleMetadataHookERC721, ERC721Hook} from "src/hook/metadata/SimpleMetadataHookERC721.sol";
+import {SimpleMetadataHook, ERC721Hook} from "src/hook/metadata/SimpleMetadataHook.sol";
 
-contract SimpleMetadataHookERC721Test is Test {
+contract SimpleMetadataHookTest is Test {
 
     using LibString for uint256;
 
@@ -26,19 +26,19 @@ contract SimpleMetadataHookERC721Test is Test {
 
     // Target test contracts
     ERC721Core public erc721Core;
-    SimpleMetadataHookERC721 public metadataHook;
+    SimpleMetadataHook public metadataHook;
 
     function setUp() public {
 
         // Platform deploys metadata hook.
-        address mintHookImpl = address(new SimpleMetadataHookERC721());
+        address mintHookImpl = address(new SimpleMetadataHook());
 
         bytes memory initData = abi.encodeWithSelector(
             metadataHook.initialize.selector,
             platformAdmin // upgradeAdmin
         );
         address mintHookProxy = address(new EIP1967Proxy(mintHookImpl, initData));
-        metadataHook = SimpleMetadataHookERC721(mintHookProxy);
+        metadataHook = SimpleMetadataHook(mintHookProxy);
 
         // Platform deploys ERC721 core implementation and clone factory.
         address erc721CoreImpl = address(new ERC721Core());

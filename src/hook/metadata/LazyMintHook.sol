@@ -8,7 +8,7 @@ import {LibString} from "../../lib/LibString.sol";
 
 import {LazyMintStorage} from "../../storage/hook/metadata/LazyMintStorage.sol";
 
-contract LazyMintHookERC721 is ERC721Hook {
+contract LazyMintHook is ERC721Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -78,11 +78,20 @@ contract LazyMintHookERC721 is ERC721Hook {
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function tokenURI(uint256 _id) external view override returns (string memory) {
+    function tokenURI(uint256 _id) public view override returns (string memory) {
         address token = msg.sender;
         string memory batchUri = _getBaseURI(token, _id);
 
         return string(abi.encodePacked(batchUri, _id.toString()));
+    }
+
+    /**
+     *  @notice Returns the URI to fetch token metadata from.
+     *  @dev Meant to be called by the core token contract.
+     *  @param _id The token ID of the NFT.
+     */
+    function uri(uint256 _id) external view returns (string memory) {
+        return tokenURI(_id);
     }
 
     /**
