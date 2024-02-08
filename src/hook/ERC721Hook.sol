@@ -13,22 +13,34 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Permission, IERC
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+    function BEFORE_MINT_FLAG() public pure virtual returns (uint256) {
+        return 2 ** 1;
+    }
 
     /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+    function BEFORE_TRANSFER_FLAG() public pure virtual returns (uint256) {
+        return 2 ** 2;
+    }
 
     /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+    function BEFORE_BURN_FLAG() public pure virtual returns (uint256) {
+        return 2 ** 3;
+    }
 
     /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+    function BEFORE_APPROVE_FLAG() public pure virtual returns (uint256) {
+        return 2 ** 4;
+    }
 
     /// @notice Bits representing the token URI hook.
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    function TOKEN_URI_FLAG() public pure virtual returns (uint256) {
+        return 2 ** 5;
+    }
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+    function ROYALTY_INFO_FLAG() public pure virtual returns (uint256) {
+        return 2 ** 6;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 ERROR
