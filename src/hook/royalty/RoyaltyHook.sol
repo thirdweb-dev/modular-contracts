@@ -56,7 +56,7 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
 
     /// @notice Returns all hook functions implemented by this hook contract.
     function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = ROYALTY_INFO_FLAG;
+        hooksImplemented = ROYALTY_INFO_FLAG();
     }
 
     /**
