@@ -106,7 +106,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
 
     /// @notice Returns all hook functions implemented by this hook contract.
     function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG;
+        hooksImplemented = BEFORE_MINT_FLAG();
     }
 
     /// @notice Returns the signature of the arguments expected by the beforeMint hook.

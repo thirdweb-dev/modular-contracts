@@ -49,7 +49,7 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook {
 
     /// @notice Returns all hook functions implemented by this hook contract.
     function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = TOKEN_URI_FLAG;
+        hooksImplemented = TOKEN_URI_FLAG();
     }
 
     /**
