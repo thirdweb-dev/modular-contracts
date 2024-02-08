@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IPermission} from "../../interface/common/IPermission.sol";
 
-import {ERC1155Hook} from "../ERC1155Hook.sol";
+import {ERC721Hook} from "../ERC721Hook.sol";
 import {LibString} from "../../lib/LibString.sol";
 
 import {SimpleMetadataStorage} from "../../storage/hook/metadata/SimpleMetadataStorage.sol";
 
-contract SimpleMetadataHookERC1155 is ERC1155Hook {
+contract SimpleMetadataHook is ERC721Hook {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ contract SimpleMetadataHookERC1155 is ERC1155Hook {
     //////////////////////////////////////////////////////////////*/
 
     function initialize(address _upgradeAdmin) public initializer {
-        __ERC1155Hook_init(_upgradeAdmin);
+        __ERC721Hook_init(_upgradeAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -59,14 +59,29 @@ contract SimpleMetadataHookERC1155 is ERC1155Hook {
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function uri(uint256 _id) external view override returns (string memory) {
+    function tokenURI(uint256 _id) public view override returns (string memory) {
         return SimpleMetadataStorage.data().uris[msg.sender][_id];
+    }
+
+    /**
+     *  @notice Returns the URI to fetch token metadata from.
+     *  @dev Meant to be called by the core token contract.
+     *  @param _id The token ID of the NFT.
+     */
+    function uri(uint256 _id) external view returns (string memory) {
+        return tokenURI(_id);
     }
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     *  @notice Sets the base URI for a token.
+     *  @param _token The token address.
+     *  @param _id The token ID of the NFT.
+     *  @param _uri The base URI to set.
+     */
     function setTokenURI(address _token, uint256 _id, string calldata _uri) external onlyAdmin(_token) {
         SimpleMetadataStorage.data().uris[_token][_id] = _uri;
         emit MetadataUpdate(_token, _id);
