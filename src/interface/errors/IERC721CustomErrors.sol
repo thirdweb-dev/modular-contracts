@@ -23,4 +23,6 @@ interface IERC721CustomErrors {
 
     /// @notice Emitted on an attempt to transfer a token to a contract not implementing ERC-721 Receiver interface.
     error ERC721UnsafeRecipient(address recipient);
+
+    error ERC721ZeroAddress();
 }
