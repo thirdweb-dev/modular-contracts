@@ -6,10 +6,10 @@ import {IClaimCondition} from "../../../interface/common/IClaimCondition.sol";
 import {IFeeConfig} from "../../../interface/common/IFeeConfig.sol";
 
 library MintExtensionERC721Storage {
-    /// @custom:storage-location erc7201:permissions.storage
+    /// @custom:storage-location erc7201:mint.extension.erc721.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("mint.extension.erc721.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant MINT_EXTENSION_ERC721_STORAGE_POSITION =
-        0x64681a2aca5698455776ff2e19532928238d431a12a25170dbc63b61f6706f00;
+        0x83e4a22132ea4bd561adebc5dd1863248e590f261adf89d5daf7fc27a8a37200;
 
     struct Data {
         /// @notice Mapping from token => the next token ID to mint.

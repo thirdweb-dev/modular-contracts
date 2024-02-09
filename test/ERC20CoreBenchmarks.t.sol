@@ -137,13 +137,6 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.deal(claimer, 100 ether);
     }
 
-    event StoragePos(bytes32 pos);
-
-    function test_storagePos() public {
-        bytes32 pos = keccak256(abi.encode(uint256(keccak256("extension.installer.storage")) - 1)) & ~bytes32(uint256(0xff));
-        emit StoragePos(pos);
-    }
-
     /*//////////////////////////////////////////////////////////////
                         DEPLOY END-USER CONTRACT
     //////////////////////////////////////////////////////////////*/
