@@ -13,9 +13,6 @@ import { IERC20CoreCustomErrors } from "src/interface/errors/IERC20CoreCustomErr
 import { IHook } from "src/interface/hook/IHook.sol";
 import { IInitCall } from "src/interface/common/IInitCall.sol";
 
-// import "./utils/SoladyTest.sol";
-// import "./utils/InvariantTest.sol";
-
 contract ERC20CoreTest is Test, TestPlus {
     bytes32 constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -42,14 +39,6 @@ contract ERC20CoreTest is Test, TestPlus {
         t.amount = _random();
         t.deadline = _random();
     }
-
-    // function setUp() public {
-    //     token = new MockERC20("Token", "TKN", 18);
-    // }
-
-    /*//////////////////////////////////////////////////////////////
-                                SETUP
-    //////////////////////////////////////////////////////////////*/
 
     // Participants
     address public admin = address(0x123);
