@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 import {IRoyaltyInfo} from "../../../interface/common/IRoyaltyInfo.sol";
 
 library RoyaltyExtensionStorage {
-    /// @custom:storage-location erc7201:permissions.storage
+    /// @custom:storage-location erc7201:royalty.extension.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("royalty.extension.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant ROYALTY_EXTENSION_STORAGE_POSITION =
-        0x7ee93e57dcce937c8a9b57c763d236ae026d58f90462880b3a87d31ffacf4800;
+        0x15ac7369311e92cebc8525c69b94ad050bd8751b6414316f40ff6d37bb3fef00;
 
     struct Data {
         /// @notice Mapping from token => default royalty info.

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 library ERC1155InitializableStorage {
-    /// @custom:storage-location erc7201:permissions.storage
+    /// @custom:storage-location erc7201:erc1155.initializable.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("erc1155.initializable.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant ERC1155_INITIALIZABLE_STORAGE_POSITION =
         0xc1d6831519e25efab92de561ba77a4fcc047b76be43d4e7ea1eef649887f3500;

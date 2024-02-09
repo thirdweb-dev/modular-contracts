@@ -5,10 +5,10 @@ import {AllowlistMintExtensionERC721} from "../../../extension/mint/AllowlistMin
 import {IFeeConfig} from "../../../interface/common/IFeeConfig.sol";
 
 library AllowlistMintExtensionERC721Storage {
-    /// @custom:storage-location erc7201:permissions.storage
+    /// @custom:storage-location erc7201:allowlist.mint.extension.erc721.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("allowlist.mint.extension.erc721.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant ALLOWLIST_MINT_EXTENSION_ERC721_STORAGE_POSITION =
-        0xd230f7da7990fb90d9d6a9ddcbc1c67100b8d16fc023d14d1ab086422c8af700;
+        0xd9a50cc3f63a428d8d0ac630e092669535f7dbcc2bcb19dbfeea0738562b3e00;
 
     struct Data {
         /// @notice Mapping from token => the next token ID to mint.
