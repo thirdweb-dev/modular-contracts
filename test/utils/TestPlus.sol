@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+// credit Solady (https://github.com/Vectorized/solady)
 contract TestPlus {
     event LogString(string name, string value);
     event LogBytes(string name, bytes value);
