@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IHookInstaller} from "./IHookInstaller.sol";
+import { IHookInstaller } from "./IHookInstaller.sol";
 
 interface IERC1155HookInstaller is IHookInstaller {
     /*//////////////////////////////////////////////////////////////
@@ -12,6 +12,7 @@ interface IERC1155HookInstaller is IHookInstaller {
     struct ERC1155Hooks {
         address beforeMint;
         address beforeTransfer;
+        address beforeBatchTransfer;
         address beforeBurn;
         address beforeApprove;
         address uri;

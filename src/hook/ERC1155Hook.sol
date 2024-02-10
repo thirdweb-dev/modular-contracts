@@ -5,7 +5,7 @@ import "../common/Initializable.sol";
 import "../common/UUPSUpgradeable.sol";
 import "../common/Permission.sol";
 
-import {IERC1155Hook} from "../interface/hook/IERC1155Hook.sol";
+import { IERC1155Hook } from "../interface/hook/IERC1155Hook.sol";
 
 abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IERC1155Hook {
     /*//////////////////////////////////////////////////////////////
@@ -22,24 +22,29 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
         return 2 ** 2;
     }
 
+    /// @notice Bits representing the before transfer hook.
+    function BEFORE_BATCH_TRANSFER_FLAG() public pure virtual returns (uint256) {
+        return 2 ** 3;
+    }
+
     /// @notice Bits representing the before burn hook.
     function BEFORE_BURN_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 3;
+        return 2 ** 4;
     }
 
     /// @notice Bits representing the before approve hook.
     function BEFORE_APPROVE_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 4;
+        return 2 ** 5;
     }
 
     /// @notice Bits representing the token URI hook.
     function TOKEN_URI_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 5;
+        return 2 ** 6;
     }
 
     /// @notice Bits representing the royalty hook.
     function ROYALTY_INFO_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 6;
+        return 2 ** 7;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -95,12 +100,12 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _to, uint256 _id, uint256 _value, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _to,
+        uint256 _id,
+        uint256 _value,
+        bytes memory _encodedArgs
+    ) external payable virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         revert ERC1155HookNotImplemented();
     }
 
@@ -112,6 +117,22 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @param _value The quantity of tokens being transferred.
      */
     function beforeTransfer(address _from, address _to, uint256 _id, uint256 _value) external virtual {
+        revert ERC1155HookNotImplemented();
+    }
+
+    /**
+     *  @notice The beforeBatchTransfer hook that is called by a core token before batch transferring tokens.
+     *  @param from The address that is transferring tokens.
+     *  @param to The address that is receiving tokens.
+     *  @param ids The token IDs being transferred.
+     *  @param values The quantities of tokens being transferred.
+     */
+    function beforeBatchTransfer(
+        address from,
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata values
+    ) external virtual {
         revert ERC1155HookNotImplemented();
     }
 
@@ -152,12 +173,10 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @return receiver The address to send the royalty payment to.
      *  @return royaltyAmount The amount of royalty to pay.
      */
-    function royaltyInfo(uint256 _id, uint256 _salePrice)
-        external
-        view
-        virtual
-        returns (address receiver, uint256 royaltyAmount)
-    {
+    function royaltyInfo(
+        uint256 _id,
+        uint256 _salePrice
+    ) external view virtual returns (address receiver, uint256 royaltyAmount) {
         revert ERC1155HookNotImplemented();
     }
 }
