@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {Initializable} from "../../common/Initializable.sol";
-import {IERC20} from "../../interface/eip/IERC20.sol";
-import {IERC20Metadata} from "../../interface/eip/IERC20Metadata.sol";
-import {IERC20CustomErrors} from "../../interface/errors/IERC20CustomErrors.sol";
+import { Initializable } from "../../common/Initializable.sol";
+import { IERC20 } from "../../interface/eip/IERC20.sol";
+import { IERC20Metadata } from "../../interface/eip/IERC20Metadata.sol";
+import { IERC20CustomErrors } from "../../interface/errors/IERC20CustomErrors.sol";
 
-import {ERC20InitializableStorage} from "../../storage/core/ERC20InitializableStorage.sol";
+import { ERC20InitializableStorage } from "../../storage/core/ERC20InitializableStorage.sol";
 
 abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, IERC20CustomErrors {
     /*//////////////////////////////////////////////////////////////
@@ -22,7 +22,6 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
         ERC20InitializableStorage.Data storage data = ERC20InitializableStorage.data();
         data.name = _name;
         data.symbol = _symbol;
-        data.totalSupply = 1;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -55,7 +54,7 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
 
     /// @notice Returns the total circulating supply of tokens.
     function totalSupply() public view virtual returns (uint256) {
-        return ERC20InitializableStorage.data().totalSupply - 1; // We initialize totalSupply as `1` in `initialize` to save on `mint` gas.
+        return ERC20InitializableStorage.data().totalSupply;
     }
 
     /**

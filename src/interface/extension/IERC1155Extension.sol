@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IExtension} from "./IExtension.sol";
+import { IExtension } from "./IExtension.sol";
 
 interface IERC1155Extension is IExtension {
     /*//////////////////////////////////////////////////////////////
@@ -31,10 +31,12 @@ interface IERC1155Extension is IExtension {
      *  @return tokenIdToMint The tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address to, uint256 id, uint256 value, bytes memory encodedArgs)
-        external
-        payable
-        returns (uint256 tokenIdToMint, uint256 quantityToMint);
+    function beforeMint(
+        address to,
+        uint256 id,
+        uint256 value,
+        bytes memory encodedArgs
+    ) external payable returns (uint256 tokenIdToMint, uint256 quantityToMint);
 
     /**
      *  @notice The beforeTransfer extension that is called by a core token before transferring a token.
@@ -46,6 +48,16 @@ interface IERC1155Extension is IExtension {
     function beforeTransfer(address from, address to, uint256 id, uint256 value) external;
 
     /**
+     *  @notice The beforeBatchTransfer extension that is called by a core token before batch transferring tokens.
+     *  @param from The address that is transferring tokens.
+     *  @param to The address that is receiving tokens.
+     *  @param ids The token IDs being transferred.
+     *  @param values The quantities of tokens being transferred.
+     */
+    function beforeBatchTransfer(address from, address to, uint256[] calldata ids, uint256[] calldata values) external;
+
+    /**
+     *  @notice The beforeBurn extension that is called by a core token before burning a token.
      *  @notice The beforeBurn extension that is called by a core token before burning a token.
      *  @param from The address that is burning tokens.
      *  @param id The token ID being burned.
@@ -76,8 +88,5 @@ interface IERC1155Extension is IExtension {
      *  @return receiver The address to send the royalty payment to.
      *  @return royaltyAmount The amount of royalty to pay.
      */
-    function royaltyInfo(uint256 id, uint256 salePrice)
-        external
-        view
-        returns (address receiver, uint256 royaltyAmount);
+    function royaltyInfo(uint256 id, uint256 salePrice) external view returns (address receiver, uint256 royaltyAmount);
 }

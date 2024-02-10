@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IExtensionInstaller} from "./IExtensionInstaller.sol";
+import { IExtensionInstaller } from "./IExtensionInstaller.sol";
 
 interface IERC1155ExtensionInstaller is IExtensionInstaller {
     /*//////////////////////////////////////////////////////////////
@@ -12,6 +12,7 @@ interface IERC1155ExtensionInstaller is IExtensionInstaller {
     struct ERC1155Extensions {
         address beforeMint;
         address beforeTransfer;
+        address beforeBatchTransfer;
         address beforeBurn;
         address beforeApprove;
         address uri;
