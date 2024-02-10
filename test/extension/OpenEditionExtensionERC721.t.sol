@@ -123,4 +123,9 @@ contract OpenEditionExtensionERC721Test is Test {
             })
         );
     }
+
+    function test_revert_setSharedMetadata_notAdmin() public {
+        vm.expectRevert(abi.encodeWithSelector(OpenEditionExtensionERC721.OpenEditionExtensionNotAuthorized.selector));
+        metadataExtension.setSharedMetadata(address(erc721Core), sharedMetadata);
+    }
 }
