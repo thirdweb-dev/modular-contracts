@@ -6,39 +6,39 @@ import {ERC721BenchmarkBase} from "../ERC721BenchmarkBase.t.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
+import {IExtension} from "src/interface/extension/IExtension.sol";
 import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 // Target test contracts
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
-import {SimpleMetadataHook} from "src/hook/metadata/SimpleMetadataHook.sol";
+import {AllowlistMintExtensionERC721} from "src/extension/mint/AllowlistMintExtensionERC721.sol";
+import {SimpleMetadataExtension} from "src/extension/metadata/SimpleMetadataExtension.sol";
 import {Permission} from "src/common/Permission.sol";
 
 contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
-    AllowlistMintHookERC721 public simpleClaim;
-    SimpleMetadataHook public simpleMetadataHook;
+    AllowlistMintExtensionERC721 public simpleClaim;
+    SimpleMetadataExtension public simpleMetadataExtension;
 
     function setUp() public override {
         // Deploy infra/shared-state contracts pre-setup
-        address hookProxyAddress = address(
+        address extensionProxyAddress = address(
             new EIP1967Proxy(
-                address(new AllowlistMintHookERC721()),
-                abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, admin)
+                address(new AllowlistMintExtensionERC721()),
+                abi.encodeWithSelector(AllowlistMintExtensionERC721.initialize.selector, admin)
             )
         );
-        simpleClaim = AllowlistMintHookERC721(hookProxyAddress);
+        simpleClaim = AllowlistMintExtensionERC721(extensionProxyAddress);
 
-        address simpleMetadataHookProxyAddress =
-            address(new MinimalUpgradeableRouter(admin, address(new SimpleMetadataHook())));
-        simpleMetadataHook = SimpleMetadataHook(simpleMetadataHookProxyAddress);
+        address simpleMetadataExtensionProxyAddress =
+            address(new MinimalUpgradeableRouter(admin, address(new SimpleMetadataExtension())));
+        simpleMetadataExtension = SimpleMetadataExtension(simpleMetadataExtensionProxyAddress);
 
         super.setUp();
 
-        // Set `AllowlistMintHookERC721` contract as minter
+        // Set `AllowlistMintExtensionERC721` contract as minter
         vm.startPrank(admin);
-        ERC721Core(erc721Contract).installHook(IHook(address(simpleClaim)));
-        ERC721Core(erc721Contract).installHook(IHook(address(simpleMetadataHook)));
+        ERC721Core(erc721Contract).installExtension(IExtension(address(simpleClaim)));
+        ERC721Core(erc721Contract).installExtension(IExtension(address(simpleMetadataExtension)));
         vm.stopPrank();
 
         // Setup claim condition
@@ -49,7 +49,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintHookERC721.ClaimCondition memory condition = AllowlistMintHookERC721.ClaimCondition({
+        AllowlistMintExtensionERC721.ClaimCondition memory condition = AllowlistMintExtensionERC721.ClaimCondition({
             price: pricePerToken,
             availableSupply: 5,
             allowlistMerkleRoot: root
@@ -58,7 +58,7 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         vm.prank(admin);
         simpleClaim.setClaimCondition(erc721Contract, condition);
 
-        AllowlistMintHookERC721.FeeConfig memory feeConfig;
+        AllowlistMintExtensionERC721.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = admin;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
@@ -116,12 +116,12 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
     /// @dev Setup token metadata
     function _setupTokenMetadata() internal override {
         vm.pauseGasMetering();
-        SimpleMetadataHook hook = simpleMetadataHook;
+        SimpleMetadataExtension extension = simpleMetadataExtension;
         address erc721 = erc721Contract;
         vm.prank(address(0x123));
         vm.resumeGasMetering();
 
-        hook.setTokenURI(erc721, 0, "https://example.com/");
+        extension.setTokenURI(erc721, 0, "https://example.com/");
     }
 
     /// @dev Claims a token from the target erc721 contract.
