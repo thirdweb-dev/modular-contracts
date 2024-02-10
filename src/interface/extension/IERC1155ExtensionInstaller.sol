@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-<<<<<<< HEAD:src/interface/hook/IERC1155HookInstaller.sol
-import { IHookInstaller } from "./IHookInstaller.sol";
-=======
-import {IExtensionInstaller} from "./IExtensionInstaller.sol";
->>>>>>> main:src/interface/extension/IERC1155ExtensionInstaller.sol
+import { IExtensionInstaller } from "./IExtensionInstaller.sol";
 
 interface IERC1155ExtensionInstaller is IExtensionInstaller {
     /*//////////////////////////////////////////////////////////////

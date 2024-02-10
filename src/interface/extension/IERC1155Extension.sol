@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-<<<<<<< HEAD:src/interface/hook/IERC1155Hook.sol
-import { IHook } from "./IHook.sol";
-=======
-import {IExtension} from "./IExtension.sol";
->>>>>>> main:src/interface/extension/IERC1155Extension.sol
+import { IExtension } from "./IExtension.sol";
 
 interface IERC1155Extension is IExtension {
     /*//////////////////////////////////////////////////////////////
@@ -52,8 +48,7 @@ interface IERC1155Extension is IExtension {
     function beforeTransfer(address from, address to, uint256 id, uint256 value) external;
 
     /**
-<<<<<<< HEAD:src/interface/hook/IERC1155Hook.sol
-     *  @notice The beforeBatchTransfer hook that is called by a core token before batch transferring tokens.
+     *  @notice The beforeBatchTransfer extension that is called by a core token before batch transferring tokens.
      *  @param from The address that is transferring tokens.
      *  @param to The address that is receiving tokens.
      *  @param ids The token IDs being transferred.
@@ -62,10 +57,8 @@ interface IERC1155Extension is IExtension {
     function beforeBatchTransfer(address from, address to, uint256[] calldata ids, uint256[] calldata values) external;
 
     /**
-     *  @notice The beforeBurn hook that is called by a core token before burning a token.
-=======
      *  @notice The beforeBurn extension that is called by a core token before burning a token.
->>>>>>> main:src/interface/extension/IERC1155Extension.sol
+     *  @notice The beforeBurn extension that is called by a core token before burning a token.
      *  @param from The address that is burning tokens.
      *  @param id The token ID being burned.
      *  @param value The quantity of tokens being burned.

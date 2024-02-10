@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "src/hook/ERC20Hook.sol";
-import "src/hook/ERC721Hook.sol";
-import "src/hook/ERC1155Hook.sol";
+import "src/extension/ERC20Extension.sol";
+import "src/extension/ERC721Extension.sol";
+import "src/extension/ERC1155Extension.sol";
 
-contract EmptyHookERC20 is ERC20Hook {
+contract EmptyExtensionERC20 is ERC20Extension {
     function initialize() public initializer {}
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
+    function getExtensions() external pure returns (uint256 extensionsImplemented) {
+        extensionsImplemented = BEFORE_MINT_FLAG();
     }
 
     function beforeMint(
@@ -21,13 +21,13 @@ contract EmptyHookERC20 is ERC20Hook {
     }
 }
 
-contract EmptyHookERC721 is ERC721Hook {
+contract EmptyExtensionERC721 is ERC721Extension {
     mapping(address => uint256) nextTokenIdToMint;
 
     function initialize() public initializer {}
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
+    function getExtensions() external pure returns (uint256 extensionsImplemented) {
+        extensionsImplemented = BEFORE_MINT_FLAG();
     }
 
     function beforeMint(
@@ -44,13 +44,13 @@ contract EmptyHookERC721 is ERC721Hook {
     }
 }
 
-contract EmptyHookERC1155 is ERC1155Hook {
+contract EmptyExtensionERC1155 is ERC1155Extension {
     mapping(address => uint256) nextTokenIdToMint;
 
     function initialize() public initializer {}
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
+    function getExtensions() external pure returns (uint256 extensionsImplemented) {
+        extensionsImplemented = BEFORE_MINT_FLAG();
     }
 
     function beforeMint(

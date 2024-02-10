@@ -33,17 +33,20 @@ contract ERC1155Core is
     /// @notice Bits representing the before transfer extension.
     uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
 
+    /// @notice Bits representing the before transfer extension.
+    uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2 ** 3;
+
     /// @notice Bits representing the before burn extension.
-    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 4;
 
     /// @notice Bits representing the before approve extension.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 5;
 
     /// @notice Bits representing the token URI extension.
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 6;
 
     /// @notice Bits representing the royalty extension.
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 7;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -103,6 +106,7 @@ contract ERC1155Core is
         extensions = ERC1155Extensions({
             beforeMint: getExtensionImplementation(BEFORE_MINT_FLAG),
             beforeTransfer: getExtensionImplementation(BEFORE_TRANSFER_FLAG),
+            beforeBatchTransfer: getExtensionImplementation(BEFORE_BATCH_TRANSFER_FLAG),
             beforeBurn: getExtensionImplementation(BEFORE_BURN_FLAG),
             beforeApprove: getExtensionImplementation(BEFORE_APPROVE_FLAG),
             uri: getExtensionImplementation(TOKEN_URI_FLAG),
@@ -214,7 +218,7 @@ contract ERC1155Core is
 
     /**
      *  @notice Transfers ownership of an NFT from one address to another.
-     *  @dev Overriden to call the beforeTransfer hook. Skips calling the hook if it doesn't exist.
+     *  @dev Overriden to call the beforeTransfer extension. Skips calling the extension if it doesn't exist.
      *  @param _from The address to transfer from
      *  @param _to The address to transfer to
      *  @param _tokenIds The token ID of the NFT
@@ -292,6 +296,20 @@ contract ERC1155Core is
 
         if (extension != address(0)) {
             IERC1155Extension(extension).beforeTransfer(_from, _to, _tokenId, _value);
+        }
+    }
+
+    /// @dev Calls the beforeTransfer extension, if installed.
+    function _beforeBatchTransfer(
+        address _from,
+        address _to,
+        uint256[] calldata _tokenIds,
+        uint256[] calldata _values
+    ) internal virtual {
+        address extension = getExtensionImplementation(BEFORE_BATCH_TRANSFER_FLAG);
+
+        if (extension != address(0)) {
+            IERC1155Extension(extension).beforeBatchTransfer(_from, _to, _tokenIds, _values);
         }
     }
 

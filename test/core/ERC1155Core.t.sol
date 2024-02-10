@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import { Test } from "forge-std/Test.sol";
 import { TestPlus } from "../utils/TestPlus.sol";
-import { EmptyHookERC1155 } from "../mocks/EmptyHook.sol";
+import { EmptyExtensionERC1155 } from "../mocks/EmptyExtension.sol";
 
 import { CloneFactory } from "src/infra/CloneFactory.sol";
 import { ERC1155Core, ERC1155Initializable } from "src/core/token/ERC1155Core.sol";
 import { IERC1155 } from "src/interface/eip/IERC1155.sol";
 import { IERC1155CustomErrors } from "src/interface/errors/IERC1155CustomErrors.sol";
 import { IERC1155CoreCustomErrors } from "src/interface/errors/IERC1155CoreCustomErrors.sol";
-import { IHook } from "src/interface/hook/IHook.sol";
+import { IExtension } from "src/interface/extension/IExtension.sol";
 import { IInitCall } from "src/interface/common/IInitCall.sol";
 
 abstract contract ERC1155TokenReceiver {
@@ -141,7 +141,7 @@ contract ERC1155CoreTest is Test, TestPlus {
     CloneFactory public cloneFactory;
 
     address public erc1155Implementation;
-    address public hookProxyAddress;
+    address public extensionProxyAddress;
 
     ERC1155Core public token;
 
@@ -153,8 +153,8 @@ contract ERC1155CoreTest is Test, TestPlus {
         cloneFactory = new CloneFactory();
 
         erc1155Implementation = address(new ERC1155Core());
-        hookProxyAddress = cloneFactory.deployDeterministicERC1967(
-            address(new EmptyHookERC1155()),
+        extensionProxyAddress = cloneFactory.deployDeterministicERC1967(
+            address(new EmptyExtensionERC1155()),
             "",
             bytes32("salt")
         );
@@ -172,7 +172,7 @@ contract ERC1155CoreTest is Test, TestPlus {
             "contractURI://"
         );
         token = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
-        token.installHook(IHook(hookProxyAddress));
+        token.installExtension(IExtension(extensionProxyAddress));
 
         vm.stopPrank();
 
