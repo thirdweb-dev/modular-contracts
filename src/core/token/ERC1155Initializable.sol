@@ -136,7 +136,7 @@ abstract contract ERC1155Initializable is
     ) public virtual {
         ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
 
-        if (msg.sender != _from && data.isApprovedForAll[_from][msg.sender]) {
+        if (msg.sender != _from && !data.isApprovedForAll[_from][msg.sender]) {
             revert ERC1155NotApprovedOrOwner(msg.sender);
         }
 
@@ -224,7 +224,7 @@ abstract contract ERC1155Initializable is
             _to.code.length == 0
                 ? _to == address(0)
                 : IERC1155Receiver(_to).onERC1155Received(msg.sender, address(0), _tokenId, _value, _data) !=
-                    IERC1155Receiver.onERC1155BatchReceived.selector
+                    IERC1155Receiver.onERC1155Received.selector
         ) {
             revert ERC1155UnsafeRecipient(_to);
         }
