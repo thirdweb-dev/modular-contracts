@@ -57,7 +57,7 @@ contract ERC20Core is
      *  @param _defaultAdmin The default admin for the contract.
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
-     *  @param _uri Contract URI.
+     *  @param _contractURI Contract URI.
      */
     function initialize(
         InitCall calldata _initCall,
@@ -65,9 +65,9 @@ contract ERC20Core is
         address _defaultAdmin,
         string memory _name,
         string memory _symbol,
-        string memory _uri
+        string memory _contractURI
     ) external initializer {
-        _setupContractURI(_uri);
+        _setupContractURI(_contractURI);
         __ERC20_init(_name, _symbol);
         _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
 
