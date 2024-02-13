@@ -33,20 +33,20 @@ contract ERC1155Core is
     /// @notice Bits representing the before transfer extension.
     uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
 
-    /// @notice Bits representing the before transfer extension.
-    uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2 ** 3;
-
     /// @notice Bits representing the before burn extension.
-    uint256 public constant BEFORE_BURN_FLAG = 2 ** 4;
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
 
     /// @notice Bits representing the before approve extension.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 5;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice Bits representing the token URI extension.
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 6;
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty extension.
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 7;
+    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+
+    /// @notice Bits representing the before transfer extension.
+    uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2 ** 7;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
