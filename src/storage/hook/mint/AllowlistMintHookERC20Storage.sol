@@ -8,7 +8,7 @@ library AllowlistMintHookERC20Storage {
     /// @custom:storage-location erc7201:allowlist.mint.hook.erc20.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("allowlist.mint.hook.erc20.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant ALLOWLIST_MINT_HOOK_ERC20_STORAGE_POSITION =
-        0x336f58a6f0e0b2c18051f4f629470fae139805913a4eb1c7ab13511dbc867100;
+        0x5717e94652118cb14f547acb0b722d99d7598b88ebdcfe02772b3b691bb2e100;
 
     struct Data {
         /// @notice Mapping from token => the claim conditions for minting the token.

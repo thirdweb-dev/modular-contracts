@@ -9,7 +9,7 @@ library MintHookERC1155Storage {
     /// @custom:storage-location erc7201:mint.hook.erc1155.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("mint.hook.erc1155.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant MINT_HOOK_ERC1155_STORAGE_POSITION =
-        0xeacf12f8ba47a9d625b8c82a802549746123f2fd21b356c8eb7c698d45931300;
+        0xf2f6808e39b972e562f3dacc9e1376d4c56d1c1177b4ec08115a630d0dc1d700;
 
     struct Data {
         /// @notice Mapping from token => token-id => fee config for the token.

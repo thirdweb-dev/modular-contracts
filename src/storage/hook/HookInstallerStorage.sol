@@ -7,7 +7,7 @@ library HookInstallerStorage {
     /// @custom:storage-location erc7201:hook.installer.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("hook.installer.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant HOOK_INSTALLER_STORAGE_POSITION =
-        0xd2fc9476a829f33ae1fdc9a47466a061a6e8e0cf7f5232e2241979d13a3c2a00;
+        0x1f92fde37cbc580c6ce7e24a47f7ccbddcf380202caa25a340ea884cf71d9600;
 
     struct Data {
         /// @notice Bits representing all hooks installed.
