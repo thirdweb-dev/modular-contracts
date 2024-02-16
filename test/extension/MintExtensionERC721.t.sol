@@ -7,16 +7,16 @@ import {MockERC20} from "test/mocks/MockERC20.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
-import {IExtension} from "src/interface/extension/IExtension.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
 
-import {ERC721Core, ExtensionInstaller} from "src/core/token/ERC721Core.sol";
-import {MintExtensionERC721, ERC721Extension} from "src/extension/mint/MintExtensionERC721.sol";
+import {ERC721Core, HookInstaller} from "src/core/token/ERC721Core.sol";
+import {MintHookERC721, ERC721Hook} from "src/hook/mint/MintHookERC721.sol";
 
 import {IMintRequest} from "src/interface/common/IMintRequest.sol";
 import {IClaimCondition} from "src/interface/common/IClaimCondition.sol";
 import {IFeeConfig} from "src/interface/common/IFeeConfig.sol";
 
-contract MintExtensionERC721Test is Test {
+contract MintHookERC721Test is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -31,7 +31,7 @@ contract MintExtensionERC721Test is Test {
 
     // Target test contracts
     ERC721Core public erc721Core;
-    MintExtensionERC721 public mintExtension;
+    MintHookERC721 public MintHook;
 
     // Test params
     uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
@@ -50,29 +50,29 @@ contract MintExtensionERC721Test is Test {
     /// @notice Emitted when the claim condition for a given token is updated.
     event ClaimConditionUpdate(address indexed token, IClaimCondition.ClaimCondition condition, bool resetEligibility);
 
-    function _setupDomainSeparator(address _mintExtension) internal {
-        bytes32 nameHash = keccak256(bytes("MintExtensionERC721"));
+    function _setupDomainSeparator(address _MintHook) internal {
+        bytes32 nameHash = keccak256(bytes("MintHookERC721"));
         bytes32 versionHash = keccak256(bytes("1"));
         bytes32 typehashEip712 =
             keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-        domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, _mintExtension));
+        domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, _MintHook));
     }
 
     function setUp() public {
         developer = vm.addr(developerPKey);
 
-        // Platform deploys mint extension.
+        // Platform deploys mint hook.
 
         vm.startPrank(platformAdmin);
 
-        address mintExtensionImpl = address(new MintExtensionERC721());
+        address MintHookImpl = address(new MintHookERC721());
 
         bytes memory initData = abi.encodeWithSelector(
-            MintExtensionERC721.initialize.selector,
+            MintHookERC721.initialize.selector,
             platformAdmin // upgradeAdmin
         );
-        address mintExtensionProxy = address(new EIP1967Proxy(mintExtensionImpl, initData));
-        mintExtension = MintExtensionERC721(mintExtensionProxy);
+        address MintHookProxy = address(new EIP1967Proxy(MintHookImpl, initData));
+        MintHook = MintHookERC721(MintHookProxy);
 
         // Platform deploys ERC721 core implementation and clone factory.
         address erc721CoreImpl = address(new ERC721Core());
@@ -80,20 +80,20 @@ contract MintExtensionERC721Test is Test {
 
         vm.stopPrank();
 
-        // Setup domain separator of mint extension for signature minting.
-        _setupDomainSeparator(mintExtensionProxy);
+        // Setup domain separator of mint hook for signature minting.
+        _setupDomainSeparator(MintHookProxy);
 
-        // Developer deploys proxy for ERC721 core with MintExtensionERC721 preinstalled.
+        // Developer deploys proxy for ERC721 core with MintHookERC721 preinstalled.
         vm.startPrank(developer);
 
         ERC721Core.InitCall memory initCall;
-        address[] memory preinstallExtensions = new address[](1);
-        preinstallExtensions[0] = address(mintExtension);
+        address[] memory preinstallHooks = new address[](1);
+        preinstallHooks[0] = address(MintHook);
 
         bytes memory erc721InitData = abi.encodeWithSelector(
             ERC721Core.initialize.selector,
             initCall,
-            preinstallExtensions,
+            preinstallHooks,
             developer, // core contract admin
             "Test ERC721",
             "TST",
@@ -126,8 +126,8 @@ contract MintExtensionERC721Test is Test {
         vm.label(endUser, "Claimer");
 
         vm.label(address(erc721Core), "ERC721Core");
-        vm.label(address(mintExtensionImpl), "MintExtensionERC721");
-        vm.label(mintExtensionProxy, "ProxyMintExtensionERC721");
+        vm.label(address(MintHookImpl), "MintHookERC721");
+        vm.label(MintHookProxy, "ProxyMintHookERC721");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -154,10 +154,10 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
-        IClaimCondition.ClaimCondition memory conditionStored = mintExtension.getClaimCondition(address(erc721Core));
+        IClaimCondition.ClaimCondition memory conditionStored = MintHook.getClaimCondition(address(erc721Core));
 
         assertEq(condition.startTimestamp, conditionStored.startTimestamp);
         assertEq(condition.endTimestamp, conditionStored.endTimestamp);
@@ -188,7 +188,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // End user claims 5 tokens.
@@ -213,7 +213,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.mint{value: condition.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
 
         assertEq(erc721Core.balanceOf(endUser), 5);
-        assertEq(mintExtension.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
+        assertEq(MintHook.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
 
         // Developer sets new claim condition and resets claim eligibility of all wallets.
         IClaimCondition.ClaimCondition memory newCondition = condition;
@@ -223,12 +223,12 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, newCondition, true)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, newCondition, true)
         );
 
-        assertEq(mintExtension.getClaimCondition(address(erc721Core)).supplyClaimed, 0); // since claim eligibility is reset
-        assertEq(mintExtension.getSupplyClaimedByWallet(address(erc721Core), endUser), 0);
-        assertEq(mintExtension.getClaimCondition(address(erc721Core)).metadata, newCondition.metadata);
+        assertEq(MintHook.getClaimCondition(address(erc721Core)).supplyClaimed, 0); // since claim eligibility is reset
+        assertEq(MintHook.getSupplyClaimedByWallet(address(erc721Core), endUser), 0);
+        assertEq(MintHook.getClaimCondition(address(erc721Core)).metadata, newCondition.metadata);
     }
 
     function test_setClaimCondition_state_updateCurrentCondition() public {
@@ -249,7 +249,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // End user claims 5 tokens.
@@ -274,7 +274,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.mint{value: condition.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
 
         assertEq(erc721Core.balanceOf(endUser), 5);
-        assertEq(mintExtension.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
+        assertEq(MintHook.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
 
         // Developer updates current condition by not resettting claim eligibility of all wallets.
         IClaimCondition.ClaimCondition memory newCondition = condition;
@@ -284,12 +284,12 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
-        assertEq(mintExtension.getClaimCondition(address(erc721Core)).supplyClaimed, 5); // since claim eligibility is reset
-        assertEq(mintExtension.getSupplyClaimedByWallet(address(erc721Core), endUser), 5);
-        assertEq(mintExtension.getClaimCondition(address(erc721Core)).metadata, newCondition.metadata);
+        assertEq(MintHook.getClaimCondition(address(erc721Core)).supplyClaimed, 5); // since claim eligibility is reset
+        assertEq(MintHook.getSupplyClaimedByWallet(address(erc721Core), endUser), 5);
+        assertEq(MintHook.getClaimCondition(address(erc721Core)).metadata, newCondition.metadata);
     }
 
     function test_setClaimCondition_revert_notAdminOfToken() public {
@@ -306,11 +306,11 @@ contract MintExtensionERC721Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
     }
 
@@ -332,7 +332,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // End user claims 5 tokens.
@@ -357,7 +357,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.mint{value: condition.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
 
         assertEq(erc721Core.balanceOf(endUser), 5);
-        assertEq(mintExtension.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
+        assertEq(MintHook.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
 
         // Developer sets new claim condition and resets claim eligibility of all wallets.
         IClaimCondition.ClaimCondition memory newCondition = condition;
@@ -365,11 +365,11 @@ contract MintExtensionERC721Test is Test {
         newCondition.maxClaimableSupply = 4;
 
         vm.prank(developer);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionMaxSupplyClaimed.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookMaxSupplyClaimed.selector));
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
     }
 
@@ -394,7 +394,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
     }
 
@@ -410,10 +410,10 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
-        IFeeConfig.FeeConfig memory feeConfigStored = mintExtension.getDefaultFeeConfig(address(erc721Core));
+        IFeeConfig.FeeConfig memory feeConfigStored = MintHook.getDefaultFeeConfig(address(erc721Core));
 
         assertEq(feeConfig.primarySaleRecipient, feeConfigStored.primarySaleRecipient);
         assertEq(feeConfig.platformFeeRecipient, feeConfigStored.platformFeeRecipient);
@@ -456,10 +456,10 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
-        IFeeConfig.FeeConfig memory feeConfigStored = mintExtension.getDefaultFeeConfig(address(erc721Core));
+        IFeeConfig.FeeConfig memory feeConfigStored = MintHook.getDefaultFeeConfig(address(erc721Core));
 
         assertEq(feeConfig.primarySaleRecipient, feeConfigStored.primarySaleRecipient);
         assertEq(feeConfig.platformFeeRecipient, feeConfigStored.platformFeeRecipient);
@@ -498,10 +498,10 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setFeeConfigForToken.selector, 1, specialFeeConfig)
+            abi.encodeWithSelector(MintHookERC721.setFeeConfigForToken.selector, 1, specialFeeConfig)
         );
 
-        IFeeConfig.FeeConfig memory specialFeeConfigStored = mintExtension.getFeeConfigForToken(address(erc721Core), 1);
+        IFeeConfig.FeeConfig memory specialFeeConfigStored = MintHook.getFeeConfigForToken(address(erc721Core), 1);
 
         assertEq(specialFeeConfig.primarySaleRecipient, specialFeeConfigStored.primarySaleRecipient);
         assertEq(specialFeeConfig.platformFeeRecipient, specialFeeConfigStored.platformFeeRecipient);
@@ -529,9 +529,9 @@ contract MintExtensionERC721Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
     }
 
@@ -557,7 +557,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // End user claims 5 tokens.
@@ -579,7 +579,7 @@ contract MintExtensionERC721Test is Test {
         vm.prank(endUser);
         vm.expectRevert(
             abi.encodeWithSelector(
-                MintExtensionERC721.MintExtensionInvalidPrice.selector,
+                MintHookERC721.MintHookInvalidPrice.selector,
                 condition.pricePerToken * req.quantity,
                 condition.pricePerToken * req.quantity - 1
             )
@@ -605,7 +605,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // End user claims 5 tokens.
@@ -625,7 +625,7 @@ contract MintExtensionERC721Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionInvalidPrice.selector, 0, 1 wei));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidPrice.selector, 0, 1 wei));
         erc721Core.mint{value: 1 wei}(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -649,7 +649,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -661,12 +661,12 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
 
-        assertEq(mintExtension.getNextTokenIdToMint(address(erc721Core)), 0);
+        assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 0);
         assertEq(erc721Core.balanceOf(endUser), 0);
         assertEq(erc721Core.totalSupply(), 0);
 
@@ -694,12 +694,12 @@ contract MintExtensionERC721Test is Test {
 
         currency.mint(endUser, 100 ether);
         vm.prank(endUser);
-        currency.approve(address(mintExtension), condition.pricePerToken * 5);
+        currency.approve(address(MintHook), condition.pricePerToken * 5);
 
         vm.prank(endUser);
         erc721Core.mint(req.minter, req.quantity, abi.encode(req));
 
-        assertEq(mintExtension.getNextTokenIdToMint(address(erc721Core)), 5);
+        assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 5);
         assertEq(erc721Core.balanceOf(endUser), 5);
         assertEq(erc721Core.totalSupply(), 5);
 
@@ -729,7 +729,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -741,12 +741,12 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
 
-        assertEq(mintExtension.getNextTokenIdToMint(address(erc721Core)), 0);
+        assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 0);
         assertEq(erc721Core.balanceOf(endUser), 0);
         assertEq(erc721Core.totalSupply(), 0);
 
@@ -775,7 +775,7 @@ contract MintExtensionERC721Test is Test {
         vm.prank(endUser);
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
 
-        assertEq(mintExtension.getNextTokenIdToMint(address(erc721Core)), 5);
+        assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 5);
         assertEq(erc721Core.balanceOf(endUser), 5);
         assertEq(erc721Core.totalSupply(), 5);
 
@@ -805,7 +805,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -817,7 +817,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -837,7 +837,7 @@ contract MintExtensionERC721Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionNotToken.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookNotToken.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(endUser, req.quantity, abi.encode(req));
     }
 
@@ -859,7 +859,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -871,7 +871,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -891,7 +891,7 @@ contract MintExtensionERC721Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionInvalidRecipient.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidRecipient.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(endUser, req.quantity, abi.encode(req));
     }
 
@@ -913,7 +913,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -925,7 +925,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -946,7 +946,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(
-            abi.encodeWithSelector(MintExtensionERC721.MintExtensionInvalidQuantity.selector, req.quantity - 1)
+            abi.encodeWithSelector(MintHookERC721.MintHookInvalidQuantity.selector, req.quantity - 1)
         );
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity - 1, abi.encode(req));
     }
@@ -969,7 +969,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -981,7 +981,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -1001,7 +1001,7 @@ contract MintExtensionERC721Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionMintNotStarted.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookMintNotStarted.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -1023,7 +1023,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -1035,7 +1035,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -1057,7 +1057,7 @@ contract MintExtensionERC721Test is Test {
         vm.warp(condition.endTimestamp);
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionMintEnded.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookMintEnded.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -1079,7 +1079,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -1091,7 +1091,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -1111,7 +1111,7 @@ contract MintExtensionERC721Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionNotInAllowlist.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookNotInAllowlist.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -1133,7 +1133,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -1145,7 +1145,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -1167,7 +1167,7 @@ contract MintExtensionERC721Test is Test {
         vm.prank(endUser);
         vm.expectRevert(
             abi.encodeWithSelector(
-                MintExtensionERC721.MintExtensionInvalidCurrency.selector, condition.currency, req.currency
+                MintHookERC721.MintHookInvalidCurrency.selector, condition.currency, req.currency
             )
         );
         erc721Core.mint(req.minter, req.quantity, abi.encode(req));
@@ -1191,7 +1191,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -1203,7 +1203,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -1225,7 +1225,7 @@ contract MintExtensionERC721Test is Test {
         vm.prank(endUser);
         vm.expectRevert(
             abi.encodeWithSelector(
-                MintExtensionERC721.MintExtensionInvalidPrice.selector, condition.pricePerToken, req.pricePerToken
+                MintHookERC721.MintHookInvalidPrice.selector, condition.pricePerToken, req.pricePerToken
             )
         );
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
@@ -1249,7 +1249,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -1261,7 +1261,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -1283,13 +1283,13 @@ contract MintExtensionERC721Test is Test {
         req.quantity = condition.quantityLimitPerWallet + 1;
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionInvalidQuantity.selector, req.quantity));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidQuantity.selector, req.quantity));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
 
         req.quantity = 0;
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionInvalidQuantity.selector, req.quantity));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidQuantity.selector, req.quantity));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -1311,7 +1311,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             BEFORE_MINT_FLAG,
             0,
-            abi.encodeWithSelector(MintExtensionERC721.setClaimCondition.selector, condition, false)
+            abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
         );
 
         // Developer sets fee config
@@ -1323,7 +1323,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // End user claims 5 tokens.
@@ -1348,7 +1348,7 @@ contract MintExtensionERC721Test is Test {
         req.minter = developer;
 
         vm.prank(developer);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionMaxSupplyClaimed.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookMaxSupplyClaimed.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(developer, req.quantity, abi.encode(req));
     }
 
@@ -1388,7 +1388,7 @@ contract MintExtensionERC721Test is Test {
         MockERC20 currency = new MockERC20();
         currency.mint(endUser, 100 ether);
         vm.prank(endUser);
-        currency.approve(address(mintExtension), 100 ether);
+        currency.approve(address(MintHook), 100 ether);
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -1399,7 +1399,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // Sign mint request
@@ -1420,7 +1420,7 @@ contract MintExtensionERC721Test is Test {
         bytes memory sig = _signMintRequest(req, developerPKey);
         req.permissionSignature = sig;
 
-        assertEq(mintExtension.getNextTokenIdToMint(address(erc721Core)), 0);
+        assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 0);
         assertEq(erc721Core.balanceOf(endUser), 0);
         assertEq(erc721Core.totalSupply(), 0);
 
@@ -1435,7 +1435,7 @@ contract MintExtensionERC721Test is Test {
         vm.prank(endUser);
         erc721Core.mint(req.minter, req.quantity, abi.encode(req));
 
-        assertEq(mintExtension.getNextTokenIdToMint(address(erc721Core)), 5);
+        assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 5);
         assertEq(erc721Core.balanceOf(endUser), 5);
         assertEq(erc721Core.totalSupply(), 5);
 
@@ -1457,7 +1457,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // Sign mint request
@@ -1478,7 +1478,7 @@ contract MintExtensionERC721Test is Test {
         bytes memory sig = _signMintRequest(req, developerPKey);
         req.permissionSignature = sig;
 
-        assertEq(mintExtension.getNextTokenIdToMint(address(erc721Core)), 0);
+        assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 0);
         assertEq(erc721Core.balanceOf(endUser), 0);
         assertEq(erc721Core.totalSupply(), 0);
 
@@ -1493,7 +1493,7 @@ contract MintExtensionERC721Test is Test {
         vm.prank(endUser);
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
 
-        assertEq(mintExtension.getNextTokenIdToMint(address(erc721Core)), 5);
+        assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 5);
         assertEq(erc721Core.balanceOf(endUser), 5);
         assertEq(erc721Core.totalSupply(), 5);
 
@@ -1515,7 +1515,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // Sign mint request
@@ -1537,7 +1537,7 @@ contract MintExtensionERC721Test is Test {
         req.permissionSignature = sig;
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionInvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidSignature.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -1551,7 +1551,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // Sign mint request
@@ -1575,7 +1575,7 @@ contract MintExtensionERC721Test is Test {
         vm.warp(req.sigValidityEndTimestamp);
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookRequestExpired.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -1589,7 +1589,7 @@ contract MintExtensionERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // Sign mint request
@@ -1614,7 +1614,7 @@ contract MintExtensionERC721Test is Test {
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC721.MintExtensionRequestUsed.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookRequestUsed.selector));
         erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
     }
 }

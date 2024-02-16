@@ -6,10 +6,10 @@ import {Test} from "forge-std/Test.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
-import {ERC721Core, ExtensionInstaller} from "src/core/token/ERC721Core.sol";
-import {RoyaltyExtension} from "src/extension/royalty/RoyaltyExtension.sol";
+import {ERC721Core, HookInstaller} from "src/core/token/ERC721Core.sol";
+import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
 
-contract RoyaltyExtensionTest is Test {
+contract RoyaltyHookTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -21,20 +21,20 @@ contract RoyaltyExtensionTest is Test {
 
     // Target test contracts
     ERC721Core public erc721Core;
-    RoyaltyExtension public royaltyExtension;
+    RoyaltyHook public royaltyHook;
 
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
     function setUp() public {
-        // Platform deploys metadata extension.
-        address royaltyExtensionImpl = address(new RoyaltyExtension());
+        // Platform deploys metadata hook.
+        address royaltyHookImpl = address(new RoyaltyHook());
 
         bytes memory initData = abi.encodeWithSelector(
-            RoyaltyExtension.initialize.selector,
+            RoyaltyHook.initialize.selector,
             platformAdmin // upgradeAdmin
         );
-        address royaltyExtensionProxy = address(new EIP1967Proxy(royaltyExtensionImpl, initData));
-        royaltyExtension = RoyaltyExtension(royaltyExtensionProxy);
+        address royaltyHookProxy = address(new EIP1967Proxy(royaltyHookImpl, initData));
+        royaltyHook = RoyaltyHook(royaltyHookProxy);
 
         // Platform deploys ERC721 core implementation and clone factory.
         address erc721CoreImpl = address(new ERC721Core());
@@ -43,13 +43,13 @@ contract RoyaltyExtensionTest is Test {
         vm.startPrank(developer);
 
         ERC721Core.InitCall memory initCall;
-        address[] memory preinstallExtensions = new address[](1);
-        preinstallExtensions[0] = address(royaltyExtension);
+        address[] memory preinstallHooks = new address[](1);
+        preinstallHooks[0] = address(royaltyHook);
 
         bytes memory erc721InitData = abi.encodeWithSelector(
             ERC721Core.initialize.selector,
             initCall,
-            preinstallExtensions,
+            preinstallHooks,
             developer, // core contract admin
             "Test ERC721",
             "TST",
@@ -67,8 +67,8 @@ contract RoyaltyExtensionTest is Test {
         vm.label(endUser, "Claimer");
 
         vm.label(address(erc721Core), "ERC721Core");
-        vm.label(address(royaltyExtensionImpl), "RoyaltyExtension");
-        vm.label(royaltyExtensionProxy, "ProxyRoyaltyExtension");
+        vm.label(address(royaltyHookImpl), "royaltyHook");
+        vm.label(royaltyHookProxy, "ProxyRoyaltyHook");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -83,17 +83,17 @@ contract RoyaltyExtensionTest is Test {
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
             0,
-            abi.encodeWithSelector(RoyaltyExtension.setDefaultRoyaltyInfo.selector, recipient, bps)
+            abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
 
-        (address _recipient, uint256 _bps) = royaltyExtension.getDefaultRoyaltyInfo(address(erc721Core));
+        (address _recipient, uint256 _bps) = royaltyHook.getDefaultRoyaltyInfo(address(erc721Core));
         assertEq(_recipient, recipient);
         assertEq(_bps, bps);
 
         uint256 price = 1 ether;
 
         vm.prank(address(erc721Core));
-        (address receiver, uint256 royaltyAmount) = royaltyExtension.royaltyInfo(0, price);
+        (address receiver, uint256 royaltyAmount) = royaltyHook.royaltyInfo(0, price);
 
         assertEq(receiver, recipient);
         assertEq(royaltyAmount, (price * bps) / 10_000);
@@ -104,11 +104,11 @@ contract RoyaltyExtensionTest is Test {
         uint256 bps = 100_000; // 1000%
 
         vm.prank(developer);
-        vm.expectRevert(abi.encodeWithSelector(RoyaltyExtension.RoyaltyExtensionExceedsMaxBps.selector));
+        vm.expectRevert(abi.encodeWithSelector(RoyaltyHook.RoyaltyHookExceedsMaxBps.selector));
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
             0,
-            abi.encodeWithSelector(RoyaltyExtension.setDefaultRoyaltyInfo.selector, recipient, bps)
+            abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
     }
 
@@ -116,11 +116,11 @@ contract RoyaltyExtensionTest is Test {
         address recipient = address(0x121212);
         uint256 bps = 1000; // 10%
 
-        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
             0,
-            abi.encodeWithSelector(RoyaltyExtension.setDefaultRoyaltyInfo.selector, recipient, bps)
+            abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
     }
 
@@ -134,17 +134,17 @@ contract RoyaltyExtensionTest is Test {
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
             0,
-            abi.encodeWithSelector(RoyaltyExtension.setDefaultRoyaltyInfo.selector, recipient, bps)
+            abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
 
-        (address _recipient, uint256 _bps) = royaltyExtension.getDefaultRoyaltyInfo(address(erc721Core));
+        (address _recipient, uint256 _bps) = royaltyHook.getDefaultRoyaltyInfo(address(erc721Core));
         assertEq(_recipient, recipient);
         assertEq(_bps, bps);
 
         uint256 price = 1 ether;
 
         vm.prank(address(erc721Core));
-        (address receiver, uint256 royaltyAmount) = royaltyExtension.royaltyInfo(tokenId, price);
+        (address receiver, uint256 royaltyAmount) = royaltyHook.royaltyInfo(tokenId, price);
 
         assertEq(receiver, recipient);
         assertEq(royaltyAmount, (price * bps) / 10_000);
@@ -157,12 +157,12 @@ contract RoyaltyExtensionTest is Test {
             ROYALTY_INFO_FLAG,
             0,
             abi.encodeWithSelector(
-                RoyaltyExtension.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
+                royaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
             )
         );
 
         vm.prank(address(erc721Core));
-        (receiver, royaltyAmount) = royaltyExtension.royaltyInfo(tokenId, price);
+        (receiver, royaltyAmount) = royaltyHook.royaltyInfo(tokenId, price);
 
         assertEq(receiver, overrideRecipient);
         assertEq(royaltyAmount, (price * overrideBps) / 10_000);
@@ -175,12 +175,12 @@ contract RoyaltyExtensionTest is Test {
         uint256 overrideBps = 100_000; // 1000%
 
         vm.prank(developer);
-        vm.expectRevert(abi.encodeWithSelector(RoyaltyExtension.RoyaltyExtensionExceedsMaxBps.selector));
+        vm.expectRevert(abi.encodeWithSelector(RoyaltyHook.RoyaltyHookExceedsMaxBps.selector));
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
             0,
             abi.encodeWithSelector(
-                RoyaltyExtension.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
+                RoyaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
             )
         );
     }
@@ -191,12 +191,12 @@ contract RoyaltyExtensionTest is Test {
         address overrideRecipient = address(0x13131313);
         uint256 overrideBps = 5000; // 50%
 
-        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
             0,
             abi.encodeWithSelector(
-                RoyaltyExtension.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
+                RoyaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
             )
         );
     }

@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
-import {EmptyExtensionERC20} from "../mocks/EmptyExtension.sol";
+import {EmptyHookERC20} from "../mocks/EmptyHook.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC20Core, ERC20Initializable} from "src/core/token/ERC20Core.sol";
 import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IERC20CustomErrors} from "src/interface/errors/IERC20CustomErrors.sol";
 import {IERC20CoreCustomErrors} from "src/interface/errors/IERC20CoreCustomErrors.sol";
-import {IExtension} from "src/interface/extension/IExtension.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
 import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
@@ -48,7 +48,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
     // Target test contracts
     address public erc20Implementation;
-    address public extensionProxyAddress;
+    address public hookProxyAddress;
 
     ERC20Core public token;
 
@@ -56,8 +56,8 @@ contract ERC20CoreTest is Test, TestPlus {
         cloneFactory = new CloneFactory();
 
         erc20Implementation = address(new ERC20Core());
-        extensionProxyAddress =
-            cloneFactory.deployDeterministicERC1967(address(new EmptyExtensionERC20()), "", bytes32("salt"));
+        hookProxyAddress =
+            cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC20()), "", bytes32("salt"));
 
         vm.startPrank(admin);
 
@@ -66,7 +66,7 @@ contract ERC20CoreTest is Test, TestPlus {
             ERC20Core.initialize.selector, initCall, new address[](0), admin, "Token", "TKN", "contractURI://"
         );
         token = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
-        token.installExtension(IExtension(extensionProxyAddress));
+        token.installHook(IHook(hookProxyAddress));
 
         vm.stopPrank();
 

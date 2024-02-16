@@ -6,23 +6,23 @@ import {Test} from "forge-std/Test.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
-import {IExtension} from "src/interface/extension/IExtension.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
-import {AllowlistMintExtensionERC20, ERC20Extension} from "src/extension/mint/AllowlistMintExtensionERC20.sol";
-import {AllowlistMintExtensionERC721, ERC721Extension} from "src/extension/mint/AllowlistMintExtensionERC721.sol";
-import {AllowlistMintExtensionERC1155, ERC1155Extension} from "src/extension/mint/AllowlistMintExtensionERC1155.sol";
+import {AllowlistMintHookERC20, ERC20Hook} from "src/hook/mint/AllowlistMintHookERC20.sol";
+import {AllowlistMintHookERC721, ERC721Hook} from "src/hook/mint/AllowlistMintHookERC721.sol";
+import {AllowlistMintHookERC1155, ERC1155Hook} from "src/hook/mint/AllowlistMintHookERC1155.sol";
 
 import {
-    BuggyAllowlistMintExtensionERC20,
-    BuggyAllowlistMintExtensionERC721,
-    BuggyAllowlistMintExtensionERC1155
-} from "test/mocks/BuggyAllowlistMintExtension.sol";
+    BuggyAllowlistMintHookERC20,
+    BuggyAllowlistMintHookERC721,
+    BuggyAllowlistMintHookERC1155
+} from "test/mocks/BuggyAllowlistMintHook.sol";
 
-contract ExtensionUpgradesTest is Test {
+contract HookUpgradesTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -37,17 +37,17 @@ contract ExtensionUpgradesTest is Test {
     ERC721Core public erc721Core;
     ERC1155Core public erc1155Core;
 
-    address public mintExtensionERC20Proxy;
-    address public mintExtensionERC721Proxy;
-    address public mintExtensionERC1155Proxy;
+    address public MintHookERC20Proxy;
+    address public MintHookERC721Proxy;
+    address public MintHookERC1155Proxy;
 
-    BuggyAllowlistMintExtensionERC20 public buggyMintExtensionERC20Impl;
-    BuggyAllowlistMintExtensionERC721 public buggyMintExtensionERC721Impl;
-    BuggyAllowlistMintExtensionERC1155 public buggyMintExtensionERC1155Impl;
+    BuggyAllowlistMintHookERC20 public buggyMintHookERC20Impl;
+    BuggyAllowlistMintHookERC721 public buggyMintHookERC721Impl;
+    BuggyAllowlistMintHookERC1155 public buggyMintHookERC1155Impl;
 
-    AllowlistMintExtensionERC20 public MintExtensionERC20Impl;
-    AllowlistMintExtensionERC721 public MintExtensionERC721Impl;
-    AllowlistMintExtensionERC1155 public MintExtensionERC1155Impl;
+    AllowlistMintHookERC20 public MintHookERC20Impl;
+    AllowlistMintHookERC721 public MintHookERC721Impl;
+    AllowlistMintHookERC1155 public MintHookERC1155Impl;
 
     // Token claim params
     uint256 public pricePerToken = 1 ether;
@@ -57,23 +57,23 @@ contract ExtensionUpgradesTest is Test {
     bytes public encodedAllowlistProof;
 
     function setUp() public {
-        // Platform deploys extension implementations
-        buggyMintExtensionERC20Impl = new BuggyAllowlistMintExtensionERC20();
-        buggyMintExtensionERC721Impl = new BuggyAllowlistMintExtensionERC721();
-        buggyMintExtensionERC1155Impl = new BuggyAllowlistMintExtensionERC1155();
+        // Platform deploys hook implementations
+        buggyMintHookERC20Impl = new BuggyAllowlistMintHookERC20();
+        buggyMintHookERC721Impl = new BuggyAllowlistMintHookERC721();
+        buggyMintHookERC1155Impl = new BuggyAllowlistMintHookERC1155();
 
-        MintExtensionERC20Impl = new AllowlistMintExtensionERC20();
-        MintExtensionERC721Impl = new AllowlistMintExtensionERC721();
-        MintExtensionERC1155Impl = new AllowlistMintExtensionERC1155();
+        MintHookERC20Impl = new AllowlistMintHookERC20();
+        MintHookERC721Impl = new AllowlistMintHookERC721();
+        MintHookERC1155Impl = new AllowlistMintHookERC1155();
 
-        // Platform deploys proxy pointing to extensions. Starts out with using buggy extensions.
-        bytes memory extensionInitData = abi.encodeWithSelector(
-            AllowlistMintExtensionERC20.initialize.selector,
+        // Platform deploys proxy pointing to hooks. Starts out with using buggy hooks.
+        bytes memory hookInitData = abi.encodeWithSelector(
+            AllowlistMintHookERC20.initialize.selector,
             platformAdmin // upgradeAdmin
         );
-        mintExtensionERC20Proxy = address(new EIP1967Proxy(address(buggyMintExtensionERC20Impl), extensionInitData));
-        mintExtensionERC721Proxy = address(new EIP1967Proxy(address(buggyMintExtensionERC721Impl), extensionInitData));
-        mintExtensionERC1155Proxy = address(new EIP1967Proxy(address(buggyMintExtensionERC1155Impl), extensionInitData));
+        MintHookERC20Proxy = address(new EIP1967Proxy(address(buggyMintHookERC20Impl), hookInitData));
+        MintHookERC721Proxy = address(new EIP1967Proxy(address(buggyMintHookERC721Impl), hookInitData));
+        MintHookERC1155Proxy = address(new EIP1967Proxy(address(buggyMintHookERC1155Impl), hookInitData));
 
         // Deploy core contracts
         CloneFactory cloneFactory = new CloneFactory();
@@ -108,24 +108,24 @@ contract ExtensionUpgradesTest is Test {
         vm.label(address(erc721Core), "ERC721Core");
         vm.label(address(erc1155Core), "ERC1155Core");
 
-        vm.label(mintExtensionERC20Proxy, "ProxyMintExtensionERC20");
-        vm.label(mintExtensionERC721Proxy, "ProxyMintExtensionERC721");
-        vm.label(mintExtensionERC1155Proxy, "ProxyMintExtensionERC1155");
+        vm.label(MintHookERC20Proxy, "ProxyMintHookERC20");
+        vm.label(MintHookERC721Proxy, "ProxyMintHookERC721");
+        vm.label(MintHookERC1155Proxy, "ProxyMintHookERC1155");
 
-        vm.label(address(buggyMintExtensionERC20Impl), "BuggyMintExtensionERC20");
-        vm.label(address(buggyMintExtensionERC721Impl), "BuggyMintExtensionERC721");
-        vm.label(address(buggyMintExtensionERC1155Impl), "BuggyMintExtensionERC1155");
+        vm.label(address(buggyMintHookERC20Impl), "BuggyMintHookERC20");
+        vm.label(address(buggyMintHookERC721Impl), "BuggyMintHookERC721");
+        vm.label(address(buggyMintHookERC1155Impl), "BuggyMintHookERC1155");
 
-        vm.label(address(MintExtensionERC20Impl), "AllowlistMintExtensionERC20");
-        vm.label(address(MintExtensionERC721Impl), "AllowlistMintExtensionERC721");
-        vm.label(address(MintExtensionERC1155Impl), "AllowlistMintExtensionERC1155");
+        vm.label(address(MintHookERC20Impl), "AllowlistMintHookERC20");
+        vm.label(address(MintHookERC721Impl), "AllowlistMintHookERC721");
+        vm.label(address(MintHookERC1155Impl), "AllowlistMintHookERC1155");
 
-        // Developer installs extensions.
+        // Developer installs hooks.
         vm.startPrank(developer);
 
-        erc20Core.installExtension(IExtension(mintExtensionERC20Proxy));
-        erc721Core.installExtension(IExtension(mintExtensionERC721Proxy));
-        erc1155Core.installExtension(IExtension(mintExtensionERC1155Proxy));
+        erc20Core.installHook(IHook(MintHookERC20Proxy));
+        erc721Core.installHook(IHook(MintHookERC721Proxy));
+        erc1155Core.installHook(IHook(MintHookERC1155Proxy));
 
         vm.stopPrank();
 
@@ -138,56 +138,56 @@ contract ExtensionUpgradesTest is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintExtensionERC20.ClaimCondition memory conditionERC20 = AllowlistMintExtensionERC20.ClaimCondition({
+        AllowlistMintHookERC20.ClaimCondition memory conditionERC20 = AllowlistMintHookERC20.ClaimCondition({
             price: pricePerToken,
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-        AllowlistMintExtensionERC721.ClaimCondition memory conditionERC721 = AllowlistMintExtensionERC721.ClaimCondition({
+        AllowlistMintHookERC721.ClaimCondition memory conditionERC721 = AllowlistMintHookERC721.ClaimCondition({
             price: pricePerToken,
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-        AllowlistMintExtensionERC1155.ClaimCondition memory conditionERC1155 = AllowlistMintExtensionERC1155
+        AllowlistMintHookERC1155.ClaimCondition memory conditionERC1155 = AllowlistMintHookERC1155
             .ClaimCondition({price: pricePerToken, availableSupply: availableSupply, allowlistMerkleRoot: root});
 
         vm.startPrank(developer);
         erc20Core.hookFunctionWrite(
             erc20Core.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC20.setClaimCondition.selector, conditionERC20)
+            abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, conditionERC20)
         );
         erc721Core.hookFunctionWrite(
             erc721Core.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, conditionERC721)
+            abi.encodeWithSelector(AllowlistMintHookERC721.setClaimCondition.selector, conditionERC721)
         );
         erc1155Core.hookFunctionWrite(
             erc1155Core.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC1155.setClaimCondition.selector, 0, conditionERC1155)
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, conditionERC1155)
         );
         vm.stopPrank();
 
         // Developer sets fee config; sets self as primary sale recipient
-        AllowlistMintExtensionERC20.FeeConfig memory feeConfig;
+        AllowlistMintHookERC20.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = developer;
 
         vm.startPrank(developer);
         erc20Core.hookFunctionWrite(
             erc20Core.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+            abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig)
         );
         erc721Core.hookFunctionWrite(
             erc721Core.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            abi.encodeWithSelector(AllowlistMintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
         erc1155Core.hookFunctionWrite(
             erc1155Core.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC1155.setDefaultFeeConfig.selector, feeConfig)
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
         );
         vm.stopPrank();
 
@@ -207,10 +207,10 @@ contract ExtensionUpgradesTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_upgrade_erc20Core() public {
-        assertEq(erc20Core.getAllExtensions().beforeMint, mintExtensionERC20Proxy);
+        assertEq(erc20Core.getAllHooks().beforeMint, MintHookERC20Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(
-            AllowlistMintExtensionERC20(mintExtensionERC20Proxy).getClaimCondition(address(erc20Core)).price,
+            AllowlistMintHookERC20(MintHookERC20Proxy).getClaimCondition(address(erc20Core)).price,
             pricePerToken
         );
 
@@ -218,7 +218,7 @@ contract ExtensionUpgradesTest is Test {
 
         // Claim token
 
-        assertEq(mintExtensionERC20Proxy.balance, 0);
+        assertEq(MintHookERC20Proxy.balance, 0);
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether);
 
@@ -226,37 +226,37 @@ contract ExtensionUpgradesTest is Test {
         erc20Core.mint{value: pricePerToken}(endUser, 1 ether, encodedAllowlistProof);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
-        //      Money stuck in extension contract.
-        assertEq(mintExtensionERC20Proxy.balance, pricePerToken);
+        //      Money stuck in hook contract.
+        assertEq(MintHookERC20Proxy.balance, pricePerToken);
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether - pricePerToken);
 
-        // Platform upgrades extension implementation to fix this bug.
+        // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(ERC20Extension.ERC20UnauthorizedUpgrade.selector));
-        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).upgradeToAndCall(
-            address(MintExtensionERC20Impl), bytes("")
+        vm.expectRevert(abi.encodeWithSelector(ERC20Hook.ERC20UnauthorizedUpgrade.selector));
+        AllowlistMintHookERC20(MintHookERC20Proxy).upgradeToAndCall(
+            address(MintHookERC20Impl), bytes("")
         );
 
         vm.prank(platformAdmin);
-        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).upgradeToAndCall(
-            address(MintExtensionERC20Impl), bytes("")
+        AllowlistMintHookERC20(MintHookERC20Proxy).upgradeToAndCall(
+            address(MintHookERC20Impl), bytes("")
         );
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
         erc20Core.mint{value: pricePerToken}(endUser, 1 ether, encodedAllowlistProof);
 
-        assertEq(mintExtensionERC20Proxy.balance, pricePerToken);
+        assertEq(MintHookERC20Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
         assertEq(endUser.balance, 100 ether - (pricePerToken * 2));
     }
 
     function test_upgrade_erc721Core() public {
-        assertEq(erc721Core.getAllExtensions().beforeMint, mintExtensionERC721Proxy);
+        assertEq(erc721Core.getAllHooks().beforeMint, MintHookERC721Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(
-            AllowlistMintExtensionERC721(mintExtensionERC721Proxy).getClaimCondition(address(erc721Core)).price,
+            AllowlistMintHookERC721(MintHookERC721Proxy).getClaimCondition(address(erc721Core)).price,
             pricePerToken
         );
 
@@ -264,7 +264,7 @@ contract ExtensionUpgradesTest is Test {
 
         // Claim token
 
-        assertEq(mintExtensionERC721Proxy.balance, 0);
+        assertEq(MintHookERC721Proxy.balance, 0);
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether);
 
@@ -272,28 +272,28 @@ contract ExtensionUpgradesTest is Test {
         erc721Core.mint{value: pricePerToken}(endUser, 1, encodedAllowlistProof);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
-        //      Money stuck in extension contract.
-        assertEq(mintExtensionERC721Proxy.balance, pricePerToken);
+        //      Money stuck in hook contract.
+        assertEq(MintHookERC721Proxy.balance, pricePerToken);
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether - pricePerToken);
 
-        // Platform upgrades extension implementation to fix this bug.
+        // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(ERC721Extension.ERC721UnauthorizedUpgrade.selector));
-        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).upgradeToAndCall(
-            address(MintExtensionERC721Impl), bytes("")
+        vm.expectRevert(abi.encodeWithSelector(ERC721Hook.ERC721UnauthorizedUpgrade.selector));
+        AllowlistMintHookERC721(MintHookERC721Proxy).upgradeToAndCall(
+            address(MintHookERC721Impl), bytes("")
         );
 
         vm.prank(platformAdmin);
-        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).upgradeToAndCall(
-            address(MintExtensionERC721Impl), bytes("")
+        AllowlistMintHookERC721(MintHookERC721Proxy).upgradeToAndCall(
+            address(MintHookERC721Impl), bytes("")
         );
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
         erc721Core.mint{value: pricePerToken}(endUser, 1, encodedAllowlistProof);
 
-        assertEq(mintExtensionERC721Proxy.balance, pricePerToken);
+        assertEq(MintHookERC721Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
         assertEq(endUser.balance, 100 ether - (pricePerToken * 2));
     }
@@ -301,10 +301,10 @@ contract ExtensionUpgradesTest is Test {
     function test_upgrade_erc1155Core() public {
         uint256 tokenId = 0;
 
-        assertEq(erc1155Core.getAllExtensions().beforeMint, mintExtensionERC1155Proxy);
+        assertEq(erc1155Core.getAllHooks().beforeMint, MintHookERC1155Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(
-            AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).getClaimCondition(address(erc1155Core), tokenId)
+            AllowlistMintHookERC1155(MintHookERC1155Proxy).getClaimCondition(address(erc1155Core), tokenId)
                 .price,
             pricePerToken
         );
@@ -313,7 +313,7 @@ contract ExtensionUpgradesTest is Test {
 
         // Claim token
 
-        assertEq(mintExtensionERC1155Proxy.balance, 0);
+        assertEq(MintHookERC1155Proxy.balance, 0);
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether);
 
@@ -321,28 +321,28 @@ contract ExtensionUpgradesTest is Test {
         erc1155Core.mint{value: pricePerToken}(endUser, tokenId, 1, encodedAllowlistProof);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
-        //      Money stuck in extension contract.
-        assertEq(mintExtensionERC1155Proxy.balance, pricePerToken);
+        //      Money stuck in hook contract.
+        assertEq(MintHookERC1155Proxy.balance, pricePerToken);
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether - pricePerToken);
 
-        // Platform upgrades extension implementation to fix this bug.
+        // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(ERC1155Extension.ERC1155UnauthorizedUpgrade.selector));
-        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).upgradeToAndCall(
-            address(MintExtensionERC1155Impl), bytes("")
+        vm.expectRevert(abi.encodeWithSelector(ERC1155Hook.ERC1155UnauthorizedUpgrade.selector));
+        AllowlistMintHookERC1155(MintHookERC1155Proxy).upgradeToAndCall(
+            address(MintHookERC1155Impl), bytes("")
         );
 
         vm.prank(platformAdmin);
-        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).upgradeToAndCall(
-            address(MintExtensionERC1155Impl), bytes("")
+        AllowlistMintHookERC1155(MintHookERC1155Proxy).upgradeToAndCall(
+            address(MintHookERC1155Impl), bytes("")
         );
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
         erc1155Core.mint{value: pricePerToken}(endUser, tokenId, 1, encodedAllowlistProof);
 
-        assertEq(mintExtensionERC1155Proxy.balance, pricePerToken);
+        assertEq(MintHookERC1155Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
         assertEq(endUser.balance, 100 ether - (pricePerToken * 2));
     }

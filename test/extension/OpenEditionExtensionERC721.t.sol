@@ -8,12 +8,12 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {LibString} from "src/lib/LibString.sol";
 
-import {ERC721Core, ExtensionInstaller} from "src/core/token/ERC721Core.sol";
-import {OpenEditionExtensionERC721, ERC721Extension} from "src/extension/metadata/OpenEditionExtensionERC721.sol";
+import {ERC721Core, HookInstaller} from "src/core/token/ERC721Core.sol";
+import {OpenEditionHookERC721, ERC721Hook} from "src/hook/metadata/OpenEditionHookERC721.sol";
 import {ISharedMetadata} from "src/interface/common/ISharedMetadata.sol";
 import {NFTMetadataRenderer} from "src/lib/NFTMetadataRenderer.sol";
 
-contract OpenEditionExtensionERC721Test is Test {
+contract OpenEditionHookERC721Test is Test {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -27,22 +27,22 @@ contract OpenEditionExtensionERC721Test is Test {
 
     // Target test contracts
     ERC721Core public erc721Core;
-    OpenEditionExtensionERC721 public metadataExtension;
+    OpenEditionHookERC721 public metadataHook;
 
     // Test params
     uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
     ISharedMetadata.SharedMetadataInfo public sharedMetadata;
 
     function setUp() public {
-        // Platform deploys metadata extension.
-        address extensionImpl = address(new OpenEditionExtensionERC721());
+        // Platform deploys metadata hook.
+        address hookImpl = address(new OpenEditionHookERC721());
 
         bytes memory initData = abi.encodeWithSelector(
-            metadataExtension.initialize.selector,
+            metadataHook.initialize.selector,
             platformAdmin // upgradeAdmin
         );
-        address extensionProxy = address(new EIP1967Proxy(extensionImpl, initData));
-        metadataExtension = OpenEditionExtensionERC721(extensionProxy);
+        address hookProxy = address(new EIP1967Proxy(hookImpl, initData));
+        metadataHook = OpenEditionHookERC721(hookProxy);
 
         // Platform deploys ERC721 core implementation and clone factory.
         address erc721CoreImpl = address(new ERC721Core());
@@ -51,13 +51,13 @@ contract OpenEditionExtensionERC721Test is Test {
         vm.startPrank(developer);
 
         ERC721Core.InitCall memory initCall;
-        address[] memory preinstallExtensions = new address[](1);
-        preinstallExtensions[0] = address(metadataExtension);
+        address[] memory preinstallHooks = new address[](1);
+        preinstallHooks[0] = address(metadataHook);
 
         bytes memory erc721InitData = abi.encodeWithSelector(
             ERC721Core.initialize.selector,
             initCall,
-            preinstallExtensions,
+            preinstallHooks,
             developer, // core contract admin
             "Test ERC721",
             "TST",
@@ -75,8 +75,8 @@ contract OpenEditionExtensionERC721Test is Test {
         vm.label(endUser, "Claimer");
 
         vm.label(address(erc721Core), "ERC721Core");
-        vm.label(address(extensionImpl), "metadataExtensionImpl");
-        vm.label(extensionProxy, "ProxymetadataExtension");
+        vm.label(address(hookImpl), "metadataHookImpl");
+        vm.label(hookProxy, "ProxymetadataHook");
 
         sharedMetadata = ISharedMetadata.SharedMetadataInfo({
             name: "Test",
@@ -104,7 +104,7 @@ contract OpenEditionExtensionERC721Test is Test {
         erc721Core.hookFunctionWrite(
             TOKEN_URI_FLAG,
             0,
-            abi.encodeWithSelector(OpenEditionExtensionERC721.setSharedMetadata.selector, sharedMetadata)
+            abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
         );
 
         assertEq(
@@ -132,11 +132,11 @@ contract OpenEditionExtensionERC721Test is Test {
     }
 
     function test_revert_setSharedMetadata_notAdmin() public {
-        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
             TOKEN_URI_FLAG,
             0,
-            abi.encodeWithSelector(OpenEditionExtensionERC721.setSharedMetadata.selector, sharedMetadata)
+            abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
         );
     }
 }

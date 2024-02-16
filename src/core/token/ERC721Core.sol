@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IERC721CoreCustomErrors} from "../../interface/errors/IERC721CoreCustomErrors.sol";
-import {IERC721Extension} from "../../interface/extension/IERC721Extension.sol";
-import {IERC721ExtensionInstaller} from "../../interface/extension/IERC721ExtensionInstaller.sol";
+import {IERC721Hook} from "../../interface/hook/IERC721Hook.sol";
+import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
 import {IInitCall} from "../../interface/common/IInitCall.sol";
 import {ERC721Initializable} from "./ERC721Initializable.sol";
-import {IExtension, ExtensionInstaller} from "../../extension/ExtensionInstaller.sol";
+import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
 import {Initializable} from "../../common/Initializable.sol";
 import {Permission} from "../../common/Permission.sol";
 
@@ -16,10 +16,10 @@ import {ERC721CoreStorage} from "../../storage/core/ERC721CoreStorage.sol";
 contract ERC721Core is
     Initializable,
     ERC721Initializable,
-    ExtensionInstaller,
+    HookInstaller,
     Permission,
     IInitCall,
-    IERC721ExtensionInstaller,
+    IERC721HookInstaller,
     IERC721CoreCustomErrors,
     IERC7572
 {
@@ -27,22 +27,22 @@ contract ERC721Core is
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Bits representing the before mint extension.
+    /// @notice Bits representing the before mint hook.
     uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
 
-    /// @notice Bits representing the before transfer extension.
+    /// @notice Bits representing the before transfer hook.
     uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
 
-    /// @notice Bits representing the before burn extension.
+    /// @notice Bits representing the before burn hook.
     uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
 
-    /// @notice Bits representing the before approve extension.
+    /// @notice Bits representing the before approve hook.
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
-    /// @notice Bits representing the token URI extension.
+    /// @notice Bits representing the token URI hook.
     uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
-    /// @notice Bits representing the royalty extension.
+    /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
     /*//////////////////////////////////////////////////////////////
@@ -55,14 +55,14 @@ contract ERC721Core is
 
     /**
      *  @notice Initializes the ERC-721 Core contract.
-     *  @param _extensions The extensions to install.
+     *  @param _hooks The hooks to install.
      *  @param _defaultAdmin The default admin for the contract.
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      */
     function initialize(
         InitCall calldata _initCall,
-        address[] calldata _extensions,
+        address[] calldata _hooks,
         address _defaultAdmin,
         string memory _name,
         string memory _symbol,
@@ -72,9 +72,9 @@ contract ERC721Core is
         __ERC721_init(_name, _symbol);
         _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
 
-        uint256 len = _extensions.length;
+        uint256 len = _hooks.length;
         for (uint256 i = 0; i < len; i++) {
-            _installExtension(IExtension(_extensions[i]));
+            _installHook(IHook(_hooks[i]));
         }
 
         if (_initCall.target != address(0)) {
@@ -97,15 +97,15 @@ contract ERC721Core is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all of the contract's extensions and their implementations.
-    function getAllExtensions() external view returns (ERC721Extensions memory extensions) {
-        extensions = ERC721Extensions({
-            beforeMint: getExtensionImplementation(BEFORE_MINT_FLAG),
-            beforeTransfer: getExtensionImplementation(BEFORE_TRANSFER_FLAG),
-            beforeBurn: getExtensionImplementation(BEFORE_BURN_FLAG),
-            beforeApprove: getExtensionImplementation(BEFORE_APPROVE_FLAG),
-            tokenURI: getExtensionImplementation(TOKEN_URI_FLAG),
-            royaltyInfo: getExtensionImplementation(ROYALTY_INFO_FLAG)
+    /// @notice Returns all of the contract's hooks and their implementations.
+    function getAllHooks() external view returns (ERC721Hooks memory hooks) {
+        hooks = ERC721Hooks({
+            beforeMint: getHookImplementation(BEFORE_MINT_FLAG),
+            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
+            beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
+            beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
+            tokenURI: getHookImplementation(TOKEN_URI_FLAG),
+            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
         });
     }
 
@@ -164,9 +164,9 @@ contract ERC721Core is
 
     /**
      *  @notice Burns an NFT.
-     *  @dev Calls the beforeBurn extension. Skips calling the extension if it doesn't exist.
+     *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
      *  @param _tokenId The token ID of the NFT to burn.
-     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn extension.
+     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
     function burn(uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) external {
         address owner = ownerOf(_tokenId);
@@ -179,11 +179,11 @@ contract ERC721Core is
     }
 
     /**
-     *  @notice Mints a token. Calls the beforeMint extension.
-     *  @dev Reverts if beforeMint extension is absent or unsuccessful.
+     *  @notice Mints a token. Calls the beforeMint hook.
+     *  @dev Reverts if beforeMint hook is absent or unsuccessful.
      *  @param _to The address to mint the token to.
      *  @param _quantity The quantity of tokens to mint.
-     *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint extension.
+     *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
     function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
         (uint256 startTokenId, uint256 quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
@@ -192,7 +192,7 @@ contract ERC721Core is
 
     /**
      *  @notice Transfers ownership of an NFT from one address to another.
-     *  @dev Overriden to call the beforeTransfer extension. Skips calling the extension if it doesn't exist.
+     *  @dev Overriden to call the beforeTransfer hook. Skips calling the hook if it doesn't exist.
      *  @param _from The address to transfer from
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
@@ -204,7 +204,7 @@ contract ERC721Core is
 
     /**
      *  @notice Approves an address to transfer a specific NFT. Reverts if caller is not owner or approved operator.
-     *  @dev Overriden to call the beforeApprove extension. Skips calling the extension if it doesn't exist.
+     *  @dev Overriden to call the beforeApprove hook. Skips calling the hook if it doesn't exist.
      *  @param _spender The address to approve
      *  @param _id The token ID of the NFT
      */
@@ -233,8 +233,8 @@ contract ERC721Core is
         emit ContractURIUpdated();
     }
 
-    /// @dev Returns whether the given caller can update extensions.
-    function _canUpdateExtensions(address _caller) internal view override returns (bool) {
+    /// @dev Returns whether the given caller can update hooks.
+    function _canUpdateHooks(address _caller) internal view override returns (bool) {
         return hasRole(_caller, ADMIN_ROLE_BITS);
     }
 
@@ -243,78 +243,78 @@ contract ERC721Core is
         return hasRole(_caller, ADMIN_ROLE_BITS);
     }
 
-    /// @dev Should return the max flag that represents a extension.
-    function _maxExtensionFlag() internal pure override returns (uint256) {
+    /// @dev Should return the max flag that represents a hook.
+    function _maxHookFlag() internal pure override returns (uint256) {
         return ROYALTY_INFO_FLAG;
     }
 
     /*//////////////////////////////////////////////////////////////
-                        EXTENSIONS INTERNAL FUNCTIONS
+                        HOOKS INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Calls the beforeMint extension.
+    /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
         internal
         virtual
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
-        address extension = getExtensionImplementation(BEFORE_MINT_FLAG);
+        address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
-        if (extension != address(0)) {
+        if (hook != address(0)) {
             (tokenIdToMint, quantityToMint) =
-                IERC721Extension(extension).beforeMint{value: msg.value}(_to, _quantity, _data);
+                IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
         } else {
             revert ERC721CoreMintingDisabled();
         }
     }
 
-    /// @dev Calls the beforeTransfer extension, if installed.
+    /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
-        address extension = getExtensionImplementation(BEFORE_TRANSFER_FLAG);
+        address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
-        if (extension != address(0)) {
-            IERC721Extension(extension).beforeTransfer(_from, _to, _tokenId);
+        if (hook != address(0)) {
+            IERC721Hook(hook).beforeTransfer(_from, _to, _tokenId);
         }
     }
 
-    /// @dev Calls the beforeBurn extension, if installed.
+    /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address _from, uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) internal virtual {
-        address extension = getExtensionImplementation(BEFORE_BURN_FLAG);
+        address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
-        if (extension != address(0)) {
-            IERC721Extension(extension).beforeBurn(_from, _tokenId, _encodedBeforeBurnArgs);
+        if (hook != address(0)) {
+            IERC721Hook(hook).beforeBurn(_from, _tokenId, _encodedBeforeBurnArgs);
         }
     }
 
-    /// @dev Calls the beforeApprove extension, if installed.
+    /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApprove(address _from, address _to, uint256 _tokenId, bool _approve) internal virtual {
-        address extension = getExtensionImplementation(BEFORE_APPROVE_FLAG);
+        address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
-        if (extension != address(0)) {
-            IERC721Extension(extension).beforeApprove(_from, _to, _tokenId, _approve);
+        if (hook != address(0)) {
+            IERC721Hook(hook).beforeApprove(_from, _to, _tokenId, _approve);
         }
     }
 
-    /// @dev Fetches token URI from the token metadata extension.
+    /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory uri) {
-        address extension = getExtensionImplementation(TOKEN_URI_FLAG);
+        address hook = getHookImplementation(TOKEN_URI_FLAG);
 
-        if (extension != address(0)) {
-            uri = IERC721Extension(extension).tokenURI(_tokenId);
+        if (hook != address(0)) {
+            uri = IERC721Hook(hook).tokenURI(_tokenId);
         }
     }
 
-    /// @dev Fetches royalty info from the royalty extension.
+    /// @dev Fetches royalty info from the royalty hook.
     function _getRoyaltyInfo(uint256 _tokenId, uint256 _salePrice)
         internal
         view
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address extension = getExtensionImplementation(ROYALTY_INFO_FLAG);
+        address hook = getHookImplementation(ROYALTY_INFO_FLAG);
 
-        if (extension != address(0)) {
-            (receiver, royaltyAmount) = IERC721Extension(extension).royaltyInfo(_tokenId, _salePrice);
+        if (hook != address(0)) {
+            (receiver, royaltyAmount) = IERC721Hook(hook).royaltyInfo(_tokenId, _salePrice);
         }
     }
 }

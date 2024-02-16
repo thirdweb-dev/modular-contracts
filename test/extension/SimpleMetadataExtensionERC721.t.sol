@@ -9,9 +9,9 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 import {LibString} from "src/lib/LibString.sol";
 
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {SimpleMetadataExtension, ERC721Extension} from "src/extension/metadata/SimpleMetadataExtension.sol";
+import {SimpleMetadataHook, ERC721Hook} from "src/hook/metadata/SimpleMetadataHook.sol";
 
-contract SimpleMetadataExtensionTest is Test {
+contract SimpleMetadataHookTest is Test {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -28,18 +28,18 @@ contract SimpleMetadataExtensionTest is Test {
 
     // Target test contracts
     ERC721Core public erc721Core;
-    SimpleMetadataExtension public metadataExtension;
+    SimpleMetadataHook public metadataHook;
 
     function setUp() public {
-        // Platform deploys metadata extension.
-        address mintExtensionImpl = address(new SimpleMetadataExtension());
+        // Platform deploys metadata hook.
+        address MintHookImpl = address(new SimpleMetadataHook());
 
         bytes memory initData = abi.encodeWithSelector(
-            metadataExtension.initialize.selector,
+            metadataHook.initialize.selector,
             platformAdmin // upgradeAdmin
         );
-        address mintExtensionProxy = address(new EIP1967Proxy(mintExtensionImpl, initData));
-        metadataExtension = SimpleMetadataExtension(mintExtensionProxy);
+        address MintHookProxy = address(new EIP1967Proxy(MintHookImpl, initData));
+        metadataHook = SimpleMetadataHook(MintHookProxy);
 
         // Platform deploys ERC721 core implementation and clone factory.
         address erc721CoreImpl = address(new ERC721Core());
@@ -48,13 +48,13 @@ contract SimpleMetadataExtensionTest is Test {
         vm.startPrank(developer);
 
         ERC721Core.InitCall memory initCall;
-        address[] memory preinstallExtensions = new address[](1);
-        preinstallExtensions[0] = address(metadataExtension);
+        address[] memory preinstallHooks = new address[](1);
+        preinstallHooks[0] = address(metadataHook);
 
         bytes memory erc721InitData = abi.encodeWithSelector(
             ERC721Core.initialize.selector,
             initCall,
-            preinstallExtensions,
+            preinstallHooks,
             developer, // core contract admin
             "Test ERC721",
             "TST",
@@ -72,8 +72,8 @@ contract SimpleMetadataExtensionTest is Test {
         vm.label(endUser, "Claimer");
 
         vm.label(address(erc721Core), "ERC721Core");
-        vm.label(address(mintExtensionImpl), "metadataExtension");
-        vm.label(mintExtensionProxy, "ProxymetadataExtension");
+        vm.label(address(MintHookImpl), "metadataHook");
+        vm.label(MintHookProxy, "ProxymetadataHook");
     }
 
     function test_setTokenURI_state() public {
@@ -86,7 +86,7 @@ contract SimpleMetadataExtensionTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataExtension.setTokenURI.selector, tokenId, tokenURI)
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI)
         );
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI);
@@ -95,7 +95,7 @@ contract SimpleMetadataExtensionTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataExtension.setTokenURI.selector, tokenId, tokenURI2)
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2)
         );
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI2);

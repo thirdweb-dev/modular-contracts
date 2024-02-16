@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
-import {EmptyExtensionERC721} from "../mocks/EmptyExtension.sol";
+import {EmptyHookERC721} from "../mocks/EmptyHook.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC721Core, ERC721Initializable} from "src/core/token/ERC721Core.sol";
 import {IERC721} from "src/interface/eip/IERC721.sol";
 import {IERC721CustomErrors} from "src/interface/errors/IERC721CustomErrors.sol";
 import {IERC721CoreCustomErrors} from "src/interface/errors/IERC721CoreCustomErrors.sol";
-import {IExtension} from "src/interface/extension/IExtension.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
 import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 abstract contract ERC721TokenReceiver {
@@ -66,7 +66,7 @@ contract ERC721CoreTest is Test, TestPlus {
     CloneFactory public cloneFactory;
 
     address public erc721Implementation;
-    address public extensionProxyAddress;
+    address public hookProxyAddress;
 
     ERC721Core public token;
 
@@ -74,8 +74,8 @@ contract ERC721CoreTest is Test, TestPlus {
         cloneFactory = new CloneFactory();
 
         erc721Implementation = address(new ERC721Core());
-        extensionProxyAddress =
-            cloneFactory.deployDeterministicERC1967(address(new EmptyExtensionERC721()), "", bytes32("salt"));
+        hookProxyAddress =
+            cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC721()), "", bytes32("salt"));
 
         vm.startPrank(admin);
 
@@ -84,7 +84,7 @@ contract ERC721CoreTest is Test, TestPlus {
             ERC721Core.initialize.selector, initCall, new address[](0), admin, "Token", "TKN", "contractURI://"
         );
         token = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
-        token.installExtension(IExtension(extensionProxyAddress));
+        token.installHook(IHook(hookProxyAddress));
 
         vm.stopPrank();
 
