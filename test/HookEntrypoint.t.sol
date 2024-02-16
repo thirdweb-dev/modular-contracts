@@ -163,7 +163,11 @@ contract HookEntrypointTest is Test {
         erc721.installExtension(IExtension(lazyMintExtensionProxyAddress));
 
         // Developer sets up token metadata and claim conditions: gas incurred by developer.
-        lazyMintExtension.lazyMint(address(erc721), 10_000, "https://example.com/", "");
+        erc721.hookFunctionWrite(
+            erc721.TOKEN_URI_FLAG(),
+            0,
+            abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, 10_000, "https://example.com/", "")
+        );
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";

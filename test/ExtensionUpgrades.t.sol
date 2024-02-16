@@ -155,9 +155,9 @@ contract ExtensionUpgradesTest is Test {
         });
 
         vm.startPrank(developer);
-        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).setClaimCondition(address(erc20Core), conditionERC20);
-        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).setClaimCondition(address(erc721Core), conditionERC721);
-        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).setClaimCondition(address(erc1155Core), 0, conditionERC1155);
+        erc20Core.hookFunctionWrite(erc20Core.BEFORE_MINT_FLAG(), 0, abi.encodeWithSelector(AllowlistMintExtensionERC20.setClaimCondition.selector, conditionERC20));
+        erc721Core.hookFunctionWrite(erc721Core.BEFORE_MINT_FLAG(), 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, conditionERC721));
+        erc1155Core.hookFunctionWrite(erc1155Core.BEFORE_MINT_FLAG(), 0, abi.encodeWithSelector(AllowlistMintExtensionERC1155.setClaimCondition.selector, 0, conditionERC1155));
         vm.stopPrank();
 
         // Developer sets fee config; sets self as primary sale recipient
@@ -165,9 +165,9 @@ contract ExtensionUpgradesTest is Test {
         feeConfig.primarySaleRecipient = developer;
 
         vm.startPrank(developer);
-        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).setDefaultFeeConfig(address(erc20Core), feeConfig);
-        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).setDefaultFeeConfig(address(erc721Core), feeConfig);
-        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).setDefaultFeeConfig(address(erc1155Core), feeConfig);
+        erc20Core.hookFunctionWrite(erc20Core.BEFORE_MINT_FLAG(), 0, abi.encodeWithSelector(AllowlistMintExtensionERC20.setDefaultFeeConfig.selector, feeConfig));
+        erc721Core.hookFunctionWrite(erc721Core.BEFORE_MINT_FLAG(), 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig));
+        erc1155Core.hookFunctionWrite(erc1155Core.BEFORE_MINT_FLAG(), 0, abi.encodeWithSelector(AllowlistMintExtensionERC1155.setDefaultFeeConfig.selector, feeConfig));
         vm.stopPrank();
 
         // Set minting params

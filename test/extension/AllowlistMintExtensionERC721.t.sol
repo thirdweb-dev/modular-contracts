@@ -9,7 +9,7 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IExtension} from "src/interface/extension/IExtension.sol";
 
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
+import {ERC721Core, ExtensionInstaller} from "src/core/token/ERC721Core.sol";
 import {AllowlistMintExtensionERC721, ERC721Extension} from "src/extension/mint/AllowlistMintExtensionERC721.sol";
 import {IFeeConfig} from "src/interface/common/IFeeConfig.sol"; 
 
@@ -32,6 +32,8 @@ contract AllowlistMintExtensionERC721Test is Test {
     AllowlistMintExtensionERC721 public mintExtension;
 
     // Test params
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     bytes32 private constant TYPEHASH = keccak256(
@@ -145,7 +147,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         vm.prank(developer);
         vm.expectEmit(true, true, true, true);
         emit ClaimConditionUpdate(address(erc721Core), condition);
-        mintExtension.setClaimCondition(address(erc721Core), condition);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
 
         AllowlistMintExtensionERC721.ClaimCondition memory conditionStored = mintExtension.getClaimCondition(address(erc721Core));
 
@@ -163,7 +165,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc721Core), condition);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
 
         vm.expectRevert();
         erc721Core.ownerOf(0);
@@ -179,7 +181,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         updatedCondition.allowlistMerkleRoot = bytes32("random");
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc721Core), updatedCondition);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, updatedCondition));
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(AllowlistMintExtensionERC721.AllowlistMintExtensionNotInAllowlist.selector, address(erc721Core), endUser));
@@ -194,8 +196,8 @@ contract AllowlistMintExtensionERC721Test is Test {
             allowlistMerkleRoot: allowlistRoot
         });
 
-        vm.expectRevert(abi.encodeWithSelector(AllowlistMintExtensionERC721.AllowlistMintExtensionsNotAuthorized.selector));
-        mintExtension.setClaimCondition(address(erc721Core), condition);
+        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -211,7 +213,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc721Core), condition);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
     }
 
     function test_setDefaultFeeConfig_state() public {
@@ -225,7 +227,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc721Core), feeConfig);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig));
 
         IFeeConfig.FeeConfig memory feeConfigStored = mintExtension.getDefaultFeeConfig(address(erc721Core));
 
@@ -255,7 +257,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc721Core), feeConfig);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig));
 
         IFeeConfig.FeeConfig memory feeConfigStored = mintExtension.getDefaultFeeConfig(address(erc721Core));
 
@@ -279,7 +281,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         specialFeeConfig.platformFeeBps = 2000; // 20%
 
         vm.prank(developer);
-        mintExtension.setFeeConfigForToken(address(erc721Core), 1, specialFeeConfig);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setFeeConfigForToken.selector, 1, specialFeeConfig));
 
         IFeeConfig.FeeConfig memory specialFeeConfigStored = mintExtension.getFeeConfigForToken(address(erc721Core), 1);
 
@@ -306,8 +308,8 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(AllowlistMintExtensionERC721.AllowlistMintExtensionsNotAuthorized.selector));
-        mintExtension.setDefaultFeeConfig(address(erc721Core), feeConfig);
+        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -323,7 +325,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc721Core), condition);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
 
         // Set primary sale recipient via fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -333,7 +335,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc721Core), feeConfig);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig));
 
         // Mint tokens
 
@@ -359,7 +361,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc721Core), condition);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
 
         // End user mints a token
         vm.prank(endUser);
@@ -380,7 +382,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc721Core), condition);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
 
         // End user mints a token
         vm.prank(endUser);
@@ -397,7 +399,7 @@ contract AllowlistMintExtensionERC721Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc721Core), condition);
+        erc721Core.hookFunctionWrite(BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
 
         // End user mints a token
         vm.prank(endUser);

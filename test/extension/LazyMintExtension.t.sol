@@ -18,6 +18,9 @@ contract LazyMintExtensionTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
+    
+    // Test params
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     // Participants
     address public platformAdmin = address(0x123);
@@ -102,7 +105,7 @@ contract LazyMintExtensionTest is Test {
 
         // Lazy mint tokens
         vm.prank(developer);
-        lazyMintExtension.lazyMint(address(erc721Core), amount, baseURI, data);
+        erc721Core.hookFunctionWrite(TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, amount, baseURI, data));
 
         // Query token URI
         for(uint256 i = 0; i < amount; i += 1) {
@@ -118,7 +121,7 @@ contract LazyMintExtensionTest is Test {
 
         // Lazy mint morre tokens
         vm.prank(developer);
-        lazyMintExtension.lazyMint(address(erc721Core), amount, baseURI2, data);
+        erc721Core.hookFunctionWrite(TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, amount, baseURI2, data));
 
         assertEq(lazyMintExtension.getBaseURICount(address(erc721Core)), 2);
         assertEq(lazyMintExtension.getBatchIdAtIndex(address(erc721Core), 0), amount);
@@ -132,7 +135,7 @@ contract LazyMintExtensionTest is Test {
 
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(LazyMintExtension.LazyMintExtensionZeroAmount.selector));
-        lazyMintExtension.lazyMint(address(erc721Core), amount, baseURI, data);
+        erc721Core.hookFunctionWrite(TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, amount, baseURI, data));
     }
     
     function test_lazymint_revert_queryingUnmintedTokenURI() public {

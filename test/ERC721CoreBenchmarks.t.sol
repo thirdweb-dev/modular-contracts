@@ -155,11 +155,19 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
-
-        // Developer sets up token metadata and claim conditions: gas incurred by developer.
+        
+        // Developer installs `AllowlistMintExtensionERC721` extension
         vm.startPrank(platformUser);
 
-        lazyMintExtension.lazyMint(address(erc721), 10_000, "https://example.com/", "");
+        erc721.installExtension(IExtension(extensionProxyAddress));
+        erc721.installExtension(IExtension(lazyMintExtensionProxyAddress));
+
+        // Developer sets up token metadata and claim conditions: gas incurred by developer
+        erc721.hookFunctionWrite(
+            erc721.TOKEN_URI_FLAG(),
+            0,
+            abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, 10_000, "https://example.com/", "")
+        );
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -173,19 +181,22 @@ contract ERC721CoreBenchmarkTest is Test {
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-
-        simpleClaimExtension.setClaimCondition(address(erc721), condition);
+        erc721.hookFunctionWrite(
+            erc721.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition)
+        );
 
         AllowlistMintExtensionERC721.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        simpleClaimExtension.setDefaultFeeConfig(address(erc721), feeConfig);
-
-        // Developer installs `AllowlistMintExtensionERC721` extension
-        erc721.installExtension(IExtension(extensionProxyAddress));
-        erc721.installExtension(IExtension(lazyMintExtensionProxyAddress));
+        erc721.hookFunctionWrite(
+            erc721.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         vm.stopPrank();
 

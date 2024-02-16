@@ -22,28 +22,28 @@ abstract contract ERC1155Extension is Initializable, UUPSUpgradeable, Permission
         return 2 ** 2;
     }
 
-    /// @notice Bits representing the before transfer extension.
-    function BEFORE_BATCH_TRANSFER_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 3;
-    }
-
     /// @notice Bits representing the before burn extension.
     function BEFORE_BURN_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 4;
+        return 2 ** 3;
     }
 
     /// @notice Bits representing the before approve extension.
     function BEFORE_APPROVE_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 5;
+        return 2 ** 4;
     }
 
     /// @notice Bits representing the token URI extension.
     function TOKEN_URI_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 6;
+        return 2 ** 5;
     }
 
     /// @notice Bits representing the royalty extension.
     function ROYALTY_INFO_FLAG() public pure virtual returns (uint256) {
+        return 2 ** 6;
+    }
+
+    /// @notice Bits representing the before transfer extension.
+    function BEFORE_BATCH_TRANSFER_FLAG() public pure virtual returns (uint256) {
         return 2 ** 7;
     }
 
