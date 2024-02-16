@@ -79,8 +79,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        hookProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC20())));
+        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC20())));
         simpleClaimHook = AllowlistMintHookERC20(hookProxyAddress);
 
         erc20Implementation = address(new ERC20Core());

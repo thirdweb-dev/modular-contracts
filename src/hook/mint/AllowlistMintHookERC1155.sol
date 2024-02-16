@@ -7,8 +7,7 @@ import {ERC1155Hook} from "../ERC1155Hook.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-import {AllowlistMintHookERC1155Storage} from
-    "../../storage/hook/mint/AllowlistMintHookERC1155Storage.sol";
+import {AllowlistMintHookERC1155Storage} from "../../storage/hook/mint/AllowlistMintHookERC1155Storage.sol";
 
 contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook {
     /*//////////////////////////////////////////////////////////////

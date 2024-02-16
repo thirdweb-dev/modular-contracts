@@ -195,9 +195,7 @@ contract AllowlistMintHookERC1155Test is Test {
         vm.prank(endUser);
         vm.expectRevert(
             abi.encodeWithSelector(
-                AllowlistMintHookERC1155.AllowlistMintHookNotInAllowlist.selector,
-                address(erc1155Core),
-                endUser
+                AllowlistMintHookERC1155.AllowlistMintHookNotInAllowlist.selector, address(erc1155Core), endUser
             )
         );
         erc1155Core.mint{value: condition.price}(endUser, 0, 1, abi.encode(allowlistProof));
@@ -412,15 +410,11 @@ contract AllowlistMintHookERC1155Test is Test {
 
         // End user mints a token
         vm.prank(endUser);
-        vm.expectRevert(
-            abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookInvalidQuantity.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookInvalidQuantity.selector));
         erc1155Core.mint{value: condition.price * 11}(endUser, 0, 11, abi.encode(allowlistProof));
 
         vm.prank(endUser);
-        vm.expectRevert(
-            abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookInvalidQuantity.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookInvalidQuantity.selector));
         erc1155Core.mint{value: 0}(endUser, 0, 0, abi.encode(allowlistProof));
     }
 
@@ -443,9 +437,7 @@ contract AllowlistMintHookERC1155Test is Test {
         vm.prank(endUser);
         vm.expectRevert(
             abi.encodeWithSelector(
-                AllowlistMintHookERC1155.AllowlistMintHookNotInAllowlist.selector,
-                address(erc1155Core),
-                address(0x1212)
+                AllowlistMintHookERC1155.AllowlistMintHookNotInAllowlist.selector, address(erc1155Core), address(0x1212)
             )
         );
         erc1155Core.mint{value: condition.price}(address(0x1212), 0, 1, abi.encode(allowlistProof));
@@ -468,9 +460,7 @@ contract AllowlistMintHookERC1155Test is Test {
 
         // End user mints a token
         vm.prank(endUser);
-        vm.expectRevert(
-            abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookIncorrectValueSent.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookIncorrectValueSent.selector));
         erc1155Core.mint{value: condition.price - 1}(endUser, 0, 1, abi.encode(allowlistProof));
     }
 }

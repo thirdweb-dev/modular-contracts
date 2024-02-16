@@ -145,8 +145,7 @@ contract ERC1155CoreTest is Test, TestPlus {
         cloneFactory = new CloneFactory();
 
         erc1155Implementation = address(new ERC1155Core());
-        hookProxyAddress =
-            cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC1155()), "", bytes32("salt"));
+        hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC1155()), "", bytes32("salt"));
 
         vm.startPrank(admin);
 

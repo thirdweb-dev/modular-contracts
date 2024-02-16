@@ -74,8 +74,7 @@ contract ERC721CoreTest is Test, TestPlus {
         cloneFactory = new CloneFactory();
 
         erc721Implementation = address(new ERC721Core());
-        hookProxyAddress =
-            cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC721()), "", bytes32("salt"));
+        hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC721()), "", bytes32("salt"));
 
         vm.startPrank(admin);
 

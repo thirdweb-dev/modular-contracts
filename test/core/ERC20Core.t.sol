@@ -56,8 +56,7 @@ contract ERC20CoreTest is Test, TestPlus {
         cloneFactory = new CloneFactory();
 
         erc20Implementation = address(new ERC20Core());
-        hookProxyAddress =
-            cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC20()), "", bytes32("salt"));
+        hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC20()), "", bytes32("salt"));
 
         vm.startPrank(admin);
 

@@ -148,8 +148,11 @@ contract HookUpgradesTest is Test {
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-        AllowlistMintHookERC1155.ClaimCondition memory conditionERC1155 = AllowlistMintHookERC1155
-            .ClaimCondition({price: pricePerToken, availableSupply: availableSupply, allowlistMerkleRoot: root});
+        AllowlistMintHookERC1155.ClaimCondition memory conditionERC1155 = AllowlistMintHookERC1155.ClaimCondition({
+            price: pricePerToken,
+            availableSupply: availableSupply,
+            allowlistMerkleRoot: root
+        });
 
         vm.startPrank(developer);
         erc20Core.hookFunctionWrite(
@@ -209,10 +212,7 @@ contract HookUpgradesTest is Test {
     function test_upgrade_erc20Core() public {
         assertEq(erc20Core.getAllHooks().beforeMint, MintHookERC20Proxy);
         assertTrue(pricePerToken > 0);
-        assertEq(
-            AllowlistMintHookERC20(MintHookERC20Proxy).getClaimCondition(address(erc20Core)).price,
-            pricePerToken
-        );
+        assertEq(AllowlistMintHookERC20(MintHookERC20Proxy).getClaimCondition(address(erc20Core)).price, pricePerToken);
 
         // End user claims token: BUG: pays price but contract fails to distribute it!
 
@@ -234,14 +234,10 @@ contract HookUpgradesTest is Test {
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
         vm.expectRevert(abi.encodeWithSelector(ERC20Hook.ERC20UnauthorizedUpgrade.selector));
-        AllowlistMintHookERC20(MintHookERC20Proxy).upgradeToAndCall(
-            address(MintHookERC20Impl), bytes("")
-        );
+        AllowlistMintHookERC20(MintHookERC20Proxy).upgradeToAndCall(address(MintHookERC20Impl), bytes(""));
 
         vm.prank(platformAdmin);
-        AllowlistMintHookERC20(MintHookERC20Proxy).upgradeToAndCall(
-            address(MintHookERC20Impl), bytes("")
-        );
+        AllowlistMintHookERC20(MintHookERC20Proxy).upgradeToAndCall(address(MintHookERC20Impl), bytes(""));
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
@@ -256,8 +252,7 @@ contract HookUpgradesTest is Test {
         assertEq(erc721Core.getAllHooks().beforeMint, MintHookERC721Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(
-            AllowlistMintHookERC721(MintHookERC721Proxy).getClaimCondition(address(erc721Core)).price,
-            pricePerToken
+            AllowlistMintHookERC721(MintHookERC721Proxy).getClaimCondition(address(erc721Core)).price, pricePerToken
         );
 
         // End user claims token: BUG: pays price but contract fails to distribute it!
@@ -280,14 +275,10 @@ contract HookUpgradesTest is Test {
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
         vm.expectRevert(abi.encodeWithSelector(ERC721Hook.ERC721UnauthorizedUpgrade.selector));
-        AllowlistMintHookERC721(MintHookERC721Proxy).upgradeToAndCall(
-            address(MintHookERC721Impl), bytes("")
-        );
+        AllowlistMintHookERC721(MintHookERC721Proxy).upgradeToAndCall(address(MintHookERC721Impl), bytes(""));
 
         vm.prank(platformAdmin);
-        AllowlistMintHookERC721(MintHookERC721Proxy).upgradeToAndCall(
-            address(MintHookERC721Impl), bytes("")
-        );
+        AllowlistMintHookERC721(MintHookERC721Proxy).upgradeToAndCall(address(MintHookERC721Impl), bytes(""));
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
@@ -304,8 +295,7 @@ contract HookUpgradesTest is Test {
         assertEq(erc1155Core.getAllHooks().beforeMint, MintHookERC1155Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(
-            AllowlistMintHookERC1155(MintHookERC1155Proxy).getClaimCondition(address(erc1155Core), tokenId)
-                .price,
+            AllowlistMintHookERC1155(MintHookERC1155Proxy).getClaimCondition(address(erc1155Core), tokenId).price,
             pricePerToken
         );
 
@@ -329,14 +319,10 @@ contract HookUpgradesTest is Test {
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
         vm.expectRevert(abi.encodeWithSelector(ERC1155Hook.ERC1155UnauthorizedUpgrade.selector));
-        AllowlistMintHookERC1155(MintHookERC1155Proxy).upgradeToAndCall(
-            address(MintHookERC1155Impl), bytes("")
-        );
+        AllowlistMintHookERC1155(MintHookERC1155Proxy).upgradeToAndCall(address(MintHookERC1155Impl), bytes(""));
 
         vm.prank(platformAdmin);
-        AllowlistMintHookERC1155(MintHookERC1155Proxy).upgradeToAndCall(
-            address(MintHookERC1155Impl), bytes("")
-        );
+        AllowlistMintHookERC1155(MintHookERC1155Proxy).upgradeToAndCall(address(MintHookERC1155Impl), bytes(""));
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);

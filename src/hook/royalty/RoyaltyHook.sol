@@ -130,8 +130,7 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
             revert RoyaltyHookExceedsMaxBps();
         }
 
-        RoyaltyHookStorage.data().royaltyInfoForToken[token][_tokenId] =
-            RoyaltyInfo({recipient: _recipient, bps: _bps});
+        RoyaltyHookStorage.data().royaltyInfoForToken[token][_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
 
         emit TokenRoyaltyUpdate(token, _tokenId, _recipient, _bps);
     }

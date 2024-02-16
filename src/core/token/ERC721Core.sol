@@ -261,8 +261,7 @@ contract ERC721Core is
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (tokenIdToMint, quantityToMint) =
-                IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
+            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
         } else {
             revert ERC721CoreMintingDisabled();
         }

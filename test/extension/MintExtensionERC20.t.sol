@@ -218,9 +218,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(developer);
         erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG,
-            0,
-            abi.encodeWithSelector(MintHookERC20.setClaimCondition.selector, newCondition, true)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC20.setClaimCondition.selector, newCondition, true)
         );
 
         assertEq(MintHook.getClaimCondition(address(erc20Core)).supplyClaimed, 0); // since claim eligibility is reset
@@ -279,9 +277,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(developer);
         erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG,
-            0,
-            abi.encodeWithSelector(MintHookERC20.setClaimCondition.selector, newCondition, false)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC20.setClaimCondition.selector, newCondition, false)
         );
 
         assertEq(MintHook.getClaimCondition(address(erc20Core)).supplyClaimed, 5 ether); // since claim eligibility is reset
@@ -362,9 +358,7 @@ contract MintHookERC20Test is Test {
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookMaxSupplyClaimed.selector));
         erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG,
-            0,
-            abi.encodeWithSelector(MintHookERC20.setClaimCondition.selector, newCondition, false)
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintHookERC20.setClaimCondition.selector, newCondition, false)
         );
     }
 
@@ -827,9 +821,7 @@ contract MintHookERC20Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(
-            abi.encodeWithSelector(MintHookERC20.MintHookInvalidQuantity.selector, req.quantity - 1)
-        );
+        vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookInvalidQuantity.selector, req.quantity - 1));
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity - 1, abi.encode(req));
     }
 
@@ -1040,9 +1032,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                MintHookERC20.MintHookInvalidCurrency.selector, condition.currency, req.currency
-            )
+            abi.encodeWithSelector(MintHookERC20.MintHookInvalidCurrency.selector, condition.currency, req.currency)
         );
         erc20Core.mint(req.minter, req.quantity, abi.encode(req));
     }
