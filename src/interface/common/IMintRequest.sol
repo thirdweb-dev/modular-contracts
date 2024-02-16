@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 interface IMintRequest {
     /**
-     *  @notice Represents a mint request on a Mint Extension.
+     *  @notice Represents a mint request on a Mint hook.
      *
      *  @param token The address of the token to be minted.
-     *  @param tokenId The id of the token to be minted. Ingnored for ERC-20 and ERC-721 mint extensions.
+     *  @param tokenId The id of the token to be minted. Ingnored for ERC-20 and ERC-721 mint hooks.
      *  @param minter The address of the minter.
      *  @param quantity The quantity of tokens to be minted.
      *  @param pricePerToken The price per token.

@@ -5,12 +5,12 @@ import {Test} from "forge-std/Test.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {MockOneExtensionImpl20, MockFourExtensionImpl20} from "test/mocks/MockExtensionImpl.sol";
+import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/mockHookImpl.sol";
 
 import {ERC20Core, ERC20Initializable} from "src/core/token/ERC20Core.sol";
-import {AllowlistMintExtensionERC20} from "src/extension/mint/AllowlistMintExtensionERC20.sol";
+import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
 import {IERC20} from "src/interface/eip/IERC20.sol";
-import {IExtension} from "src/interface/extension/IExtension.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
 import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 /**
@@ -23,29 +23,29 @@ import {IInitCall} from "src/interface/common/IInitCall.sol";
  *      - This contract is initializable, and meant to be used with proxy contracts.
  *      - Implements the token standard (and the respective token metadata standard).
  *      - Uses the role based permission model of the `Permission` contract.
- *      - Implements the `IExtensionInstaller` interface.
+ *      - Implements the `IHookInstaller` interface.
  *
- *  EXTENSIONS:
+ *  HOOKS:
  *
- *  Core contracts work with "extensions". There is a fixed set of 4 extensions supported by the core contract:
+ *  Core contracts work with "hooks". There is a fixed set of 4 hooks supported by the core contract:
  *
  *      - BeforeMint: called before a token is minted in the ERC20Core.mint call.
  *      - BeforeTransfer: called before a token is transferred in the ERC20.transfer call.
  *      - BeforeBurn: called before a token is burned in the ERC20.burn call.
  *      - BeforeApprove: called before the ERC20.approve call.
  *
- *  Each of these extensions is an external call made to a contract that implements the `IExtension` interface.
+ *  Each of these hooks is an external call made to a contract that implements the `IHook` interface.
  *
- *  The purpose of extensions is to allow developers to extend their contract's functionality by running custom logic
+ *  The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic
  *  right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
  *
- *  Developers can install extensions into their core contracts, and uninstall extensions at any time.
+ *  Developers can install hooks into their core contracts, and uninstall hooks at any time.
  *
  *  UPGRADEABILITY:
  *
- *  thirdweb will publish upgradeable, 'shared state' extensions for developers (see src/erc20/extensions/). These extension contracts are
+ *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc20/hooks/). These hook contracts are
  *  designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make
- *  beacon upgrades to developer contracts using these extensions.
+ *  beacon upgrades to developer contracts using these hooks.
  */
 contract ERC20CoreBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
@@ -62,10 +62,10 @@ contract ERC20CoreBenchmarkTest is Test {
 
     // Target test contracts
     address public erc20Implementation;
-    address public extensionProxyAddress;
+    address public hookProxyAddress;
 
     ERC20Core public erc20;
-    AllowlistMintExtensionERC20 public simpleClaimExtension;
+    AllowlistMintHookERC20 public simpleClaimHook;
 
     // Token claim params
     uint256 public pricePerToken = 1 ether;
@@ -79,9 +79,8 @@ contract ERC20CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        extensionProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintExtensionERC20())));
-        simpleClaimExtension = AllowlistMintExtensionERC20(extensionProxyAddress);
+        hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC20())));
+        simpleClaimHook = AllowlistMintHookERC20(hookProxyAddress);
 
         erc20Implementation = address(new ERC20Core());
 
@@ -100,14 +99,14 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.label(address(erc20), "ERC20Core");
         vm.label(erc20Implementation, "ERC20CoreImpl");
-        vm.label(extensionProxyAddress, "AllowlistMintExtensionERC20");
+        vm.label(hookProxyAddress, "AllowlistMintHookERC20");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
 
-        // Developer installs `AllowlistMintExtensionERC20` extension
+        // Developer installs `AllowlistMintHookERC20` hook
         vm.startPrank(platformUser);
-        erc20.installExtension(IExtension(extensionProxyAddress));
+        erc20.installHook(IHook(hookProxyAddress));
 
         // Developer sets up token metadata and claim conditions: gas incurred by developer.
         string[] memory inputs = new string[](2);
@@ -117,7 +116,7 @@ contract ERC20CoreBenchmarkTest is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintExtensionERC20.ClaimCondition memory condition = AllowlistMintExtensionERC20.ClaimCondition({
+        AllowlistMintHookERC20.ClaimCondition memory condition = AllowlistMintHookERC20.ClaimCondition({
             price: pricePerToken,
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
@@ -125,10 +124,10 @@ contract ERC20CoreBenchmarkTest is Test {
         erc20.hookFunctionWrite(
             erc20.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC20.setClaimCondition.selector, condition)
+            abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
         );
 
-        AllowlistMintExtensionERC20.FeeConfig memory feeConfig;
+        AllowlistMintHookERC20.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
@@ -136,7 +135,7 @@ contract ERC20CoreBenchmarkTest is Test {
         erc20.hookFunctionWrite(
             erc20.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+            abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig)
         );
 
         vm.stopPrank();
@@ -261,10 +260,10 @@ contract ERC20CoreBenchmarkTest is Test {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        bytes4 sel = AllowlistMintExtensionERC20.beforeMint.selector;
-        address newImpl = address(new AllowlistMintExtensionERC20());
+        bytes4 sel = AllowlistMintHookERC20.beforeMint.selector;
+        address newImpl = address(new AllowlistMintHookERC20());
         address proxyAdmin = platformAdmin;
-        MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(extensionProxyAddress));
+        MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
 
         vm.prank(proxyAdmin);
 
@@ -278,67 +277,67 @@ contract ERC20CoreBenchmarkTest is Test {
             ADD NEW FUNCTIONALITY AND UPDATE FUNCTIONALITY
     //////////////////////////////////////////////////////////////*/
 
-    function test_installOneExtension() public {
+    function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IExtension mockExtension = IExtension(address(new MockOneExtensionImpl20()));
-        ERC20Core extensionConsumer = erc20;
+        IHook mockHook = IHook(address(new MockOneHookImpl20()));
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        extensionConsumer.installExtension(mockExtension);
+        hookConsumer.installHook(mockHook);
     }
 
-    function test_installfiveExtensions() public {
+    function test_installfiveHooks() public {
         vm.pauseGasMetering();
 
-        IExtension mockExtension = IExtension(address(new MockFourExtensionImpl20()));
-        ERC20Core extensionConsumer = erc20;
+        IHook mockHook = IHook(address(new MockFourHookImpl20()));
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        extensionConsumer.uninstallExtension(IExtension(extensionProxyAddress));
+        hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        extensionConsumer.installExtension(mockExtension);
+        hookConsumer.installHook(mockHook);
     }
 
-    function test_uninstallOneExtension() public {
+    function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        IExtension mockExtension = IExtension(address(new MockOneExtensionImpl20()));
-        ERC20Core extensionConsumer = erc20;
+        IHook mockHook = IHook(address(new MockOneHookImpl20()));
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        extensionConsumer.installExtension(mockExtension);
+        hookConsumer.installHook(mockHook);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        extensionConsumer.uninstallExtension(mockExtension);
+        hookConsumer.uninstallHook(mockHook);
     }
 
-    function test_uninstallFiveExtensions() public {
+    function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
 
-        IExtension mockExtension = IExtension(address(new MockFourExtensionImpl20()));
-        ERC20Core extensionConsumer = erc20;
+        IHook mockHook = IHook(address(new MockFourHookImpl20()));
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        extensionConsumer.uninstallExtension(IExtension(extensionProxyAddress));
+        hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        extensionConsumer.installExtension(mockExtension);
+        hookConsumer.installHook(mockHook);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        extensionConsumer.uninstallExtension(mockExtension);
+        hookConsumer.uninstallHook(mockHook);
     }
 }

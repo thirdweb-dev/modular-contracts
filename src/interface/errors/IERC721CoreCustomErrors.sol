@@ -6,7 +6,7 @@ interface IERC721CoreCustomErrors {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted on an attempt to mint tokens when either beforeMint extension is absent or unsuccessful.
+    /// @notice Emitted on an attempt to mint tokens when either beforeMint hook is absent or unsuccessful.
     error ERC721CoreMintingDisabled();
 
     /// @notice Emitted on a failed attempt to initialize the contract.

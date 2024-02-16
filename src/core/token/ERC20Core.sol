@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IERC20CoreCustomErrors} from "../../interface/errors/IERC20CoreCustomErrors.sol";
-import {IERC20Extension} from "../../interface/extension/IERC20Extension.sol";
-import {IERC20ExtensionInstaller} from "../../interface/extension/IERC20ExtensionInstaller.sol";
+import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
+import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
 import {IInitCall} from "../../interface/common/IInitCall.sol";
 import {ERC20Initializable} from "./ERC20Initializable.sol";
-import {IExtension, ExtensionInstaller} from "../../extension/ExtensionInstaller.sol";
+import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
 import {Initializable} from "../../common/Initializable.sol";
 import {Permission} from "../../common/Permission.sol";
 
@@ -16,10 +16,10 @@ import {ERC20CoreStorage} from "../../storage/core/ERC20CoreStorage.sol";
 contract ERC20Core is
     Initializable,
     ERC20Initializable,
-    ExtensionInstaller,
+    HookInstaller,
     Permission,
     IInitCall,
-    IERC20ExtensionInstaller,
+    IERC20HookInstaller,
     IERC20CoreCustomErrors,
     IERC7572
 {
@@ -27,16 +27,16 @@ contract ERC20Core is
                                   CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Bits representing the before mint extension.
+    /// @notice Bits representing the before mint hook.
     uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
 
-    /// @notice Bits representing the before transfer extension.
+    /// @notice Bits representing the before transfer hook.
     uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
 
-    /// @notice Bits representing the before burn extension.
+    /// @notice Bits representing the before burn hook.
     uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
 
-    /// @notice Bits representing the before approve extension.
+    /// @notice Bits representing the before approve hook.
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice The EIP-2612 permit typehash.
@@ -53,7 +53,7 @@ contract ERC20Core is
 
     /**
      *  @notice Initializes the ERC-20 Core contract.
-     *  @param _extensions The extensions to install.
+     *  @param _hooks The hooks to install.
      *  @param _defaultAdmin The default admin for the contract.
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
@@ -61,7 +61,7 @@ contract ERC20Core is
      */
     function initialize(
         InitCall calldata _initCall,
-        address[] memory _extensions,
+        address[] memory _hooks,
         address _defaultAdmin,
         string memory _name,
         string memory _symbol,
@@ -71,9 +71,9 @@ contract ERC20Core is
         __ERC20_init(_name, _symbol);
         _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
 
-        uint256 len = _extensions.length;
+        uint256 len = _hooks.length;
         for (uint256 i = 0; i < len; i++) {
-            _installExtension(IExtension(_extensions[i]));
+            _installHook(IHook(_hooks[i]));
         }
 
         if (_initCall.target != address(0)) {
@@ -96,13 +96,13 @@ contract ERC20Core is
                               VIEW FUNCTIONS
       //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all of the contract's extensions and their implementations.
-    function getAllExtensions() external view returns (ERC20Extensions memory extensions) {
-        extensions = ERC20Extensions({
-            beforeMint: getExtensionImplementation(BEFORE_MINT_FLAG),
-            beforeTransfer: getExtensionImplementation(BEFORE_TRANSFER_FLAG),
-            beforeBurn: getExtensionImplementation(BEFORE_BURN_FLAG),
-            beforeApprove: getExtensionImplementation(BEFORE_APPROVE_FLAG)
+    /// @notice Returns all of the contract's hooks and their implementations.
+    function getAllHooks() external view returns (ERC20Hooks memory hooks) {
+        hooks = ERC20Hooks({
+            beforeMint: getHookImplementation(BEFORE_MINT_FLAG),
+            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
+            beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
+            beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG)
         });
     }
 
@@ -129,9 +129,9 @@ contract ERC20Core is
 
     /**
      *  @notice Burns tokens.
-     *  @dev Calls the beforeBurn extension. Skips calling the extension if it doesn't exist.
+     *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
      *  @param _amount The amount of tokens to burn.
-     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn extension.
+     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
     function burn(uint256 _amount, bytes memory _encodedBeforeBurnArgs) external {
         _beforeBurn(msg.sender, _amount, _encodedBeforeBurnArgs);
@@ -139,11 +139,11 @@ contract ERC20Core is
     }
 
     /**
-     *  @notice Mints tokens. Calls the beforeMint extension.
-     *  @dev Reverts if beforeMint extension is absent or unsuccessful.
+     *  @notice Mints tokens. Calls the beforeMint hook.
+     *  @dev Reverts if beforeMint hook is absent or unsuccessful.
      *  @param _to The address to mint the tokens to.
      *  @param _amount The amount of tokens to mint.
-     *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint extension.
+     *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
     function mint(address _to, uint256 _amount, bytes memory _encodedBeforeMintArgs) external payable {
         uint256 quantityToMint = _beforeMint(_to, _amount, _encodedBeforeMintArgs);
@@ -274,8 +274,8 @@ contract ERC20Core is
         emit ContractURIUpdated();
     }
 
-    /// @dev Returns whether the given caller can update extensions.
-    function _canUpdateExtensions(address _caller) internal view override returns (bool) {
+    /// @dev Returns whether the given caller can update hooks.
+    function _canUpdateHooks(address _caller) internal view override returns (bool) {
         return hasRole(_caller, ADMIN_ROLE_BITS);
     }
 
@@ -284,54 +284,54 @@ contract ERC20Core is
         return hasRole(_caller, ADMIN_ROLE_BITS);
     }
 
-    /// @dev Should return the max flag that represents a extension.
-    function _maxExtensionFlag() internal pure override returns (uint256) {
+    /// @dev Should return the max flag that represents a hook.
+    function _maxHookFlag() internal pure override returns (uint256) {
         return BEFORE_APPROVE_FLAG;
     }
 
     /*//////////////////////////////////////////////////////////////
-                          EXTENSIONS INTERNAL FUNCTIONS
+                          HOOKS INTERNAL FUNCTIONS
       //////////////////////////////////////////////////////////////*/
 
-    /// @dev Calls the beforeMint extension.
+    /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _amount, bytes memory _data)
         internal
         virtual
         returns (uint256 quantityToMint)
     {
-        address extension = getExtensionImplementation(BEFORE_MINT_FLAG);
+        address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
-        if (extension != address(0)) {
-            quantityToMint = IERC20Extension(extension).beforeMint{value: msg.value}(_to, _amount, _data);
+        if (hook != address(0)) {
+            quantityToMint = IERC20Hook(hook).beforeMint{value: msg.value}(_to, _amount, _data);
         } else {
             revert ERC20CoreMintingDisabled();
         }
     }
 
-    /// @dev Calls the beforeTransfer extension, if installed.
+    /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _amount) internal virtual {
-        address extension = getExtensionImplementation(BEFORE_TRANSFER_FLAG);
+        address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
-        if (extension != address(0)) {
-            IERC20Extension(extension).beforeTransfer(_from, _to, _amount);
+        if (hook != address(0)) {
+            IERC20Hook(hook).beforeTransfer(_from, _to, _amount);
         }
     }
 
-    /// @dev Calls the beforeBurn extension, if installed.
+    /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address _from, uint256 _amount, bytes memory _encodedBeforeBurnArgs) internal virtual {
-        address extension = getExtensionImplementation(BEFORE_BURN_FLAG);
+        address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
-        if (extension != address(0)) {
-            IERC20Extension(extension).beforeBurn(_from, _amount, _encodedBeforeBurnArgs);
+        if (hook != address(0)) {
+            IERC20Hook(hook).beforeBurn(_from, _amount, _encodedBeforeBurnArgs);
         }
     }
 
-    /// @dev Calls the beforeApprove extension, if installed.
+    /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApprove(address _from, address _to, uint256 _amount) internal virtual {
-        address extension = getExtensionImplementation(BEFORE_APPROVE_FLAG);
+        address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
-        if (extension != address(0)) {
-            IERC20Extension(extension).beforeApprove(_from, _to, _amount);
+        if (hook != address(0)) {
+            IERC20Hook(hook).beforeApprove(_from, _to, _amount);
         }
     }
 }

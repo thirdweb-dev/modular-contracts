@@ -9,14 +9,14 @@ import "src/common/UUPSUpgradeable.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {MockOneExtensionImpl, MockFourExtensionImpl} from "test/mocks/MockExtensionImpl.sol";
+import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/mockHookImpl.sol";
 
 import {ERC721Core, ERC721Initializable} from "src/core/token/ERC721Core.sol";
-import {ERC721Extension, AllowlistMintExtensionERC721} from "src/extension/mint/AllowlistMintExtensionERC721.sol";
-import {LazyMintExtension} from "src/extension/metadata/LazyMintExtension.sol";
-import {RoyaltyExtension} from "src/extension/royalty/RoyaltyExtension.sol";
+import {ERC721Hook, AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
+import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
+import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
 import {IERC721} from "src/interface/eip/IERC721.sol";
-import {IExtension} from "src/interface/extension/IExtension.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
 import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 /**
@@ -29,9 +29,9 @@ import {IInitCall} from "src/interface/common/IInitCall.sol";
  *      - This contract is initializable, and meant to be used with proxy contracts.
  *      - Implements the token standard (and the respective token metadata standard).
  *      - Uses the role based permission model of the `Permission` contract.
- *      - Implements the `IExtensionInstaller` interface.
+ *      - Implements the `IHookInstaller` interface.
  *
- *  EXTENSIONS:
+ *  HOOKS:
  *
  *  Core contracts work with "extensions". There is a fixed set of 6 extensions supported by the core contract:
  *
@@ -42,7 +42,7 @@ import {IInitCall} from "src/interface/common/IInitCall.sol";
  *      - Token URI: called when the ERC721Metadata.tokenURI function is called.
  *      - Royalty: called when the ERC2981.royaltyInfo function is called.
  *
- *  Each of these extensions is an external call made to a contract that implements the `IExtension` interface.
+ *  Each of these extensions is an external call made to a contract that implements the `IHook` interface.
  *
  *  The purpose of extensions is to allow developers to extend their contract's functionality by running custom logic
  *  right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
@@ -73,12 +73,12 @@ contract ERC721CoreBenchmarkTest is Test {
     address public extensionProxyAddress;
 
     ERC721Core public erc721;
-    AllowlistMintExtensionERC721 public simpleClaimExtension;
-    LazyMintExtension public lazyMintExtension;
-    RoyaltyExtension public royaltyExtension;
+    AllowlistMintHookERC721 public simpleClaimHook;
+    LazyMintHook public lazyMintHook;
+    RoyaltyHook public royaltyHook;
 
-    MockOneExtensionImpl public mockOneExtension;
-    MockFourExtensionImpl public mockFourExtension;
+    MockOneHookImpl public mockOneHook;
+    MockFourHookImpl public mockFourHook;
 
     // Token claim params
     uint256 public pricePerToken = 0.1 ether;
@@ -93,39 +93,39 @@ contract ERC721CoreBenchmarkTest is Test {
         cloneFactory = new CloneFactory();
 
         extensionProxyAddress = cloneFactory.deployDeterministicERC1967(
-            address(new AllowlistMintExtensionERC721()),
-            abi.encodeWithSelector(AllowlistMintExtensionERC721.initialize.selector, platformAdmin),
+            address(new AllowlistMintHookERC721()),
+            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin),
             bytes32("salt")
         );
-        simpleClaimExtension = AllowlistMintExtensionERC721(extensionProxyAddress);
-        assertEq(simpleClaimExtension.getNextTokenIdToMint(address(erc721)), 0);
+        simpleClaimHook = AllowlistMintHookERC721(extensionProxyAddress);
+        assertEq(simpleClaimHook.getNextTokenIdToMint(address(erc721)), 0);
 
-        address lazyMintExtensionProxyAddress = cloneFactory.deployDeterministicERC1967(
-            address(new LazyMintExtension()),
-            abi.encodeWithSelector(AllowlistMintExtensionERC721.initialize.selector, platformAdmin),
+        address lazyMintHookProxyAddress = cloneFactory.deployDeterministicERC1967(
+            address(new LazyMintHook()),
+            abi.encodeWithSelector(AllowlistMintHookERC721.initialize.selector, platformAdmin),
             bytes32("salt")
         );
-        lazyMintExtension = LazyMintExtension(lazyMintExtensionProxyAddress);
+        lazyMintHook = LazyMintHook(lazyMintHookProxyAddress);
 
-        address royaltyExtensionProxyAddress =
-            address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyExtension())));
-        royaltyExtension = RoyaltyExtension(royaltyExtensionProxyAddress);
+        address royaltyHookProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyHook())));
+        royaltyHook = RoyaltyHook(royaltyHookProxyAddress);
 
         address mockAddress = address(
             new EIP1967Proxy(
-                address(new MockOneExtensionImpl()),
-                abi.encodeWithSelector(MockOneExtensionImpl.initialize.selector, platformAdmin)
+                address(new MockOneHookImpl()),
+                abi.encodeWithSelector(MockOneHookImpl.initialize.selector, platformAdmin)
             )
         );
-        mockOneExtension = MockOneExtensionImpl(mockAddress);
+        mockOneHook = MockOneHookImpl(mockAddress);
 
         mockAddress = address(
             new EIP1967Proxy(
-                address(new MockFourExtensionImpl()),
-                abi.encodeWithSelector(MockFourExtensionImpl.initialize.selector, platformAdmin)
+                address(new MockFourHookImpl()),
+                abi.encodeWithSelector(MockFourHookImpl.initialize.selector, platformAdmin)
             )
         );
-        mockFourExtension = MockFourExtensionImpl(mockAddress);
+        mockFourHook = MockFourHookImpl(mockAddress);
 
         erc721Implementation = address(new ERC721Core());
 
@@ -144,22 +144,22 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.label(address(erc721), "ERC721Core");
         vm.label(erc721Implementation, "ERC721CoreImpl");
-        vm.label(extensionProxyAddress, "AllowlistMintExtensionERC721");
+        vm.label(extensionProxyAddress, "AllowlistMintHookERC721");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
 
-        // Developer installs `AllowlistMintExtensionERC721` extension
+        // Developer installs `AllowlistMintHookERC721` extension
         vm.startPrank(platformUser);
 
-        erc721.installExtension(IExtension(extensionProxyAddress));
-        erc721.installExtension(IExtension(lazyMintExtensionProxyAddress));
+        erc721.installHook(IHook(extensionProxyAddress));
+        erc721.installHook(IHook(lazyMintHookProxyAddress));
 
         // Developer sets up token metadata and claim conditions: gas incurred by developer
         erc721.hookFunctionWrite(
             erc721.TOKEN_URI_FLAG(),
             0,
-            abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, 10_000, "https://example.com/", "")
+            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, 10_000, "https://example.com/", "")
         );
 
         string[] memory inputs = new string[](2);
@@ -169,7 +169,7 @@ contract ERC721CoreBenchmarkTest is Test {
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
 
-        AllowlistMintExtensionERC721.ClaimCondition memory condition = AllowlistMintExtensionERC721.ClaimCondition({
+        AllowlistMintHookERC721.ClaimCondition memory condition = AllowlistMintHookERC721.ClaimCondition({
             price: pricePerToken,
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
@@ -177,10 +177,10 @@ contract ERC721CoreBenchmarkTest is Test {
         erc721.hookFunctionWrite(
             erc721.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition)
+            abi.encodeWithSelector(AllowlistMintHookERC721.setClaimCondition.selector, condition)
         );
 
-        AllowlistMintExtensionERC721.FeeConfig memory feeConfig;
+        AllowlistMintHookERC721.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
@@ -188,7 +188,7 @@ contract ERC721CoreBenchmarkTest is Test {
         erc721.hookFunctionWrite(
             erc721.BEFORE_MINT_FLAG(),
             0,
-            abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+            abi.encodeWithSelector(AllowlistMintHookERC721.setDefaultFeeConfig.selector, feeConfig)
         );
 
         vm.stopPrank();
@@ -218,15 +218,15 @@ contract ERC721CoreBenchmarkTest is Test {
         cloneFactory.deployProxyByImplementation(impl, data, salt);
     }
 
-    function test_deployEndUserContract_withExtensions() public {
+    function test_deployEndUserContract_withHooks() public {
         // Deploy a minimal proxy to the ERC721Core implementation contract.
 
         vm.pauseGasMetering();
 
         address[] memory extensions = new address[](3);
-        extensions[0] = address(simpleClaimExtension);
-        extensions[1] = address(lazyMintExtension);
-        extensions[2] = address(royaltyExtension);
+        extensions[0] = address(simpleClaimHook);
+        extensions[1] = address(lazyMintHook);
+        extensions[2] = address(royaltyHook);
 
         IInitCall.InitCall memory initCall;
 
@@ -338,7 +338,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         address newAdmin = address(0x7890);
-        address newImpl = address(new AllowlistMintExtensionERC721());
+        address newImpl = address(new AllowlistMintHookERC721());
         address currentAdmin = platformAdmin;
         UUPSUpgradeable proxy = UUPSUpgradeable(payable(extensionProxyAddress));
 
@@ -348,18 +348,18 @@ contract ERC721CoreBenchmarkTest is Test {
 
         // Perform upgrade
         proxy.upgradeToAndCall(newImpl, "");
-        // assertEq(ERC721Extension(address(proxy)).admin(), newAdmin);
+        // assertEq(ERC721Hook(address(proxy)).admin(), newAdmin);
     }
 
     /*//////////////////////////////////////////////////////////////
             ADD NEW FUNCTIONALITY AND UPDATE FUNCTIONALITY
     //////////////////////////////////////////////////////////////*/
 
-    function test_installOneExtension() public {
+    function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        address mockAddress = address(mockOneExtension);
-        IExtension mockExtension = IExtension(mockAddress);
+        address mockAddress = address(mockOneHook);
+        IHook mockHook = IHook(mockAddress);
 
         ERC721Core extensionConsumer = erc721;
 
@@ -367,60 +367,60 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.installExtension(mockExtension);
+        extensionConsumer.installHook(mockHook);
     }
 
-    function test_installfiveExtensions() public {
+    function test_installfiveHooks() public {
         vm.pauseGasMetering();
 
-        address mockAddress = address(mockFourExtension);
-        IExtension mockExtension = IExtension(mockAddress);
+        address mockAddress = address(mockFourHook);
+        IHook mockHook = IHook(mockAddress);
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.uninstallExtension(IExtension(extensionProxyAddress));
+        extensionConsumer.uninstallHook(IHook(extensionProxyAddress));
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        extensionConsumer.installExtension(mockExtension);
+        extensionConsumer.installHook(mockHook);
     }
 
-    function test_uninstallOneExtension() public {
+    function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        address mockAddress = address(mockOneExtension);
-        IExtension mockExtension = IExtension(mockAddress);
+        address mockAddress = address(mockOneHook);
+        IHook mockHook = IHook(mockAddress);
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.installExtension(mockExtension);
+        extensionConsumer.installHook(mockHook);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        extensionConsumer.uninstallExtension(mockExtension);
+        extensionConsumer.uninstallHook(mockHook);
     }
 
-    function test_uninstallFiveExtensions() public {
+    function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
 
-        address mockAddress = address(mockFourExtension);
-        IExtension mockExtension = IExtension(mockAddress);
+        address mockAddress = address(mockFourHook);
+        IHook mockHook = IHook(mockAddress);
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.uninstallExtension(IExtension(extensionProxyAddress));
+        extensionConsumer.uninstallHook(IHook(extensionProxyAddress));
 
         vm.prank(platformUser);
-        extensionConsumer.installExtension(mockExtension);
+        extensionConsumer.installHook(mockHook);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        extensionConsumer.uninstallExtension(mockExtension);
+        extensionConsumer.uninstallHook(mockHook);
     }
 }

@@ -5,13 +5,13 @@ pragma solidity ^0.8.0;
 
 // import {CloneFactory} from "src/infra/CloneFactory.sol";
 // import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-// import {MockOneExtensionImpl, MockFourExtensionImpl} from "test/mocks/MockExtensionImpl.sol";
+// import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/mockHookImpl.sol";
 
 // import {ERC1155Core, ERC1155Initializable} from "src/core/token/ERC1155Core.sol";
-// import {AllowlistMintExtensionERC1155} from "src/extension/mint/AllowlistMintExtensionERC1155.sol";
-// import {LazyMintExtension} from "src/extension/metadata/LazyMintExtension.sol";
+// import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.sol";
+// import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
 // import {IERC1155} from "src/interface/eip/IERC1155.sol";
-// import {IExtension} from "src/interface/extension/IExtension.sol";
+// import {IHook} from "src/interface/hook/IHook.sol";
 // import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 // /**
@@ -24,11 +24,11 @@ pragma solidity ^0.8.0;
 //  *      - This contract is initializable, and meant to be used with proxy contracts.
 //  *      - Implements the token standard (and the respective token metadata standard).
 //  *      - Uses the role based permission model of the `Permission` contract.
-//  *      - Implements the `IExtensionInstaller` interface.
+//  *      - Implements the `IHookInstaller` interface.
 //  *
-//  *  EXTENSIONS:
+//  *  HOOKS:
 //  *
-//  *  Core contracts work with "extensions". There is a fixed set of 6 extensions supported by the core contract:
+//  *  Core contracts work with "hooks". There is a fixed set of 6 hooks supported by the core contract:
 //  *
 //  *      - BeforeMint: called before a token is minted in the ERC1155Core.mint call.
 //  *      - BeforeTransfer: called before a token is transferred in the ERC1155.transferFrom call.
@@ -37,18 +37,18 @@ pragma solidity ^0.8.0;
 //  *      - Token URI: called when the ERC1155Metadata.uri function is called.
 //  *      - Royalty: called when the ERC2981.royaltyInfo function is called.
 //  *
-//  *  Each of these extensions is an external call made to a contract that implements the `IExtension` interface.
+//  *  Each of these hooks is an external call made to a contract that implements the `IHook` interface.
 //  *
-//  *  The purpose of extensions is to allow developers to extend their contract's functionality by running custom logic
+//  *  The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic
 //  *  right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
 //  *
-//  *  Developers can install extensions into their core contracts, and uninstall extensions at any time.
+//  *  Developers can install hooks into their core contracts, and uninstall hooks at any time.
 //  *
 //  *  UPGRADEABILITY:
 //  *
-//  *  thirdweb will publish upgradeable, 'shared state' extensions for developers (see src/erc1155/extensions/). These extension contracts are
+//  *  thirdweb will publish upgradeable, 'shared state' hooks for developers (see src/erc1155/hooks/). These hook contracts are
 //  *  designed to be used by develpers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make
-//  *  beacon upgrades to developer contracts using these extensions.
+//  *  beacon upgrades to developer contracts using these hooks.
 //  */
 // contract ERC1155CoreBenchmarkTest is Test {
 //     /*//////////////////////////////////////////////////////////////
@@ -65,11 +65,11 @@ pragma solidity ^0.8.0;
 
 //     // Target test contracts
 //     address public erc1155Implementation;
-//     address public extensionProxyAddress;
+//     address public hookProxyAddress;
 
 //     ERC1155Core public erc1155;
-//     AllowlistMintExtensionERC1155 public simpleClaimExtension;
-//     LazyMintExtension public LazyMintExtension;
+//     AllowlistMintHookERC1155 public simpleClaimHook;
+//     LazyMintHook public LazyMintHook;
 
 //     // Token claim params
 //     uint256 public pricePerToken = 0.1 ether;
@@ -83,12 +83,12 @@ pragma solidity ^0.8.0;
 
 //         cloneFactory = new CloneFactory();
 
-//         extensionProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintExtensionERC1155())));
-//         simpleClaimExtension = AllowlistMintExtensionERC1155(extensionProxyAddress);
+//         hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC1155())));
+//         simpleClaimHook = AllowlistMintHookERC1155(hookProxyAddress);
 
-//         address LazyMintExtensionProxyAddress =
-//             address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintExtension())));
-//         LazyMintExtension = LazyMintExtension(LazyMintExtensionProxyAddress);
+//         address LazyMintHookProxyAddress =
+//             address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintHook())));
+//         LazyMintHook = LazyMintHook(LazyMintHookProxyAddress);
 
 //         erc1155Implementation = address(new ERC1155Core());
 
@@ -106,7 +106,7 @@ pragma solidity ^0.8.0;
 
 //         vm.label(address(erc1155), "ERC1155Core");
 //         vm.label(erc1155Implementation, "ERC1155CoreImpl");
-//         vm.label(extensionProxyAddress, "AllowlistMintExtensionERC1155");
+//         vm.label(hookProxyAddress, "AllowlistMintHookERC1155");
 //         vm.label(platformAdmin, "Admin");
 //         vm.label(platformUser, "Developer");
 //         vm.label(claimer, "Claimer");
@@ -114,7 +114,7 @@ pragma solidity ^0.8.0;
 //         // Developer sets up token metadata and claim conditions: gas incurred by developer.
 //         vm.startPrank(platformUser);
 
-//         LazyMintExtension.lazyMint(address(erc1155), 3, "https://example.com/", "");
+//         LazyMintHook.lazyMint(address(erc1155), 3, "https://example.com/", "");
 
 //         string[] memory inputs = new string[](2);
 //         inputs[0] = "node";
@@ -123,24 +123,24 @@ pragma solidity ^0.8.0;
 //         bytes memory result = vm.ffi(inputs);
 //         bytes32 root = abi.decode(result, (bytes32));
 
-//         AllowlistMintExtensionERC1155.ClaimCondition memory condition = AllowlistMintExtensionERC1155.ClaimCondition({
+//         AllowlistMintHookERC1155.ClaimCondition memory condition = AllowlistMintHookERC1155.ClaimCondition({
 //             price: pricePerToken,
 //             availableSupply: availableSupply,
 //             allowlistMerkleRoot: root
 //         });
 
-//         simpleClaimExtension.setClaimCondition(address(erc1155), 0, condition);
+//         simpleClaimHook.setClaimCondition(address(erc1155), 0, condition);
 
-//         AllowlistMintExtensionERC1155.FeeConfig memory feeConfig;
+//         AllowlistMintHookERC1155.FeeConfig memory feeConfig;
 //         feeConfig.primarySaleRecipient = platformUser;
 //         feeConfig.platformFeeRecipient = address(0x789);
 //         feeConfig.platformFeeBps = 100; // 1%
 
-//         simpleClaimExtension.setDefaultFeeConfig(address(erc1155), feeConfig);
+//         simpleClaimHook.setDefaultFeeConfig(address(erc1155), feeConfig);
 
-//         // Developer installs `AllowlistMintExtensionERC1155` extension
-//         erc1155.installExtension(IExtension(extensionProxyAddress));
-//         erc1155.installExtension(IExtension(LazyMintExtensionProxyAddress));
+//         // Developer installs `AllowlistMintHookERC1155` hook
+//         erc1155.installHook(IHook(hookProxyAddress));
+//         erc1155.installHook(IHook(LazyMintHookProxyAddress));
 
 //         vm.stopPrank();
 
@@ -267,10 +267,10 @@ pragma solidity ^0.8.0;
 //     function test_beaconUpgrade() public {
 //         vm.pauseGasMetering();
 
-//         bytes4 sel = AllowlistMintExtensionERC1155.beforeMint.selector;
-//         address newImpl = address(new AllowlistMintExtensionERC1155());
+//         bytes4 sel = AllowlistMintHookERC1155.beforeMint.selector;
+//         address newImpl = address(new AllowlistMintHookERC1155());
 //         address proxyAdmin = platformAdmin;
-//         MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(extensionProxyAddress));
+//         MinimalUpgradeableRouter proxy = MinimalUpgradeableRouter(payable(hookProxyAddress));
 
 //         vm.prank(proxyAdmin);
 
@@ -284,67 +284,67 @@ pragma solidity ^0.8.0;
 //             ADD NEW FUNCTIONALITY AND UPDATE FUNCTIONALITY
 //     //////////////////////////////////////////////////////////////*/
 
-//     function test_installOneExtension() public {
+//     function test_installOneHook() public {
 //         vm.pauseGasMetering();
 
-//         IExtension mockExtension = IExtension(address(new MockOneExtensionImpl()));
-//         ERC1155Core extensionConsumer = erc1155;
+//         IHook mockHook = IHook(address(new MockOneHookImpl()));
+//         ERC1155Core hookConsumer = erc1155;
 
 //         vm.prank(platformUser);
 
 //         vm.resumeGasMetering();
 
-//         extensionConsumer.installExtension(mockExtension);
+//         hookConsumer.installHook(mockHook);
 //     }
 
-//     function test_installfiveExtensions() public {
+//     function test_installfiveHooks() public {
 //         vm.pauseGasMetering();
 
-//         IExtension mockExtension = IExtension(address(new MockFourExtensionImpl()));
-//         ERC1155Core extensionConsumer = erc1155;
+//         IHook mockHook = IHook(address(new MockFourHookImpl()));
+//         ERC1155Core hookConsumer = erc1155;
 
 //         vm.prank(platformUser);
-//         extensionConsumer.uninstallExtension(IExtension(extensionProxyAddress));
+//         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
 //         vm.prank(platformUser);
 
 //         vm.resumeGasMetering();
 
-//         extensionConsumer.installExtension(mockExtension);
+//         hookConsumer.installHook(mockHook);
 //     }
 
-//     function test_uninstallOneExtension() public {
+//     function test_uninstallOneHooks() public {
 //         vm.pauseGasMetering();
 
-//         IExtension mockExtension = IExtension(address(new MockOneExtensionImpl()));
-//         ERC1155Core extensionConsumer = erc1155;
+//         IHook mockHook = IHook(address(new MockOneHookImpl()));
+//         ERC1155Core hookConsumer = erc1155;
 
 //         vm.prank(platformUser);
-//         extensionConsumer.installExtension(mockExtension);
+//         hookConsumer.installHook(mockHook);
 
 //         vm.prank(platformUser);
 
 //         vm.resumeGasMetering();
 
-//         extensionConsumer.uninstallExtension(mockExtension);
+//         hookConsumer.uninstallHook(mockHook);
 //     }
 
-//     function test_uninstallFiveExtensions() public {
+//     function test_uninstallFiveHooks() public {
 //         vm.pauseGasMetering();
 
-//         IExtension mockExtension = IExtension(address(new MockFourExtensionImpl()));
-//         ERC1155Core extensionConsumer = erc1155;
+//         IHook mockHook = IHook(address(new MockFourHookImpl()));
+//         ERC1155Core hookConsumer = erc1155;
 
 //         vm.prank(platformUser);
-//         extensionConsumer.uninstallExtension(IExtension(extensionProxyAddress));
+//         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
 //         vm.prank(platformUser);
-//         extensionConsumer.installExtension(mockExtension);
+//         hookConsumer.installHook(mockHook);
 
 //         vm.prank(platformUser);
 
 //         vm.resumeGasMetering();
 
-//         extensionConsumer.uninstallExtension(mockExtension);
+//         hookConsumer.uninstallHook(mockHook);
 //     }
 // }
