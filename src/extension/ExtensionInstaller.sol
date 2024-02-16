@@ -20,6 +20,9 @@ abstract contract ExtensionInstaller is IExtensionInstaller {
     /// @notice Emitted on attempt to call non-existent hook.
     error HookInstallerInvalidHook();
 
+    /// @notice Emitted on attempt to call an uninstalled hook.
+    error HookInstallerHookNotInstalled();
+
     /// @notice Emitted on attempting to call with more value than sent.
     error HookInstallerInvalidValue();
 
@@ -51,6 +54,9 @@ abstract contract ExtensionInstaller is IExtensionInstaller {
         }
 
         address target = getExtensionImplementation(_hookFlag);
+        if(target == address(0)) {
+            revert HookInstallerHookNotInstalled();
+        }
 
         (bool success, bytes memory returndata) = target.staticcall(_data);
         if (!success) {
@@ -102,6 +108,9 @@ abstract contract ExtensionInstaller is IExtensionInstaller {
         }
 
         address target = getExtensionImplementation(_hookFlag);
+        if(target == address(0)) {
+            revert HookInstallerHookNotInstalled();
+        }
         
         (bool success, bytes memory returndata) = target.call{value: _value}(_data);
         if (!success) {
