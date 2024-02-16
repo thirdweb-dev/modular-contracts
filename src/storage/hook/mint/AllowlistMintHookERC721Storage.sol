@@ -8,7 +8,7 @@ library AllowlistMintHookERC721Storage {
     /// @custom:storage-location erc7201:allowlist.mint.hook.erc721.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("allowlist.mint.hook.erc721.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant ALLOWLIST_MINT_HOOK_ERC721_STORAGE_POSITION =
-        0xd9a50cc3f63a428d8d0ac630e092669535f7dbcc2bcb19dbfeea0738562b3e00;
+        0xd230f7da7990fb90d9d6a9ddcbc1c67100b8d16fc023d14d1ab086422c8af700;
 
     struct Data {
         /// @notice Mapping from token => the next token ID to mint.

@@ -9,7 +9,7 @@ library MintHookERC20Storage {
     /// @custom:storage-location erc7201:mint.hook.erc20.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("mint.hook.erc20.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant MINT_HOOK_ERC20_STORAGE_POSITION =
-        0x72a325f25024882bfd5c58de04772f8983ae4d34d0b1a84f81f6a4dce8fb2c00;
+        0xfabc0607dc27b6205ab33391766da8f65329261f34cb20a6f65414f7bfda9200;
 
     struct Data {
         /// @notice Mapping from token => fee config for the token.
