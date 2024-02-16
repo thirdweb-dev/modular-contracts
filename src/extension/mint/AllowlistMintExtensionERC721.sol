@@ -184,7 +184,7 @@ contract AllowlistMintExtensionERC721 is IFeeConfig, ERC721Extension {
      */
     function setFeeConfigForToken(uint256 _id, FeeConfig memory _config) external {
         address token = msg.sender;
-        
+
         AllowlistMintExtensionERC721Storage.data().feeConfig[token][_id] = _config;
         emit TokenFeeConfigUpdate(token, _id, _config);
     }

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
-import { TestPlus } from "../utils/TestPlus.sol";
-import { EmptyExtensionERC20 } from "../mocks/EmptyExtension.sol";
+import {Test} from "forge-std/Test.sol";
+import {TestPlus} from "../utils/TestPlus.sol";
+import {EmptyExtensionERC20} from "../mocks/EmptyExtension.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { ERC20Core, ERC20Initializable } from "src/core/token/ERC20Core.sol";
-import { IERC20 } from "src/interface/eip/IERC20.sol";
-import { IERC20CustomErrors } from "src/interface/errors/IERC20CustomErrors.sol";
-import { IERC20CoreCustomErrors } from "src/interface/errors/IERC20CoreCustomErrors.sol";
-import { IExtension } from "src/interface/extension/IExtension.sol";
-import { IInitCall } from "src/interface/common/IInitCall.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {ERC20Core, ERC20Initializable} from "src/core/token/ERC20Core.sol";
+import {IERC20} from "src/interface/eip/IERC20.sol";
+import {IERC20CustomErrors} from "src/interface/errors/IERC20CustomErrors.sol";
+import {IERC20CoreCustomErrors} from "src/interface/errors/IERC20CoreCustomErrors.sol";
+import {IExtension} from "src/interface/extension/IExtension.sol";
+import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
     bytes32 constant PERMIT_TYPEHASH =
@@ -56,23 +56,14 @@ contract ERC20CoreTest is Test, TestPlus {
         cloneFactory = new CloneFactory();
 
         erc20Implementation = address(new ERC20Core());
-        extensionProxyAddress = cloneFactory.deployDeterministicERC1967(
-            address(new EmptyExtensionERC20()),
-            "",
-            bytes32("salt")
-        );
+        extensionProxyAddress =
+            cloneFactory.deployDeterministicERC1967(address(new EmptyExtensionERC20()), "", bytes32("salt"));
 
         vm.startPrank(admin);
 
         IInitCall.InitCall memory initCall;
         bytes memory data = abi.encodeWithSelector(
-            ERC20Core.initialize.selector,
-            initCall,
-            new address[](0),
-            admin,
-            "Token",
-            "TKN",
-            "contractURI://"
+            ERC20Core.initialize.selector, initCall, new address[](0), admin, "Token", "TKN", "contractURI://"
         );
         token = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
         token.installExtension(IExtension(extensionProxyAddress));
@@ -320,9 +311,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector,
-                burnAmount,
-                mintAmount
+                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector, burnAmount, mintAmount
             )
         );
         vm.prank(to);
@@ -337,9 +326,7 @@ contract ERC20CoreTest is Test, TestPlus {
         token.mint(address(this), mintAmount, "");
         vm.expectRevert(
             abi.encodeWithSelector(
-                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector,
-                sendAmount,
-                mintAmount
+                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector, sendAmount, mintAmount
             )
         );
         token.transfer(to, sendAmount);
@@ -377,9 +364,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector,
-                sendAmount,
-                mintAmount
+                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector, sendAmount, mintAmount
             )
         );
         token.transferFrom(from, to, sendAmount);

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IERC7572 } from "../../interface/eip/IERC7572.sol";
-import { IERC20CoreCustomErrors } from "../../interface/errors/IERC20CoreCustomErrors.sol";
-import { IERC20Extension } from "../../interface/extension/IERC20Extension.sol";
-import { IERC20ExtensionInstaller } from "../../interface/extension/IERC20ExtensionInstaller.sol";
-import { IInitCall } from "../../interface/common/IInitCall.sol";
-import { ERC20Initializable } from "./ERC20Initializable.sol";
-import { IExtension, ExtensionInstaller } from "../../extension/ExtensionInstaller.sol";
-import { Initializable } from "../../common/Initializable.sol";
-import { Permission } from "../../common/Permission.sol";
+import {IERC7572} from "../../interface/eip/IERC7572.sol";
+import {IERC20CoreCustomErrors} from "../../interface/errors/IERC20CoreCustomErrors.sol";
+import {IERC20Extension} from "../../interface/extension/IERC20Extension.sol";
+import {IERC20ExtensionInstaller} from "../../interface/extension/IERC20ExtensionInstaller.sol";
+import {IInitCall} from "../../interface/common/IInitCall.sol";
+import {ERC20Initializable} from "./ERC20Initializable.sol";
+import {IExtension, ExtensionInstaller} from "../../extension/ExtensionInstaller.sol";
+import {Initializable} from "../../common/Initializable.sol";
+import {Permission} from "../../common/Permission.sol";
 
-import { ERC20CoreStorage } from "../../storage/core/ERC20CoreStorage.sol";
+import {ERC20CoreStorage} from "../../storage/core/ERC20CoreStorage.sol";
 
 contract ERC20Core is
     Initializable,
@@ -78,7 +78,7 @@ contract ERC20Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{ value: _initCall.value }(_initCall.data);
+            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -257,16 +257,15 @@ contract ERC20Core is
 
     /// @dev Returns the domain separator used in the encoding of the signature for permit.
     function computeDomainSeparator() internal view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                    keccak256(bytes(name())),
-                    keccak256("1"),
-                    block.chainid,
-                    address(this)
-                )
-            );
+        return keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes(name())),
+                keccak256("1"),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     /// @dev Sets contract URI
@@ -295,15 +294,15 @@ contract ERC20Core is
       //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint extension.
-    function _beforeMint(
-        address _to,
-        uint256 _amount,
-        bytes memory _data
-    ) internal virtual returns (uint256 quantityToMint) {
+    function _beforeMint(address _to, uint256 _amount, bytes memory _data)
+        internal
+        virtual
+        returns (uint256 quantityToMint)
+    {
         address extension = getExtensionImplementation(BEFORE_MINT_FLAG);
 
         if (extension != address(0)) {
-            quantityToMint = IERC20Extension(extension).beforeMint{ value: msg.value }(_to, _amount, _data);
+            quantityToMint = IERC20Extension(extension).beforeMint{value: msg.value}(_to, _amount, _data);
         } else {
             revert ERC20CoreMintingDisabled();
         }

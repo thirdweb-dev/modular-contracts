@@ -79,7 +79,8 @@ contract ERC20CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        extensionProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintExtensionERC20())));
+        extensionProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintExtensionERC20())));
         simpleClaimExtension = AllowlistMintExtensionERC20(extensionProxyAddress);
 
         erc20Implementation = address(new ERC20Core());
@@ -131,7 +132,7 @@ contract ERC20CoreBenchmarkTest is Test {
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
-        
+
         erc20.hookFunctionWrite(
             erc20.BEFORE_MINT_FLAG(),
             0,

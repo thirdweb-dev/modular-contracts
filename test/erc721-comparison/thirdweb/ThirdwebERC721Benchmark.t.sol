@@ -56,7 +56,9 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         });
 
         vm.prank(admin);
-        ERC721Core(erc721Contract).hookFunctionWrite(2, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition));
+        ERC721Core(erc721Contract).hookFunctionWrite(
+            2, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition)
+        );
 
         AllowlistMintExtensionERC721.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = admin;
@@ -64,7 +66,9 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         feeConfig.platformFeeBps = 100; // 1%
 
         vm.prank(admin);
-        ERC721Core(erc721Contract).hookFunctionWrite(2, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig));
+        ERC721Core(erc721Contract).hookFunctionWrite(
+            2, 0, abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+        );
     }
 
     /// @dev Optional: deploy the target erc721 contract's implementation.
@@ -121,7 +125,9 @@ contract ThirdwebERC721BenchmarkTest is ERC721BenchmarkBase {
         vm.prank(address(0x123));
         vm.resumeGasMetering();
 
-        ERC721Core(erc721Contract).hookFunctionWrite(2 ** 5, 0, abi.encodeWithSelector(SimpleMetadataExtension.setTokenURI.selector, 0, "https://example.com/"));
+        ERC721Core(erc721Contract).hookFunctionWrite(
+            2 ** 5, 0, abi.encodeWithSelector(SimpleMetadataExtension.setTokenURI.selector, 0, "https://example.com/")
+        );
     }
 
     /// @dev Claims a token from the target erc721 contract.

@@ -137,7 +137,7 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
             revert MintExtensionMintNotStarted();
         }
 
-        if(currentClaimPhase.endTimestamp <= block.timestamp) {
+        if (currentClaimPhase.endTimestamp <= block.timestamp) {
             revert MintExtensionMintEnded();
         }
 
@@ -181,7 +181,6 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
      *  @param _req The mint request to check.
      */
     function verifyPermissionedClaim(MintRequest memory _req) public view returns (bool) {
-
         if (block.timestamp < _req.sigValidityStartTimestamp || _req.sigValidityEndTimestamp <= block.timestamp) {
             revert MintExtensionRequestExpired();
         }
@@ -281,9 +280,7 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
      *  @param _condition The claim condition to set.
      *  @param _resetClaimEligibility Whether to reset the claim eligibility of all wallets.
      */
-    function setClaimCondition(ClaimCondition calldata _condition, bool _resetClaimEligibility)
-        external
-    {
+    function setClaimCondition(ClaimCondition calldata _condition, bool _resetClaimEligibility) external {
         address token = msg.sender;
         MintExtensionERC20Storage.Data storage data = MintExtensionERC20Storage.data();
 
@@ -326,7 +323,7 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
         if (msg.value != _totalPrice && _currency == NATIVE_TOKEN) {
             revert MintExtensionInvalidPrice(_totalPrice, msg.value);
         }
-        if(_currency != NATIVE_TOKEN && msg.value > 0) {
+        if (_currency != NATIVE_TOKEN && msg.value > 0) {
             revert MintExtensionInvalidPrice(0, msg.value);
         }
         if (_totalPrice == 0) {
@@ -350,7 +347,9 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
             if (platformFees > 0) {
                 SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
-            SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
+            SafeTransferLib.safeTransferFrom(
+                _currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
+            );
         }
     }
 

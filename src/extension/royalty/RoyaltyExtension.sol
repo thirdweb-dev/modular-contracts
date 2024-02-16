@@ -106,9 +106,7 @@ contract RoyaltyExtension is IRoyaltyInfo, ERC1155Extension {
      *  @param _royaltyRecipient The royalty recipient address.
      *  @param _royaltyBps The basis points of the sale price that is taken as royalty.
      */
-    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps)
-        external
-    {
+    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) external {
         address token = msg.sender;
         if (_royaltyBps > 10_000) {
             revert RoyaltyExtensionExceedsMaxBps();
@@ -126,9 +124,7 @@ contract RoyaltyExtension is IRoyaltyInfo, ERC1155Extension {
      *  @param _recipient The royalty recipient address.
      *  @param _bps The basis points of the sale price that is taken as royalty.
      */
-    function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint256 _bps)
-        external
-    {
+    function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint256 _bps) external {
         address token = msg.sender;
         if (_bps > 10_000) {
             revert RoyaltyExtensionExceedsMaxBps();

@@ -7,7 +7,8 @@ import {ERC1155Extension} from "../ERC1155Extension.sol";
 import {MerkleProofLib} from "../../lib/MerkleProofLib.sol";
 import {SafeTransferLib} from "../../lib/SafeTransferLib.sol";
 
-import {AllowlistMintExtensionERC1155Storage} from "../../storage/extension/mint/AllowlistMintExtensionERC1155Storage.sol";
+import {AllowlistMintExtensionERC1155Storage} from
+    "../../storage/extension/mint/AllowlistMintExtensionERC1155Storage.sol";
 
 contract AllowlistMintExtensionERC1155 is IFeeConfig, ERC1155Extension {
     /*//////////////////////////////////////////////////////////////
@@ -152,9 +153,7 @@ contract AllowlistMintExtensionERC1155 is IFeeConfig, ERC1155Extension {
      *  @dev Only callable by an admin of the given token.
      *  @param _claimCondition The claim condition to set.
      */
-    function setClaimCondition(uint256 _id, ClaimCondition memory _claimCondition)
-        public
-    {
+    function setClaimCondition(uint256 _id, ClaimCondition memory _claimCondition) public {
         address token = msg.sender;
 
         AllowlistMintExtensionERC1155Storage.data().claimCondition[token][_id] = _claimCondition;

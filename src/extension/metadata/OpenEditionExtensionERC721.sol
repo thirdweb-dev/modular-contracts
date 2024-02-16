@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IPermission } from "../../interface/common/IPermission.sol";
+import {IPermission} from "../../interface/common/IPermission.sol";
 
-import { ERC721Extension } from "../ERC721Extension.sol";
-import { NFTMetadataRenderer } from "../../lib/NFTMetadataRenderer.sol";
+import {ERC721Extension} from "../ERC721Extension.sol";
+import {NFTMetadataRenderer} from "../../lib/NFTMetadataRenderer.sol";
 
-import { SharedMetadataStorage } from "../../storage/extension/metadata/SharedMetadataStorage.sol";
-import { ISharedMetadata } from "../../interface/common/ISharedMetadata.sol";
+import {SharedMetadataStorage} from "../../storage/extension/metadata/SharedMetadataStorage.sol";
+import {ISharedMetadata} from "../../interface/common/ISharedMetadata.sol";
 
 contract OpenEditionExtensionERC721 is ISharedMetadata, ERC721Extension {
     /*//////////////////////////////////////////////////////////////
@@ -67,11 +67,7 @@ contract OpenEditionExtensionERC721 is ISharedMetadata, ERC721Extension {
         emit BatchMetadataUpdate(token, 0, type(uint256).max);
 
         emit SharedMetadataUpdated(
-            token,
-            _metadata.name,
-            _metadata.description,
-            _metadata.imageURI,
-            _metadata.animationURI
+            token, _metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI
         );
     }
 
@@ -82,13 +78,12 @@ contract OpenEditionExtensionERC721 is ISharedMetadata, ERC721Extension {
     function _getURIFromSharedMetadata(address _token, uint256 tokenId) internal view returns (string memory) {
         SharedMetadataInfo memory info = SharedMetadataStorage.data().sharedMetadata[_token];
 
-        return
-            NFTMetadataRenderer.createMetadataEdition({
-                name: info.name,
-                description: info.description,
-                imageURI: info.imageURI,
-                animationURI: info.animationURI,
-                tokenOfEdition: tokenId
-            });
+        return NFTMetadataRenderer.createMetadataEdition({
+            name: info.name,
+            description: info.description,
+            imageURI: info.imageURI,
+            animationURI: info.animationURI,
+            tokenOfEdition: tokenId
+        });
     }
 }

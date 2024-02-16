@@ -49,12 +49,12 @@ abstract contract ExtensionInstaller is IExtensionInstaller {
      *  @return returndata The return data from the hook view function call.
      */
     function hookFunctionRead(uint256 _hookFlag, bytes calldata _data) external view returns (bytes memory) {
-        if(_hookFlag > 2 ** _maxExtensionFlag()) {
+        if (_hookFlag > 2 ** _maxExtensionFlag()) {
             revert HookInstallerInvalidHook();
         }
 
         address target = getExtensionImplementation(_hookFlag);
-        if(target == address(0)) {
+        if (target == address(0)) {
             revert HookInstallerHookNotInstalled();
         }
 
@@ -96,22 +96,26 @@ abstract contract ExtensionInstaller is IExtensionInstaller {
     /**
      *  @notice A generic entrypoint to write state of any of the installed hooks.
      */
-    function hookFunctionWrite(uint256 _hookFlag, uint256 _value, bytes calldata _data) external payable returns (bytes memory) {
-        if(!_canWriteToHooks(msg.sender)) {
+    function hookFunctionWrite(uint256 _hookFlag, uint256 _value, bytes calldata _data)
+        external
+        payable
+        returns (bytes memory)
+    {
+        if (!_canWriteToHooks(msg.sender)) {
             revert HookInstallerUnauthorizedWrite();
         }
-        if(_hookFlag > 2 ** _maxExtensionFlag()) {
+        if (_hookFlag > 2 ** _maxExtensionFlag()) {
             revert HookInstallerInvalidHook();
         }
-        if(msg.value != _value) {
+        if (msg.value != _value) {
             revert HookInstallerInvalidValue();
         }
 
         address target = getExtensionImplementation(_hookFlag);
-        if(target == address(0)) {
+        if (target == address(0)) {
             revert HookInstallerHookNotInstalled();
         }
-        
+
         (bool success, bytes memory returndata) = target.call{value: _value}(_data);
         if (!success) {
             _revert(returndata);

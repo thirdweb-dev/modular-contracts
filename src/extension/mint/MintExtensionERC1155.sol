@@ -140,7 +140,7 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
         if (currentClaimPhase.startTimestamp > block.timestamp) {
             revert MintExtensionMintNotStarted();
         }
-        if(currentClaimPhase.endTimestamp <= block.timestamp) {
+        if (currentClaimPhase.endTimestamp <= block.timestamp) {
             revert MintExtensionMintEnded();
         }
 
@@ -187,7 +187,6 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
      *  @param _req The mint request to check.
      */
     function verifyPermissionedClaim(MintRequest memory _req) public view returns (bool) {
-
         if (block.timestamp < _req.sigValidityStartTimestamp || _req.sigValidityEndTimestamp <= block.timestamp) {
             revert MintExtensionRequestExpired();
         }
@@ -316,11 +315,9 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
      *  @param _condition The claim condition to set.
      *  @param _resetClaimEligibility Whether to reset the claim eligibility of all wallets.
      */
-    function setClaimCondition(
-        uint256 _tokenId,
-        ClaimCondition calldata _condition,
-        bool _resetClaimEligibility
-    ) external {
+    function setClaimCondition(uint256 _tokenId, ClaimCondition calldata _condition, bool _resetClaimEligibility)
+        external
+    {
         address token = msg.sender;
         MintExtensionERC1155Storage.Data storage data = MintExtensionERC1155Storage.data();
 
@@ -358,13 +355,12 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
 
     /// @dev Distributes the sale value of minting a token.
     function _collectPrice(address _minter, uint256 _tokenId, uint256 _totalPrice, address _currency) internal {
-
         // We want to return early when the price is 0. However, we first check if any msg value was sent incorrectly,
         // preventing native tokens from getting locked.
         if (msg.value != _totalPrice && _currency == NATIVE_TOKEN) {
             revert MintExtensionInvalidPrice(_totalPrice, msg.value);
         }
-        if(_currency != NATIVE_TOKEN && msg.value > 0) {
+        if (_currency != NATIVE_TOKEN && msg.value > 0) {
             revert MintExtensionInvalidPrice(0, msg.value);
         }
         if (_totalPrice == 0) {
@@ -399,7 +395,9 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
             if (platformFees > 0) {
                 SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
-            SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
+            SafeTransferLib.safeTransferFrom(
+                _currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
+            );
         }
     }
 

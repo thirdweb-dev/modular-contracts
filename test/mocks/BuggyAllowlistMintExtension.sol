@@ -3,9 +3,18 @@ pragma solidity ^0.8.0;
 
 import {MerkleProofLib} from "src/lib/MerkleProofLib.sol";
 
-import {AllowlistMintExtensionERC20, AllowlistMintExtensionERC20Storage} from "src/extension/mint/AllowlistMintExtensionERC20.sol";
-import {AllowlistMintExtensionERC721, AllowlistMintExtensionERC721Storage} from "src/extension/mint/AllowlistMintExtensionERC721.sol";
-import {AllowlistMintExtensionERC1155, AllowlistMintExtensionERC1155Storage} from "src/extension/mint/AllowlistMintExtensionERC1155.sol";
+import {
+    AllowlistMintExtensionERC20,
+    AllowlistMintExtensionERC20Storage
+} from "src/extension/mint/AllowlistMintExtensionERC20.sol";
+import {
+    AllowlistMintExtensionERC721,
+    AllowlistMintExtensionERC721Storage
+} from "src/extension/mint/AllowlistMintExtensionERC721.sol";
+import {
+    AllowlistMintExtensionERC1155,
+    AllowlistMintExtensionERC1155Storage
+} from "src/extension/mint/AllowlistMintExtensionERC1155.sol";
 
 contract BuggyAllowlistMintExtensionERC20 is AllowlistMintExtensionERC20 {
     function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
