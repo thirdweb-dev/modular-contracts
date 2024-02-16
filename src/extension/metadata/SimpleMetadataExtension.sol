@@ -26,18 +26,6 @@ contract SimpleMetadataExtension is ERC721Extension {
     error SimpleMetadataExtensionNotAuthorized();
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert SimpleMetadataExtensionNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -78,12 +66,13 @@ contract SimpleMetadataExtension is ERC721Extension {
 
     /**
      *  @notice Sets the base URI for a token.
-     *  @param _token The token address.
      *  @param _id The token ID of the NFT.
      *  @param _uri The base URI to set.
      */
-    function setTokenURI(address _token, uint256 _id, string calldata _uri) external onlyAdmin(_token) {
-        SimpleMetadataStorage.data().uris[_token][_id] = _uri;
-        emit MetadataUpdate(_token, _id);
+    function setTokenURI(uint256 _id, string calldata _uri) external {
+        address token = msg.sender;
+
+        SimpleMetadataStorage.data().uris[token][_id] = _uri;
+        emit MetadataUpdate(token, _id);
     }
 }

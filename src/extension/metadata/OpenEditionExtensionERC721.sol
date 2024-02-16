@@ -24,18 +24,6 @@ contract OpenEditionExtensionERC721 is ISharedMetadata, ERC721Extension {
     error OpenEditionExtensionNotAuthorized();
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert OpenEditionExtensionNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -66,26 +54,20 @@ contract OpenEditionExtensionERC721 is ISharedMetadata, ERC721Extension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set shared metadata for NFTs
-    function setSharedMetadata(address _token, SharedMetadataInfo calldata _metadata) external onlyAdmin(_token) {
-        _setSharedMetadata(_token, _metadata);
-    }
+    function setSharedMetadata(SharedMetadataInfo calldata _metadata) external {
+        address token = msg.sender;
 
-    /**
-     *  @dev Sets shared metadata for NFTs.
-     *  @param _metadata common metadata for all tokens
-     */
-    function _setSharedMetadata(address _token, SharedMetadataInfo calldata _metadata) internal {
-        SharedMetadataStorage.data().sharedMetadata[_token] = SharedMetadataInfo({
+        SharedMetadataStorage.data().sharedMetadata[token] = SharedMetadataInfo({
             name: _metadata.name,
             description: _metadata.description,
             imageURI: _metadata.imageURI,
             animationURI: _metadata.animationURI
         });
 
-        emit BatchMetadataUpdate(_token, 0, type(uint256).max);
+        emit BatchMetadataUpdate(token, 0, type(uint256).max);
 
         emit SharedMetadataUpdated(
-            _token,
+            token,
             _metadata.name,
             _metadata.description,
             _metadata.imageURI,

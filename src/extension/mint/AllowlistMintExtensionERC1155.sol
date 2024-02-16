@@ -60,18 +60,6 @@ contract AllowlistMintExtensionERC1155 is IFeeConfig, ERC1155Extension {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert AllowlistMintExtensionsNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -162,35 +150,37 @@ contract AllowlistMintExtensionERC1155 is IFeeConfig, ERC1155Extension {
     /**
      *  @notice Sets the claim condition for a given token.
      *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the claim condition for.
      *  @param _claimCondition The claim condition to set.
      */
-    function setClaimCondition(address _token, uint256 _id, ClaimCondition memory _claimCondition)
+    function setClaimCondition(uint256 _id, ClaimCondition memory _claimCondition)
         public
-        onlyAdmin(_token)
     {
-        AllowlistMintExtensionERC1155Storage.data().claimCondition[_token][_id] = _claimCondition;
-        emit ClaimConditionUpdate(_token, _id, _claimCondition);
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC1155Storage.data().claimCondition[token][_id] = _claimCondition;
+        emit ClaimConditionUpdate(token, _id, _claimCondition);
     }
 
     /**
      *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
-        AllowlistMintExtensionERC1155Storage.data().feeConfig[_token][_id] = _config;
-        emit TokenFeeConfigUpdate(_token, _id, _config);
+    function setFeeConfigForToken(uint256 _id, FeeConfig memory _config) external {
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC1155Storage.data().feeConfig[token][_id] = _config;
+        emit TokenFeeConfigUpdate(token, _id, _config);
     }
 
     /**
      *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        AllowlistMintExtensionERC1155Storage.data().feeConfig[_token][type(uint256).max] = _config;
-        emit DefaultFeeConfigUpdate(_token, _config);
+    function setDefaultFeeConfig(FeeConfig memory _config) external {
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC1155Storage.data().feeConfig[token][type(uint256).max] = _config;
+        emit DefaultFeeConfigUpdate(token, _config);
     }
 
     /*//////////////////////////////////////////////////////////////

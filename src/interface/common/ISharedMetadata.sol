@@ -26,5 +26,5 @@ interface ISharedMetadata {
      *  @notice Set shared metadata for NFTs
      *  @param _metadata common metadata for all tokens
      */
-    function setSharedMetadata(address _token, SharedMetadataInfo calldata _metadata) external;
+    function setSharedMetadata(SharedMetadataInfo calldata _metadata) external;
 }
