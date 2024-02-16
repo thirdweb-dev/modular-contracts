@@ -280,6 +280,11 @@ contract ERC20Core is
         return hasRole(_caller, ADMIN_ROLE_BITS);
     }
 
+    /// @dev Returns whether the caller can write to hooks.
+    function _canWriteToHooks(address _caller) internal view override returns (bool) {
+        return hasRole(_caller, ADMIN_ROLE_BITS);
+    }
+
     /// @dev Should return the max flag that represents a extension.
     function _maxExtensionFlag() internal pure override returns (uint256) {
         return BEFORE_APPROVE_FLAG;
