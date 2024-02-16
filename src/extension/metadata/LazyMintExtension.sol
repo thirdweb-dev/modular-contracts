@@ -37,18 +37,6 @@ contract LazyMintExtension is ERC721Extension {
     error LazyMintExtensionInvalidTokenId();
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert LazyMintExtensionNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -112,28 +100,27 @@ contract LazyMintExtension is ERC721Extension {
 
     /**
      *  @notice Lazy mints a given amount of NFTs.
-     *  @param _token The token address.
      *  @param _amount The number of NFTs to lazy mint.
      *  @param _baseURIForTokens Base URI for a batch of NFTs.
      *  @param _data Additional bytes data
      *  @return batchId A unique integer identifier for the batch of NFTs lazy minted together.
      */
-    function lazyMint(address _token, uint256 _amount, string calldata _baseURIForTokens, bytes calldata _data)
+    function lazyMint(uint256 _amount, string calldata _baseURIForTokens, bytes calldata _data)
         public
         virtual
-        onlyAdmin(_token)
         returns (uint256 batchId)
     {
+        address token = msg.sender;
         if (_amount == 0) {
             revert LazyMintExtensionZeroAmount();
         }
 
         LazyMintStorage.Data storage data = LazyMintStorage.data();
 
-        uint256 startId = data.nextTokenIdToLazyMint[_token];
-        (data.nextTokenIdToLazyMint[_token], batchId) = _batchMintMetadata(_token, startId, _amount, _baseURIForTokens);
+        uint256 startId = data.nextTokenIdToLazyMint[token];
+        (data.nextTokenIdToLazyMint[token], batchId) = _batchMintMetadata(token, startId, _amount, _baseURIForTokens);
 
-        emit TokensLazyMinted(_token, startId, startId + _amount - 1, _baseURIForTokens, _data);
+        emit TokensLazyMinted(token, startId, startId + _amount - 1, _baseURIForTokens, _data);
 
         return batchId;
     }

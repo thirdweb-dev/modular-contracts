@@ -12,12 +12,14 @@ import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {SimpleMetadataExtension, ERC721Extension} from "src/extension/metadata/SimpleMetadataExtension.sol";
 
 contract SimpleMetadataExtensionTest is Test {
-
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
+
+    // Test params
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     // Participants
     address public platformAdmin = address(0x123);
@@ -29,7 +31,6 @@ contract SimpleMetadataExtensionTest is Test {
     SimpleMetadataExtension public metadataExtension;
 
     function setUp() public {
-
         // Platform deploys metadata extension.
         address mintExtensionImpl = address(new SimpleMetadataExtension());
 
@@ -69,7 +70,7 @@ contract SimpleMetadataExtensionTest is Test {
         vm.label(platformAdmin, "Admin");
         vm.label(developer, "Developer");
         vm.label(endUser, "Claimer");
-        
+
         vm.label(address(erc721Core), "ERC721Core");
         vm.label(address(mintExtensionImpl), "metadataExtension");
         vm.label(mintExtensionProxy, "ProxymetadataExtension");
@@ -84,16 +85,19 @@ contract SimpleMetadataExtensionTest is Test {
         string memory tokenURI = "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/454";
 
         vm.prank(developer);
-        metadataExtension.setTokenURI(address(erc721Core), tokenId, tokenURI);
+        erc721Core.hookFunctionWrite(
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataExtension.setTokenURI.selector, tokenId, tokenURI)
+        );
 
-        assertEq(erc721Core.tokenURI(tokenId),tokenURI);
+        assertEq(erc721Core.tokenURI(tokenId), tokenURI);
 
         string memory tokenURI2 = "ipfs://QmPVMveABCDEYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/454";
 
         vm.prank(developer);
-        metadataExtension.setTokenURI(address(erc721Core), tokenId, tokenURI2);
+        erc721Core.hookFunctionWrite(
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataExtension.setTokenURI.selector, tokenId, tokenURI2)
+        );
 
-        assertEq(erc721Core.tokenURI(tokenId),tokenURI2);
+        assertEq(erc721Core.tokenURI(tokenId), tokenURI2);
     }
 }
-

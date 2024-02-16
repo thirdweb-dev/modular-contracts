@@ -12,12 +12,14 @@ import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {LazyMintExtension, ERC721Extension} from "src/extension/metadata/LazyMintExtension.sol";
 
 contract LazyMintExtensionTest is Test {
-
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
+
+    // Test params
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     // Participants
     address public platformAdmin = address(0x123);
@@ -34,7 +36,6 @@ contract LazyMintExtensionTest is Test {
     );
 
     function setUp() public {
-
         // Platform deploys lazy mint extension.
         address mintExtensionImpl = address(new LazyMintExtension());
 
@@ -74,7 +75,7 @@ contract LazyMintExtensionTest is Test {
         vm.label(platformAdmin, "Admin");
         vm.label(developer, "Developer");
         vm.label(endUser, "Claimer");
-        
+
         vm.label(address(erc721Core), "ERC721Core");
         vm.label(address(mintExtensionImpl), "LazyMintExtension");
         vm.label(mintExtensionProxy, "ProxyLazyMintExtension");
@@ -85,11 +86,9 @@ contract LazyMintExtensionTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_lazymint_state() public {
-
         uint256 tokenId = 0;
         vm.expectRevert();
         erc721Core.tokenURI(tokenId);
-
 
         uint256 amount = 100;
         string memory baseURI = "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/";
@@ -102,10 +101,12 @@ contract LazyMintExtensionTest is Test {
 
         // Lazy mint tokens
         vm.prank(developer);
-        lazyMintExtension.lazyMint(address(erc721Core), amount, baseURI, data);
+        erc721Core.hookFunctionWrite(
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, amount, baseURI, data)
+        );
 
         // Query token URI
-        for(uint256 i = 0; i < amount; i += 1) {
+        for (uint256 i = 0; i < amount; i += 1) {
             tokenId = i;
             string memory tokenURI = erc721Core.tokenURI(tokenId);
             assertEq(tokenURI, string(abi.encodePacked(baseURI, tokenId.toString())));
@@ -118,7 +119,9 @@ contract LazyMintExtensionTest is Test {
 
         // Lazy mint morre tokens
         vm.prank(developer);
-        lazyMintExtension.lazyMint(address(erc721Core), amount, baseURI2, data);
+        erc721Core.hookFunctionWrite(
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, amount, baseURI2, data)
+        );
 
         assertEq(lazyMintExtension.getBaseURICount(address(erc721Core)), 2);
         assertEq(lazyMintExtension.getBatchIdAtIndex(address(erc721Core), 0), amount);
@@ -132,9 +135,11 @@ contract LazyMintExtensionTest is Test {
 
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(LazyMintExtension.LazyMintExtensionZeroAmount.selector));
-        lazyMintExtension.lazyMint(address(erc721Core), amount, baseURI, data);
+        erc721Core.hookFunctionWrite(
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, amount, baseURI, data)
+        );
     }
-    
+
     function test_lazymint_revert_queryingUnmintedTokenURI() public {
         // E.g. Nothing minted yet
         vm.expectRevert(abi.encodeWithSelector(LazyMintExtension.LazyMintExtensionInvalidTokenId.selector));

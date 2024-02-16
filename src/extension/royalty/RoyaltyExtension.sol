@@ -31,18 +31,6 @@ contract RoyaltyExtension is IRoyaltyInfo, ERC1155Extension {
     error RoyaltyExtensionExceedsMaxBps();
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert RoyaltyExtensionNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -115,56 +103,36 @@ contract RoyaltyExtension is IRoyaltyInfo, ERC1155Extension {
 
     /**
      *  @notice Sets the default royalty info for a given token.
-     *  @param _token The token address.
      *  @param _royaltyRecipient The royalty recipient address.
      *  @param _royaltyBps The basis points of the sale price that is taken as royalty.
      */
-    function setDefaultRoyaltyInfo(address _token, address _royaltyRecipient, uint256 _royaltyBps)
-        external
-        onlyAdmin(_token)
-    {
-        _setupDefaultRoyaltyInfo(_token, _royaltyRecipient, _royaltyBps);
-    }
-
-    /**
-     *  @notice Sets the royalty info for a specific NFT of a token collection.
-     *  @param _token The token address.
-     *  @param _tokenId The token ID of the NFT.
-     *  @param _recipient The royalty recipient address.
-     *  @param _bps The basis points of the sale price that is taken as royalty.
-     */
-    function setRoyaltyInfoForToken(address _token, uint256 _tokenId, address _recipient, uint256 _bps)
-        external
-        onlyAdmin(_token)
-    {
-        _setupRoyaltyInfoForToken(_token, _tokenId, _recipient, _bps);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev Sets the default royalty info for a given token.
-    function _setupDefaultRoyaltyInfo(address _token, address _royaltyRecipient, uint256 _royaltyBps) internal {
+    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) external {
+        address token = msg.sender;
         if (_royaltyBps > 10_000) {
             revert RoyaltyExtensionExceedsMaxBps();
         }
 
-        RoyaltyExtensionStorage.data().defaultRoyaltyInfo[_token] =
+        RoyaltyExtensionStorage.data().defaultRoyaltyInfo[token] =
             RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
 
-        emit DefaultRoyaltyUpdate(_token, _royaltyRecipient, _royaltyBps);
+        emit DefaultRoyaltyUpdate(token, _royaltyRecipient, _royaltyBps);
     }
 
-    /// @dev Sets the royalty info for a specific NFT of a token collection.
-    function _setupRoyaltyInfoForToken(address _token, uint256 _tokenId, address _recipient, uint256 _bps) internal {
+    /**
+     *  @notice Sets the royalty info for a specific NFT of a token collection.
+     *  @param _tokenId The token ID of the NFT.
+     *  @param _recipient The royalty recipient address.
+     *  @param _bps The basis points of the sale price that is taken as royalty.
+     */
+    function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint256 _bps) external {
+        address token = msg.sender;
         if (_bps > 10_000) {
             revert RoyaltyExtensionExceedsMaxBps();
         }
 
-        RoyaltyExtensionStorage.data().royaltyInfoForToken[_token][_tokenId] =
+        RoyaltyExtensionStorage.data().royaltyInfoForToken[token][_tokenId] =
             RoyaltyInfo({recipient: _recipient, bps: _bps});
 
-        emit TokenRoyaltyUpdate(_token, _tokenId, _recipient, _bps);
+        emit TokenRoyaltyUpdate(token, _tokenId, _recipient, _bps);
     }
 }

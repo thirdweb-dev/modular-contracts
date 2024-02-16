@@ -57,18 +57,6 @@ contract AllowlistMintExtensionERC20 is IFeeConfig, ERC20Extension {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert AllowlistMintExtensionsNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -154,22 +142,24 @@ contract AllowlistMintExtensionERC20 is IFeeConfig, ERC20Extension {
     /**
      *  @notice Sets the claim condition for a given token.
      *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the claim condition for.
      *  @param _claimCondition The claim condition to set.
      */
-    function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public onlyAdmin(_token) {
-        AllowlistMintExtensionERC20Storage.data().claimCondition[_token] = _claimCondition;
-        emit ClaimConditionUpdate(_token, _claimCondition);
+    function setClaimCondition(ClaimCondition memory _claimCondition) public {
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC20Storage.data().claimCondition[token] = _claimCondition;
+        emit ClaimConditionUpdate(token, _claimCondition);
     }
 
     /**
      *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        AllowlistMintExtensionERC20Storage.data().feeConfig[_token] = _config;
-        emit DefaultFeeConfigUpdate(_token, _config);
+    function setDefaultFeeConfig(FeeConfig memory _config) external {
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC20Storage.data().feeConfig[token] = _config;
+        emit DefaultFeeConfigUpdate(token, _config);
     }
 
     /*//////////////////////////////////////////////////////////////

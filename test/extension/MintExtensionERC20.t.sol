@@ -9,15 +9,14 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IExtension} from "src/interface/extension/IExtension.sol";
 
-import {ERC20Core} from "src/core/token/ERC20Core.sol";
+import {ERC20Core, ExtensionInstaller} from "src/core/token/ERC20Core.sol";
 import {MintExtensionERC20, ERC20Extension} from "src/extension/mint/MintExtensionERC20.sol";
 
-import {IMintRequest} from "src/interface/common/IMintRequest.sol"; 
-import {IClaimCondition} from "src/interface/common/IClaimCondition.sol"; 
-import {IFeeConfig} from "src/interface/common/IFeeConfig.sol"; 
+import {IMintRequest} from "src/interface/common/IMintRequest.sol";
+import {IClaimCondition} from "src/interface/common/IClaimCondition.sol";
+import {IFeeConfig} from "src/interface/common/IFeeConfig.sol";
 
 contract MintExtensionERC20Test is Test {
-
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -35,6 +34,8 @@ contract MintExtensionERC20Test is Test {
     MintExtensionERC20 public mintExtension;
 
     // Test params
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     bytes32 private constant TYPEHASH = keccak256(
@@ -46,24 +47,19 @@ contract MintExtensionERC20Test is Test {
     bytes32[] public allowlistProof;
 
     // Test events
-    /// @notice Emitted when the claim condition for a given token is updated.
     event ClaimConditionUpdate(address indexed token, IClaimCondition.ClaimCondition condition, bool resetEligibility);
 
     function _setupDomainSeparator(address _mintExtension) internal {
         bytes32 nameHash = keccak256(bytes("MintExtensionERC20"));
         bytes32 versionHash = keccak256(bytes("1"));
-        bytes32 typehashEip712 = keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
-        domainSeparator = keccak256(
-            abi.encode(typehashEip712, nameHash, versionHash, block.chainid, _mintExtension)
-        );
+        bytes32 typehashEip712 =
+            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, _mintExtension));
     }
 
     function setUp() public {
-
         developer = vm.addr(developerPKey);
-        
+
         // Platform deploys mint extension.
 
         vm.startPrank(platformAdmin);
@@ -127,7 +123,7 @@ contract MintExtensionERC20Test is Test {
         vm.label(platformAdmin, "Admin");
         vm.label(developer, "Developer");
         vm.label(endUser, "Claimer");
-        
+
         vm.label(address(erc20Core), "ERC20Core");
         vm.label(address(mintExtensionImpl), "MintExtensionERC20");
         vm.label(mintExtensionProxy, "ProxyMintExtensionERC20");
@@ -138,7 +134,6 @@ contract MintExtensionERC20Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_setClaimCondition_state_only() public {
-
         // Developer sets claim condition
         IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
             startTimestamp: 100,
@@ -155,7 +150,9 @@ contract MintExtensionERC20Test is Test {
         vm.prank(developer);
         vm.expectEmit(true, true, true, true);
         emit ClaimConditionUpdate(address(erc20Core), condition, false);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         IClaimCondition.ClaimCondition memory conditionStored = mintExtension.getClaimCondition(address(erc20Core));
 
@@ -171,7 +168,6 @@ contract MintExtensionERC20Test is Test {
     }
 
     function test_setClaimCondition_state_newConditionResetEligibility() public {
-
         // Developer sets claim condition
         IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
             startTimestamp: 100,
@@ -186,10 +182,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -207,7 +205,9 @@ contract MintExtensionERC20Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc20Core.mint{value: condition.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: condition.pricePerToken * req.quantity / 1 ether}(
+            req.minter, req.quantity, abi.encode(req)
+        );
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(mintExtension.getClaimCondition(address(erc20Core)).supplyClaimed, 5 ether);
@@ -217,7 +217,11 @@ contract MintExtensionERC20Test is Test {
         newCondition.metadata = "ipfs:Qme456";
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, true);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG,
+            0,
+            abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, newCondition, true)
+        );
 
         assertEq(mintExtension.getClaimCondition(address(erc20Core)).supplyClaimed, 0); // since claim eligibility is reset
         assertEq(mintExtension.getSupplyClaimedByWallet(address(erc20Core), endUser), 0);
@@ -239,10 +243,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -260,7 +266,9 @@ contract MintExtensionERC20Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc20Core.mint{value: condition.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: condition.pricePerToken * req.quantity / 1 ether}(
+            req.minter, req.quantity, abi.encode(req)
+        );
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(mintExtension.getClaimCondition(address(erc20Core)).supplyClaimed, 5 ether);
@@ -270,7 +278,11 @@ contract MintExtensionERC20Test is Test {
         newCondition.metadata = "ipfs:Qme456";
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG,
+            0,
+            abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, newCondition, false)
+        );
 
         assertEq(mintExtension.getClaimCondition(address(erc20Core)).supplyClaimed, 5 ether); // since claim eligibility is reset
         assertEq(mintExtension.getSupplyClaimedByWallet(address(erc20Core), endUser), 5 ether);
@@ -291,8 +303,10 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionsNotAuthorized.selector));
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);
+        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
     }
 
     function test_setClaimCondition_revert_maxSupplyClaimedAlready() public {
@@ -310,10 +324,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -331,7 +347,9 @@ contract MintExtensionERC20Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc20Core.mint{value: condition.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: condition.pricePerToken * req.quantity / 1 ether}(
+            req.minter, req.quantity, abi.encode(req)
+        );
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(mintExtension.getClaimCondition(address(erc20Core)).supplyClaimed, 5 ether);
@@ -343,7 +361,11 @@ contract MintExtensionERC20Test is Test {
 
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionMaxSupplyClaimed.selector));
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG,
+            0,
+            abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, newCondition, false)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -364,7 +386,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
     }
 
     function test_setDefaultFeeConfig_state() public {
@@ -378,7 +402,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         IFeeConfig.FeeConfig memory feeConfigStored = mintExtension.getDefaultFeeConfig(address(erc20Core));
 
@@ -419,8 +445,10 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionsNotAuthorized.selector));
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);
+        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -442,10 +470,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);        
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -461,8 +491,16 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionInvalidPrice.selector, (condition.pricePerToken * req.quantity) / 1 ether, (condition.pricePerToken * req.quantity - 1) / 1 ether));
-        erc20Core.mint{value: (condition.pricePerToken * req.quantity - 1) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MintExtensionERC20.MintExtensionInvalidPrice.selector,
+                (condition.pricePerToken * req.quantity) / 1 ether,
+                (condition.pricePerToken * req.quantity - 1) / 1 ether
+            )
+        );
+        erc20Core.mint{value: (condition.pricePerToken * req.quantity - 1) / 1 ether}(
+            req.minter, req.quantity, abi.encode(req)
+        );
     }
 
     function test_beforeMint_revert_erc20Price_sentMsgValue() public {
@@ -480,10 +518,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);        
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -504,7 +544,6 @@ contract MintExtensionERC20Test is Test {
     }
 
     function test_beforeMint_state_permissionlessMint_erc20Price() public {
-
         MockERC20 currency = new MockERC20();
 
         // Developer sets claim condition
@@ -521,7 +560,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -531,7 +572,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
 
@@ -540,7 +583,7 @@ contract MintExtensionERC20Test is Test {
 
         assertEq(currency.balanceOf(developer), 0);
         assertEq(currency.balanceOf(platformAdmin), 0);
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -568,7 +611,7 @@ contract MintExtensionERC20Test is Test {
         assertEq(currency.balanceOf(developer), 0.9 ether);
         assertEq(currency.balanceOf(platformAdmin), 0.1 ether);
     }
-    
+
     function test_beforeMint_state_permissionlessMint_nativeTokenPrice() public {
         // Developer sets claim condition
         IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
@@ -584,7 +627,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -594,7 +639,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
 
@@ -603,7 +650,7 @@ contract MintExtensionERC20Test is Test {
 
         assertEq(developer.balance, 0);
         assertEq(platformAdmin.balance, 0);
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -643,7 +690,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -653,10 +702,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(new ERC20Core()),
             tokenId: 0,
@@ -691,7 +742,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -701,10 +754,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -739,7 +794,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -749,10 +806,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -768,7 +827,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionInvalidQuantity.selector, req.quantity - 1));
+        vm.expectRevert(
+            abi.encodeWithSelector(MintExtensionERC20.MintExtensionInvalidQuantity.selector, req.quantity - 1)
+        );
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity - 1, abi.encode(req));
     }
 
@@ -787,7 +848,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -797,10 +860,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -835,7 +900,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -845,10 +912,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -885,7 +954,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -895,10 +966,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -933,7 +1006,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -943,10 +1018,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -962,7 +1039,11 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionInvalidCurrency.selector, condition.currency, req.currency));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MintExtensionERC20.MintExtensionInvalidCurrency.selector, condition.currency, req.currency
+            )
+        );
         erc20Core.mint(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -981,7 +1062,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -991,10 +1074,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -1010,7 +1095,11 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionInvalidPrice.selector, condition.pricePerToken, req.pricePerToken));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MintExtensionERC20.MintExtensionInvalidPrice.selector, condition.pricePerToken, req.pricePerToken
+            )
+        );
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
     }
 
@@ -1029,7 +1118,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -1039,7 +1130,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
 
@@ -1085,7 +1178,9 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setClaimCondition(address(erc20Core), condition, false);    
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setClaimCondition.selector, condition, false)
+        );
 
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -1095,10 +1190,12 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         // End user claims 5 tokens.
-        
+
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
             tokenId: 0,
@@ -1117,7 +1214,7 @@ contract MintExtensionERC20Test is Test {
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
 
         req.minter = developer;
-        
+
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionMaxSupplyClaimed.selector));
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(developer, req.quantity, abi.encode(req));
@@ -1127,10 +1224,11 @@ contract MintExtensionERC20Test is Test {
                         TEST: permissioned mint
     //////////////////////////////////////////////////////////////*/
 
-    function _signMintRequest(
-        IMintRequest.MintRequest memory _req,
-        uint256 _privateKey
-    ) internal view returns (bytes memory) {
+    function _signMintRequest(IMintRequest.MintRequest memory _req, uint256 _privateKey)
+        internal
+        view
+        returns (bytes memory)
+    {
         bytes memory encodedRequest = abi.encode(
             TYPEHASH,
             _req.token,
@@ -1168,8 +1266,10 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);
-        
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
+
         // Sign mint request
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
@@ -1188,13 +1288,12 @@ contract MintExtensionERC20Test is Test {
         bytes memory sig = _signMintRequest(req, developerPKey);
         req.permissionSignature = sig;
 
-        
         assertEq(erc20Core.balanceOf(endUser), 0);
         assertEq(erc20Core.totalSupply(), 0);
 
         assertEq(currency.balanceOf(developer), 0);
         assertEq(currency.balanceOf(platformAdmin), 0);
-        
+
         vm.prank(endUser);
         erc20Core.mint(req.minter, req.quantity, abi.encode(req));
 
@@ -1204,7 +1303,7 @@ contract MintExtensionERC20Test is Test {
         assertEq(currency.balanceOf(developer), 0.9 ether);
         assertEq(currency.balanceOf(platformAdmin), 0.1 ether);
     }
-    
+
     function test_beforeMint_state_permissionedMint_nativeTokenPrice() public {
         // Developer sets fee config
         IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
@@ -1214,8 +1313,10 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);
-        
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
+
         // Sign mint request
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
@@ -1234,17 +1335,16 @@ contract MintExtensionERC20Test is Test {
         bytes memory sig = _signMintRequest(req, developerPKey);
         req.permissionSignature = sig;
 
-        
         assertEq(erc20Core.balanceOf(endUser), 0);
         assertEq(erc20Core.totalSupply(), 0);
 
         assertEq(developer.balance, 0);
         assertEq(platformAdmin.balance, 0);
-        
+
         vm.prank(endUser);
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
 
-       assertEq(erc20Core.balanceOf(endUser), 5 ether);
+        assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(erc20Core.totalSupply(), 5 ether);
 
         assertEq(developer.balance, 0.9 ether);
@@ -1260,8 +1360,10 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);
-        
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
+
         // Sign mint request
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
@@ -1279,7 +1381,7 @@ contract MintExtensionERC20Test is Test {
 
         bytes memory sig = _signMintRequest(req, 12345);
         req.permissionSignature = sig;
-        
+
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionInvalidSignature.selector));
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
@@ -1294,8 +1396,10 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);
-        
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
+
         // Sign mint request
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
@@ -1315,7 +1419,7 @@ contract MintExtensionERC20Test is Test {
         req.permissionSignature = sig;
 
         vm.warp(req.sigValidityEndTimestamp);
-        
+
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintExtensionERC20.MintExtensionRequestExpired.selector));
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
@@ -1330,8 +1434,10 @@ contract MintExtensionERC20Test is Test {
         });
 
         vm.prank(developer);
-        mintExtension.setDefaultFeeConfig(address(erc20Core), feeConfig);
-        
+        erc20Core.hookFunctionWrite(
+            BEFORE_MINT_FLAG, 0, abi.encodeWithSelector(MintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
+
         // Sign mint request
         IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
             token: address(erc20Core),
@@ -1349,7 +1455,7 @@ contract MintExtensionERC20Test is Test {
 
         bytes memory sig = _signMintRequest(req, developerPKey);
         req.permissionSignature = sig;
-        
+
         vm.prank(endUser);
         erc20Core.mint{value: req.pricePerToken * req.quantity / 1 ether}(req.minter, req.quantity, abi.encode(req));
 

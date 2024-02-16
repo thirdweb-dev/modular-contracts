@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
-import { LibString } from "src/lib/LibString.sol";
+import {LibString} from "src/lib/LibString.sol";
 
-import { ERC721Core } from "src/core/token/ERC721Core.sol";
-import { OpenEditionExtensionERC721, ERC721Extension } from "src/extension/metadata/OpenEditionExtensionERC721.sol";
-import { ISharedMetadata } from "src/interface/common/ISharedMetadata.sol";
-import { NFTMetadataRenderer } from "src/lib/NFTMetadataRenderer.sol";
+import {ERC721Core, ExtensionInstaller} from "src/core/token/ERC721Core.sol";
+import {OpenEditionExtensionERC721, ERC721Extension} from "src/extension/metadata/OpenEditionExtensionERC721.sol";
+import {ISharedMetadata} from "src/interface/common/ISharedMetadata.sol";
+import {NFTMetadataRenderer} from "src/lib/NFTMetadataRenderer.sol";
 
 contract OpenEditionExtensionERC721Test is Test {
     using LibString for uint256;
@@ -28,6 +28,9 @@ contract OpenEditionExtensionERC721Test is Test {
     // Target test contracts
     ERC721Core public erc721Core;
     OpenEditionExtensionERC721 public metadataExtension;
+
+    // Test params
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
     ISharedMetadata.SharedMetadataInfo public sharedMetadata;
 
     function setUp() public {
@@ -98,7 +101,11 @@ contract OpenEditionExtensionERC721Test is Test {
         );
 
         vm.prank(developer);
-        metadataExtension.setSharedMetadata(address(erc721Core), sharedMetadata);
+        erc721Core.hookFunctionWrite(
+            TOKEN_URI_FLAG,
+            0,
+            abi.encodeWithSelector(OpenEditionExtensionERC721.setSharedMetadata.selector, sharedMetadata)
+        );
 
         assertEq(
             erc721Core.tokenURI(tokenId),
@@ -125,7 +132,11 @@ contract OpenEditionExtensionERC721Test is Test {
     }
 
     function test_revert_setSharedMetadata_notAdmin() public {
-        vm.expectRevert(abi.encodeWithSelector(OpenEditionExtensionERC721.OpenEditionExtensionNotAuthorized.selector));
-        metadataExtension.setSharedMetadata(address(erc721Core), sharedMetadata);
+        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        erc721Core.hookFunctionWrite(
+            TOKEN_URI_FLAG,
+            0,
+            abi.encodeWithSelector(OpenEditionExtensionERC721.setSharedMetadata.selector, sharedMetadata)
+        );
     }
 }

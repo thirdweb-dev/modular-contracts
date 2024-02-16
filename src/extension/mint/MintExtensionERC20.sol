@@ -81,18 +81,6 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
     error MintExtensionRequestUsed();
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert MintExtensionsNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -149,7 +137,7 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
             revert MintExtensionMintNotStarted();
         }
 
-        if(currentClaimPhase.endTimestamp <= block.timestamp) {
+        if (currentClaimPhase.endTimestamp <= block.timestamp) {
             revert MintExtensionMintEnded();
         }
 
@@ -193,7 +181,6 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
      *  @param _req The mint request to check.
      */
     function verifyPermissionedClaim(MintRequest memory _req) public view returns (bool) {
-
         if (block.timestamp < _req.sigValidityStartTimestamp || _req.sigValidityEndTimestamp <= block.timestamp) {
             revert MintExtensionRequestExpired();
         }
@@ -278,40 +265,38 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
 
     /**
      *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        MintExtensionERC20Storage.data().feeConfig[_token] = _config;
-        emit DefaultFeeConfigUpdate(_token, _config);
+    function setDefaultFeeConfig(FeeConfig memory _config) external {
+        address token = msg.sender;
+
+        MintExtensionERC20Storage.data().feeConfig[token] = _config;
+        emit DefaultFeeConfigUpdate(token, _config);
     }
 
     /**
      *  @notice Sets the claim condition for a given token.
      *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the claim condition for.
      *  @param _condition The claim condition to set.
      *  @param _resetClaimEligibility Whether to reset the claim eligibility of all wallets.
      */
-    function setClaimCondition(address _token, ClaimCondition calldata _condition, bool _resetClaimEligibility)
-        external
-        onlyAdmin(_token)
-    {
+    function setClaimCondition(ClaimCondition calldata _condition, bool _resetClaimEligibility) external {
+        address token = msg.sender;
         MintExtensionERC20Storage.Data storage data = MintExtensionERC20Storage.data();
 
-        bytes32 targetConditionId = data.conditionId[_token];
-        uint256 supplyClaimedAlready = data.claimCondition[_token].supplyClaimed;
+        bytes32 targetConditionId = data.conditionId[token];
+        uint256 supplyClaimedAlready = data.claimCondition[token].supplyClaimed;
 
         if (_resetClaimEligibility) {
             supplyClaimedAlready = 0;
-            targetConditionId = keccak256(abi.encodePacked(_token, targetConditionId));
+            targetConditionId = keccak256(abi.encodePacked(token, targetConditionId));
         }
 
         if (supplyClaimedAlready > _condition.maxClaimableSupply) {
             revert MintExtensionMaxSupplyClaimed();
         }
 
-        data.claimCondition[_token] = ClaimCondition({
+        data.claimCondition[token] = ClaimCondition({
             startTimestamp: _condition.startTimestamp,
             endTimestamp: _condition.endTimestamp,
             maxClaimableSupply: _condition.maxClaimableSupply,
@@ -322,9 +307,9 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
             currency: _condition.currency,
             metadata: _condition.metadata
         });
-        data.conditionId[_token] = targetConditionId;
+        data.conditionId[token] = targetConditionId;
 
-        emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
+        emit ClaimConditionUpdate(token, _condition, _resetClaimEligibility);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -338,7 +323,7 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
         if (msg.value != _totalPrice && _currency == NATIVE_TOKEN) {
             revert MintExtensionInvalidPrice(_totalPrice, msg.value);
         }
-        if(_currency != NATIVE_TOKEN && msg.value > 0) {
+        if (_currency != NATIVE_TOKEN && msg.value > 0) {
             revert MintExtensionInvalidPrice(0, msg.value);
         }
         if (_totalPrice == 0) {
@@ -362,7 +347,9 @@ contract MintExtensionERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712
             if (platformFees > 0) {
                 SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
-            SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
+            SafeTransferLib.safeTransferFrom(
+                _currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
+            );
         }
     }
 

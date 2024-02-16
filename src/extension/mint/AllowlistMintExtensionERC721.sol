@@ -60,18 +60,6 @@ contract AllowlistMintExtensionERC721 is IFeeConfig, ERC721Extension {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert AllowlistMintExtensionsNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -169,43 +157,47 @@ contract AllowlistMintExtensionERC721 is IFeeConfig, ERC721Extension {
     /**
      *  @notice Sets the next token ID to mint for a given token.
      *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the next token ID to mint for.
      *  @param _nextIdToMint The next token ID to mint.
      */
-    function setNextIdToMint(address _token, uint256 _nextIdToMint) external onlyAdmin(_token) {
-        AllowlistMintExtensionERC721Storage.data().nextTokenIdToMint[_token] = _nextIdToMint;
-        emit NextTokenIdUpdate(_token, _nextIdToMint);
+    function setNextIdToMint(uint256 _nextIdToMint) external {
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC721Storage.data().nextTokenIdToMint[token] = _nextIdToMint;
+        emit NextTokenIdUpdate(token, _nextIdToMint);
     }
 
     /**
      *  @notice Sets the claim condition for a given token.
      *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the claim condition for.
      *  @param _claimCondition The claim condition to set.
      */
-    function setClaimCondition(address _token, ClaimCondition memory _claimCondition) public onlyAdmin(_token) {
-        AllowlistMintExtensionERC721Storage.data().claimCondition[_token] = _claimCondition;
-        emit ClaimConditionUpdate(_token, _claimCondition);
+    function setClaimCondition(ClaimCondition memory _claimCondition) public {
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC721Storage.data().claimCondition[token] = _claimCondition;
+        emit ClaimConditionUpdate(token, _claimCondition);
     }
 
     /**
      *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
-        AllowlistMintExtensionERC721Storage.data().feeConfig[_token][_id] = _config;
-        emit TokenFeeConfigUpdate(_token, _id, _config);
+    function setFeeConfigForToken(uint256 _id, FeeConfig memory _config) external {
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC721Storage.data().feeConfig[token][_id] = _config;
+        emit TokenFeeConfigUpdate(token, _id, _config);
     }
 
     /**
      *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        AllowlistMintExtensionERC721Storage.data().feeConfig[_token][type(uint256).max] = _config;
-        emit DefaultFeeConfigUpdate(_token, _config);
+    function setDefaultFeeConfig(FeeConfig memory _config) external {
+        address token = msg.sender;
+
+        AllowlistMintExtensionERC721Storage.data().feeConfig[token][type(uint256).max] = _config;
+        emit DefaultFeeConfigUpdate(token, _config);
     }
 
     /*//////////////////////////////////////////////////////////////

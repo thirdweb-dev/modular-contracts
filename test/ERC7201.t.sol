@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 
 contract ERC7201Test is Test {
-
     event StoragePos(bytes32 pos);
 
     function test_storagePos() public {

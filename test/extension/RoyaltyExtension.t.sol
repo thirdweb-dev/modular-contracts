@@ -6,11 +6,10 @@ import {Test} from "forge-std/Test.sol";
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
+import {ERC721Core, ExtensionInstaller} from "src/core/token/ERC721Core.sol";
 import {RoyaltyExtension} from "src/extension/royalty/RoyaltyExtension.sol";
 
 contract RoyaltyExtensionTest is Test {
-
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -23,6 +22,8 @@ contract RoyaltyExtensionTest is Test {
     // Target test contracts
     ERC721Core public erc721Core;
     RoyaltyExtension public royaltyExtension;
+
+    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
     function setUp() public {
         // Platform deploys metadata extension.
@@ -64,7 +65,7 @@ contract RoyaltyExtensionTest is Test {
         vm.label(platformAdmin, "Admin");
         vm.label(developer, "Developer");
         vm.label(endUser, "Claimer");
-        
+
         vm.label(address(erc721Core), "ERC721Core");
         vm.label(address(royaltyExtensionImpl), "RoyaltyExtension");
         vm.label(royaltyExtensionProxy, "ProxyRoyaltyExtension");
@@ -75,12 +76,15 @@ contract RoyaltyExtensionTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_defaultRoyalty_state() public {
-
         address recipient = address(0x121212);
         uint256 bps = 1000; // 10%
-        
+
         vm.prank(developer);
-        royaltyExtension.setDefaultRoyaltyInfo(address(erc721Core), recipient, bps);
+        erc721Core.hookFunctionWrite(
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(RoyaltyExtension.setDefaultRoyaltyInfo.selector, recipient, bps)
+        );
 
         (address _recipient, uint256 _bps) = royaltyExtension.getDefaultRoyaltyInfo(address(erc721Core));
         assertEq(_recipient, recipient);
@@ -98,29 +102,40 @@ contract RoyaltyExtensionTest is Test {
     function test_defaultRoyalty_revert_exceedMaxBps() public {
         address recipient = address(0x121212);
         uint256 bps = 100_000; // 1000%
-        
+
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(RoyaltyExtension.RoyaltyExtensionExceedsMaxBps.selector));
-        royaltyExtension.setDefaultRoyaltyInfo(address(erc721Core), recipient, bps);
+        erc721Core.hookFunctionWrite(
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(RoyaltyExtension.setDefaultRoyaltyInfo.selector, recipient, bps)
+        );
     }
 
     function test_defaultRoyalty_revert_notAdminOfToken() public {
         address recipient = address(0x121212);
         uint256 bps = 1000; // 10%
-        
-        vm.expectRevert(abi.encodeWithSelector(RoyaltyExtension.RoyaltyExtensionNotAuthorized.selector));
-        royaltyExtension.setDefaultRoyaltyInfo(address(erc721Core), recipient, bps);
+
+        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        erc721Core.hookFunctionWrite(
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(RoyaltyExtension.setDefaultRoyaltyInfo.selector, recipient, bps)
+        );
     }
 
     function test_royaltyForToken_state() public {
-
         uint256 tokenId = 0;
 
         address recipient = address(0x121212);
         uint256 bps = 1000; // 10%
-        
+
         vm.prank(developer);
-        royaltyExtension.setDefaultRoyaltyInfo(address(erc721Core), recipient, bps);
+        erc721Core.hookFunctionWrite(
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(RoyaltyExtension.setDefaultRoyaltyInfo.selector, recipient, bps)
+        );
 
         (address _recipient, uint256 _bps) = royaltyExtension.getDefaultRoyaltyInfo(address(erc721Core));
         assertEq(_recipient, recipient);
@@ -138,7 +153,13 @@ contract RoyaltyExtensionTest is Test {
         uint256 overrideBps = 5000; // 50%
 
         vm.prank(developer);
-        royaltyExtension.setRoyaltyInfoForToken(address(erc721Core), tokenId, overrideRecipient, overrideBps);
+        erc721Core.hookFunctionWrite(
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(
+                RoyaltyExtension.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
+            )
+        );
 
         vm.prank(address(erc721Core));
         (receiver, royaltyAmount) = royaltyExtension.royaltyInfo(tokenId, price);
@@ -155,16 +176,28 @@ contract RoyaltyExtensionTest is Test {
 
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(RoyaltyExtension.RoyaltyExtensionExceedsMaxBps.selector));
-        royaltyExtension.setRoyaltyInfoForToken(address(erc721Core), tokenId, overrideRecipient, overrideBps);
+        erc721Core.hookFunctionWrite(
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(
+                RoyaltyExtension.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
+            )
+        );
     }
 
     function test_royaltyForToken_revert_notAdminOfToken() public {
         uint256 tokenId = 0;
-        
+
         address overrideRecipient = address(0x13131313);
         uint256 overrideBps = 5000; // 50%
 
-        vm.expectRevert(abi.encodeWithSelector(RoyaltyExtension.RoyaltyExtensionNotAuthorized.selector));
-        royaltyExtension.setRoyaltyInfoForToken(address(erc721Core), tokenId, overrideRecipient, overrideBps);
+        vm.expectRevert(abi.encodeWithSelector(ExtensionInstaller.HookInstallerUnauthorizedWrite.selector));
+        erc721Core.hookFunctionWrite(
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(
+                RoyaltyExtension.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps
+            )
+        );
     }
 }

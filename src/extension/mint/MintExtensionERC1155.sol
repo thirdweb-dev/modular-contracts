@@ -84,18 +84,6 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
     error MintExtensionRequestUsed();
 
     /*//////////////////////////////////////////////////////////////
-                               MODIFIER
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Checks whether the caller is an admin of the given token.
-    modifier onlyAdmin(address _token) {
-        if (!IPermission(_token).hasRole(msg.sender, ADMIN_ROLE_BITS)) {
-            revert MintExtensionsNotAuthorized();
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
@@ -152,7 +140,7 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
         if (currentClaimPhase.startTimestamp > block.timestamp) {
             revert MintExtensionMintNotStarted();
         }
-        if(currentClaimPhase.endTimestamp <= block.timestamp) {
+        if (currentClaimPhase.endTimestamp <= block.timestamp) {
             revert MintExtensionMintEnded();
         }
 
@@ -199,7 +187,6 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
      *  @param _req The mint request to check.
      */
     function verifyPermissionedClaim(MintRequest memory _req) public view returns (bool) {
-
         if (block.timestamp < _req.sigValidityStartTimestamp || _req.sigValidityEndTimestamp <= block.timestamp) {
             revert MintExtensionRequestExpired();
         }
@@ -301,53 +288,52 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
 
     /**
      *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setFeeConfigForToken(address _token, uint256 _id, FeeConfig memory _config) external onlyAdmin(_token) {
-        MintExtensionERC1155Storage.data().feeConfig[_token][_id] = _config;
-        emit TokenFeeConfigUpdate(_token, _id, _config);
+    function setFeeConfigForToken(uint256 _id, FeeConfig memory _config) external {
+        address token = msg.sender;
+
+        MintExtensionERC1155Storage.data().feeConfig[token][_id] = _config;
+        emit TokenFeeConfigUpdate(token, _id, _config);
     }
 
     /**
      *  @notice Sets the fee config for a given token.
-     *  @param _token The token address.
      *  @param _config The fee config for the token.
      */
-    function setDefaultFeeConfig(address _token, FeeConfig memory _config) external onlyAdmin(_token) {
-        MintExtensionERC1155Storage.data().feeConfig[_token][type(uint256).max] = _config;
-        emit DefaultFeeConfigUpdate(_token, _config);
+    function setDefaultFeeConfig(FeeConfig memory _config) external {
+        address token = msg.sender;
+
+        MintExtensionERC1155Storage.data().feeConfig[token][type(uint256).max] = _config;
+        emit DefaultFeeConfigUpdate(token, _config);
     }
 
     /**
      *  @notice Sets the claim condition for a given token.
      *  @dev Only callable by an admin of the given token.
-     *  @param _token The token to set the claim condition for.
      *  @param _tokenId The token ID to set the claim condition for.
      *  @param _condition The claim condition to set.
      *  @param _resetClaimEligibility Whether to reset the claim eligibility of all wallets.
      */
-    function setClaimCondition(
-        address _token,
-        uint256 _tokenId,
-        ClaimCondition calldata _condition,
-        bool _resetClaimEligibility
-    ) external onlyAdmin(_token) {
+    function setClaimCondition(uint256 _tokenId, ClaimCondition calldata _condition, bool _resetClaimEligibility)
+        external
+    {
+        address token = msg.sender;
         MintExtensionERC1155Storage.Data storage data = MintExtensionERC1155Storage.data();
 
-        bytes32 targetConditionId = data.conditionId[_token][_tokenId];
-        uint256 supplyClaimedAlready = data.claimCondition[_token][_tokenId].supplyClaimed;
+        bytes32 targetConditionId = data.conditionId[token][_tokenId];
+        uint256 supplyClaimedAlready = data.claimCondition[token][_tokenId].supplyClaimed;
 
         if (_resetClaimEligibility) {
             supplyClaimedAlready = 0;
-            targetConditionId = keccak256(abi.encodePacked(_token, _tokenId, targetConditionId));
+            targetConditionId = keccak256(abi.encodePacked(token, _tokenId, targetConditionId));
         }
 
         if (supplyClaimedAlready > _condition.maxClaimableSupply) {
             revert MintExtensionMaxSupplyClaimed();
         }
 
-        data.claimCondition[_token][_tokenId] = ClaimCondition({
+        data.claimCondition[token][_tokenId] = ClaimCondition({
             startTimestamp: _condition.startTimestamp,
             endTimestamp: _condition.endTimestamp,
             maxClaimableSupply: _condition.maxClaimableSupply,
@@ -358,9 +344,9 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
             currency: _condition.currency,
             metadata: _condition.metadata
         });
-        data.conditionId[_token][_tokenId] = targetConditionId;
+        data.conditionId[token][_tokenId] = targetConditionId;
 
-        emit ClaimConditionUpdate(_token, _condition, _resetClaimEligibility);
+        emit ClaimConditionUpdate(token, _condition, _resetClaimEligibility);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -369,13 +355,12 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
 
     /// @dev Distributes the sale value of minting a token.
     function _collectPrice(address _minter, uint256 _tokenId, uint256 _totalPrice, address _currency) internal {
-
         // We want to return early when the price is 0. However, we first check if any msg value was sent incorrectly,
         // preventing native tokens from getting locked.
         if (msg.value != _totalPrice && _currency == NATIVE_TOKEN) {
             revert MintExtensionInvalidPrice(_totalPrice, msg.value);
         }
-        if(_currency != NATIVE_TOKEN && msg.value > 0) {
+        if (_currency != NATIVE_TOKEN && msg.value > 0) {
             revert MintExtensionInvalidPrice(0, msg.value);
         }
         if (_totalPrice == 0) {
@@ -410,7 +395,9 @@ contract MintExtensionERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP7
             if (platformFees > 0) {
                 SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
-            SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees);
+            SafeTransferLib.safeTransferFrom(
+                _currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
+            );
         }
     }
 

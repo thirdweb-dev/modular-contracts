@@ -79,7 +79,8 @@ contract ERC20CoreBenchmarkTest is Test {
 
         cloneFactory = new CloneFactory();
 
-        extensionProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintExtensionERC20())));
+        extensionProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintExtensionERC20())));
         simpleClaimExtension = AllowlistMintExtensionERC20(extensionProxyAddress);
 
         erc20Implementation = address(new ERC20Core());
@@ -104,9 +105,11 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
 
-        // Developer sets up token metadata and claim conditions: gas incurred by developer.
+        // Developer installs `AllowlistMintExtensionERC20` extension
         vm.startPrank(platformUser);
+        erc20.installExtension(IExtension(extensionProxyAddress));
 
+        // Developer sets up token metadata and claim conditions: gas incurred by developer.
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "test/scripts/generateRoot.ts";
@@ -119,18 +122,22 @@ contract ERC20CoreBenchmarkTest is Test {
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-
-        simpleClaimExtension.setClaimCondition(address(erc20), condition);
+        erc20.hookFunctionWrite(
+            erc20.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC20.setClaimCondition.selector, condition)
+        );
 
         AllowlistMintExtensionERC20.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        simpleClaimExtension.setDefaultFeeConfig(address(erc20), feeConfig);
-
-        // Developer installs `AllowlistMintExtensionERC20` extension
-        erc20.installExtension(IExtension(extensionProxyAddress));
+        erc20.hookFunctionWrite(
+            erc20.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         vm.stopPrank();
 

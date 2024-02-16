@@ -148,16 +148,25 @@ contract ExtensionUpgradesTest is Test {
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-        AllowlistMintExtensionERC1155.ClaimCondition memory conditionERC1155 = AllowlistMintExtensionERC1155.ClaimCondition({
-            price: pricePerToken,
-            availableSupply: availableSupply,
-            allowlistMerkleRoot: root
-        });
+        AllowlistMintExtensionERC1155.ClaimCondition memory conditionERC1155 = AllowlistMintExtensionERC1155
+            .ClaimCondition({price: pricePerToken, availableSupply: availableSupply, allowlistMerkleRoot: root});
 
         vm.startPrank(developer);
-        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).setClaimCondition(address(erc20Core), conditionERC20);
-        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).setClaimCondition(address(erc721Core), conditionERC721);
-        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).setClaimCondition(address(erc1155Core), 0, conditionERC1155);
+        erc20Core.hookFunctionWrite(
+            erc20Core.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC20.setClaimCondition.selector, conditionERC20)
+        );
+        erc721Core.hookFunctionWrite(
+            erc721Core.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, conditionERC721)
+        );
+        erc1155Core.hookFunctionWrite(
+            erc1155Core.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC1155.setClaimCondition.selector, 0, conditionERC1155)
+        );
         vm.stopPrank();
 
         // Developer sets fee config; sets self as primary sale recipient
@@ -165,9 +174,21 @@ contract ExtensionUpgradesTest is Test {
         feeConfig.primarySaleRecipient = developer;
 
         vm.startPrank(developer);
-        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).setDefaultFeeConfig(address(erc20Core), feeConfig);
-        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).setDefaultFeeConfig(address(erc721Core), feeConfig);
-        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).setDefaultFeeConfig(address(erc1155Core), feeConfig);
+        erc20Core.hookFunctionWrite(
+            erc20Core.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC20.setDefaultFeeConfig.selector, feeConfig)
+        );
+        erc721Core.hookFunctionWrite(
+            erc721Core.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+        );
+        erc1155Core.hookFunctionWrite(
+            erc1155Core.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC1155.setDefaultFeeConfig.selector, feeConfig)
+        );
         vm.stopPrank();
 
         // Set minting params
@@ -188,7 +209,10 @@ contract ExtensionUpgradesTest is Test {
     function test_upgrade_erc20Core() public {
         assertEq(erc20Core.getAllExtensions().beforeMint, mintExtensionERC20Proxy);
         assertTrue(pricePerToken > 0);
-        assertEq(AllowlistMintExtensionERC20(mintExtensionERC20Proxy).getClaimCondition(address(erc20Core)).price, pricePerToken);
+        assertEq(
+            AllowlistMintExtensionERC20(mintExtensionERC20Proxy).getClaimCondition(address(erc20Core)).price,
+            pricePerToken
+        );
 
         // End user claims token: BUG: pays price but contract fails to distribute it!
 
@@ -210,10 +234,14 @@ contract ExtensionUpgradesTest is Test {
         // Platform upgrades extension implementation to fix this bug.
         vm.prank(address(0x324254));
         vm.expectRevert(abi.encodeWithSelector(ERC20Extension.ERC20UnauthorizedUpgrade.selector));
-        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).upgradeToAndCall(address(MintExtensionERC20Impl), bytes(""));
+        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).upgradeToAndCall(
+            address(MintExtensionERC20Impl), bytes("")
+        );
 
         vm.prank(platformAdmin);
-        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).upgradeToAndCall(address(MintExtensionERC20Impl), bytes(""));
+        AllowlistMintExtensionERC20(mintExtensionERC20Proxy).upgradeToAndCall(
+            address(MintExtensionERC20Impl), bytes("")
+        );
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
@@ -228,7 +256,8 @@ contract ExtensionUpgradesTest is Test {
         assertEq(erc721Core.getAllExtensions().beforeMint, mintExtensionERC721Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(
-            AllowlistMintExtensionERC721(mintExtensionERC721Proxy).getClaimCondition(address(erc721Core)).price, pricePerToken
+            AllowlistMintExtensionERC721(mintExtensionERC721Proxy).getClaimCondition(address(erc721Core)).price,
+            pricePerToken
         );
 
         // End user claims token: BUG: pays price but contract fails to distribute it!
@@ -251,10 +280,14 @@ contract ExtensionUpgradesTest is Test {
         // Platform upgrades extension implementation to fix this bug.
         vm.prank(address(0x324254));
         vm.expectRevert(abi.encodeWithSelector(ERC721Extension.ERC721UnauthorizedUpgrade.selector));
-        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).upgradeToAndCall(address(MintExtensionERC721Impl), bytes(""));
+        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).upgradeToAndCall(
+            address(MintExtensionERC721Impl), bytes("")
+        );
 
         vm.prank(platformAdmin);
-        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).upgradeToAndCall(address(MintExtensionERC721Impl), bytes(""));
+        AllowlistMintExtensionERC721(mintExtensionERC721Proxy).upgradeToAndCall(
+            address(MintExtensionERC721Impl), bytes("")
+        );
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
@@ -271,7 +304,8 @@ contract ExtensionUpgradesTest is Test {
         assertEq(erc1155Core.getAllExtensions().beforeMint, mintExtensionERC1155Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(
-            AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).getClaimCondition(address(erc1155Core), tokenId).price,
+            AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).getClaimCondition(address(erc1155Core), tokenId)
+                .price,
             pricePerToken
         );
 
@@ -295,10 +329,14 @@ contract ExtensionUpgradesTest is Test {
         // Platform upgrades extension implementation to fix this bug.
         vm.prank(address(0x324254));
         vm.expectRevert(abi.encodeWithSelector(ERC1155Extension.ERC1155UnauthorizedUpgrade.selector));
-        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).upgradeToAndCall(address(MintExtensionERC1155Impl), bytes(""));
+        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).upgradeToAndCall(
+            address(MintExtensionERC1155Impl), bytes("")
+        );
 
         vm.prank(platformAdmin);
-        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).upgradeToAndCall(address(MintExtensionERC1155Impl), bytes(""));
+        AllowlistMintExtensionERC1155(mintExtensionERC1155Proxy).upgradeToAndCall(
+            address(MintExtensionERC1155Impl), bytes("")
+        );
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);

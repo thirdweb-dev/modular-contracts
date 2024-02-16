@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import "src/lib/LibClone.sol";
 import "src/common/UUPSUpgradeable.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
-import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
-import { MockOneExtensionImpl, MockFourExtensionImpl } from "test/mocks/MockExtensionImpl.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
+import {MockOneExtensionImpl, MockFourExtensionImpl} from "test/mocks/MockExtensionImpl.sol";
 
-import { ERC721Core, ERC721Initializable } from "src/core/token/ERC721Core.sol";
-import { ERC721Extension, AllowlistMintExtensionERC721 } from "src/extension/mint/AllowlistMintExtensionERC721.sol";
-import { LazyMintExtension } from "src/extension/metadata/LazyMintExtension.sol";
-import { RoyaltyExtension } from "src/extension/royalty/RoyaltyExtension.sol";
-import { IERC721 } from "src/interface/eip/IERC721.sol";
-import { IExtension } from "src/interface/extension/IExtension.sol";
-import { IInitCall } from "src/interface/common/IInitCall.sol";
+import {ERC721Core, ERC721Initializable} from "src/core/token/ERC721Core.sol";
+import {ERC721Extension, AllowlistMintExtensionERC721} from "src/extension/mint/AllowlistMintExtensionERC721.sol";
+import {LazyMintExtension} from "src/extension/metadata/LazyMintExtension.sol";
+import {RoyaltyExtension} from "src/extension/royalty/RoyaltyExtension.sol";
+import {IERC721} from "src/interface/eip/IERC721.sol";
+import {IExtension} from "src/interface/extension/IExtension.sol";
+import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -107,9 +107,8 @@ contract ERC721CoreBenchmarkTest is Test {
         );
         lazyMintExtension = LazyMintExtension(lazyMintExtensionProxyAddress);
 
-        address royaltyExtensionProxyAddress = address(
-            new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyExtension()))
-        );
+        address royaltyExtensionProxyAddress =
+            address(new MinimalUpgradeableRouter(platformAdmin, address(new RoyaltyExtension())));
         royaltyExtension = RoyaltyExtension(royaltyExtensionProxyAddress);
 
         address mockAddress = address(
@@ -137,13 +136,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         IInitCall.InitCall memory initCall;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector,
-            initCall,
-            new address[](0),
-            platformUser,
-            "Test",
-            "TST",
-            "contractURI://"
+            ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
         );
         erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
@@ -156,10 +149,18 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
 
-        // Developer sets up token metadata and claim conditions: gas incurred by developer.
+        // Developer installs `AllowlistMintExtensionERC721` extension
         vm.startPrank(platformUser);
 
-        lazyMintExtension.lazyMint(address(erc721), 10_000, "https://example.com/", "");
+        erc721.installExtension(IExtension(extensionProxyAddress));
+        erc721.installExtension(IExtension(lazyMintExtensionProxyAddress));
+
+        // Developer sets up token metadata and claim conditions: gas incurred by developer
+        erc721.hookFunctionWrite(
+            erc721.TOKEN_URI_FLAG(),
+            0,
+            abi.encodeWithSelector(LazyMintExtension.lazyMint.selector, 10_000, "https://example.com/", "")
+        );
 
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -173,19 +174,22 @@ contract ERC721CoreBenchmarkTest is Test {
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-
-        simpleClaimExtension.setClaimCondition(address(erc721), condition);
+        erc721.hookFunctionWrite(
+            erc721.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC721.setClaimCondition.selector, condition)
+        );
 
         AllowlistMintExtensionERC721.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        simpleClaimExtension.setDefaultFeeConfig(address(erc721), feeConfig);
-
-        // Developer installs `AllowlistMintExtensionERC721` extension
-        erc721.installExtension(IExtension(extensionProxyAddress));
-        erc721.installExtension(IExtension(lazyMintExtensionProxyAddress));
+        erc721.hookFunctionWrite(
+            erc721.BEFORE_MINT_FLAG(),
+            0,
+            abi.encodeWithSelector(AllowlistMintExtensionERC721.setDefaultFeeConfig.selector, feeConfig)
+        );
 
         vm.stopPrank();
 
@@ -205,13 +209,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         address impl = erc721Implementation;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector,
-            initCall,
-            new address[](0),
-            platformUser,
-            "Test",
-            "TST",
-            "contractURI://"
+            ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
         );
         bytes32 salt = bytes32("salt");
 
@@ -234,13 +232,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         address impl = erc721Implementation;
         bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector,
-            initCall,
-            extensions,
-            platformUser,
-            "Test",
-            "TST",
-            "contractURI://"
+            ERC721Core.initialize.selector, initCall, extensions, platformUser, "Test", "TST", "contractURI://"
         );
         bytes32 salt = bytes32("salt");
 
@@ -275,7 +267,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{ value: pricePerToken }(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
@@ -300,7 +292,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{ value: pricePerToken * 10 }(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -323,7 +315,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc721.mint{ value: pricePerToken }(claimer, quantityToClaim, encodedArgs);
+        erc721.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
 
         uint256 tokenId = 0;
         address to = address(0x121212);
