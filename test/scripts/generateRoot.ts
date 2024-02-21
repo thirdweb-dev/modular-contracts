@@ -1,9 +1,5 @@
-const { MerkleTree } = require("@thirdweb-dev/merkletree");
-
-const keccak256 = require("keccak256");
-const { ethers } = require("ethers");
-
-const process = require("process");
+import { MerkleTree } from "@thirdweb-dev/merkletree";
+import { keccak256 } from "thirdweb/utils";
 
 const members = [
   "0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd",
@@ -11,9 +7,7 @@ const members = [
   "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
 ];
 
-const hashedLeafs = members.map((l) =>
-  ethers.utils.solidityKeccak256(["address"], [l])
-);
+const hashedLeafs = members.map(l => ethers.utils.solidityKeccak256(["address"], [l]));
 
 const tree = new MerkleTree(hashedLeafs, keccak256, {
   sort: true,
@@ -21,6 +15,4 @@ const tree = new MerkleTree(hashedLeafs, keccak256, {
   sortPairs: true,
 });
 
-process.stdout.write(
-  ethers.utils.defaultAbiCoder.encode(["bytes32"], [tree.getHexRoot()])
-);
+process.stdout.write(ethers.utils.defaultAbiCoder.encode(["bytes32"], [tree.getHexRoot()]));
