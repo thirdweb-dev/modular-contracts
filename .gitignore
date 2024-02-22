@@ -1,6 +1,7 @@
 # Compiler files
 cache/
 out/
+benchmark-ext/lib/thirdweb-contracts-next
 
 # Ignores development broadcast logs
 !/broadcast
