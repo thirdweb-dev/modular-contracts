@@ -5,7 +5,7 @@ import "../common/Initializable.sol";
 import "../common/UUPSUpgradeable.sol";
 import "../common/Permission.sol";
 
-import {IERC1155Hook} from "../interface/hook/IERC1155Hook.sol";
+import { IERC1155Hook } from "../interface/hook/IERC1155Hook.sol";
 
 abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IERC1155Hook {
     /*//////////////////////////////////////////////////////////////
@@ -100,12 +100,12 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _to, uint256 _id, uint256 _value, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _to,
+        uint256 _id,
+        uint256 _value,
+        bytes memory _encodedArgs
+    ) external payable virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         revert ERC1155HookNotImplemented();
     }
 
@@ -127,10 +127,12 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @param ids The token IDs being transferred.
      *  @param values The quantities of tokens being transferred.
      */
-    function beforeBatchTransfer(address from, address to, uint256[] calldata ids, uint256[] calldata values)
-        external
-        virtual
-    {
+    function beforeBatchTransfer(
+        address from,
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata values
+    ) external virtual {
         revert ERC1155HookNotImplemented();
     }
 
@@ -172,12 +174,10 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @return receiver The address to send the royalty payment to.
      *  @return royaltyAmount The amount of royalty to pay.
      */
-    function royaltyInfo(uint256 _id, uint256 _salePrice)
-        external
-        view
-        virtual
-        returns (address receiver, uint256 royaltyAmount)
-    {
+    function royaltyInfo(
+        uint256 _id,
+        uint256 _salePrice
+    ) external view virtual returns (address receiver, uint256 royaltyAmount) {
         revert ERC1155HookNotImplemented();
     }
 }

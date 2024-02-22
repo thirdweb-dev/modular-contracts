@@ -95,7 +95,9 @@ library SafeTransferLib {
                 mstore(0x00, to) // Store the address in scratch space.
                 mstore8(0x0b, 0x73) // Opcode `PUSH20`.
                 mstore8(0x20, 0xff) // Opcode `SELFDESTRUCT`.
-                if iszero(create(amount, 0x0b, 0x16)) { revert(codesize(), codesize()) } // For gas estimation.
+                if iszero(create(amount, 0x0b, 0x16)) {
+                    revert(codesize(), codesize())
+                } // For gas estimation.
             }
         }
     }
@@ -108,7 +110,9 @@ library SafeTransferLib {
                 mstore(0x00, to) // Store the address in scratch space.
                 mstore8(0x0b, 0x73) // Opcode `PUSH20`.
                 mstore8(0x20, 0xff) // Opcode `SELFDESTRUCT`.
-                if iszero(create(selfbalance(), 0x0b, 0x16)) { revert(codesize(), codesize()) } // For gas estimation.
+                if iszero(create(selfbalance(), 0x0b, 0x16)) {
+                    revert(codesize(), codesize())
+                } // For gas estimation.
             }
         }
     }
@@ -125,7 +129,9 @@ library SafeTransferLib {
                 mstore(0x00, to) // Store the address in scratch space.
                 mstore8(0x0b, 0x73) // Opcode `PUSH20`.
                 mstore8(0x20, 0xff) // Opcode `SELFDESTRUCT`.
-                if iszero(create(amount, 0x0b, 0x16)) { revert(codesize(), codesize()) } // For gas estimation.
+                if iszero(create(amount, 0x0b, 0x16)) {
+                    revert(codesize(), codesize())
+                } // For gas estimation.
             }
         }
     }
@@ -362,15 +368,14 @@ library SafeTransferLib {
         assembly {
             mstore(0x14, account) // Store the `account` argument.
             mstore(0x00, 0x70a08231000000000000000000000000) // `balanceOf(address)`.
-            amount :=
-                mul(
-                    mload(0x20),
-                    and(
-                        // The arguments of `and` are evaluated from right to left.
-                        gt(returndatasize(), 0x1f), // At least 32 bytes returned.
-                        staticcall(gas(), token, 0x10, 0x24, 0x20, 0x20)
-                    )
+            amount := mul(
+                mload(0x20),
+                and(
+                    // The arguments of `and` are evaluated from right to left.
+                    gt(returndatasize(), 0x1f), // At least 32 bytes returned.
+                    staticcall(gas(), token, 0x10, 0x24, 0x20, 0x20)
                 )
+            )
         }
     }
 }

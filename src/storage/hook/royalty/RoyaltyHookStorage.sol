@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IRoyaltyInfo} from "../../../interface/common/IRoyaltyInfo.sol";
+import { IRoyaltyInfo } from "../../../interface/common/IRoyaltyInfo.sol";
 
 library RoyaltyHookStorage {
     /// @custom:storage-location erc7201:royalty.hook.storage

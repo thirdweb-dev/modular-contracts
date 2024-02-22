@@ -5,7 +5,7 @@ import "../common/Initializable.sol";
 import "../common/UUPSUpgradeable.sol";
 import "../common/Permission.sol";
 
-import {IERC20Hook} from "../interface/hook/IERC20Hook.sol";
+import { IERC20Hook } from "../interface/hook/IERC20Hook.sol";
 
 abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Permission, IERC20Hook {
     /*//////////////////////////////////////////////////////////////
@@ -83,12 +83,11 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Permission, IERC2
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
      *  @return quantityToMint The quantity of tokens to mint.s
      */
-    function beforeMint(address _to, uint256 _amount, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        returns (uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _to,
+        uint256 _amount,
+        bytes memory _encodedArgs
+    ) external payable virtual returns (uint256 quantityToMint) {
         revert ERC20HookNotImplemented();
     }
 

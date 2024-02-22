@@ -12,13 +12,11 @@ contract EmptyHookERC20 is ERC20Hook {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        override
-        returns (uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _claimer,
+        uint256 _quantity,
+        bytes memory _encodedArgs
+    ) external payable virtual override returns (uint256 quantityToMint) {
         return _quantity;
     }
 }
@@ -32,13 +30,11 @@ contract EmptyHookERC721 is ERC721Hook {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        override
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _claimer,
+        uint256 _quantity,
+        bytes memory _encodedArgs
+    ) external payable virtual override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         address token = msg.sender;
 
         tokenIdToMint = nextTokenIdToMint[token];
@@ -57,13 +53,12 @@ contract EmptyHookERC1155 is ERC1155Hook {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    function beforeMint(address _to, uint256 _id, uint256 _value, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        override
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function beforeMint(
+        address _to,
+        uint256 _id,
+        uint256 _value,
+        bytes memory _encodedArgs
+    ) external payable virtual override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         address token = msg.sender;
 
         tokenIdToMint = _id;

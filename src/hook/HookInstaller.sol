@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {LibBitmap} from "../lib/LibBitmap.sol";
-import {IHook} from "../interface/hook/IHook.sol";
-import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
+import { LibBitmap } from "../lib/LibBitmap.sol";
+import { IHook } from "../interface/hook/IHook.sol";
+import { IHookInstaller } from "../interface/hook/IHookInstaller.sol";
 
-import {HookInstallerStorage} from "../storage/hook/HookInstallerStorage.sol";
+import { HookInstallerStorage } from "../storage/hook/HookInstallerStorage.sol";
 
 abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;
@@ -96,11 +96,11 @@ abstract contract HookInstaller is IHookInstaller {
     /**
      *  @notice A generic entrypoint to write state of any of the installed hooks.
      */
-    function hookFunctionWrite(uint256 _hookFlag, uint256 _value, bytes calldata _data)
-        external
-        payable
-        returns (bytes memory)
-    {
+    function hookFunctionWrite(
+        uint256 _hookFlag,
+        uint256 _value,
+        bytes calldata _data
+    ) external payable returns (bytes memory) {
         if (!_canWriteToHooks(msg.sender)) {
             revert HookInstallerUnauthorizedWrite();
         }
@@ -116,7 +116,7 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerHookNotInstalled();
         }
 
-        (bool success, bytes memory returndata) = target.call{value: _value}(_data);
+        (bool success, bytes memory returndata) = target.call{ value: _value }(_data);
         if (!success) {
             _revert(returndata);
         }

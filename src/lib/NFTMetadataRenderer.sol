@@ -44,22 +44,23 @@ library NFTMetadataRenderer {
         string memory mediaData,
         uint256 tokenOfEdition
     ) internal pure returns (bytes memory) {
-        return abi.encodePacked(
-            '{"name": "',
-            name,
-            " ",
-            LibString.toString(tokenOfEdition),
-            '", "',
-            'description": "',
-            description,
-            '", "',
-            mediaData,
-            'properties": {"number": ',
-            LibString.toString(tokenOfEdition),
-            ', "name": "',
-            name,
-            '"}}'
-        );
+        return
+            abi.encodePacked(
+                '{"name": "',
+                name,
+                " ",
+                LibString.toString(tokenOfEdition),
+                '", "',
+                'description": "',
+                description,
+                '", "',
+                mediaData,
+                'properties": {"number": ',
+                LibString.toString(tokenOfEdition),
+                ', "name": "',
+                name,
+                '"}}'
+            );
     }
 
     /// Encodes the argument json bytes into base64-data uri format

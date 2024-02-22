@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {LibBitmap} from "../../lib/LibBitmap.sol";
+import { LibBitmap } from "../../lib/LibBitmap.sol";
 
 library HookInstallerStorage {
     /// @custom:storage-location erc7201:hook.installer.storage

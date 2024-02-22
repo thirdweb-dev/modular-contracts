@@ -36,7 +36,11 @@ library Base64 {
                 let end := add(ptr, encodedLength)
 
                 // Run over the input, 3 bytes at a time.
-                for {} 1 {} {
+                for {
+
+                } 1 {
+
+                } {
                     data := add(data, 3) // Advance 3 bytes.
                     let input := mload(data)
 
@@ -48,7 +52,9 @@ library Base64 {
                     mstore(ptr, mload(0x00))
 
                     ptr := add(ptr, 4) // Advance 4 bytes.
-                    if iszero(lt(ptr, end)) { break }
+                    if iszero(lt(ptr, end)) {
+                        break
+                    }
                 }
                 mstore(0x40, add(end, 0x20)) // Allocate the memory.
                 // Equivalent to `o = [0, 2, 1][dataLength % 3]`.
@@ -97,7 +103,11 @@ library Base64 {
             if dataLength {
                 let decodedLength := mul(shr(2, dataLength), 3)
 
-                for {} 1 {} {
+                for {
+
+                } 1 {
+
+                } {
                     // If padded.
                     if iszero(and(dataLength, 3)) {
                         let t := xor(mload(add(data, dataLength)), 0x3d3d)
@@ -126,7 +136,11 @@ library Base64 {
                 mstore(0x3b, 0x04080c1014181c2024282c3034383c4044484c5054585c6064)
                 mstore(0x1a, 0xf8fcf800fcd0d4d8dce0e4e8ecf0f4)
 
-                for {} 1 {} {
+                for {
+
+                } 1 {
+
+                } {
                     // Read 4 bytes.
                     data := add(data, 4)
                     let input := mload(data)
@@ -147,7 +161,9 @@ library Base64 {
                         )
                     )
                     ptr := add(ptr, 3)
-                    if iszero(lt(ptr, end)) { break }
+                    if iszero(lt(ptr, end)) {
+                        break
+                    }
                 }
                 mstore(0x40, add(end, 0x20)) // Allocate the memory.
                 mstore(end, 0) // Zeroize the slot after the bytes.
