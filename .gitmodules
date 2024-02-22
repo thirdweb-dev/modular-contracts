@@ -34,3 +34,9 @@
 [submodule "benchmark-ext/lib/murky"]
 	path = benchmark-ext/lib/murky
 	url = https://github.com/dmfxyz/murky
+[submodule "lib/murky"]
+	path = lib/murky
+	url = https://github.com/dmfxyz/murky
+[submodule "lib/dynamic-contracts"]
+	path = lib/dynamic-contracts
+	url = https://github.com/thirdweb-dev/dynamic-contracts

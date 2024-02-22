@@ -10,12 +10,10 @@ out = "out"
 libs = ["lib"]
 ffi = true
 remappings = [
-  '@openzeppelin/contracts=node_modules/@openzeppelin/contracts',
-  '@manifoldxyz/libraries-solidity/=node_modules/@manifoldxyz/libraries-solidity/',
-  '@manifoldxyz/creator-core-solidity/=node_modules/@manifoldxyz/creator-core-solidity/',
-  '@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/',
-  '@zoralabs/protocol-rewards/src/=node_modules/@zoralabs/protocol-rewards/dist/contracts/',
-  'erc721a-upgradeable/=node_modules/erc721a-upgradeable/contracts/',
+  'ds-test/=lib/forge-std/lib/ds-test/src/',
+  'forge-std/=lib/forge-std/src/',
+  '@thirdweb-dev/dynamic-contracts/=lib/dynamic-contracts/src/',
+  '@murky/=lib/murky/src/',
   '@thirdweb-dev/dynamic-contracts/=node_modules/@thirdweb-dev/dynamic-contracts/src/'
 ]
 

@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
+import { Merkle } from "@murky/Merkle.sol";
 
-import {CloneFactory} from "src/infra/CloneFactory.sol";
-import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/mockHookImpl.sol";
+import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
+import { MockOneHookImpl20, MockFourHookImpl20 } from "test/mocks/MockHookImpl.sol";
 
-import {ERC20Core, ERC20Initializable} from "src/core/token/ERC20Core.sol";
-import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
-import {IERC20} from "src/interface/eip/IERC20.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import { ERC20Core, ERC20Initializable } from "src/core/token/ERC20Core.sol";
+import { AllowlistMintHookERC20 } from "src/hook/mint/AllowlistMintHookERC20.sol";
+import { IERC20 } from "src/interface/eip/IERC20.sol";
+import { IHook } from "src/interface/hook/IHook.sol";
+import { IInitCall } from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-20 contracts on the thirdweb platform.
@@ -91,7 +92,13 @@ contract ERC20CoreBenchmarkTest is Test {
 
         IInitCall.InitCall memory initCall;
         bytes memory data = abi.encodeWithSelector(
-            ERC20Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+            ERC20Core.initialize.selector,
+            initCall,
+            new address[](0),
+            platformUser,
+            "Test",
+            "TST",
+            "contractURI://"
         );
         erc20 = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
 
@@ -108,6 +115,7 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
         erc20.installHook(IHook(hookProxyAddress));
 
+<<<<<<< HEAD
         // Developer sets up token metadata and claim conditions: gas incurred by developer.
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
@@ -115,6 +123,18 @@ contract ERC20CoreBenchmarkTest is Test {
 
         bytes memory result = vm.ffi(inputs);
         bytes32 root = abi.decode(result, (bytes32));
+=======
+        address[] memory addresses = new address[](3);
+        addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
+        addresses[1] = 0x92Bb439374a091c7507bE100183d8D1Ed2c9dAD3;
+        addresses[2] = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
+        Merkle merkle = new Merkle();
+        bytes32[] memory mdata = new bytes32[](3);
+        for (uint256 i = 0; i < 3; i++) {
+            mdata[i] = bytes32(keccak256(abi.encodePacked(addresses[i])));
+        }
+        bytes32 root = merkle.getRoot(mdata);
+>>>>>>> 06a7b80 (merkle generate and verify)
 
         AllowlistMintHookERC20.ClaimCondition memory condition = AllowlistMintHookERC20.ClaimCondition({
             price: pricePerToken,
@@ -156,7 +176,13 @@ contract ERC20CoreBenchmarkTest is Test {
 
         address impl = erc20Implementation;
         bytes memory data = abi.encodeWithSelector(
-            ERC20Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+            ERC20Core.initialize.selector,
+            initCall,
+            new address[](0),
+            platformUser,
+            "Test",
+            "TST",
+            "contractURI://"
         );
         bytes32 salt = bytes32("salt");
 
@@ -173,12 +199,17 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         // Check pre-mint state
-        string[] memory inputs = new string[](2);
-        inputs[0] = "node";
-        inputs[1] = "test/scripts/getProof.ts";
+        address[] memory addresses = new address[](3);
+        addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
+        addresses[1] = 0x92Bb439374a091c7507bE100183d8D1Ed2c9dAD3;
+        addresses[2] = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
+        Merkle merkle = new Merkle();
+        bytes32[] memory data = new bytes32[](3);
+        for (uint256 i = 0; i < 3; i++) {
+            data[i] = bytes32(keccak256(abi.encodePacked(addresses[i])));
+        }
+        bytes32[] memory proofs = merkle.getProof(data, 0);
 
-        bytes memory result = vm.ffi(inputs);
-        bytes32[] memory proofs = abi.decode(result, (bytes32[]));
         uint256 quantityToClaim = 1 ether;
 
         bytes memory encodedArgs = abi.encode(proofs);
@@ -191,19 +222,24 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{ value: pricePerToken }(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
         vm.pauseGasMetering();
 
         // Check pre-mint state
-        string[] memory inputs = new string[](2);
-        inputs[0] = "node";
-        inputs[1] = "test/scripts/getProof.ts";
+        address[] memory addresses = new address[](3);
+        addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
+        addresses[1] = 0x92Bb439374a091c7507bE100183d8D1Ed2c9dAD3;
+        addresses[2] = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
+        Merkle merkle = new Merkle();
+        bytes32[] memory data = new bytes32[](3);
+        for (uint256 i = 0; i < 3; i++) {
+            data[i] = bytes32(keccak256(abi.encodePacked(addresses[i])));
+        }
+        bytes32[] memory proofs = merkle.getProof(data, 0);
 
-        bytes memory result = vm.ffi(inputs);
-        bytes32[] memory proofs = abi.decode(result, (bytes32[]));
         uint256 quantityToClaim = 10 ether;
 
         bytes memory encodedArgs = abi.encode(proofs);
@@ -216,7 +252,7 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{ value: pricePerToken * 10 }(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -227,19 +263,24 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         // Claimer claims one token
-        string[] memory claimInputs = new string[](2);
-        claimInputs[0] = "node";
-        claimInputs[1] = "test/scripts/getProof.ts";
+        address[] memory addresses = new address[](3);
+        addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
+        addresses[1] = 0x92Bb439374a091c7507bE100183d8D1Ed2c9dAD3;
+        addresses[2] = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
+        Merkle merkle = new Merkle();
+        bytes32[] memory data = new bytes32[](3);
+        for (uint256 i = 0; i < 3; i++) {
+            data[i] = bytes32(keccak256(abi.encodePacked(addresses[i])));
+        }
+        bytes32[] memory proofs = merkle.getProof(data, 0);
 
-        bytes memory claimResult = vm.ffi(claimInputs);
-        bytes32[] memory proofs = abi.decode(claimResult, (bytes32[]));
         uint256 quantityToClaim = 1 ether;
 
         bytes memory encodedArgs = abi.encode(proofs);
 
         // Claim token
         vm.prank(claimer);
-        erc20.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
+        erc20.mint{ value: pricePerToken }(claimer, quantityToClaim, encodedArgs);
 
         address to = address(0x121212);
         address from = claimer;
