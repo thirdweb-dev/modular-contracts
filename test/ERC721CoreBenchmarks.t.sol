@@ -10,7 +10,7 @@ import "src/common/UUPSUpgradeable.sol";
 import { CloneFactory } from "src/infra/CloneFactory.sol";
 import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
 import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
-import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/mockHookImpl.sol";
+import { MockOneHookImpl, MockFourHookImpl } from "test/mocks/MockHookImpl.sol";
 
 import { ERC721Core, ERC721Initializable } from "src/core/token/ERC721Core.sol";
 import { ERC721Hook, AllowlistMintHookERC721 } from "src/hook/mint/AllowlistMintHookERC721.sol";

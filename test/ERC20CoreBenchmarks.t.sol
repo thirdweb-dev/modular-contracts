@@ -115,15 +115,6 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
         erc20.installHook(IHook(hookProxyAddress));
 
-<<<<<<< HEAD
-        // Developer sets up token metadata and claim conditions: gas incurred by developer.
-        string[] memory inputs = new string[](2);
-        inputs[0] = "node";
-        inputs[1] = "test/scripts/generateRoot.ts";
-
-        bytes memory result = vm.ffi(inputs);
-        bytes32 root = abi.decode(result, (bytes32));
-=======
         address[] memory addresses = new address[](3);
         addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
         addresses[1] = 0x92Bb439374a091c7507bE100183d8D1Ed2c9dAD3;
@@ -134,7 +125,6 @@ contract ERC20CoreBenchmarkTest is Test {
             mdata[i] = bytes32(keccak256(abi.encodePacked(addresses[i])));
         }
         bytes32 root = merkle.getRoot(mdata);
->>>>>>> 06a7b80 (merkle generate and verify)
 
         AllowlistMintHookERC20.ClaimCondition memory condition = AllowlistMintHookERC20.ClaimCondition({
             price: pricePerToken,
