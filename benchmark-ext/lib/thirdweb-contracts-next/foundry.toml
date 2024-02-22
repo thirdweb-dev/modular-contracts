@@ -1,0 +1,22 @@
+[profile.default]
+#auto_detect_solc = false
+solc-version = "0.8.24"
+evm_version = 'london'
+optimizer = true
+optimizer_runs = 800
+cache = true
+src = "src"
+out = "out"
+libs = ["lib"]
+ffi = true
+remappings = [
+  '@openzeppelin/contracts=node_modules/@openzeppelin/contracts',
+  '@manifoldxyz/libraries-solidity/=node_modules/@manifoldxyz/libraries-solidity/',
+  '@manifoldxyz/creator-core-solidity/=node_modules/@manifoldxyz/creator-core-solidity/',
+  '@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/',
+  '@zoralabs/protocol-rewards/src/=node_modules/@zoralabs/protocol-rewards/dist/contracts/',
+  'erc721a-upgradeable/=node_modules/erc721a-upgradeable/contracts/',
+  '@thirdweb-dev/dynamic-contracts/=node_modules/@thirdweb-dev/dynamic-contracts/src/'
+]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -1,6 +1,11 @@
 [profile.default]
+#auto_detect_solc = false
+solc-version = "0.8.17"
+evm_version = 'london'
+optimizer = true
+optimizer_runs = 800
+cache = true
 src = "src"
 out = "out"
 libs = ["lib"]
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+ffi = true
