@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import "../common/Initializable.sol";
-import "../common/UUPSUpgradeable.sol";
+import "@solady/utils/Initializable.sol";
+import "@solady/utils/UUPSUpgradeable.sol";
 import "../common/Permission.sol";
 
 import { IERC20Hook } from "../interface/hook/IERC20Hook.sol";
@@ -14,22 +14,22 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Permission, IERC2
 
     /// @notice Bits representing the before mint hook.
     function BEFORE_MINT_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 1;
+        return 2**1;
     }
 
     /// @notice Bits representing the before transfer hook.
     function BEFORE_TRANSFER_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 2;
+        return 2**2;
     }
 
     /// @notice Bits representing the before burn hook.
     function BEFORE_BURN_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 3;
+        return 2**3;
     }
 
     /// @notice Bits representing the before approve hook.
     function BEFORE_APPROVE_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 4;
+        return 2**4;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -97,7 +97,11 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Permission, IERC2
      *  @param _to The address that is receiving tokens.
      *  @param _amount The amount of tokens being transferred.
      */
-    function beforeTransfer(address _from, address _to, uint256 _amount) external virtual {
+    function beforeTransfer(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) external virtual {
         revert ERC20HookNotImplemented();
     }
 
@@ -107,7 +111,11 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Permission, IERC2
      *  @param _amount The amount of tokens being burned.
      *  @param _encodedArgs The encoded arguments for the beforeBurn hook.
      */
-    function beforeBurn(address _from, uint256 _amount, bytes memory _encodedArgs) external virtual {
+    function beforeBurn(
+        address _from,
+        uint256 _amount,
+        bytes memory _encodedArgs
+    ) external virtual {
         revert ERC20HookNotImplemented();
     }
 
@@ -117,7 +125,11 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Permission, IERC2
      *  @param _to The address that is being approved.
      *  @param _amount The amount of tokens being approved.
      */
-    function beforeApprove(address _from, address _to, uint256 _amount) external virtual {
+    function beforeApprove(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) external virtual {
         revert ERC20HookNotImplemented();
     }
 }

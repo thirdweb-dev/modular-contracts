@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import "../common/Initializable.sol";
-import "../common/UUPSUpgradeable.sol";
+import "@solady/utils/Initializable.sol";
+import "@solady/utils/UUPSUpgradeable.sol";
 import "../common/Permission.sol";
 
 import { IERC1155Hook } from "../interface/hook/IERC1155Hook.sol";
@@ -14,37 +14,37 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
 
     /// @notice Bits representing the before mint hook.
     function BEFORE_MINT_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 1;
+        return 2**1;
     }
 
     /// @notice Bits representing the before transfer hook.
     function BEFORE_TRANSFER_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 2;
+        return 2**2;
     }
 
     /// @notice Bits representing the before burn hook.
     function BEFORE_BURN_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 3;
+        return 2**3;
     }
 
     /// @notice Bits representing the before approve hook.
     function BEFORE_APPROVE_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 4;
+        return 2**4;
     }
 
     /// @notice Bits representing the token URI hook.
     function TOKEN_URI_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 5;
+        return 2**5;
     }
 
     /// @notice Bits representing the royalty hook.
     function ROYALTY_INFO_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 6;
+        return 2**6;
     }
 
     /// @notice Bits representing the before transfer hook.
     function BEFORE_BATCH_TRANSFER_FLAG() public pure virtual returns (uint256) {
-        return 2 ** 7;
+        return 2**7;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -116,7 +116,12 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @param _id The token ID being transferred.
      *  @param _value The quantity of tokens being transferred.
      */
-    function beforeTransfer(address _from, address _to, uint256 _id, uint256 _value) external virtual {
+    function beforeTransfer(
+        address _from,
+        address _to,
+        uint256 _id,
+        uint256 _value
+    ) external virtual {
         revert ERC1155HookNotImplemented();
     }
 
@@ -144,7 +149,12 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @param _value The quantity of tokens being burned.
      *  @param _encodedArgs The encoded arguments for the beforeBurn hook.
      */
-    function beforeBurn(address _from, uint256 _id, uint256 _value, bytes memory _encodedArgs) external virtual {
+    function beforeBurn(
+        address _from,
+        uint256 _id,
+        uint256 _value,
+        bytes memory _encodedArgs
+    ) external virtual {
         revert ERC1155HookNotImplemented();
     }
 
@@ -154,7 +164,11 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @param _to The address that is being approved.
      *  @param _approved Whether to grant or revoke approval.
      */
-    function beforeApprove(address _from, address _to, bool _approved) external virtual {
+    function beforeApprove(
+        address _from,
+        address _to,
+        bool _approved
+    ) external virtual {
         revert ERC1155HookNotImplemented();
     }
 
@@ -174,10 +188,12 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Permission, IER
      *  @return receiver The address to send the royalty payment to.
      *  @return royaltyAmount The amount of royalty to pay.
      */
-    function royaltyInfo(
-        uint256 _id,
-        uint256 _salePrice
-    ) external view virtual returns (address receiver, uint256 royaltyAmount) {
+    function royaltyInfo(uint256 _id, uint256 _salePrice)
+        external
+        view
+        virtual
+        returns (address receiver, uint256 royaltyAmount)
+    {
         revert ERC1155HookNotImplemented();
     }
 }

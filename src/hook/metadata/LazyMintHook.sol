@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { IPermission } from "../../interface/common/IPermission.sol";
+import { LibString } from "@solady/utils/LibString.sol";
 
 import { ERC721Hook } from "../ERC721Hook.sol";
-import { LibString } from "../../lib/LibString.sol";
+import { IPermission } from "../../interface/common/IPermission.sol";
 
 import { LazyMintStorage } from "../../storage/hook/metadata/LazyMintStorage.sol";
 

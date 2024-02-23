@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from "../../common/Initializable.sol";
+import { Initializable } from "@solady/utils/Initializable.sol";
+
 import { IERC1155 } from "../../interface/eip/IERC1155.sol";
 import { IERC1155Supply } from "../../interface/eip/IERC1155Supply.sol";
 import { IERC1155MetadataURI } from "../../interface/eip/IERC1155Metadata.sol";
@@ -63,10 +64,11 @@ abstract contract ERC1155Initializable is
         return ERC1155InitializableStorage.data().balanceOf[_owner][_tokenId];
     }
 
-    function balanceOfBatch(
-        address[] calldata _owners,
-        uint256[] calldata _tokenIds
-    ) external view returns (uint256[] memory _balances) {
+    function balanceOfBatch(address[] calldata _owners, uint256[] calldata _tokenIds)
+        external
+        view
+        returns (uint256[] memory _balances)
+    {
         ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
 
         if (_owners.length != _tokenIds.length) {
@@ -214,7 +216,12 @@ abstract contract ERC1155Initializable is
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _mint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
+    function _mint(
+        address _to,
+        uint256 _tokenId,
+        uint256 _value,
+        bytes memory _data
+    ) internal virtual {
         ERC1155InitializableStorage.data().balanceOf[_to][_tokenId] += _value;
         ERC1155InitializableStorage.data().totalSupply[_tokenId] += _value;
 
@@ -230,7 +237,11 @@ abstract contract ERC1155Initializable is
         }
     }
 
-    function _burn(address _from, uint256 _tokenId, uint256 _value) internal virtual {
+    function _burn(
+        address _from,
+        uint256 _tokenId,
+        uint256 _value
+    ) internal virtual {
         if (_from == address(0)) {
             revert ERC1155BurnFromZeroAddress();
         }

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import { EIP712 } from "@solady/utils/EIP712.sol";
+import { ECDSA } from "@solady/utils/ECDSA.sol";
+import { MerkleProofLib } from "@solady/utils/MerkleProofLib.sol";
+import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol";
+
 import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
 import { IPermission } from "../../interface/common/IPermission.sol";
 import { IClaimCondition } from "../../interface/common/IClaimCondition.sol";
 import { IMintRequest } from "../../interface/common/IMintRequest.sol";
 
 import { ERC20Hook } from "../ERC20Hook.sol";
-import { EIP712 } from "../../common/EIP712.sol";
-
-import { ECDSA } from "../../lib/ECDSA.sol";
-import { MerkleProofLib } from "../../lib/MerkleProofLib.sol";
-import { SafeTransferLib } from "../../lib/SafeTransferLib.sol";
 
 import { MintHookERC20Storage } from "../../storage/hook/mint/MintHookERC20Storage.sol";
 
@@ -319,7 +319,11 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Distributes the sale value of minting a token.
-    function _collectPrice(address _minter, uint256 _totalPrice, address _currency) internal {
+    function _collectPrice(
+        address _minter,
+        uint256 _totalPrice,
+        address _currency
+    ) internal {
         // We want to return early when the price is 0. However, we first check if any msg value was sent incorrectly,
         // preventing native tokens from getting locked.
         if (msg.value != _totalPrice && _currency == NATIVE_TOKEN) {

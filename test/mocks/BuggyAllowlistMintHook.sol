@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { MerkleProofLib } from "src/lib/MerkleProofLib.sol";
+import { MerkleProofLib } from "@solady/utils/MerkleProofLib.sol";
 
 import { AllowlistMintHookERC20, AllowlistMintHookERC20Storage } from "src/hook/mint/AllowlistMintHookERC20.sol";
 import { AllowlistMintHookERC721, AllowlistMintHookERC721Storage } from "src/hook/mint/AllowlistMintHookERC721.sol";

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from "../../common/Initializable.sol";
+import { Initializable } from "@solady/utils/Initializable.sol";
+
 import { IERC721 } from "../../interface/eip/IERC721.sol";
 import { IERC721Supply } from "../../interface/eip/IERC721Supply.sol";
 import { IERC721Metadata } from "../../interface/eip/IERC721Metadata.sol";
@@ -145,7 +146,11 @@ abstract contract ERC721Initializable is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(address _from, address _to, uint256 _id) public virtual {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _id
+    ) public virtual {
         ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
 
         if (_from != data.ownerOf[_id]) {
@@ -182,7 +187,11 @@ abstract contract ERC721Initializable is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function safeTransferFrom(address _from, address _to, uint256 _id) public virtual {
+    function safeTransferFrom(
+        address _from,
+        address _to,
+        uint256 _id
+    ) public virtual {
         transferFrom(_from, _to, _id);
 
         if (
@@ -202,7 +211,12 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      *  @param _data Additional data passed onto the `onERC721Received` call to the recipient
      */
-    function safeTransferFrom(address _from, address _to, uint256 _id, bytes calldata _data) public virtual {
+    function safeTransferFrom(
+        address _from,
+        address _to,
+        uint256 _id,
+        bytes calldata _data
+    ) public virtual {
         transferFrom(_from, _to, _id);
 
         if (
@@ -224,7 +238,11 @@ abstract contract ERC721Initializable is
      *  @param _startId The token ID of the first NFT to mint
      *  @param _quantity The quantity of NFTs to mint
      */
-    function _mint(address _to, uint256 _startId, uint256 _quantity) internal virtual {
+    function _mint(
+        address _to,
+        uint256 _startId,
+        uint256 _quantity
+    ) internal virtual {
         if (_to == address(0)) {
             revert ERC721InvalidRecipient();
         }

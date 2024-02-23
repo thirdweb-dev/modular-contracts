@@ -12,9 +12,10 @@ ffi = true
 remappings = [
   'ds-test/=lib/forge-std/lib/ds-test/src/',
   'forge-std/=lib/forge-std/src/',
-  '@thirdweb-dev/dynamic-contracts/=lib/dynamic-contracts/src/',
   '@murky/=lib/murky/src/',
-  '@thirdweb-dev/dynamic-contracts/=node_modules/@thirdweb-dev/dynamic-contracts/src/'
+  '@solady/=lib/solady/src/',
+  '@erc721a/=lib/erc721a/contracts/',
+  '@thirdweb-dev/dynamic-contracts/=lib/dynamic-contracts/src/',
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

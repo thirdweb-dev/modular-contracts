@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import { Initializable } from "@solady/utils/Initializable.sol";
+
 import { IERC7572 } from "../../interface/eip/IERC7572.sol";
 import { IERC20CoreCustomErrors } from "../../interface/errors/IERC20CoreCustomErrors.sol";
 import { IERC20Hook } from "../../interface/hook/IERC20Hook.sol";
@@ -8,7 +10,6 @@ import { IERC20HookInstaller } from "../../interface/hook/IERC20HookInstaller.so
 import { IInitCall } from "../../interface/common/IInitCall.sol";
 import { ERC20Initializable } from "./ERC20Initializable.sol";
 import { IHook, HookInstaller } from "../../hook/HookInstaller.sol";
-import { Initializable } from "../../common/Initializable.sol";
 import { Permission } from "../../common/Permission.sol";
 
 import { ERC20CoreStorage } from "../../storage/core/ERC20CoreStorage.sol";
@@ -28,16 +29,16 @@ contract ERC20Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+    uint256 public constant BEFORE_MINT_FLAG = 2**1;
 
     /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2**2;
 
     /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+    uint256 public constant BEFORE_BURN_FLAG = 2**3;
 
     /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2**4;
 
     /// @notice The EIP-2612 permit typehash.
     bytes32 private constant PERMIT_TYPEHASH =
@@ -145,7 +146,11 @@ contract ERC20Core is
      *  @param _amount The amount of tokens to mint.
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
-    function mint(address _to, uint256 _amount, bytes memory _encodedBeforeMintArgs) external payable {
+    function mint(
+        address _to,
+        uint256 _amount,
+        bytes memory _encodedBeforeMintArgs
+    ) external payable {
         uint256 quantityToMint = _beforeMint(_to, _amount, _encodedBeforeMintArgs);
         _mint(_to, quantityToMint);
     }
@@ -156,7 +161,11 @@ contract ERC20Core is
      *  @param _to The address to transfer tokens to.
      *  @param _amount The quantity of tokens to transfer.
      */
-    function transferFrom(address _from, address _to, uint256 _amount) public override returns (bool) {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) public override returns (bool) {
         _beforeTransfer(_from, _to, _amount);
         return super.transferFrom(_from, _to, _amount);
     }
@@ -310,7 +319,11 @@ contract ERC20Core is
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(address _from, address _to, uint256 _amount) internal virtual {
+    function _beforeTransfer(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
@@ -319,7 +332,11 @@ contract ERC20Core is
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _amount, bytes memory _encodedBeforeBurnArgs) internal virtual {
+    function _beforeBurn(
+        address _from,
+        uint256 _amount,
+        bytes memory _encodedBeforeBurnArgs
+    ) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
@@ -328,7 +345,11 @@ contract ERC20Core is
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(address _from, address _to, uint256 _amount) internal virtual {
+    function _beforeApprove(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {

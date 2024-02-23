@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from "../../common/Initializable.sol";
+import { Initializable } from "@solady/utils/Initializable.sol";
+
 import { IERC20 } from "../../interface/eip/IERC20.sol";
 import { IERC20Metadata } from "../../interface/eip/IERC20Metadata.sol";
 import { IERC20CustomErrors } from "../../interface/errors/IERC20CustomErrors.sol";
@@ -120,7 +121,11 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
      *  @param _to The address to transfer tokens to.
      *  @param _amount The quantity of tokens to transfer.
      */
-    function transferFrom(address _from, address _to, uint256 _amount) public virtual returns (bool) {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) public virtual returns (bool) {
         if (_to == address(0)) {
             revert ERC20TransferToZeroAddress();
         }
@@ -208,7 +213,11 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
     }
 
     /// @dev Approves a spender to spend tokens on behalf of an owner.
-    function _approve(address _owner, address _spender, uint256 _amount) public virtual {
+    function _approve(
+        address _owner,
+        address _spender,
+        uint256 _amount
+    ) public virtual {
         if (_owner == address(0)) {
             revert ERC20FromZeroAddress(_owner, _amount);
         }

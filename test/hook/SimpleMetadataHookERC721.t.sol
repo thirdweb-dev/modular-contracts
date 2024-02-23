@@ -6,7 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { CloneFactory } from "src/infra/CloneFactory.sol";
 import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
 
-import { LibString } from "src/lib/LibString.sol";
+import { LibString } from "@solady/utils/LibString.sol";
 
 import { ERC721Core } from "src/core/token/ERC721Core.sol";
 import { SimpleMetadataHook, ERC721Hook } from "src/hook/metadata/SimpleMetadataHook.sol";
@@ -19,7 +19,7 @@ contract SimpleMetadataHookTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     // Test params
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant TOKEN_URI_FLAG = 2**5;
 
     // Participants
     address public platformAdmin = address(0x123);

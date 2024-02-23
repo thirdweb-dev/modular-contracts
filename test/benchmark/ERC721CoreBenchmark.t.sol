@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import { Test } from "forge-std/Test.sol";
 import { Merkle } from "@murky/Merkle.sol";
 
-import "src/lib/LibClone.sol";
-import "src/common/UUPSUpgradeable.sol";
+import "@solady/utils/LibClone.sol";
+import "@solady/utils/UUPSUpgradeable.sol";
 
 import { CloneFactory } from "src/infra/CloneFactory.sol";
 import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";

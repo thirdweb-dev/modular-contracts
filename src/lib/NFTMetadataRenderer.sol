@@ -6,8 +6,8 @@ pragma solidity ^0.8.0;
 /// @author thirdweb
 /// credits: Zora
 
-import "./LibString.sol";
-import "./Base64.sol";
+import "@solady/utils/LibString.sol";
+import "@solady/utils/Base64.sol";
 
 /// NFT metadata library for rendering metadata associated with editions
 library NFTMetadataRenderer {
