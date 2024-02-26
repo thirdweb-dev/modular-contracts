@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IPermission} from "../../interface/common/IPermission.sol";
+import { LibString } from "@solady/utils/LibString.sol";
 
-import {ERC721Hook} from "../ERC721Hook.sol";
-import {LibString} from "../../lib/LibString.sol";
+import { ERC721Hook } from "../ERC721Hook.sol";
+import { IPermission } from "../../interface/common/IPermission.sol";
 
-import {LazyMintStorage} from "../../storage/hook/metadata/LazyMintStorage.sol";
+import { LazyMintStorage } from "../../storage/hook/metadata/LazyMintStorage.sol";
 
 contract LazyMintHook is ERC721Hook {
     using LibString for uint256;
@@ -17,7 +17,11 @@ contract LazyMintHook is ERC721Hook {
 
     /// @dev Emitted when tokens are lazy minted.
     event TokensLazyMinted(
-        address indexed token, uint256 indexed startTokenId, uint256 endTokenId, string baseURI, bytes encryptedBaseURI
+        address indexed token,
+        uint256 indexed startTokenId,
+        uint256 endTokenId,
+        string baseURI,
+        bytes encryptedBaseURI
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -105,11 +109,11 @@ contract LazyMintHook is ERC721Hook {
      *  @param _data Additional bytes data
      *  @return batchId A unique integer identifier for the batch of NFTs lazy minted together.
      */
-    function lazyMint(uint256 _amount, string calldata _baseURIForTokens, bytes calldata _data)
-        public
-        virtual
-        returns (uint256 batchId)
-    {
+    function lazyMint(
+        uint256 _amount,
+        string calldata _baseURIForTokens,
+        bytes calldata _data
+    ) public virtual returns (uint256 batchId) {
         address token = msg.sender;
         if (_amount == 0) {
             revert LazyMintHookZeroAmount();

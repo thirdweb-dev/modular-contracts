@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {ISharedMetadata} from "../../../interface/common/ISharedMetadata.sol";
+import { ISharedMetadata } from "../../../interface/common/ISharedMetadata.sol";
 
 library SharedMetadataStorage {
     /// @custom:storage-location erc7201:shared.metadata.storage

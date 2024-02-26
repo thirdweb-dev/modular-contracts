@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-import {CloneFactory} from "src/infra/CloneFactory.sol";
-import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
 
-import {LibString} from "src/lib/LibString.sol";
+import { LibString } from "@solady/utils/LibString.sol";
 
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {LazyMintHook, ERC721Hook} from "src/hook/metadata/LazyMintHook.sol";
+import { ERC721Core } from "src/core/token/ERC721Core.sol";
+import { LazyMintHook, ERC721Hook } from "src/hook/metadata/LazyMintHook.sol";
 
 contract LazyMintHookTest is Test {
     using LibString for uint256;
@@ -19,7 +19,7 @@ contract LazyMintHookTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     // Test params
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant TOKEN_URI_FLAG = 2**5;
 
     // Participants
     address public platformAdmin = address(0x123);
@@ -32,7 +32,11 @@ contract LazyMintHookTest is Test {
 
     // Test events
     event TokensLazyMinted(
-        address indexed token, uint256 indexed startTokenId, uint256 endTokenId, string baseURI, bytes encryptedBaseURI
+        address indexed token,
+        uint256 indexed startTokenId,
+        uint256 endTokenId,
+        string baseURI,
+        bytes encryptedBaseURI
     );
 
     function setUp() public {
@@ -102,7 +106,9 @@ contract LazyMintHookTest is Test {
         // Lazy mint tokens
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI, data)
+            TOKEN_URI_FLAG,
+            0,
+            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI, data)
         );
 
         // Query token URI
@@ -120,7 +126,9 @@ contract LazyMintHookTest is Test {
         // Lazy mint morre tokens
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI2, data)
+            TOKEN_URI_FLAG,
+            0,
+            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI2, data)
         );
 
         assertEq(lazyMintHook.getBaseURICount(address(erc721Core)), 2);
@@ -136,7 +144,9 @@ contract LazyMintHookTest is Test {
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(LazyMintHook.LazyMintHookZeroAmount.selector));
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI, data)
+            TOKEN_URI_FLAG,
+            0,
+            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI, data)
         );
     }
 

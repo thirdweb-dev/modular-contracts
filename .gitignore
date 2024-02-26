@@ -1,6 +1,8 @@
 # Compiler files
 cache/
 out/
+benchmark-ext/lib/thirdweb-contracts-next
+benchmark-ext/lib/creator-core-extensions-solidity
 
 # Ignores development broadcast logs
 !/broadcast

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IPermission} from "../../interface/common/IPermission.sol";
+import { LibString } from "@solady/utils/LibString.sol";
 
-import {ERC721Hook} from "../ERC721Hook.sol";
-import {LibString} from "../../lib/LibString.sol";
+import { ERC721Hook } from "../ERC721Hook.sol";
+import { IPermission } from "../../interface/common/IPermission.sol";
 
-import {SimpleMetadataStorage} from "../../storage/hook/metadata/SimpleMetadataStorage.sol";
+import { SimpleMetadataStorage } from "../../storage/hook/metadata/SimpleMetadataStorage.sol";
 
 contract SimpleMetadataHook is ERC721Hook {
     using LibString for uint256;

@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 /// @author thirdweb
 
-import {IPermission} from "../../interface/common/IPermission.sol";
-import {IRoyaltyInfo} from "../../interface/common/IRoyaltyInfo.sol";
-import {ERC1155Hook} from "../ERC1155Hook.sol";
+import { IPermission } from "../../interface/common/IPermission.sol";
+import { IRoyaltyInfo } from "../../interface/common/IRoyaltyInfo.sol";
+import { ERC1155Hook } from "../ERC1155Hook.sol";
 
-import {RoyaltyHookStorage} from "../../storage/hook/royalty/RoyaltyHookStorage.sol";
+import { RoyaltyHookStorage } from "../../storage/hook/royalty/RoyaltyHookStorage.sol";
 
 contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
     /*//////////////////////////////////////////////////////////////
@@ -55,13 +55,10 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
-        external
-        view
-        virtual
-        override
-        returns (address receiver, uint256 royaltyAmount)
-    {
+    function royaltyInfo(
+        uint256 _tokenId,
+        uint256 _salePrice
+    ) external view virtual override returns (address receiver, uint256 royaltyAmount) {
         address token = msg.sender;
         (address recipient, uint256 bps) = getRoyaltyInfoForToken(token, _tokenId);
         receiver = recipient;
@@ -81,9 +78,10 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
         RoyaltyInfo memory royaltyForToken = data.royaltyInfoForToken[_token][_tokenId];
         RoyaltyInfo memory defaultRoyaltyInfo = data.defaultRoyaltyInfo[_token];
 
-        return royaltyForToken.recipient == address(0)
-            ? (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps))
-            : (royaltyForToken.recipient, uint16(royaltyForToken.bps));
+        return
+            royaltyForToken.recipient == address(0)
+                ? (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps))
+                : (royaltyForToken.recipient, uint16(royaltyForToken.bps));
     }
 
     /**
@@ -112,8 +110,10 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
             revert RoyaltyHookExceedsMaxBps();
         }
 
-        RoyaltyHookStorage.data().defaultRoyaltyInfo[token] =
-            RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
+        RoyaltyHookStorage.data().defaultRoyaltyInfo[token] = RoyaltyInfo({
+            recipient: _royaltyRecipient,
+            bps: _royaltyBps
+        });
 
         emit DefaultRoyaltyUpdate(token, _royaltyRecipient, _royaltyBps);
     }
@@ -130,7 +130,10 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook {
             revert RoyaltyHookExceedsMaxBps();
         }
 
-        RoyaltyHookStorage.data().royaltyInfoForToken[token][_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
+        RoyaltyHookStorage.data().royaltyInfoForToken[token][_tokenId] = RoyaltyInfo({
+            recipient: _recipient,
+            bps: _bps
+        });
 
         emit TokenRoyaltyUpdate(token, _tokenId, _recipient, _bps);
     }

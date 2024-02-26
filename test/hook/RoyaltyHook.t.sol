@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-import {CloneFactory} from "src/infra/CloneFactory.sol";
-import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+import { CloneFactory } from "src/infra/CloneFactory.sol";
+import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
 
-import {ERC721Core, HookInstaller} from "src/core/token/ERC721Core.sol";
-import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
+import { ERC721Core, HookInstaller } from "src/core/token/ERC721Core.sol";
+import { RoyaltyHook } from "src/hook/royalty/RoyaltyHook.sol";
 
 contract RoyaltyHookTest is Test {
     /*//////////////////////////////////////////////////////////////
@@ -81,7 +81,9 @@ contract RoyaltyHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, 0, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
 
         (address _recipient, uint256 _bps) = royaltyHook.getDefaultRoyaltyInfo(address(erc721Core));
@@ -104,7 +106,9 @@ contract RoyaltyHookTest is Test {
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(RoyaltyHook.RoyaltyHookExceedsMaxBps.selector));
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, 0, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
     }
 
@@ -114,7 +118,9 @@ contract RoyaltyHookTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, 0, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
     }
 
@@ -126,7 +132,9 @@ contract RoyaltyHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, 0, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ROYALTY_INFO_FLAG,
+            0,
+            abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
 
         (address _recipient, uint256 _bps) = royaltyHook.getDefaultRoyaltyInfo(address(erc721Core));

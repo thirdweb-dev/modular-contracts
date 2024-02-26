@@ -75,7 +75,9 @@ contract TestPlus {
         assembly {
             mstore(0x00, 0xffa18649) // `addr(uint256)`.
             mstore(0x20, privateKey)
-            if iszero(call(gas(), _VM_ADDRESS, 0, 0x1c, 0x24, 0x00, 0x20)) { revert(0, 0) }
+            if iszero(call(gas(), _VM_ADDRESS, 0, 0x1c, 0x24, 0x00, 0x20)) {
+                revert(0, 0)
+            }
             signer := mload(0x00)
         }
     }

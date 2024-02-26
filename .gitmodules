@@ -1,3 +1,48 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "benchmark-ext/lib/forge-std"]
+	path = benchmark-ext/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "benchmark-ext/lib/openzeppelin-contracts"]
+	path = benchmark-ext/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "benchmark-ext/lib/libraries-solidity"]
+	path = benchmark-ext/lib/libraries-solidity
+	url = https://github.com/manifoldxyz/libraries-solidity
+[submodule "benchmark-ext/lib/creator-core-extensions-solidity"]
+	path = benchmark-ext/lib/creator-core-extensions-solidity
+	url = https://github.com/manifoldxyz/creator-core-extensions-solidity
+[submodule "benchmark-ext/lib/erc721a-upgradeable"]
+	path = benchmark-ext/lib/erc721a-upgradeable
+	url = https://github.com/chiru-labs/erc721a-upgradeable
+[submodule "benchmark-ext/lib/dynamic-contracts"]
+	path = benchmark-ext/lib/dynamic-contracts
+	url = https://github.com/thirdweb-dev/dynamic-contracts
+[submodule "benchmark-ext/lib/zora-protocol"]
+	path = benchmark-ext/lib/zora-protocol
+	url = https://github.com/ourzora/zora-protocol
+[submodule "benchmark-ext/lib/creator-core-solidity"]
+	path = benchmark-ext/lib/creator-core-solidity
+	url = https://github.com/manifoldxyz/creator-core-solidity
+[submodule "benchmark-ext/lib/zora-721-contracts"]
+	path = benchmark-ext/lib/zora-721-contracts
+	url = https://github.com/ourzora/zora-721-contracts
+[submodule "benchmark-ext/lib/protocol-rewards"]
+	path = benchmark-ext/lib/protocol-rewards
+	url = https://github.com/ourzora/protocol-rewards
+[submodule "benchmark-ext/lib/murky"]
+	path = benchmark-ext/lib/murky
+	url = https://github.com/dmfxyz/murky
+[submodule "lib/murky"]
+	path = lib/murky
+	url = https://github.com/dmfxyz/murky
+[submodule "lib/dynamic-contracts"]
+	path = lib/dynamic-contracts
+	url = https://github.com/thirdweb-dev/dynamic-contracts
+[submodule "lib/solady"]
+	path = lib/solady
+	url = https://github.com/vectorized/solady
+[submodule "lib/erc721a"]
+	path = lib/erc721a
+	url = https://github.com/chiru-labs/erc721a

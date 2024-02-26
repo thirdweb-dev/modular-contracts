@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
-import {IERC721CoreCustomErrors} from "../../interface/errors/IERC721CoreCustomErrors.sol";
-import {IERC721Hook} from "../../interface/hook/IERC721Hook.sol";
-import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
-import {IInitCall} from "../../interface/common/IInitCall.sol";
-import {ERC721Initializable} from "./ERC721Initializable.sol";
-import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
-import {Initializable} from "../../common/Initializable.sol";
-import {Permission} from "../../common/Permission.sol";
+import { Initializable } from "@solady/utils/Initializable.sol";
 
-import {ERC721CoreStorage} from "../../storage/core/ERC721CoreStorage.sol";
+import { IERC7572 } from "../../interface/eip/IERC7572.sol";
+import { IERC721CoreCustomErrors } from "../../interface/errors/IERC721CoreCustomErrors.sol";
+import { IERC721Hook } from "../../interface/hook/IERC721Hook.sol";
+import { IERC721HookInstaller } from "../../interface/hook/IERC721HookInstaller.sol";
+import { IInitCall } from "../../interface/common/IInitCall.sol";
+import { ERC721Initializable } from "./ERC721Initializable.sol";
+import { IHook, HookInstaller } from "../../hook/HookInstaller.sol";
+import { Permission } from "../../common/Permission.sol";
+
+import { ERC721CoreStorage } from "../../storage/core/ERC721CoreStorage.sol";
 
 contract ERC721Core is
     Initializable,
@@ -28,22 +29,22 @@ contract ERC721Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+    uint256 public constant BEFORE_MINT_FLAG = 2**1;
 
     /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2**2;
 
     /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+    uint256 public constant BEFORE_BURN_FLAG = 2**3;
 
     /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2**4;
 
     /// @notice Bits representing the token URI hook.
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant TOKEN_URI_FLAG = 2**5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+    uint256 public constant ROYALTY_INFO_FLAG = 2**6;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -79,7 +80,7 @@ contract ERC721Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
+            (bool success, bytes memory returnData) = _initCall.target.call{ value: _initCall.value }(_initCall.data);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -143,10 +144,11 @@ contract ERC721Core is
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public view override returns (bool) {
-        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
-            || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
-            || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
-            || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+        return
+            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+            _interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
+            _interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
+            _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -185,7 +187,11 @@ contract ERC721Core is
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
-    function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
+    function mint(
+        address _to,
+        uint256 _quantity,
+        bytes memory _encodedBeforeMintArgs
+    ) external payable {
         (uint256 startTokenId, uint256 quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
         _mint(_to, startTokenId, quantityToMint);
     }
@@ -197,7 +203,11 @@ contract ERC721Core is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(address _from, address _to, uint256 _id) public override {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _id
+    ) public override {
         _beforeTransfer(_from, _to, _id);
         super.transferFrom(_from, _to, _id);
     }
@@ -253,22 +263,26 @@ contract ERC721Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
-        internal
-        virtual
-        returns (uint256 tokenIdToMint, uint256 quantityToMint)
-    {
+    function _beforeMint(
+        address _to,
+        uint256 _quantity,
+        bytes memory _data
+    ) internal virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
+            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{ value: msg.value }(_to, _quantity, _data);
         } else {
             revert ERC721CoreMintingDisabled();
         }
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
+    function _beforeTransfer(
+        address _from,
+        address _to,
+        uint256 _tokenId
+    ) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
@@ -277,7 +291,11 @@ contract ERC721Core is
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) internal virtual {
+    function _beforeBurn(
+        address _from,
+        uint256 _tokenId,
+        bytes memory _encodedBeforeBurnArgs
+    ) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
@@ -286,7 +304,12 @@ contract ERC721Core is
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(address _from, address _to, uint256 _tokenId, bool _approve) internal virtual {
+    function _beforeApprove(
+        address _from,
+        address _to,
+        uint256 _tokenId,
+        bool _approve
+    ) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {
