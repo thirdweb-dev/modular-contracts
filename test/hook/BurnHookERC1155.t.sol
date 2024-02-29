@@ -21,7 +21,7 @@ import { IBurnRequest } from "src/interface/common/IBurnRequest.sol";
 import { IClaimCondition } from "src/interface/common/IClaimCondition.sol";
 import { IFeeConfig } from "src/interface/common/IFeeConfig.sol";
 
-contract MintHookERC1155Test is Test {
+contract BurnHookERC1155Test is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -40,7 +40,7 @@ contract MintHookERC1155Test is Test {
     EmptyHookERC1155 public MintHook;
 
     // Test params
-    uint256 public constant BEFORE_MINT_FLAG = 2 ** 3;
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
     bytes32 private constant TYPEHASH =
         keccak256(
             "BurnRequest(address token,uint256 tokenId,address owner,uint256 quantity,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
@@ -74,7 +74,7 @@ contract MintHookERC1155Test is Test {
         address BurnHookProxy = address(new EIP1967Proxy(BurnHookImpl, initData));
         BurnHook = BurnHookERC1155(BurnHookProxy);
 
-        //Set up empty mint hook for minting as its required by the ERC1155Core
+        // Set up empty mint hook for minting as its required by the ERC1155Core
         address EmptyHookImpl = address(new EmptyHookERC1155());
 
         bytes memory emptyHookInitData = abi.encodeWithSelector(
@@ -90,7 +90,7 @@ contract MintHookERC1155Test is Test {
 
         vm.stopPrank();
 
-        // Setup domain separator of burn hook for signature minting.
+        // Setup domain separator of burn hook for signature burning.
         _setupDomainSeparator(BurnHookProxy);
 
         // Developer deploys proxy for ERC1155 core with BurnHookERC1155 preinstalled.

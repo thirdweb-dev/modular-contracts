@@ -5,8 +5,8 @@ interface IBurnRequest {
     /**
      *  @notice Represents a burn request on a Burn hook.
      *
-     *  @param token The address of the token to be minted.
-     *  @param tokenId The id of the token to be minted. Ingnored for ERC-20 and ERC-721 burn hooks.
+     *  @param token The address of the token to be burned.
+     *  @param tokenId The id of the token to be burned. Ingnored for ERC-20 and ERC-721 burn hooks.
      *  @param owner The address of the owner.
      *  @param quantity The quantity of tokens to be burned.
      *  @param permissionSignature The signature of the token contract admin authorizing burning of tokens.

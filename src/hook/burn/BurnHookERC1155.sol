@@ -18,7 +18,7 @@ contract BurnHookERC1155 is IBurnRequest, EIP712, ERC1155Hook {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The EIP-712 typehash for the mint request struct.
+    /// @notice The EIP-712 typehash for the burn request struct.
     bytes32 private constant TYPEHASH =
         keccak256(
             "BurnRequest(address token,uint256 tokenId,address owner,uint256 quantity,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
@@ -66,7 +66,7 @@ contract BurnHookERC1155 is IBurnRequest, EIP712, ERC1155Hook {
         return BEFORE_BURN_FLAG();
     }
 
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
+    /// @notice Returns the signature of the arguments expected by the beforeBurn hook.
     function getBeforeBurnArgSignature() external pure override returns (string memory argSignature) {
         argSignature = "address,uint256,address,uint256,bytes,uint128,uint128,bytes32,";
     }
@@ -146,7 +146,7 @@ contract BurnHookERC1155 is IBurnRequest, EIP712, ERC1155Hook {
         return true;
     }
 
-    /// @dev Returns the address of the signer of the mint request.
+    /// @dev Returns the address of the signer of the burn request.
     function _recoverAddress(BurnRequest memory _req) internal view returns (address) {
         return
             _hashTypedData(
