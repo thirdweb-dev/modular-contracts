@@ -38,6 +38,39 @@ contract Permission is IPermission {
         return PermissionStorage.data().permissionBits[_account] & _roleBits > 0;
     }
 
+    /// @notice Returns the number of permission holders.
+    function getPermissionHoldersCount() external view returns (uint256) {
+        return PermissionStorage.data().permissionHolders.length;
+    }
+
+    /**
+     *  @notice Returns all holders with the given permissions, within the given range.
+     *  @param _permissionBits The bits representing the permissions to check.
+     *  @param _startIndex The start index of the range. (inclusive)
+     *  @param _endIndex The end index of the range. (non-inclusive)
+     *  @return hodlers The holders with the given permissions, within the given range.
+     */
+    function getPermissionHolders(uint256 _permissionBits, uint256 _startIndex, uint256 _endIndex) external view returns (address[] memory hodlers) {
+        PermissionStorage.Data storage data = PermissionStorage.data();
+        
+        address[] memory permissionHolders = data.permissionHolders;
+        uint256 len = permissionHolders.length;
+
+        uint256 count = 0;
+        for (uint256 i = _startIndex; i < _endIndex; i++) {
+            if (hasRole(permissionHolders[i], _permissionBits)) {
+                count++;
+            }
+        }
+
+        hodlers = new address[](count);
+        for (uint256 i = 0; i < len; i++) {
+            if (hasRole(permissionHolders[i], _permissionBits)) {
+                hodlers[i] = permissionHolders[i];
+            }
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -48,6 +81,12 @@ contract Permission is IPermission {
      *  @param _roleBits The bits representing the permissions to grant.
      */
     function grantRole(address _account, uint256 _roleBits) external onlyAuthorized(ADMIN_ROLE_BITS) {
+        PermissionStorage.Data storage data = PermissionStorage.data();
+
+        if(!data.everHeldPermission[_account]){
+            data.permissionHolders.push(_account);
+            data.everHeldPermission[_account] = true;
+        }
         _setupRole(_account, _roleBits);
     }
 
@@ -61,7 +100,7 @@ contract Permission is IPermission {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
+                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Assigns the given permissions to an account, without checking the permissions of the caller.

@@ -10,6 +10,12 @@ library PermissionStorage {
     struct Data {
         /// @notice Mapping from account => permissions assigned to account.
         mapping(address => uint256) permissionBits;
+
+        /// @notice List of permission holders.
+        address[] permissionHolders;
+
+        /// @notice Mapping from account => ever held permissions.
+        mapping(address => bool) everHeldPermission;
     }
 
     function data() internal pure returns (Data storage data_) {
