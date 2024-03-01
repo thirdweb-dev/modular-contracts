@@ -38,19 +38,31 @@ contract Permission is IPermission {
         return PermissionStorage.data().permissionBits[_account] & _roleBits > 0;
     }
 
-    /// @notice Returns the number of permission holders.
-    function getPermissionHoldersCount() external view returns (uint256) {
+    /// @notice Returns the total number of accounts who have any permissions.
+    function getRoleMemberCount() external view returns (uint256) {
         return PermissionStorage.data().permissionHoldersCount;
+    }
+
+    /// @notice Returns the number of accounts who hold the given permissions.
+    function getRoleMemberCount(uint256 _roleBits) external view returns (uint256 count) {
+        PermissionStorage.Data storage data = PermissionStorage.data();
+        
+        uint256 len = data.permissionHoldersCount;       
+        for (uint256 i = 1; i < (1 + len); i++) {
+            if (hasRole(data.holderAtIndex[i], _roleBits)) {
+                count++;
+            }
+        }
     }
 
     /**
      *  @notice Returns all holders with the given permissions, within the given range.
-     *  @param _permissionBits The bits representing the permissions to check.
+     *  @param _roleBits The bits representing the permissions to check.
      *  @param _startIndex The start index of the range. (inclusive)
      *  @param _endIndex The end index of the range. (non-inclusive)
      *  @return hodlers The holders with the given permissions, within the given range.
      */
-    function getPermissionHolders(uint256 _permissionBits, uint256 _startIndex, uint256 _endIndex) external view returns (address[] memory hodlers) {
+    function getRoleMembers(uint256 _roleBits, uint256 _startIndex, uint256 _endIndex) external view returns (address[] memory hodlers) {
         PermissionStorage.Data storage data = PermissionStorage.data();
         
         uint256 len = data.permissionHoldersCount;
@@ -60,7 +72,7 @@ contract Permission is IPermission {
         
         uint256 count = 0;
         for (uint256 i = (1 + _startIndex); i < (1 + _endIndex); i++) {
-            if (hasRole(data.holderAtIndex[i], _permissionBits)) {
+            if (hasRole(data.holderAtIndex[i], _roleBits)) {
                 count++;
             }
         }
@@ -71,7 +83,7 @@ contract Permission is IPermission {
         for (uint256 j = 0; j < len; j++) {
             address holder = data.holderAtIndex[j];
             
-            if (hasRole(holder, _permissionBits)) {
+            if (hasRole(holder, _roleBits)) {
                 hodlers[idx] = holder;
                 idx++;
             }
