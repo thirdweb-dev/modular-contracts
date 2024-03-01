@@ -12,8 +12,8 @@ import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
 import { IHook } from "src/interface/hook/IHook.sol";
 
 import { ERC1155Core, HookInstaller } from "src/core/token/ERC1155Core.sol";
-import { BeforeTransferHookBlacklistERC1155, ERC1155Hook } from "src/hook/beforeTransfer/BeforeTransferHookBlacklistERC1155.sol";
-
+import { BlacklistHookERC1155, ERC1155Hook } from "src/hook/beforeTransfer/BlacklistHookERC1155.sol";
+import { IBlacklist } from "src/interface/common/IBlacklist.sol";
 import { EmptyHookERC1155 } from "../mocks/EmptyHook.sol";
 
 contract MintHookERC1155Test is Test {
@@ -31,7 +31,7 @@ contract MintHookERC1155Test is Test {
 
     // Target test contracts
     ERC1155Core public erc1155Core;
-    BeforeTransferHookBlacklistERC1155 public BeforeTransferHook;
+    BlacklistHookERC1155 public BeforeTransferHook;
     EmptyHookERC1155 public MintHook;
 
     // Test params
@@ -43,14 +43,14 @@ contract MintHookERC1155Test is Test {
         // Platform deploys burn hook.
         vm.startPrank(platformAdmin);
 
-        address BeforeTransferHookImpl = address(new BeforeTransferHookBlacklistERC1155());
+        address BeforeTransferHookImpl = address(new BlacklistHookERC1155());
 
         bytes memory initData = abi.encodeWithSelector(
             BeforeTransferHook.initialize.selector,
             platformAdmin // upgradeAdmin
         );
         address BeforeTransferHookProxy = address(new EIP1967Proxy(BeforeTransferHookImpl, initData));
-        BeforeTransferHook = BeforeTransferHookBlacklistERC1155(BeforeTransferHookProxy);
+        BeforeTransferHook = BlacklistHookERC1155(BeforeTransferHookProxy);
 
         // Set up empty mint hook for minting as its required by the ERC1155Core
         address EmptyHookImpl = address(new EmptyHookERC1155());
@@ -100,9 +100,12 @@ contract MintHookERC1155Test is Test {
         vm.label(endUser, "Claimer");
 
         vm.label(address(erc1155Core), "ERC1155Core");
-        vm.label(address(BeforeTransferHookImpl), "BeforeTransferHookBlacklistERC1155");
-        vm.label(BeforeTransferHookProxy, "ProxyBeforeTransferHookBlacklistERC1155");
+        vm.label(address(BeforeTransferHookImpl), "BlackList");
+        vm.label(BeforeTransferHookProxy, "ProxyBlackList");
 
+        // Log for the storage slot of Blacklist (for the storage location file BlacklistStorage.sol)
+        bytes32 storageSlot = keccak256(abi.encode(uint256(keccak256("blacklist.storage")) - 1)) & ~bytes32(uint256(0xff));
+        console2.logBytes32( storageSlot);
     }
 
     function mintForAddress(address _to, uint256 _id, uint256 _quantity) internal {
@@ -116,7 +119,6 @@ contract MintHookERC1155Test is Test {
             BEFORE_TRANSFER_FLAG,
             abi.encodeWithSelector(BeforeTransferHook.isBlacklisted.selector, _address)
         );
-        
     }
 
     function test_beforeBurn_mintTokenToUser_success() public {   
@@ -132,7 +134,7 @@ contract MintHookERC1155Test is Test {
         erc1155Core.hookFunctionWrite(
             BEFORE_TRANSFER_FLAG,
             0,
-            abi.encodeWithSelector(BeforeTransferHook.blacklistAddress.selector, address(erc1155Core), endUser)
+            abi.encodeWithSelector(BeforeTransferHook.blacklistAddress.selector, endUser)
         );
     }
 
@@ -142,12 +144,10 @@ contract MintHookERC1155Test is Test {
         erc1155Core.hookFunctionWrite(
             BEFORE_TRANSFER_FLAG,
             0,
-            abi.encodeWithSelector(BeforeTransferHook.blacklistAddress.selector, address(erc1155Core), endUser)
+            abi.encodeWithSelector(BeforeTransferHook.blacklistAddress.selector, endUser)
         );
 
         bytes memory isBlacklisted = checkIfBlacklisted(endUser);
-        console2.logBytes(isBlacklisted);
-        
         assertEq(isBlacklisted, abi.encodePacked(uint256(1)));
     }
 
@@ -157,12 +157,10 @@ contract MintHookERC1155Test is Test {
         erc1155Core.hookFunctionWrite(
             BEFORE_TRANSFER_FLAG,
             0,
-            abi.encodeWithSelector(BeforeTransferHook.blacklistAddress.selector, address(erc1155Core), endUser)
+            abi.encodeWithSelector(BeforeTransferHook.blacklistAddress.selector, endUser)
         );
 
         bytes memory isBlacklisted = checkIfBlacklisted(endUser);
-        console2.logBytes(isBlacklisted);
-        
         assertEq(isBlacklisted, abi.encodePacked(uint256(1)));
 
         vm.prank(developer);
@@ -170,12 +168,10 @@ contract MintHookERC1155Test is Test {
         erc1155Core.hookFunctionWrite(
             BEFORE_TRANSFER_FLAG,
             0,
-            abi.encodeWithSelector(BeforeTransferHook.unblacklistAddress.selector, address(erc1155Core), endUser)
+            abi.encodeWithSelector(BeforeTransferHook.unblacklistAddress.selector, endUser)
         );
 
         bytes memory isBlacklisted2 = checkIfBlacklisted(endUser);
-        console2.logBytes(isBlacklisted2);
-        
         assertEq(isBlacklisted2, abi.encodePacked(uint256(0)));
     }
     
@@ -185,17 +181,15 @@ contract MintHookERC1155Test is Test {
         erc1155Core.hookFunctionWrite(
             BEFORE_TRANSFER_FLAG,
             0,
-            abi.encodeWithSelector(BeforeTransferHook.blacklistAddress.selector, address(erc1155Core), endUser)
+            abi.encodeWithSelector(BeforeTransferHook.blacklistAddress.selector, endUser)
         );
 
         bytes memory isBlacklisted = checkIfBlacklisted(endUser);
-        console2.logBytes(isBlacklisted);
-        
         assertEq(isBlacklisted, abi.encodePacked(uint256(1)));
         vm.stopPrank();
 
         vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(BeforeTransferHookBlacklistERC1155.BeforeTransferHookBlacklisted.selector));
+        vm.expectRevert(abi.encodeWithSelector(IBlacklist.AddressIsBlacklisted.selector, endUser, true));
         erc1155Core.safeTransferFrom(address(endUser), address(developer), 1337, 1, "");
     }
 
@@ -208,17 +202,13 @@ contract MintHookERC1155Test is Test {
         erc1155Core.hookFunctionWrite(
             BEFORE_TRANSFER_FLAG,
             0,
-            abi.encodeWithSelector(BeforeTransferHook.blacklistManyAddress.selector, address(erc1155Core), addresses)
+            abi.encodeWithSelector(BeforeTransferHook.blacklistManyAddress.selector, addresses)
         );
 
         bytes memory isBlacklisted = checkIfBlacklisted(addresses[0]);
-        console2.logBytes(isBlacklisted);
-        
         assertEq(isBlacklisted, abi.encodePacked(uint256(1)));
 
         bytes memory isBlacklisted2 = checkIfBlacklisted(addresses[1]);
-        console2.logBytes(isBlacklisted2);
-        
         assertEq(isBlacklisted2, abi.encodePacked(uint256(1)));
     }
 
@@ -231,34 +221,26 @@ contract MintHookERC1155Test is Test {
         erc1155Core.hookFunctionWrite(
             BEFORE_TRANSFER_FLAG,
             0,
-            abi.encodeWithSelector(BeforeTransferHook.blacklistManyAddress.selector, address(erc1155Core), addresses)
+            abi.encodeWithSelector(BeforeTransferHook.blacklistManyAddress.selector, addresses)
         );
 
         bytes memory isBlacklisted = checkIfBlacklisted(addresses[0]);
-        console2.logBytes(isBlacklisted);
-        
         assertEq(isBlacklisted, abi.encodePacked(uint256(1)));
 
         bytes memory isBlacklisted2 = checkIfBlacklisted(addresses[1]);
-        console2.logBytes(isBlacklisted2);
-        
         assertEq(isBlacklisted2, abi.encodePacked(uint256(1)));
 
         vm.prank(developer);
         erc1155Core.hookFunctionWrite(
             BEFORE_TRANSFER_FLAG,
             0,
-            abi.encodeWithSelector(BeforeTransferHook.unblacklistManyAddress.selector, address(erc1155Core), addresses)
+            abi.encodeWithSelector(BeforeTransferHook.unblacklistManyAddress.selector, addresses)
         );
 
         bytes memory isBlacklisted3 = checkIfBlacklisted(addresses[0]);
-        console2.logBytes(isBlacklisted3);
-        
         assertEq(isBlacklisted3, abi.encodePacked(uint256(0)));
 
         bytes memory isBlacklisted4 = checkIfBlacklisted(addresses[1]);
-        console2.logBytes(isBlacklisted4);
-        
         assertEq(isBlacklisted4, abi.encodePacked(uint256(0)));
    }
 }
