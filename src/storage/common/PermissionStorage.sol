@@ -8,14 +8,15 @@ library PermissionStorage {
         0xb5e06cba4353bc00640002b636c12f4263d4ef5b2e919091e763949f55cd0d00;
 
     struct Data {
-        /// @notice Mapping from account => permissions assigned to account.
+        /// @dev Mapping from account => permissions assigned to account.
         mapping(address => uint256) permissionBits;
 
-        /// @notice List of permission holders.
-        address[] permissionHolders;
-
-        /// @notice Mapping from account => ever held permissions.
-        mapping(address => bool) everHeldPermission;
+        /// @dev Total number of permission holders.
+        uint256 permissionHoldersCount;
+        /// @dev Mapping from index => permission holder. 
+        mapping(uint256 => address) holderAtIndex;
+        /// @dev Mapping from permission holder => index.
+        mapping(address => uint256) indexOfHolder;
     }
 
     function data() internal pure returns (Data storage data_) {

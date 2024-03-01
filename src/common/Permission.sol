@@ -40,7 +40,7 @@ contract Permission is IPermission {
 
     /// @notice Returns the number of permission holders.
     function getPermissionHoldersCount() external view returns (uint256) {
-        return PermissionStorage.data().permissionHolders.length;
+        return PermissionStorage.data().permissionHoldersCount;
     }
 
     /**
@@ -53,20 +53,27 @@ contract Permission is IPermission {
     function getPermissionHolders(uint256 _permissionBits, uint256 _startIndex, uint256 _endIndex) external view returns (address[] memory hodlers) {
         PermissionStorage.Data storage data = PermissionStorage.data();
         
-        address[] memory permissionHolders = data.permissionHolders;
-        uint256 len = permissionHolders.length;
-
+        uint256 len = data.permissionHoldersCount;
+        if(_endIndex >= _startIndex || _endIndex > len) {
+            revert PermissionInvalidRange();
+        }
+        
         uint256 count = 0;
-        for (uint256 i = _startIndex; i < _endIndex; i++) {
-            if (hasRole(permissionHolders[i], _permissionBits)) {
+        for (uint256 i = (1 + _startIndex); i < (1 + _endIndex); i++) {
+            if (hasRole(data.holderAtIndex[i], _permissionBits)) {
                 count++;
             }
         }
 
         hodlers = new address[](count);
-        for (uint256 i = 0; i < len; i++) {
-            if (hasRole(permissionHolders[i], _permissionBits)) {
-                hodlers[i] = permissionHolders[i];
+        uint256 idx = 0; 
+
+        for (uint256 j = 0; j < len; j++) {
+            address holder = data.holderAtIndex[j];
+            
+            if (hasRole(holder, _permissionBits)) {
+                hodlers[idx] = holder;
+                idx++;
             }
         }
     }
@@ -101,9 +108,11 @@ contract Permission is IPermission {
     function _setupRole(address _account, uint256 _roleBits) internal {
         PermissionStorage.Data storage data = PermissionStorage.data();
 
-        if(!data.everHeldPermission[_account]){
-            data.permissionHolders.push(_account);
-            data.everHeldPermission[_account] = true;
+        if(data.indexOfHolder[_account] == 0) {
+            // Increment the count and then assign, so that index is never 0.
+            uint256 idx = ++data.permissionHoldersCount;
+            data.holderAtIndex[idx] = _account;
+            data.indexOfHolder[_account] = idx;
         }
 
         uint256 permissions = data.permissionBits[_account];
@@ -120,6 +129,20 @@ contract Permission is IPermission {
         uint256 permissions = data.permissionBits[_account];
         permissions &= ~_roleBits;
         data.permissionBits[_account] = permissions;
+
+        if(permissions == 0 && data.indexOfHolder[_account] > 0) {
+            uint256 idx = data.indexOfHolder[_account];
+            uint256 lastIdx = data.permissionHoldersCount;
+            address lastHolder = data.holderAtIndex[lastIdx];
+
+            data.holderAtIndex[idx] = lastHolder;
+            data.indexOfHolder[lastHolder] = idx;
+
+            delete data.holderAtIndex[lastIdx];
+            delete data.indexOfHolder[_account];
+
+            data.permissionHoldersCount--;
+        }
 
         emit PermissionUpdated(_account, permissions);
     }

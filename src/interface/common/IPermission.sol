@@ -9,6 +9,9 @@ interface IPermission {
     /// @notice Emitted when an unauthorized caller attempts a restricted action.
     error PermissionUnauthorized(address caller, uint256 permissionBits);
 
+    /// @notice Emitted when querying permission holder at non-existent index.
+    error PermissionInvalidRange();
+
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
