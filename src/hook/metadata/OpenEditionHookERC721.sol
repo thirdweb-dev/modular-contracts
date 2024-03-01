@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import { Multicallable } from "@solady/utils/Multicallable.sol";
+
 import { IPermission } from "../../interface/common/IPermission.sol";
 
 import { ERC721Hook } from "../ERC721Hook.sol";
@@ -9,7 +11,7 @@ import { NFTMetadataRenderer } from "../../lib/NFTMetadataRenderer.sol";
 import { SharedMetadataStorage } from "../../storage/hook/metadata/SharedMetadataStorage.sol";
 import { ISharedMetadata } from "../../interface/common/ISharedMetadata.sol";
 
-contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook {
+contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/

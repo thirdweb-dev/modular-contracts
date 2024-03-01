@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { MerkleProofLib } from "@solady/utils/MerkleProofLib.sol";
 import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol";
+import { Multicallable } from "@solady/utils/Multicallable.sol";
 
 import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
 import { IPermission } from "../../interface/common/IPermission.sol";
@@ -10,7 +11,7 @@ import { ERC721Hook } from "../ERC721Hook.sol";
 
 import { AllowlistMintHookERC721Storage } from "../../storage/hook/mint/AllowlistMintHookERC721Storage.sol";
 
-contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
+contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
     //////////////////////////////////////////////////////////////*/
