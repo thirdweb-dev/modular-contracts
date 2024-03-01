@@ -81,12 +81,6 @@ contract Permission is IPermission {
      *  @param _roleBits The bits representing the permissions to grant.
      */
     function grantRole(address _account, uint256 _roleBits) external onlyAuthorized(ADMIN_ROLE_BITS) {
-        PermissionStorage.Data storage data = PermissionStorage.data();
-
-        if(!data.everHeldPermission[_account]){
-            data.permissionHolders.push(_account);
-            data.everHeldPermission[_account] = true;
-        }
         _setupRole(_account, _roleBits);
     }
 
@@ -106,6 +100,11 @@ contract Permission is IPermission {
     /// @dev Assigns the given permissions to an account, without checking the permissions of the caller.
     function _setupRole(address _account, uint256 _roleBits) internal {
         PermissionStorage.Data storage data = PermissionStorage.data();
+
+        if(!data.everHeldPermission[_account]){
+            data.permissionHolders.push(_account);
+            data.everHeldPermission[_account] = true;
+        }
 
         uint256 permissions = data.permissionBits[_account];
         permissions |= _roleBits;
