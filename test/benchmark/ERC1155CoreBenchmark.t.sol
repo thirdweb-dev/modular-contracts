@@ -6,7 +6,7 @@ import { Merkle } from "@murky/Merkle.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
-import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/mockHookImpl.sol";
+import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
 import {ERC1155Core, ERC1155Initializable} from "src/core/token/ERC1155Core.sol";
 import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.sol";
