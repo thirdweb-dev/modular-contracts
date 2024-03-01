@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { LibBitmap } from "@solady/utils/LibBitmap.sol";
-
 import { IHook } from "../interface/hook/IHook.sol";
 import { IHookInstaller } from "../interface/hook/IHookInstaller.sol";
 
@@ -29,6 +28,9 @@ abstract contract HookInstaller is IHookInstaller {
 
     /// @notice Emitted on attempt to write to hooks without permission.
     error HookInstallerUnauthorizedWrite();
+
+    /// @notice Emitted on failure to initialize a hook on installation.
+    error HookInstallerInitializationFailed();
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -75,11 +77,29 @@ abstract contract HookInstaller is IHookInstaller {
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
      *  @param _hook The hook to install.
      */
-    function installHook(IHook _hook) external {
+    function installHook(IHook _hook, uint256 _value, bytes calldata _initializeData) external {
+        if(address(_hook) == address(0)) {
+            revert HookInstallerInvalidHook();
+        }
         if (!_canUpdateHooks(msg.sender)) {
             revert HookNotAuthorized();
         }
         _installHook(_hook);
+
+        if (_initializeData.length > 0) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success, bytes memory returnData) = address(_hook).call{ value: _value }(_initializeData);
+            if (!success) {
+                if (returnData.length > 0) {
+                    // solhint-disable-next-line no-inline-assembly
+                    assembly {
+                        revert(add(returnData, 32), mload(returnData))
+                    }
+                } else {
+                    revert HookInstallerInitializationFailed();
+                }
+            }
+        }
     }
 
     /**
@@ -88,6 +108,9 @@ abstract contract HookInstaller is IHookInstaller {
      *  @param _hook The hook to uninstall.
      */
     function uninstallHook(IHook _hook) external {
+        if(address(_hook) == address(0)) {
+            revert HookInstallerInvalidHook();
+        }
         if (!_canUpdateHooks(msg.sender)) {
             revert HookNotAuthorized();
         }
