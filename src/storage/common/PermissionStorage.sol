@@ -11,12 +11,12 @@ library PermissionStorage {
         /// @dev Mapping from account => permissions assigned to account.
         mapping(address => uint256) permissionBits;
 
-        /// @dev Total number of permission holders.
-        uint256 permissionHoldersCount;
-        /// @dev Mapping from index => permission holder. 
-        mapping(uint256 => address) holderAtIndex;
-        /// @dev Mapping from permission holder => index.
-        mapping(address => uint256) indexOfHolder;
+        /// @dev Total number of role members.
+        uint256 roleMemberCount;
+        /// @dev Mapping from index => role member. 
+        mapping(uint256 => address) memberAtIndex;
+        /// @dev Mapping from role member => index.
+        mapping(address => uint256) indexOfMember;
     }
 
     function data() internal pure returns (Data storage data_) {
