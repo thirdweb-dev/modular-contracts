@@ -60,13 +60,13 @@ contract Permission is IPermission {
      *  @param _roleBits The bits representing the permissions to check.
      *  @param _startIndex The start index of the range. (inclusive)
      *  @param _endIndex The end index of the range. (non-inclusive)
-     *  @return hodlers The holders with the given permissions, within the given range.
+     *  @return holders The holders with the given permissions, within the given range.
      */
-    function getRoleMembers(uint256 _roleBits, uint256 _startIndex, uint256 _endIndex) external view returns (address[] memory hodlers) {
+    function getRoleMembers(uint256 _roleBits, uint256 _startIndex, uint256 _endIndex) external view returns (address[] memory holders) {
         PermissionStorage.Data storage data = PermissionStorage.data();
         
         uint256 len = data.roleMemberCount;
-        if(_endIndex >= _startIndex || _endIndex > len) {
+        if(_startIndex >= _endIndex || _endIndex > len) {
             revert PermissionInvalidRange();
         }
         
@@ -77,14 +77,14 @@ contract Permission is IPermission {
             }
         }
 
-        hodlers = new address[](count);
+        holders = new address[](count);
         uint256 idx = 0; 
 
-        for (uint256 j = 0; j < len; j++) {
+        for (uint256 j = 1; j < len + 1; j++) {
             address holder = data.memberAtIndex[j];
             
             if (hasRole(holder, _roleBits)) {
-                hodlers[idx] = holder;
+                holders[idx] = holder;
                 idx++;
             }
         }
