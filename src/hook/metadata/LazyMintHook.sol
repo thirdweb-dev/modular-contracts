@@ -2,13 +2,14 @@
 pragma solidity ^0.8.0;
 
 import { LibString } from "@solady/utils/LibString.sol";
+import { Multicallable } from "@solady/utils/Multicallable.sol";
 
 import { ERC721Hook } from "../ERC721Hook.sol";
 import { IPermission } from "../../interface/common/IPermission.sol";
 
 import { LazyMintStorage } from "../../storage/hook/metadata/LazyMintStorage.sol";
 
-contract LazyMintHook is ERC721Hook {
+contract LazyMintHook is ERC721Hook, Multicallable {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////

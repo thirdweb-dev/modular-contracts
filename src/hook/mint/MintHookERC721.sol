@@ -5,6 +5,7 @@ import { EIP712 } from "@solady/utils/EIP712.sol";
 import { ECDSA } from "@solady/utils/ECDSA.sol";
 import { MerkleProofLib } from "@solady/utils/MerkleProofLib.sol";
 import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol";
+import { Multicallable } from "@solady/utils/Multicallable.sol";
 
 import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
 import { IPermission } from "../../interface/common/IPermission.sol";
@@ -15,7 +16,7 @@ import { ERC721Hook } from "../ERC721Hook.sol";
 
 import { MintHookERC721Storage } from "../../storage/hook/mint/MintHookERC721Storage.sol";
 
-contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC721Hook {
+contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC721Hook, Multicallable {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////

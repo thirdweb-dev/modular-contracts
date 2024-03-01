@@ -816,6 +816,8 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function testSafeTransferFromSelf(uint256 id, uint256 mintAmount, uint256 transferAmount, address to) public {
+        vm.assume(address(0xCAFE) != to);
+        
         if (to == address(0)) to = address(0xBEEF);
 
         if (uint256(uint160(to)) <= 18 || to.code.length > 0) return;
