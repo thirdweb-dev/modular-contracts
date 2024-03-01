@@ -46,8 +46,10 @@ interface IHookInstaller {
      *  @notice Installs a hook in the contract.
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
      *  @param hook The hook to install.
+     *  @param value The value to send with the initialization call.
+     *  @param initializeData The initialization calldata.
      */
-    function installHook(IHook hook) external;
+    function installHook(IHook hook, uint256 value, bytes calldata initializeData) external;
 
     /**
      *  @notice Uninstalls a hook in the contract.
