@@ -10,6 +10,7 @@
   },
   "dependencies": {},
   "scripts": {
-    "prettier": "prettier --config .prettierrc --write --plugin=prettier-plugin-solidity '{src,test}/**/*.sol'"
+    "prettier": "prettier --config .prettierrc --write --plugin=prettier-plugin-solidity '{src,test}/**/*.sol'",
+    "benchmark": "forge test --mc Benchmark --gas-report"
   }
 }

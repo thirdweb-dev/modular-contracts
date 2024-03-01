@@ -1,17 +1,17 @@
-name: test
+name: benchmark
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
+    # Triggers the workflow on push or pull request events but only for the main branch
+    push:
+      branches: [main]
+    pull_request:
+      branches: [main]
+      
 # cancel previous runs if new commits are pushed to the branch
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 env:
   FOUNDRY_PROFILE: ci
@@ -39,7 +39,7 @@ jobs:
           forge build --sizes
         id: build
 
-      - name: Run Forge tests
+      - name: Create Forge Gas Report
         run: |
-          forge test -vvv
-        id: test
+          yarn benchmark
+        id: benchmark

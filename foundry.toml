@@ -9,6 +9,11 @@ src = "src"
 out = "out"
 libs = ["lib"]
 ffi = true
+gas_reports = [
+  "ERC20Core",
+  "ERC721Core",
+  "ERC1155Core"
+]
 remappings = [
   'ds-test/=lib/forge-std/lib/ds-test/src/',
   'forge-std/=lib/forge-std/src/',
