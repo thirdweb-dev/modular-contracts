@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { Initializable } from "@solady/utils/Initializable.sol";
+import { Multicallable } from "@solady/utils/Multicallable.sol";
 
 import { IERC7572 } from "../../interface/eip/IERC7572.sol";
 import { IERC1155CoreCustomErrors } from "../../interface/errors/IERC1155CoreCustomErrors.sol";
@@ -16,6 +17,7 @@ import { ERC1155CoreStorage } from "../../storage/core/ERC1155CoreStorage.sol";
 
 contract ERC1155Core is
     Initializable,
+    Multicallable,
     ERC1155Initializable,
     HookInstaller,
     Permission,

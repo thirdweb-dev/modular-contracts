@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { Initializable } from "@solady/utils/Initializable.sol";
+import { Multicallable } from "@solady/utils/Multicallable.sol";
 
 import { IERC7572 } from "../../interface/eip/IERC7572.sol";
 import { IERC20CoreCustomErrors } from "../../interface/errors/IERC20CoreCustomErrors.sol";
@@ -16,6 +17,7 @@ import { ERC20CoreStorage } from "../../storage/core/ERC20CoreStorage.sol";
 
 contract ERC20Core is
     Initializable,
+    Multicallable,
     ERC20Initializable,
     HookInstaller,
     Permission,
