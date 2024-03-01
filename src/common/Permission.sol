@@ -108,7 +108,7 @@ contract Permission is IPermission {
     function _setupRole(address _account, uint256 _roleBits) internal {
         PermissionStorage.Data storage data = PermissionStorage.data();
 
-        if(data.indexOfHolder[_account] == 0) {
+        if(data.indexOfHolder[_account] == 0 && _roleBits > 0) {
             // Increment the count and then assign, so that index is never 0.
             uint256 idx = ++data.permissionHoldersCount;
             data.holderAtIndex[idx] = _account;
