@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { Test } from "forge-std/Test.sol";
 import { Merkle } from "@murky/Merkle.sol";
+import { Multicallable } from "@solady/utils/Multicallable.sol";
 
 import "@solady/utils/LibClone.sol";
 import "@solady/utils/UUPSUpgradeable.sol";
@@ -157,19 +158,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
 
-        // Developer installs `AllowlistMintHookERC721` extension
-        vm.startPrank(platformUser);
-
-        erc721.installHook(IHook(extensionProxyAddress));
-        erc721.installHook(IHook(lazyMintHookProxyAddress));
-
         // Developer sets up token metadata and claim conditions: gas incurred by developer
-        erc721.hookFunctionWrite(
-            erc721.TOKEN_URI_FLAG(),
-            0,
-            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, 10_000, "https://example.com/", "")
-        );
-
         address[] memory addresses = new address[](3);
         addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
         addresses[1] = 0x92Bb439374a091c7507bE100183d8D1Ed2c9dAD3;
@@ -186,22 +175,36 @@ contract ERC721CoreBenchmarkTest is Test {
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-        erc721.hookFunctionWrite(
-            erc721.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC721.setClaimCondition.selector, condition)
-        );
 
         AllowlistMintHookERC721.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        erc721.hookFunctionWrite(
-            erc721.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC721.setDefaultFeeConfig.selector, feeConfig)
+        bytes[] memory multicallDataMintHook = new bytes[](2);
+
+        multicallDataMintHook[0] = abi.encodeWithSelector(
+            AllowlistMintHookERC721.setDefaultFeeConfig.selector,
+            feeConfig
         );
+
+        multicallDataMintHook[1] = abi.encodeWithSelector(
+            AllowlistMintHookERC721.setClaimCondition.selector,
+            condition
+        );
+
+        bytes memory initializeDataLazyMint = abi.encodeWithSelector(
+            LazyMintHook.lazyMint.selector,
+            3,
+            "https://example.com/",
+            ""
+        );
+
+        // Developer installs `AllowlistMintHookERC721` extension
+        vm.startPrank(platformUser);
+
+        erc721.installHook(IHook(extensionProxyAddress), 0, abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook));
+        erc721.installHook(IHook(lazyMintHookProxyAddress), 0, initializeDataLazyMint);
 
         vm.stopPrank();
 
@@ -407,7 +410,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.installHook(mockHook);
+        extensionConsumer.installHook(mockHook, 0, bytes(""));
     }
 
     function test_installfiveHooks() public {
@@ -424,7 +427,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.installHook(mockHook);
+        extensionConsumer.installHook(mockHook, 0, bytes(""));
     }
 
     function test_uninstallOneHook() public {
@@ -435,7 +438,7 @@ contract ERC721CoreBenchmarkTest is Test {
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.installHook(mockHook);
+        extensionConsumer.installHook(mockHook, 0, bytes(""));
 
         vm.prank(platformUser);
 
@@ -455,7 +458,7 @@ contract ERC721CoreBenchmarkTest is Test {
         extensionConsumer.uninstallHook(IHook(extensionProxyAddress));
 
         vm.prank(platformUser);
-        extensionConsumer.installHook(mockHook);
+        extensionConsumer.installHook(mockHook, 0, bytes(""));
 
         vm.prank(platformUser);
 

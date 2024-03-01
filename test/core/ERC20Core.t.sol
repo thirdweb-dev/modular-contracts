@@ -71,7 +71,7 @@ contract ERC20CoreTest is Test, TestPlus {
             "contractURI://"
         );
         token = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
-        token.installHook(IHook(hookProxyAddress));
+        token.installHook(IHook(hookProxyAddress), 0, bytes(""));
 
         vm.stopPrank();
 

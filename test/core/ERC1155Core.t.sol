@@ -172,7 +172,7 @@ contract ERC1155CoreTest is Test, TestPlus {
             "contractURI://"
         );
         token = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
-        token.installHook(IHook(hookProxyAddress));
+        token.installHook(IHook(hookProxyAddress), 0, bytes(""));
 
         vm.stopPrank();
 
