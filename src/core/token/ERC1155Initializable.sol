@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from "@solady/utils/Initializable.sol";
+import {Initializable} from "@solady/utils/Initializable.sol";
 
-import { IERC1155 } from "../../interface/eip/IERC1155.sol";
-import { IERC1155Supply } from "../../interface/eip/IERC1155Supply.sol";
-import { IERC1155MetadataURI } from "../../interface/eip/IERC1155Metadata.sol";
-import { IERC1155CustomErrors } from "../../interface/errors/IERC1155CustomErrors.sol";
-import { IERC1155Receiver } from "../../interface/eip/IERC1155Receiver.sol";
-import { IERC2981 } from "../../interface/eip/IERC2981.sol";
+import {IERC1155} from "../../interface/eip/IERC1155.sol";
+import {IERC1155Supply} from "../../interface/eip/IERC1155Supply.sol";
+import {IERC1155MetadataURI} from "../../interface/eip/IERC1155Metadata.sol";
+import {IERC1155CustomErrors} from "../../interface/errors/IERC1155CustomErrors.sol";
+import {IERC1155Receiver} from "../../interface/eip/IERC1155Receiver.sol";
+import {IERC2981} from "../../interface/eip/IERC2981.sol";
 
-import { ERC1155InitializableStorage } from "../../storage/core/ERC1155InitializableStorage.sol";
+import {ERC1155InitializableStorage} from "../../storage/core/ERC1155InitializableStorage.sol";
 
 abstract contract ERC1155Initializable is
     Initializable,
@@ -99,10 +99,9 @@ abstract contract ERC1155Initializable is
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            _interfaceId == 0xd9b67a26 || // ERC165 Interface ID for ERC1155
-            _interfaceId == 0x0e89341c; // ERC165 Interface ID for ERC1155MetadataURI
+        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || _interfaceId == 0xd9b67a26 // ERC165 Interface ID for ERC1155
+            || _interfaceId == 0x0e89341c; // ERC165 Interface ID for ERC1155MetadataURI
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -129,13 +128,10 @@ abstract contract ERC1155Initializable is
      *  @param _value Total number of NFTs with that id
      *  @param _data data
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes calldata _data
-    ) public virtual {
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId, uint256 _value, bytes calldata _data)
+        public
+        virtual
+    {
         ERC1155InitializableStorage.Data storage data = ERC1155InitializableStorage.data();
 
         if (msg.sender != _from && !data.isApprovedForAll[_from][msg.sender]) {
@@ -150,8 +146,8 @@ abstract contract ERC1155Initializable is
         if (
             _to.code.length == 0
                 ? _to == address(0)
-                : IERC1155Receiver(_to).onERC1155Received(msg.sender, _from, _tokenId, _value, _data) !=
-                    IERC1155Receiver.onERC1155Received.selector
+                : IERC1155Receiver(_to).onERC1155Received(msg.sender, _from, _tokenId, _value, _data)
+                    != IERC1155Receiver.onERC1155Received.selector
         ) {
             revert ERC1155UnsafeRecipient(_to);
         }
@@ -186,7 +182,7 @@ abstract contract ERC1155Initializable is
         uint256 id;
         uint256 value;
 
-        for (uint256 i = 0; i < _tokenIds.length; ) {
+        for (uint256 i = 0; i < _tokenIds.length;) {
             id = _tokenIds[i];
             value = _values[i];
 
@@ -205,8 +201,8 @@ abstract contract ERC1155Initializable is
         if (
             _to.code.length == 0
                 ? _to == address(0)
-                : IERC1155Receiver(_to).onERC1155BatchReceived(msg.sender, _from, _tokenIds, _values, _data) !=
-                    IERC1155Receiver.onERC1155BatchReceived.selector
+                : IERC1155Receiver(_to).onERC1155BatchReceived(msg.sender, _from, _tokenIds, _values, _data)
+                    != IERC1155Receiver.onERC1155BatchReceived.selector
         ) {
             revert ERC1155UnsafeRecipient(_to);
         }
@@ -216,12 +212,7 @@ abstract contract ERC1155Initializable is
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _mint(
-        address _to,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes memory _data
-    ) internal virtual {
+    function _mint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
         ERC1155InitializableStorage.data().balanceOf[_to][_tokenId] += _value;
         ERC1155InitializableStorage.data().totalSupply[_tokenId] += _value;
 
@@ -230,18 +221,14 @@ abstract contract ERC1155Initializable is
         if (
             _to.code.length == 0
                 ? _to == address(0)
-                : IERC1155Receiver(_to).onERC1155Received(msg.sender, address(0), _tokenId, _value, _data) !=
-                    IERC1155Receiver.onERC1155Received.selector
+                : IERC1155Receiver(_to).onERC1155Received(msg.sender, address(0), _tokenId, _value, _data)
+                    != IERC1155Receiver.onERC1155Received.selector
         ) {
             revert ERC1155UnsafeRecipient(_to);
         }
     }
 
-    function _burn(
-        address _from,
-        uint256 _tokenId,
-        uint256 _value
-    ) internal virtual {
+    function _burn(address _from, uint256 _tokenId, uint256 _value) internal virtual {
         if (_from == address(0)) {
             revert ERC1155BurnFromZeroAddress();
         }

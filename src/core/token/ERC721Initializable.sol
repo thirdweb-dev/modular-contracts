@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from "@solady/utils/Initializable.sol";
+import {Initializable} from "@solady/utils/Initializable.sol";
 
-import { IERC721 } from "../../interface/eip/IERC721.sol";
-import { IERC721Supply } from "../../interface/eip/IERC721Supply.sol";
-import { IERC721Metadata } from "../../interface/eip/IERC721Metadata.sol";
-import { IERC721CustomErrors } from "../../interface/errors/IERC721CustomErrors.sol";
-import { IERC721Receiver } from "../../interface/eip/IERC721Receiver.sol";
-import { IERC2981 } from "../../interface/eip/IERC2981.sol";
+import {IERC721} from "../../interface/eip/IERC721.sol";
+import {IERC721Supply} from "../../interface/eip/IERC721Supply.sol";
+import {IERC721Metadata} from "../../interface/eip/IERC721Metadata.sol";
+import {IERC721CustomErrors} from "../../interface/errors/IERC721CustomErrors.sol";
+import {IERC721Receiver} from "../../interface/eip/IERC721Receiver.sol";
+import {IERC2981} from "../../interface/eip/IERC2981.sol";
 
-import { ERC721InitializableStorage } from "../../storage/core/ERC721InitializableStorage.sol";
+import {ERC721InitializableStorage} from "../../storage/core/ERC721InitializableStorage.sol";
 
 abstract contract ERC721Initializable is
     Initializable,
@@ -102,9 +102,8 @@ abstract contract ERC721Initializable is
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            _interfaceId == 0x80ac58cd; // ERC165 Interface ID for ERC721
+        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || _interfaceId == 0x80ac58cd; // ERC165 Interface ID for ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -146,11 +145,7 @@ abstract contract ERC721Initializable is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _id
-    ) public virtual {
+    function transferFrom(address _from, address _to, uint256 _id) public virtual {
         ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
 
         if (_from != data.ownerOf[_id]) {
@@ -187,17 +182,13 @@ abstract contract ERC721Initializable is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _id
-    ) public virtual {
+    function safeTransferFrom(address _from, address _to, uint256 _id) public virtual {
         transferFrom(_from, _to, _id);
 
         if (
-            _to.code.length != 0 &&
-            IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, "") !=
-            IERC721Receiver.onERC721Received.selector
+            _to.code.length != 0
+                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, "")
+                    != IERC721Receiver.onERC721Received.selector
         ) {
             revert ERC721UnsafeRecipient(_to);
         }
@@ -211,18 +202,13 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      *  @param _data Additional data passed onto the `onERC721Received` call to the recipient
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _id,
-        bytes calldata _data
-    ) public virtual {
+    function safeTransferFrom(address _from, address _to, uint256 _id, bytes calldata _data) public virtual {
         transferFrom(_from, _to, _id);
 
         if (
-            _to.code.length != 0 &&
-            IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, _data) !=
-            IERC721Receiver.onERC721Received.selector
+            _to.code.length != 0
+                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, _data)
+                    != IERC721Receiver.onERC721Received.selector
         ) {
             revert ERC721UnsafeRecipient(_to);
         }
@@ -238,11 +224,7 @@ abstract contract ERC721Initializable is
      *  @param _startId The token ID of the first NFT to mint
      *  @param _quantity The quantity of NFTs to mint
      */
-    function _mint(
-        address _to,
-        uint256 _startId,
-        uint256 _quantity
-    ) internal virtual {
+    function _mint(address _to, uint256 _startId, uint256 _quantity) internal virtual {
         if (_to == address(0)) {
             revert ERC721InvalidRecipient();
         }

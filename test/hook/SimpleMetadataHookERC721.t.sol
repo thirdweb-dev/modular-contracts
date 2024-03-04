@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
-import { LibString } from "@solady/utils/LibString.sol";
+import {LibString} from "@solady/utils/LibString.sol";
 
-import { ERC721Core } from "src/core/token/ERC721Core.sol";
-import { SimpleMetadataHook, ERC721Hook } from "src/hook/metadata/SimpleMetadataHook.sol";
+import {ERC721Core} from "src/core/token/ERC721Core.sol";
+import {SimpleMetadataHook, ERC721Hook} from "src/hook/metadata/SimpleMetadataHook.sol";
 
 contract SimpleMetadataHookTest is Test {
     using LibString for uint256;
@@ -19,7 +19,7 @@ contract SimpleMetadataHookTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     // Test params
-    uint256 public constant TOKEN_URI_FLAG = 2**5;
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     // Participants
     address public platformAdmin = address(0x123);
@@ -86,9 +86,7 @@ contract SimpleMetadataHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG,
-            0,
-            abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI)
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI)
         );
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI);
@@ -97,9 +95,7 @@ contract SimpleMetadataHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG,
-            0,
-            abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2)
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2)
         );
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI2);
