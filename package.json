@@ -3,14 +3,8 @@
   "version": "1.0.0",
   "repository": "https://github.com/thirdweb-dev/contracts-next.git",
   "author": "Krishang <krishang@thirdweb.com>",
-  "license": "MIT",
-  "devDependencies": {
-    "prettier": "^2.8.8",
-    "prettier-plugin-solidity": "^1.2.0"
-  },
+  "license": "Apache-2.0",
+  "devDependencies": {},
   "dependencies": {},
-  "scripts": {
-    "prettier": "prettier --config .prettierrc --write --plugin=prettier-plugin-solidity '{src,test}/**/*.sol'",
-    "benchmark": "forge test --mc Benchmark --gas-report"
-  }
+  "scripts": {}
 }
