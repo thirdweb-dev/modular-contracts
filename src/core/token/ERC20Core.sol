@@ -197,7 +197,7 @@ contract ERC20Core is
         bytes32 _r,
         bytes32 _s
     ) public {
-        _beforeApprove(_owner, _spender, _amount);
+        _beforeApprove(_owner, _spender, _value);
 
         if (_deadline < block.timestamp) {
             revert ERC20PermitDeadlineExpired();
