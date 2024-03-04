@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import { Merkle } from "@murky/Merkle.sol";
-import { Multicallable } from "@solady/utils/Multicallable.sol";
+import {Merkle} from "@murky/Merkle.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
@@ -100,8 +100,9 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         IInitCall.InitCall memory initCall;
-        bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
+        bytes memory data = abi.encodeWithSelector(
+            ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+        );
         erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -140,27 +141,19 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         bytes[] memory multicallDataMintHook = new bytes[](2);
 
-        multicallDataMintHook[0] = abi.encodeWithSelector(
-            AllowlistMintHookERC1155.setDefaultFeeConfig.selector,
-            0,
-            feeConfig
-        );
+        multicallDataMintHook[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, 0, feeConfig);
 
-        multicallDataMintHook[1] = abi.encodeWithSelector(
-            AllowlistMintHookERC1155.setClaimCondition.selector,
-            0,
-            condition
-        );
+        multicallDataMintHook[1] =
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition);
 
-        bytes memory initializeDataLazyMint = abi.encodeWithSelector(
-            LazyMintHook.lazyMint.selector,
-            3,
-            "https://example.com/",
-            ""
-        );
+        bytes memory initializeDataLazyMint =
+            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, 3, "https://example.com/", "");
 
         // Developer installs `AllowlistMintHookERC1155` hook
-        erc1155.installHook(IHook(hookProxyAddress), 0, abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook));
+        erc1155.installHook(
+            IHook(hookProxyAddress), 0, abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+        );
         erc1155.installHook(IHook(lazyMintHookProxyAddress), 0, initializeDataLazyMint);
 
         vm.stopPrank();
@@ -180,8 +173,9 @@ contract ERC1155CoreBenchmarkTest is Test {
         IInitCall.InitCall memory initCall;
 
         address impl = erc1155Implementation;
-        bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
+        bytes memory data = abi.encodeWithSelector(
+            ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+        );
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();

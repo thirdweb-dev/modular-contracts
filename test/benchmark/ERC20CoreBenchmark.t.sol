@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
-import { Merkle } from "@murky/Merkle.sol";
-import { Multicallable } from "@solady/utils/Multicallable.sol";
+import {Test} from "forge-std/Test.sol";
+import {Merkle} from "@murky/Merkle.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { MinimalUpgradeableRouter } from "src/infra/MinimalUpgradeableRouter.sol";
-import { MockOneHookImpl20, MockFourHookImpl20 } from "test/mocks/MockHookImpl.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
+import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/MockHookImpl.sol";
 
-import { ERC20Core, ERC20Initializable } from "src/core/token/ERC20Core.sol";
-import { AllowlistMintHookERC20 } from "src/hook/mint/AllowlistMintHookERC20.sol";
-import { IERC20 } from "src/interface/eip/IERC20.sol";
-import { IHook } from "src/interface/hook/IHook.sol";
-import { IInitCall } from "src/interface/common/IInitCall.sol";
+import {ERC20Core, ERC20Initializable} from "src/core/token/ERC20Core.sol";
+import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
+import {IERC20} from "src/interface/eip/IERC20.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
+import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 /**
  *  This test showcases how users would use ERC-20 contracts on the thirdweb platform.
@@ -93,13 +93,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         IInitCall.InitCall memory initCall;
         bytes memory data = abi.encodeWithSelector(
-            ERC20Core.initialize.selector,
-            initCall,
-            new address[](0),
-            platformUser,
-            "Test",
-            "TST",
-            "contractURI://"
+            ERC20Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
         );
         erc20 = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
 
@@ -137,19 +131,16 @@ contract ERC20CoreBenchmarkTest is Test {
 
         bytes[] memory multicallDataMintHook = new bytes[](2);
 
-        multicallDataMintHook[0] = abi.encodeWithSelector(
-            AllowlistMintHookERC20.setDefaultFeeConfig.selector,
-            feeConfig
-        );
+        multicallDataMintHook[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig);
 
-        multicallDataMintHook[1] = abi.encodeWithSelector(
-            AllowlistMintHookERC20.setClaimCondition.selector,
-            condition
-        );
+        multicallDataMintHook[1] = abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition);
 
         // Developer installs `AllowlistMintHookERC20` hook
         vm.prank(platformUser);
-        erc20.installHook(IHook(hookProxyAddress), 0, abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook));
+        erc20.installHook(
+            IHook(hookProxyAddress), 0, abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+        );
 
         vm.stopPrank();
 
@@ -169,13 +160,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         address impl = erc20Implementation;
         bytes memory data = abi.encodeWithSelector(
-            ERC20Core.initialize.selector,
-            initCall,
-            new address[](0),
-            platformUser,
-            "Test",
-            "TST",
-            "contractURI://"
+            ERC20Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
         );
         bytes32 salt = bytes32("salt");
 
@@ -215,7 +200,7 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{ value: pricePerToken }(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     function test_mintTenTokens() public {
@@ -245,7 +230,7 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{ value: pricePerToken * 10 }(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -273,7 +258,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc20.mint{ value: pricePerToken }(claimer, quantityToClaim, encodedArgs);
+        erc20.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
 
         address to = address(0x121212);
         address from = claimer;

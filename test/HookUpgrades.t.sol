@@ -1,24 +1,28 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
-import { Merkle } from "@murky/Merkle.sol";
-import { Multicallable } from "@solady/utils/Multicallable.sol";
+import {Test} from "forge-std/Test.sol";
+import {Merkle} from "@murky/Merkle.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
-import { IHook } from "src/interface/hook/IHook.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
 
-import { ERC20Core } from "src/core/token/ERC20Core.sol";
-import { ERC721Core } from "src/core/token/ERC721Core.sol";
-import { ERC1155Core } from "src/core/token/ERC1155Core.sol";
+import {ERC20Core} from "src/core/token/ERC20Core.sol";
+import {ERC721Core} from "src/core/token/ERC721Core.sol";
+import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
-import { AllowlistMintHookERC20, ERC20Hook } from "src/hook/mint/AllowlistMintHookERC20.sol";
-import { AllowlistMintHookERC721, ERC721Hook } from "src/hook/mint/AllowlistMintHookERC721.sol";
-import { AllowlistMintHookERC1155, ERC1155Hook } from "src/hook/mint/AllowlistMintHookERC1155.sol";
+import {AllowlistMintHookERC20, ERC20Hook} from "src/hook/mint/AllowlistMintHookERC20.sol";
+import {AllowlistMintHookERC721, ERC721Hook} from "src/hook/mint/AllowlistMintHookERC721.sol";
+import {AllowlistMintHookERC1155, ERC1155Hook} from "src/hook/mint/AllowlistMintHookERC1155.sol";
 
-import { BuggyAllowlistMintHookERC20, BuggyAllowlistMintHookERC721, BuggyAllowlistMintHookERC1155 } from "test/mocks/BuggyAllowlistMintHook.sol";
+import {
+    BuggyAllowlistMintHookERC20,
+    BuggyAllowlistMintHookERC721,
+    BuggyAllowlistMintHookERC1155
+} from "test/mocks/BuggyAllowlistMintHook.sol";
 
 contract HookUpgradesTest is Test {
     /*//////////////////////////////////////////////////////////////
@@ -151,42 +155,41 @@ contract HookUpgradesTest is Test {
         feeConfig.primarySaleRecipient = developer;
 
         bytes[] memory multicallInitializeDataERC20 = new bytes[](2);
-        multicallInitializeDataERC20[0] = abi.encodeWithSelector(
-            AllowlistMintHookERC20.setClaimCondition.selector,
-            conditionERC20
-        );
-        multicallInitializeDataERC20[1] = abi.encodeWithSelector(
-            AllowlistMintHookERC20.setDefaultFeeConfig.selector,
-            feeConfig
-        );
+        multicallInitializeDataERC20[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, conditionERC20);
+        multicallInitializeDataERC20[1] =
+            abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig);
 
         bytes[] memory multicallInitializeDataERC721 = new bytes[](2);
-        multicallInitializeDataERC721[0] = abi.encodeWithSelector(
-            AllowlistMintHookERC721.setClaimCondition.selector,
-            conditionERC721
-        );
-        multicallInitializeDataERC721[1] = abi.encodeWithSelector(
-            AllowlistMintHookERC721.setDefaultFeeConfig.selector,
-            feeConfig
-        );
+        multicallInitializeDataERC721[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC721.setClaimCondition.selector, conditionERC721);
+        multicallInitializeDataERC721[1] =
+            abi.encodeWithSelector(AllowlistMintHookERC721.setDefaultFeeConfig.selector, feeConfig);
 
         bytes[] memory multicallInitializeDataERC1155 = new bytes[](2);
-        multicallInitializeDataERC1155[0] = abi.encodeWithSelector(
-            AllowlistMintHookERC1155.setClaimCondition.selector,
-            0,
-            conditionERC1155
-        );
-        multicallInitializeDataERC1155[1] = abi.encodeWithSelector(
-            AllowlistMintHookERC1155.setDefaultFeeConfig.selector,
-            feeConfig
-        );
+        multicallInitializeDataERC1155[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, conditionERC1155);
+        multicallInitializeDataERC1155[1] =
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig);
 
         // Developer installs hooks.
         vm.startPrank(developer);
 
-        erc20Core.installHook(IHook(MintHookERC20Proxy), 0, abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC20));
-        erc721Core.installHook(IHook(MintHookERC721Proxy), 0, abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC721));
-        erc1155Core.installHook(IHook(MintHookERC1155Proxy), 0, abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC1155));
+        erc20Core.installHook(
+            IHook(MintHookERC20Proxy),
+            0,
+            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC20)
+        );
+        erc721Core.installHook(
+            IHook(MintHookERC721Proxy),
+            0,
+            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC721)
+        );
+        erc1155Core.installHook(
+            IHook(MintHookERC1155Proxy),
+            0,
+            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC1155)
+        );
 
         vm.stopPrank();
 
@@ -214,7 +217,7 @@ contract HookUpgradesTest is Test {
         assertEq(endUser.balance, 100 ether);
 
         vm.prank(endUser);
-        erc20Core.mint{ value: pricePerToken }(endUser, 1 ether, encodedAllowlistProof);
+        erc20Core.mint{value: pricePerToken}(endUser, 1 ether, encodedAllowlistProof);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
         //      Money stuck in hook contract.
@@ -232,7 +235,7 @@ contract HookUpgradesTest is Test {
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
-        erc20Core.mint{ value: pricePerToken }(endUser, 1 ether, encodedAllowlistProof);
+        erc20Core.mint{value: pricePerToken}(endUser, 1 ether, encodedAllowlistProof);
 
         assertEq(MintHookERC20Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
@@ -243,8 +246,7 @@ contract HookUpgradesTest is Test {
         assertEq(erc721Core.getAllHooks().beforeMint, MintHookERC721Proxy);
         assertTrue(pricePerToken > 0);
         assertEq(
-            AllowlistMintHookERC721(MintHookERC721Proxy).getClaimCondition(address(erc721Core)).price,
-            pricePerToken
+            AllowlistMintHookERC721(MintHookERC721Proxy).getClaimCondition(address(erc721Core)).price, pricePerToken
         );
 
         // End user claims token: BUG: pays price but contract fails to distribute it!
@@ -256,7 +258,7 @@ contract HookUpgradesTest is Test {
         assertEq(endUser.balance, 100 ether);
 
         vm.prank(endUser);
-        erc721Core.mint{ value: pricePerToken }(endUser, 1, encodedAllowlistProof);
+        erc721Core.mint{value: pricePerToken}(endUser, 1, encodedAllowlistProof);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
         //      Money stuck in hook contract.
@@ -274,7 +276,7 @@ contract HookUpgradesTest is Test {
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
-        erc721Core.mint{ value: pricePerToken }(endUser, 1, encodedAllowlistProof);
+        erc721Core.mint{value: pricePerToken}(endUser, 1, encodedAllowlistProof);
 
         assertEq(MintHookERC721Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
@@ -300,7 +302,7 @@ contract HookUpgradesTest is Test {
         assertEq(endUser.balance, 100 ether);
 
         vm.prank(endUser);
-        erc1155Core.mint{ value: pricePerToken }(endUser, tokenId, 1, encodedAllowlistProof);
+        erc1155Core.mint{value: pricePerToken}(endUser, tokenId, 1, encodedAllowlistProof);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
         //      Money stuck in hook contract.
@@ -318,7 +320,7 @@ contract HookUpgradesTest is Test {
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
-        erc1155Core.mint{ value: pricePerToken }(endUser, tokenId, 1, encodedAllowlistProof);
+        erc1155Core.mint{value: pricePerToken}(endUser, tokenId, 1, encodedAllowlistProof);
 
         assertEq(MintHookERC1155Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
