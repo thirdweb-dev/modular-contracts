@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { MerkleProofLib } from "@solady/utils/MerkleProofLib.sol";
-import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol";
-import { Multicallable } from "@solady/utils/Multicallable.sol";
+import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
+import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
-import { IPermission } from "../../interface/common/IPermission.sol";
-import { ERC1155Hook } from "../ERC1155Hook.sol";
+import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
+import {IPermission} from "../../interface/common/IPermission.sol";
+import {ERC1155Hook} from "../ERC1155Hook.sol";
 
-import { AllowlistMintHookERC1155Storage } from "../../storage/hook/mint/AllowlistMintHookERC1155Storage.sol";
+import {AllowlistMintHookERC1155Storage} from "../../storage/hook/mint/AllowlistMintHookERC1155Storage.sol";
 
 contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook, Multicallable {
     /*//////////////////////////////////////////////////////////////
@@ -110,12 +110,13 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook, Multicallable {
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(
-        address _claimer,
-        uint256 _id,
-        uint256 _value,
-        bytes memory _encodedArgs
-    ) external payable virtual override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function beforeMint(address _claimer, uint256 _id, uint256 _value, bytes memory _encodedArgs)
+        external
+        payable
+        virtual
+        override
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         address token = msg.sender;
         AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
@@ -129,9 +130,7 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook, Multicallable {
             bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof,
-                condition.allowlistMerkleRoot,
-                keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
             );
             if (!isAllowlisted) {
                 revert AllowlistMintHookNotInAllowlist(token, _claimer);
