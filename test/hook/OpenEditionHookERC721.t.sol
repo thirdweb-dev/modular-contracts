@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { CloneFactory } from "src/infra/CloneFactory.sol";
-import { EIP1967Proxy } from "src/infra/EIP1967Proxy.sol";
+import {CloneFactory} from "src/infra/CloneFactory.sol";
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
-import { LibString } from "@solady/utils/LibString.sol";
+import {LibString} from "@solady/utils/LibString.sol";
 
-import { ERC721Core, HookInstaller } from "src/core/token/ERC721Core.sol";
-import { OpenEditionHookERC721, ERC721Hook } from "src/hook/metadata/OpenEditionHookERC721.sol";
-import { ISharedMetadata } from "src/interface/common/ISharedMetadata.sol";
-import { NFTMetadataRenderer } from "src/lib/NFTMetadataRenderer.sol";
+import {ERC721Core, HookInstaller} from "src/core/token/ERC721Core.sol";
+import {OpenEditionHookERC721, ERC721Hook} from "src/hook/metadata/OpenEditionHookERC721.sol";
+import {ISharedMetadata} from "src/interface/common/ISharedMetadata.sol";
+import {NFTMetadataRenderer} from "src/lib/NFTMetadataRenderer.sol";
 
 contract OpenEditionHookERC721Test is Test {
     using LibString for uint256;
@@ -30,7 +30,7 @@ contract OpenEditionHookERC721Test is Test {
     OpenEditionHookERC721 public metadataHook;
 
     // Test params
-    uint256 public constant TOKEN_URI_FLAG = 2**5;
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
     ISharedMetadata.SharedMetadataInfo public sharedMetadata;
 
     function setUp() public {
@@ -102,9 +102,7 @@ contract OpenEditionHookERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG,
-            0,
-            abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
         );
 
         assertEq(
@@ -134,9 +132,7 @@ contract OpenEditionHookERC721Test is Test {
     function test_revert_setSharedMetadata_notAdmin() public {
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG,
-            0,
-            abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
+            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
         );
     }
 }
