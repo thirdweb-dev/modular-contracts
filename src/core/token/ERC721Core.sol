@@ -87,12 +87,12 @@ contract ERC721Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
+            (bool success, bytes memory returndata) = _initCall.target.call{value: _initCall.value}(_initCall.data);
             if (!success) {
-                if (returnData.length > 0) {
+                if (returndata.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
                     assembly {
-                        revert(add(returnData, 32), mload(returnData))
+                        revert(add(returndata, 32), mload(returndata))
                     }
                 } else {
                     revert ERC721CoreInitializationFailed();
@@ -269,7 +269,11 @@ contract ERC721Core is
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (tokenIdToMint, quantityToMint) = IERC721Hook(hook).beforeMint{value: msg.value}(_to, _quantity, _data);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC721Hook.beforeMint.selector, _to, _quantity, _data)
+            );
+            if (!success) _revert(returndata);
+            (tokenIdToMint, quantityToMint) = abi.decode(returndata, (uint256, uint256));
         } else {
             revert ERC721CoreMintingDisabled();
         }
@@ -280,7 +284,10 @@ contract ERC721Core is
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
-            IERC721Hook(hook).beforeTransfer(_from, _to, _tokenId);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC721Hook.beforeTransfer.selector, _from, _to, _tokenId)
+            );
+            if (!success) _revert(returndata);
         }
     }
 
@@ -289,7 +296,10 @@ contract ERC721Core is
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            IERC721Hook(hook).beforeBurn(_from, _tokenId, _encodedBeforeBurnArgs);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC721Hook.beforeBurn.selector, _from, _tokenId, _encodedBeforeBurnArgs)
+            );
+            if (!success) _revert(returndata);
         }
     }
 
@@ -298,7 +308,10 @@ contract ERC721Core is
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {
-            IERC721Hook(hook).beforeApprove(_from, _to, _tokenId, _approve);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC721Hook.beforeApprove.selector, _from, _to, _tokenId, _approve)
+            );
+            if (!success) _revert(returndata);
         }
     }
 

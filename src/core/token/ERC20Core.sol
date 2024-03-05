@@ -305,7 +305,11 @@ contract ERC20Core is
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            quantityToMint = IERC20Hook(hook).beforeMint{value: msg.value}(_to, _amount, _data);
+            (bool success, bytes memory returndata) =
+                hook.call{value: msg.value}(abi.encodeWithSelector(IERC20Hook.beforeMint.selector, _to, _amount, _data));
+
+            if (!success) _revert(returndata);
+            quantityToMint = abi.decode(returndata, (uint256));
         } else {
             revert ERC20CoreMintingDisabled();
         }
@@ -316,7 +320,9 @@ contract ERC20Core is
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
-            IERC20Hook(hook).beforeTransfer(_from, _to, _amount);
+            (bool success, bytes memory returndata) =
+                hook.call(abi.encodeWithSelector(IERC20Hook.beforeTransfer.selector, _from, _to, _amount));
+            if (!success) _revert(returndata);
         }
     }
 
@@ -325,7 +331,10 @@ contract ERC20Core is
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            IERC20Hook(hook).beforeBurn(_from, _amount, _encodedBeforeBurnArgs);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC20Hook.beforeBurn.selector, _from, _amount, _encodedBeforeBurnArgs)
+            );
+            if (!success) _revert(returndata);
         }
     }
 
@@ -334,7 +343,9 @@ contract ERC20Core is
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {
-            IERC20Hook(hook).beforeApprove(_from, _to, _amount);
+            (bool success, bytes memory returndata) =
+                hook.call(abi.encodeWithSelector(IERC20Hook.beforeApprove.selector, _from, _to, _amount));
+            if (!success) _revert(returndata);
         }
     }
 }
