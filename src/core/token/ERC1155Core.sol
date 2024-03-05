@@ -91,12 +91,12 @@ contract ERC1155Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
+            (bool success, bytes memory returndata) = _initCall.target.call{value: _initCall.value}(_initCall.data);
             if (!success) {
-                if (returnData.length > 0) {
+                if (returndata.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
                     assembly {
-                        revert(add(returnData, 32), mload(returnData))
+                        revert(add(returndata, 32), mload(returndata))
                     }
                 } else {
                     revert ERC1155CoreInitializationFailed();
@@ -290,8 +290,11 @@ contract ERC1155Core is
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (tokenIdToMint, quantityToMint) =
-                IERC1155Hook(hook).beforeMint{value: msg.value}(_to, _tokenId, _value, _data);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC1155Hook.beforeMint.selector, _to, _tokenId, _value, _data)
+            );
+            if (!success) _revert(returndata);
+            (tokenIdToMint, quantityToMint) = abi.decode(returndata, (uint256, uint256));
         } else {
             revert ERC1155CoreMintingDisabled();
         }
@@ -302,7 +305,10 @@ contract ERC1155Core is
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
-            IERC1155Hook(hook).beforeTransfer(_from, _to, _tokenId, _value);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC1155Hook.beforeTransfer.selector, _from, _to, _tokenId, _value)
+            );
+            if (!success) _revert(returndata);
         }
     }
 
@@ -314,7 +320,10 @@ contract ERC1155Core is
         address hook = getHookImplementation(BEFORE_BATCH_TRANSFER_FLAG);
 
         if (hook != address(0)) {
-            IERC1155Hook(hook).beforeBatchTransfer(_from, _to, _tokenIds, _values);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC1155Hook.beforeBatchTransfer.selector, _from, _to, _tokenIds, _values)
+            );
+            if (!success) _revert(returndata);
         }
     }
 
@@ -326,7 +335,12 @@ contract ERC1155Core is
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            IERC1155Hook(hook).beforeBurn(_from, _tokenId, _value, _encodedBeforeBurnArgs);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(
+                    IERC1155Hook.beforeBurn.selector, _from, _tokenId, _value, _encodedBeforeBurnArgs
+                )
+            );
+            if (!success) _revert(returndata);
         }
     }
 
@@ -335,7 +349,10 @@ contract ERC1155Core is
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {
-            IERC1155Hook(hook).beforeApprove(_from, _to, _approved);
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC1155Hook.beforeApprove.selector, _from, _to, _approved)
+            );
+            if (!success) _revert(returndata);
         }
     }
 

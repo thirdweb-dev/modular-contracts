@@ -217,7 +217,7 @@ abstract contract HookInstaller is IHookInstaller {
     }
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory _returndata) private pure {
+    function _revert(bytes memory _returndata) internal pure {
         // Look for revert reason and bubble it up if present
         if (_returndata.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly

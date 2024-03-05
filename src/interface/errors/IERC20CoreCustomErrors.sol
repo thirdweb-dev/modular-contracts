@@ -17,4 +17,7 @@ interface IERC20CoreCustomErrors {
 
     /// @notice Emitted on a failed attempt to initialize the contract.
     error ERC20CoreInitializationFailed();
+
+    /// @notice Emitted on failed attempt to call a hook.
+    error ERC20CoreHookCallFailed();
 }
