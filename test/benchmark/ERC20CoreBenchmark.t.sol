@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {Merkle} from "@murky/Merkle.sol";
 
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/MockHookImpl.sol";
@@ -106,9 +108,6 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.label(claimer, "Claimer");
 
         // Developer installs `AllowlistMintHookERC20` hook
-        vm.startPrank(platformUser);
-        erc20.installHook(IHook(hookProxyAddress));
-
         address[] memory addresses = new address[](3);
         addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
         addresses[1] = 0x92Bb439374a091c7507bE100183d8D1Ed2c9dAD3;
@@ -125,21 +124,23 @@ contract ERC20CoreBenchmarkTest is Test {
             availableSupply: availableSupply,
             allowlistMerkleRoot: root
         });
-        erc20.hookFunctionWrite(
-            erc20.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
 
         AllowlistMintHookERC20.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        erc20.hookFunctionWrite(
-            erc20.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig)
+        bytes[] memory multicallDataMintHook = new bytes[](2);
+
+        multicallDataMintHook[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig);
+
+        multicallDataMintHook[1] = abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition);
+
+        // Developer installs `AllowlistMintHookERC20` hook
+        vm.prank(platformUser);
+        erc20.installHook(
+            IHook(hookProxyAddress), abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
         );
 
         vm.stopPrank();
@@ -306,7 +307,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook);
+        hookConsumer.installHook(mockHook, bytes(""));
     }
 
     function test_installfiveHooks() public {
@@ -322,7 +323,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook);
+        hookConsumer.installHook(mockHook, bytes(""));
     }
 
     function test_uninstallOneHook() public {
@@ -332,7 +333,7 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook);
+        hookConsumer.installHook(mockHook, bytes(""));
 
         vm.prank(platformUser);
 
@@ -351,7 +352,7 @@ contract ERC20CoreBenchmarkTest is Test {
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook);
+        hookConsumer.installHook(mockHook, bytes(""));
 
         vm.prank(platformUser);
 

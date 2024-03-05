@@ -65,7 +65,7 @@ contract ERC20CoreTest is Test, TestPlus {
             ERC20Core.initialize.selector, initCall, new address[](0), admin, "Token", "TKN", "contractURI://"
         );
         token = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
-        token.installHook(IHook(hookProxyAddress));
+        token.installHook(IHook(hookProxyAddress), bytes(""));
 
         vm.stopPrank();
 

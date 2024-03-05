@@ -30,6 +30,9 @@ abstract contract HookInstaller is IHookInstaller {
     /// @notice Emitted on attempt to write to hooks without permission.
     error HookInstallerUnauthorizedWrite();
 
+    /// @notice Emitted on failure to initialize a hook on installation.
+    error HookInstallerInitializationFailed();
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -75,11 +78,29 @@ abstract contract HookInstaller is IHookInstaller {
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
      *  @param _hook The hook to install.
      */
-    function installHook(IHook _hook) external {
+    function installHook(IHook _hook, bytes calldata _initializeData) external payable {
+        if (address(_hook) == address(0)) {
+            revert HookInstallerInvalidHook();
+        }
         if (!_canUpdateHooks(msg.sender)) {
             revert HookNotAuthorized();
         }
         _installHook(_hook);
+
+        if (_initializeData.length > 0) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success, bytes memory returnData) = address(_hook).call{value: msg.value}(_initializeData);
+            if (!success) {
+                if (returnData.length > 0) {
+                    // solhint-disable-next-line no-inline-assembly
+                    assembly {
+                        revert(add(returnData, 32), mload(returnData))
+                    }
+                } else {
+                    revert HookInstallerInitializationFailed();
+                }
+            }
+        }
     }
 
     /**
@@ -88,6 +109,9 @@ abstract contract HookInstaller is IHookInstaller {
      *  @param _hook The hook to uninstall.
      */
     function uninstallHook(IHook _hook) external {
+        if (address(_hook) == address(0)) {
+            revert HookInstallerInvalidHook();
+        }
         if (!_canUpdateHooks(msg.sender)) {
             revert HookNotAuthorized();
         }
@@ -97,19 +121,12 @@ abstract contract HookInstaller is IHookInstaller {
     /**
      *  @notice A generic entrypoint to write state of any of the installed hooks.
      */
-    function hookFunctionWrite(uint256 _hookFlag, uint256 _value, bytes calldata _data)
-        external
-        payable
-        returns (bytes memory)
-    {
+    function hookFunctionWrite(uint256 _hookFlag, bytes calldata _data) external payable returns (bytes memory) {
         if (!_canWriteToHooks(msg.sender)) {
             revert HookInstallerUnauthorizedWrite();
         }
         if (_hookFlag > 2 ** _maxHookFlag()) {
             revert HookInstallerInvalidHook();
-        }
-        if (msg.value != _value) {
-            revert HookInstallerInvalidValue();
         }
 
         address target = getHookImplementation(_hookFlag);
@@ -117,7 +134,7 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerHookNotInstalled();
         }
 
-        (bool success, bytes memory returndata) = target.call{value: _value}(_data);
+        (bool success, bytes memory returndata) = target.call{value: msg.value}(_data);
         if (!success) {
             _revert(returndata);
         }

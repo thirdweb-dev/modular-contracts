@@ -81,7 +81,7 @@ contract RoyaltyHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, 0, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
 
         (address _recipient, uint256 _bps) = royaltyHook.getDefaultRoyaltyInfo(address(erc721Core));
@@ -104,7 +104,7 @@ contract RoyaltyHookTest is Test {
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(RoyaltyHook.RoyaltyHookExceedsMaxBps.selector));
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, 0, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
     }
 
@@ -114,7 +114,7 @@ contract RoyaltyHookTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, 0, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
     }
 
@@ -126,7 +126,7 @@ contract RoyaltyHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, 0, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
 
         (address _recipient, uint256 _bps) = royaltyHook.getDefaultRoyaltyInfo(address(erc721Core));
@@ -147,7 +147,6 @@ contract RoyaltyHookTest is Test {
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
-            0,
             abi.encodeWithSelector(royaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps)
         );
 
@@ -168,7 +167,6 @@ contract RoyaltyHookTest is Test {
         vm.expectRevert(abi.encodeWithSelector(RoyaltyHook.RoyaltyHookExceedsMaxBps.selector));
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
-            0,
             abi.encodeWithSelector(RoyaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps)
         );
     }
@@ -182,7 +180,6 @@ contract RoyaltyHookTest is Test {
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
             ROYALTY_INFO_FLAG,
-            0,
             abi.encodeWithSelector(RoyaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps)
         );
     }

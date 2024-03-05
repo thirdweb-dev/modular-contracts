@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {Merkle} from "@murky/Merkle.sol";
 
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
@@ -115,17 +117,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.startPrank(platformUser);
 
-        // Developer installs `AllowlistMintHookERC1155` hook
-        erc1155.installHook(IHook(hookProxyAddress));
-        erc1155.installHook(IHook(lazyMintHookProxyAddress));
-
         // Developer sets up token metadata and claim conditions: gas incurred by developer.
-        erc1155.hookFunctionWrite(
-            erc1155.TOKEN_URI_FLAG(),
-            0,
-            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, 3, "https://example.com/", "")
-        );
-
         address[] memory addresses = new address[](3);
         addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
         addresses[1] = 0x92Bb439374a091c7507bE100183d8D1Ed2c9dAD3;
@@ -143,22 +135,27 @@ contract ERC1155CoreBenchmarkTest is Test {
             allowlistMerkleRoot: root
         });
 
-        erc1155.hookFunctionWrite(
-            erc1155.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
-        );
-
         AllowlistMintHookERC1155.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = platformUser;
         feeConfig.platformFeeRecipient = address(0x789);
         feeConfig.platformFeeBps = 100; // 1%
 
-        erc1155.hookFunctionWrite(
-            erc1155.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
+        bytes[] memory multicallDataMintHook = new bytes[](2);
+
+        multicallDataMintHook[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, 0, feeConfig);
+
+        multicallDataMintHook[1] =
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition);
+
+        bytes memory initializeDataLazyMint =
+            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, 3, "https://example.com/", "");
+
+        // Developer installs `AllowlistMintHookERC1155` hook
+        erc1155.installHook(
+            IHook(hookProxyAddress), abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
         );
+        erc1155.installHook(IHook(lazyMintHookProxyAddress), initializeDataLazyMint);
 
         vm.stopPrank();
 
@@ -326,7 +323,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook);
+        hookConsumer.installHook(mockHook, bytes(""));
     }
 
     function test_installfiveHooks() public {
@@ -342,7 +339,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook);
+        hookConsumer.installHook(mockHook, bytes(""));
     }
 
     function test_uninstallOneHooks() public {
@@ -352,7 +349,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook);
+        hookConsumer.installHook(mockHook, bytes(""));
 
         vm.prank(platformUser);
 
@@ -371,7 +368,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook);
+        hookConsumer.installHook(mockHook, bytes(""));
 
         vm.prank(platformUser);
 
