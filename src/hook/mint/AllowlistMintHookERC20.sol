@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { MerkleProofLib } from "@solady/utils/MerkleProofLib.sol";
-import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol";
+import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
+import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
-import { IPermission } from "../../interface/common/IPermission.sol";
-import { ERC20Hook } from "../ERC20Hook.sol";
+import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
 
-import { AllowlistMintHookERC20Storage } from "../../storage/hook/mint/AllowlistMintHookERC20Storage.sol";
+import {ERC20Hook} from "../ERC20Hook.sol";
 
-contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
+import {AllowlistMintHookERC20Storage} from "../../storage/hook/mint/AllowlistMintHookERC20Storage.sol";
+
+contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -100,11 +101,13 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
      *  @param _encodedArgs The encoded arguments for the beforeMint hook.
      *  @return quantityToMint The quantity of tokens to mint.s
      */
-    function beforeMint(
-        address _claimer,
-        uint256 _quantity,
-        bytes memory _encodedArgs
-    ) external payable virtual override returns (uint256 quantityToMint) {
+    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+        external
+        payable
+        virtual
+        override
+        returns (uint256 quantityToMint)
+    {
         address token = msg.sender;
         AllowlistMintHookERC20Storage.Data storage data = AllowlistMintHookERC20Storage.data();
 
@@ -118,9 +121,7 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook {
             bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof,
-                condition.allowlistMerkleRoot,
-                keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
             );
             if (!isAllowlisted) {
                 revert AllowlistMintHookNotInAllowlist(token, _claimer);

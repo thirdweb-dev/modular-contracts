@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { AllowlistMintHookERC721 } from "../../../hook/mint/AllowlistMintHookERC721.sol";
-import { IFeeConfig } from "../../../interface/common/IFeeConfig.sol";
+import {AllowlistMintHookERC721} from "../../../hook/mint/AllowlistMintHookERC721.sol";
+import {IFeeConfig} from "../../../interface/common/IFeeConfig.sol";
 
 library AllowlistMintHookERC721Storage {
     /// @custom:storage-location erc7201:allowlist.mint.hook.erc721.storage

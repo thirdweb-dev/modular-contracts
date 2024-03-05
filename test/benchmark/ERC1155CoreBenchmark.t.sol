@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import { Merkle } from "@murky/Merkle.sol";
+import {Merkle} from "@murky/Merkle.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
@@ -99,8 +99,9 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.startPrank(platformUser);
 
         IInitCall.InitCall memory initCall;
-        bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
+        bytes memory data = abi.encodeWithSelector(
+            ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+        );
         erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
@@ -176,8 +177,9 @@ contract ERC1155CoreBenchmarkTest is Test {
         IInitCall.InitCall memory initCall;
 
         address impl = erc1155Implementation;
-        bytes memory data =
-            abi.encodeWithSelector(ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://");
+        bytes memory data = abi.encodeWithSelector(
+            ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+        );
         bytes32 salt = bytes32("salt");
 
         vm.resumeGasMetering();

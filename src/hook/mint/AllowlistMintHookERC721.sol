@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { MerkleProofLib } from "@solady/utils/MerkleProofLib.sol";
-import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol";
+import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
+import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
-import { IPermission } from "../../interface/common/IPermission.sol";
-import { ERC721Hook } from "../ERC721Hook.sol";
+import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
 
-import { AllowlistMintHookERC721Storage } from "../../storage/hook/mint/AllowlistMintHookERC721Storage.sol";
+import {ERC721Hook} from "../ERC721Hook.sol";
 
-contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
+import {AllowlistMintHookERC721Storage} from "../../storage/hook/mint/AllowlistMintHookERC721Storage.sol";
+
+contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -114,11 +115,13 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(
-        address _claimer,
-        uint256 _quantity,
-        bytes memory _encodedArgs
-    ) external payable virtual override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+        external
+        payable
+        virtual
+        override
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         address token = msg.sender;
         AllowlistMintHookERC721Storage.Data storage data = AllowlistMintHookERC721Storage.data();
 
@@ -132,9 +135,7 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook {
             bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof,
-                condition.allowlistMerkleRoot,
-                keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
             );
             if (!isAllowlisted) {
                 revert AllowlistMintHookNotInAllowlist(token, _claimer);

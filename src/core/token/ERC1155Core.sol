@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from "@solady/utils/Initializable.sol";
+import {Initializable} from "@solady/utils/Initializable.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {Ownable} from "@solady/auth/Ownable.sol";
 
-import { IERC7572 } from "../../interface/eip/IERC7572.sol";
-import { IERC1155CoreCustomErrors } from "../../interface/errors/IERC1155CoreCustomErrors.sol";
-import { IERC1155Hook } from "../../interface/hook/IERC1155Hook.sol";
-import { IERC1155HookInstaller } from "../../interface/hook/IERC1155HookInstaller.sol";
-import { IInitCall } from "../../interface/common/IInitCall.sol";
-import { ERC1155Initializable } from "./ERC1155Initializable.sol";
-import { IHook, HookInstaller } from "../../hook/HookInstaller.sol";
-import { Permission } from "../../common/Permission.sol";
-
-import { ERC1155CoreStorage } from "../../storage/core/ERC1155CoreStorage.sol";
+import {IERC7572} from "../../interface/eip/IERC7572.sol";
+import {IERC1155CoreCustomErrors} from "../../interface/errors/IERC1155CoreCustomErrors.sol";
+import {IERC1155Hook} from "../../interface/hook/IERC1155Hook.sol";
+import {IERC1155HookInstaller} from "../../interface/hook/IERC1155HookInstaller.sol";
+import {IInitCall} from "../../interface/common/IInitCall.sol";
+import {ERC1155Initializable} from "./ERC1155Initializable.sol";
+import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
 
 contract ERC1155Core is
     Initializable,
+    Multicallable,
+    Ownable,
     ERC1155Initializable,
     HookInstaller,
-    Permission,
     IInitCall,
     IERC1155HookInstaller,
     IERC1155CoreCustomErrors,
@@ -29,25 +29,32 @@ contract ERC1155Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2**1;
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
 
     /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2**2;
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
 
     /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2**3;
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
 
     /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2**4;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice Bits representing the token URI hook.
-    uint256 public constant TOKEN_URI_FLAG = 2**5;
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_INFO_FLAG = 2**6;
+    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
     /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2**7;
+    uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2 ** 7;
+
+    /*//////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The contract URI of the contract.
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -60,7 +67,7 @@ contract ERC1155Core is
     /**
      *  @notice Initializes the ERC-1155 Core contract.
      *  @param _hooks The hooks to install.
-     *  @param _defaultAdmin The default admin for the contract.
+     *  @param _owner The owner of the contract.
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      *  @param _contractURI Contract URI
@@ -68,14 +75,14 @@ contract ERC1155Core is
     function initialize(
         InitCall calldata _initCall,
         address[] memory _hooks,
-        address _defaultAdmin,
+        address _owner,
         string memory _name,
         string memory _symbol,
         string memory _contractURI
     ) external initializer {
         _setupContractURI(_contractURI);
         __ERC1155_init(_name, _symbol);
-        _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
+        _setOwner(_owner);
 
         uint256 len = _hooks.length;
         for (uint256 i = 0; i < len; i++) {
@@ -84,7 +91,7 @@ contract ERC1155Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{ value: _initCall.value }(_initCall.data);
+            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -120,7 +127,7 @@ contract ERC1155Core is
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view override returns (string memory) {
-        return ERC1155CoreStorage.data().contractURI;
+        return contractURI_;
     }
 
     /**
@@ -149,11 +156,10 @@ contract ERC1155Core is
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public pure override returns (bool) {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            _interfaceId == 0xd9b67a26 || // ERC165 Interface ID for ERC1155
-            _interfaceId == 0x0e89341c || // ERC165 Interface ID for ERC1155MetadataURI
-            _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || _interfaceId == 0xd9b67a26 // ERC165 Interface ID for ERC1155
+            || _interfaceId == 0x0e89341c // ERC165 Interface ID for ERC1155MetadataURI
+            || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -165,7 +171,7 @@ contract ERC1155Core is
      *  @dev Only callable by contract admin.
      *  @param _uri The contract URI to set.
      */
-    function setContractURI(string memory _uri) external onlyAuthorized(ADMIN_ROLE_BITS) {
+    function setContractURI(string memory _uri) external onlyOwner {
         _setupContractURI(_uri);
     }
 
@@ -177,12 +183,7 @@ contract ERC1155Core is
      *  @param _value The amount of tokens to burn.
      *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
-    function burn(
-        address _from,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes memory _encodedBeforeBurnArgs
-    ) external {
+    function burn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs) external {
         if (_from != msg.sender && isApprovedForAll(_from, msg.sender)) {
             revert ERC1155NotApprovedOrOwner(msg.sender);
         }
@@ -199,12 +200,10 @@ contract ERC1155Core is
      *  @param _value The amount of tokens to mint.
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
-    function mint(
-        address _to,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes memory _encodedBeforeMintArgs
-    ) external payable {
+    function mint(address _to, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeMintArgs)
+        external
+        payable
+    {
         (uint256 tokenIdToMint, uint256 quantityToMint) = _beforeMint(_to, _tokenId, _value, _encodedBeforeMintArgs);
         _mint(_to, tokenIdToMint, quantityToMint, "");
     }
@@ -216,13 +215,10 @@ contract ERC1155Core is
      *  @param _to The address to transfer to
      *  @param _tokenId The token ID of the NFT
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes calldata _data
-    ) public override {
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId, uint256 _value, bytes calldata _data)
+        public
+        override
+    {
         _beforeTransfer(_from, _to, _tokenId, _value);
         super.safeTransferFrom(_from, _to, _tokenId, _value, _data);
     }
@@ -262,18 +258,18 @@ contract ERC1155Core is
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _uri) internal {
-        ERC1155CoreStorage.data().contractURI = _uri;
+        contractURI_ = _uri;
         emit ContractURIUpdated();
     }
 
     /// @dev Returns whether the given caller can update hooks.
     function _canUpdateHooks(address _caller) internal view override returns (bool) {
-        return hasRole(_caller, ADMIN_ROLE_BITS);
+        return _caller == owner();
     }
 
     /// @dev Returns whether the caller can write to hooks.
     function _canWriteToHooks(address _caller) internal view override returns (bool) {
-        return hasRole(_caller, ADMIN_ROLE_BITS);
+        return _caller == owner();
     }
 
     /// @dev Should return the max flag that represents a hook.
@@ -286,33 +282,23 @@ contract ERC1155Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(
-        address _to,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes memory _data
-    ) internal virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function _beforeMint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data)
+        internal
+        virtual
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (tokenIdToMint, quantityToMint) = IERC1155Hook(hook).beforeMint{ value: msg.value }(
-                _to,
-                _tokenId,
-                _value,
-                _data
-            );
+            (tokenIdToMint, quantityToMint) =
+                IERC1155Hook(hook).beforeMint{value: msg.value}(_to, _tokenId, _value, _data);
         } else {
             revert ERC1155CoreMintingDisabled();
         }
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(
-        address _from,
-        address _to,
-        uint256 _tokenId,
-        uint256 _value
-    ) internal virtual {
+    function _beforeTransfer(address _from, address _to, uint256 _tokenId, uint256 _value) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
@@ -321,12 +307,10 @@ contract ERC1155Core is
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeBatchTransfer(
-        address _from,
-        address _to,
-        uint256[] calldata _tokenIds,
-        uint256[] calldata _values
-    ) internal virtual {
+    function _beforeBatchTransfer(address _from, address _to, uint256[] calldata _tokenIds, uint256[] calldata _values)
+        internal
+        virtual
+    {
         address hook = getHookImplementation(BEFORE_BATCH_TRANSFER_FLAG);
 
         if (hook != address(0)) {
@@ -335,12 +319,10 @@ contract ERC1155Core is
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(
-        address _from,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes memory _encodedBeforeBurnArgs
-    ) internal virtual {
+    function _beforeBurn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs)
+        internal
+        virtual
+    {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
@@ -349,11 +331,7 @@ contract ERC1155Core is
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(
-        address _from,
-        address _to,
-        bool _approved
-    ) internal virtual {
+    function _beforeApprove(address _from, address _to, bool _approved) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {

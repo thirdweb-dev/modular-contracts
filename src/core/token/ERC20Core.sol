@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from "@solady/utils/Initializable.sol";
+import {Initializable} from "@solady/utils/Initializable.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {Ownable} from "@solady/auth/Ownable.sol";
 
-import { IERC7572 } from "../../interface/eip/IERC7572.sol";
-import { IERC20CoreCustomErrors } from "../../interface/errors/IERC20CoreCustomErrors.sol";
-import { IERC20Hook } from "../../interface/hook/IERC20Hook.sol";
-import { IERC20HookInstaller } from "../../interface/hook/IERC20HookInstaller.sol";
-import { IInitCall } from "../../interface/common/IInitCall.sol";
-import { ERC20Initializable } from "./ERC20Initializable.sol";
-import { IHook, HookInstaller } from "../../hook/HookInstaller.sol";
-import { Permission } from "../../common/Permission.sol";
-
-import { ERC20CoreStorage } from "../../storage/core/ERC20CoreStorage.sol";
+import {IERC7572} from "../../interface/eip/IERC7572.sol";
+import {IERC20CoreCustomErrors} from "../../interface/errors/IERC20CoreCustomErrors.sol";
+import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
+import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
+import {IInitCall} from "../../interface/common/IInitCall.sol";
+import {ERC20Initializable} from "./ERC20Initializable.sol";
+import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
 
 contract ERC20Core is
     Initializable,
+    Multicallable,
+    Ownable,
     ERC20Initializable,
     HookInstaller,
-    Permission,
     IInitCall,
     IERC20HookInstaller,
     IERC20CoreCustomErrors,
@@ -29,20 +29,29 @@ contract ERC20Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2**1;
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
 
     /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2**2;
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
 
     /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2**3;
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
 
     /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2**4;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice The EIP-2612 permit typehash.
     bytes32 private constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    /*//////////////////////////////////////////////////////////////
+                                  STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The contract URI of the contract.
+    string private contractURI_;
+    /// @notice nonces for EIP-2612 Permit functionality.
+    mapping(address => uint256) private nonces_;
 
     /*//////////////////////////////////////////////////////////////
                       CONSTRUCTOR + INITIALIZE
@@ -55,7 +64,7 @@ contract ERC20Core is
     /**
      *  @notice Initializes the ERC-20 Core contract.
      *  @param _hooks The hooks to install.
-     *  @param _defaultAdmin The default admin for the contract.
+     *  @param _owner The owner of the contract.
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      *  @param _contractURI Contract URI.
@@ -63,14 +72,14 @@ contract ERC20Core is
     function initialize(
         InitCall calldata _initCall,
         address[] memory _hooks,
-        address _defaultAdmin,
+        address _owner,
         string memory _name,
         string memory _symbol,
         string memory _contractURI
     ) external initializer {
         _setupContractURI(_contractURI);
         __ERC20_init(_name, _symbol);
-        _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
+        _setOwner(_owner);
 
         uint256 len = _hooks.length;
         for (uint256 i = 0; i < len; i++) {
@@ -79,7 +88,7 @@ contract ERC20Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{ value: _initCall.value }(_initCall.data);
+            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -112,7 +121,7 @@ contract ERC20Core is
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view override returns (string memory) {
-        return ERC20CoreStorage.data().contractURI;
+        return contractURI_;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -124,7 +133,7 @@ contract ERC20Core is
      *  @dev Only callable by contract admin.
      *  @param _uri The contract URI to set.
      */
-    function setContractURI(string memory _uri) external onlyAuthorized(ADMIN_ROLE_BITS) {
+    function setContractURI(string memory _uri) external onlyOwner {
         _setupContractURI(_uri);
     }
 
@@ -146,11 +155,7 @@ contract ERC20Core is
      *  @param _amount The amount of tokens to mint.
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
-    function mint(
-        address _to,
-        uint256 _amount,
-        bytes memory _encodedBeforeMintArgs
-    ) external payable {
+    function mint(address _to, uint256 _amount, bytes memory _encodedBeforeMintArgs) external payable {
         uint256 quantityToMint = _beforeMint(_to, _amount, _encodedBeforeMintArgs);
         _mint(_to, quantityToMint);
     }
@@ -161,11 +166,7 @@ contract ERC20Core is
      *  @param _to The address to transfer tokens to.
      *  @param _amount The quantity of tokens to transfer.
      */
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) public override returns (bool) {
+    function transferFrom(address _from, address _to, uint256 _amount) public override returns (bool) {
         _beforeTransfer(_from, _to, _amount);
         return super.transferFrom(_from, _to, _amount);
     }
@@ -203,6 +204,8 @@ contract ERC20Core is
         bytes32 _r,
         bytes32 _s
     ) public {
+        _beforeApprove(_owner, _spender, _value);
+
         if (_deadline < block.timestamp) {
             revert ERC20PermitDeadlineExpired();
         }
@@ -215,16 +218,7 @@ contract ERC20Core is
                     abi.encodePacked(
                         "\x19\x01",
                         computeDomainSeparator(),
-                        keccak256(
-                            abi.encode(
-                                PERMIT_TYPEHASH,
-                                _owner,
-                                _spender,
-                                _value,
-                                ERC20CoreStorage.data().nonces[_owner]++,
-                                _deadline
-                            )
-                        )
+                        keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, nonces_[_owner]++, _deadline))
                     )
                 ),
                 _v,
@@ -247,7 +241,7 @@ contract ERC20Core is
      * section].
      */
     function nonces(address owner) external view returns (uint256) {
-        return ERC20CoreStorage.data().nonces[owner];
+        return nonces_[owner];
     }
 
     /**
@@ -266,32 +260,31 @@ contract ERC20Core is
 
     /// @dev Returns the domain separator used in the encoding of the signature for permit.
     function computeDomainSeparator() internal view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                    keccak256(bytes(name())),
-                    keccak256("1"),
-                    block.chainid,
-                    address(this)
-                )
-            );
+        return keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes(name())),
+                keccak256("1"),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _uri) internal {
-        ERC20CoreStorage.data().contractURI = _uri;
+        contractURI_ = _uri;
         emit ContractURIUpdated();
     }
 
     /// @dev Returns whether the given caller can update hooks.
     function _canUpdateHooks(address _caller) internal view override returns (bool) {
-        return hasRole(_caller, ADMIN_ROLE_BITS);
+        return _caller == owner();
     }
 
     /// @dev Returns whether the caller can write to hooks.
     function _canWriteToHooks(address _caller) internal view override returns (bool) {
-        return hasRole(_caller, ADMIN_ROLE_BITS);
+        return _caller == owner();
     }
 
     /// @dev Should return the max flag that represents a hook.
@@ -304,26 +297,22 @@ contract ERC20Core is
       //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(
-        address _to,
-        uint256 _amount,
-        bytes memory _data
-    ) internal virtual returns (uint256 quantityToMint) {
+    function _beforeMint(address _to, uint256 _amount, bytes memory _data)
+        internal
+        virtual
+        returns (uint256 quantityToMint)
+    {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            quantityToMint = IERC20Hook(hook).beforeMint{ value: msg.value }(_to, _amount, _data);
+            quantityToMint = IERC20Hook(hook).beforeMint{value: msg.value}(_to, _amount, _data);
         } else {
             revert ERC20CoreMintingDisabled();
         }
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) internal virtual {
+    function _beforeTransfer(address _from, address _to, uint256 _amount) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
@@ -332,11 +321,7 @@ contract ERC20Core is
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(
-        address _from,
-        uint256 _amount,
-        bytes memory _encodedBeforeBurnArgs
-    ) internal virtual {
+    function _beforeBurn(address _from, uint256 _amount, bytes memory _encodedBeforeBurnArgs) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
@@ -345,11 +330,7 @@ contract ERC20Core is
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) internal virtual {
+    function _beforeApprove(address _from, address _to, uint256 _amount) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {

@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { EIP712 } from "@solady/utils/EIP712.sol";
-import { ECDSA } from "@solady/utils/ECDSA.sol";
-import { MerkleProofLib } from "@solady/utils/MerkleProofLib.sol";
-import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol";
+import {EIP712} from "@solady/utils/EIP712.sol";
+import {ECDSA} from "@solady/utils/ECDSA.sol";
+import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
+import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {Ownable} from "@solady/auth/Ownable.sol";
 
-import { IFeeConfig } from "../../interface/common/IFeeConfig.sol";
-import { IPermission } from "../../interface/common/IPermission.sol";
-import { IClaimCondition } from "../../interface/common/IClaimCondition.sol";
-import { IMintRequest } from "../../interface/common/IMintRequest.sol";
+import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
+import {IClaimCondition} from "../../interface/common/IClaimCondition.sol";
+import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 
-import { ERC721Hook } from "../ERC721Hook.sol";
+import {ERC721Hook} from "../ERC721Hook.sol";
 
-import { MintHookERC721Storage } from "../../storage/hook/mint/MintHookERC721Storage.sol";
+import {MintHookERC721Storage} from "../../storage/hook/mint/MintHookERC721Storage.sol";
 
-contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC721Hook {
+contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC721Hook, Multicallable {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -26,10 +27,9 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /// @notice The EIP-712 typehash for the mint request struct.
-    bytes32 private constant TYPEHASH =
-        keccak256(
-            "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
-        );
+    bytes32 private constant TYPEHASH = keccak256(
+        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+    );
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -150,9 +150,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
          */
         if (currentClaimPhase.merkleRoot != bytes32(0)) {
             isAllowlisted = MerkleProofLib.verify(
-                _allowlistProof,
-                currentClaimPhase.merkleRoot,
-                keccak256(abi.encodePacked(_claimer))
+                _allowlistProof, currentClaimPhase.merkleRoot, keccak256(abi.encodePacked(_claimer))
             );
 
             if (!isAllowlisted) {
@@ -169,8 +167,8 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
 
         if (
-            _quantity == 0 ||
-            (_quantity + getSupplyClaimedByWallet(_token, _claimer) > currentClaimPhase.quantityLimitPerWallet)
+            _quantity == 0
+                || (_quantity + getSupplyClaimedByWallet(_token, _claimer) > currentClaimPhase.quantityLimitPerWallet)
         ) {
             revert MintHookInvalidQuantity(_quantity);
         }
@@ -194,7 +192,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         }
 
         address signer = _recoverAddress(_req);
-        if (!IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS)) {
+        if (Ownable(_req.token).owner() != signer) {
             revert MintHookInvalidSignature();
         }
 
@@ -233,11 +231,12 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(
-        address _claimer,
-        uint256 _quantity,
-        bytes memory _encodedArgs
-    ) external payable override returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+        external
+        payable
+        override
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         MintRequest memory req = abi.decode(_encodedArgs, (MintRequest));
 
         if (req.token != msg.sender) {
@@ -352,12 +351,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Distributes the sale value of minting a token.
-    function _collectPrice(
-        address _minter,
-        uint256 _tokenId,
-        uint256 _totalPrice,
-        address _currency
-    ) internal {
+    function _collectPrice(address _minter, uint256 _tokenId, uint256 _totalPrice, address _currency) internal {
         // We want to return early when the price is 0. However, we first check if any msg value was sent incorrectly,
         // preventing native tokens from getting locked.
         if (msg.value != _totalPrice && _currency == NATIVE_TOKEN) {
@@ -399,10 +393,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
                 SafeTransferLib.safeTransferFrom(_currency, _minter, feeConfig.platformFeeRecipient, platformFees);
             }
             SafeTransferLib.safeTransferFrom(
-                _currency,
-                _minter,
-                feeConfig.primarySaleRecipient,
-                _totalPrice - platformFees
+                _currency, _minter, feeConfig.primarySaleRecipient, _totalPrice - platformFees
             );
         }
     }
@@ -415,24 +406,23 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @dev Returns the address of the signer of the mint request.
     function _recoverAddress(MintRequest memory _req) internal view returns (address) {
-        return
-            _hashTypedData(
-                keccak256(
-                    abi.encode(
-                        TYPEHASH,
-                        _req.token,
-                        _req.tokenId,
-                        _req.minter,
-                        _req.quantity,
-                        _req.pricePerToken,
-                        _req.currency,
-                        _req.allowlistProof,
-                        keccak256(bytes("")),
-                        _req.sigValidityStartTimestamp,
-                        _req.sigValidityEndTimestamp,
-                        _req.sigUid
-                    )
+        return _hashTypedData(
+            keccak256(
+                abi.encode(
+                    TYPEHASH,
+                    _req.token,
+                    _req.tokenId,
+                    _req.minter,
+                    _req.quantity,
+                    _req.pricePerToken,
+                    _req.currency,
+                    _req.allowlistProof,
+                    keccak256(bytes("")),
+                    _req.sigValidityStartTimestamp,
+                    _req.sigValidityEndTimestamp,
+                    _req.sigUid
                 )
-            ).recover(_req.permissionSignature);
+            )
+        ).recover(_req.permissionSignature);
     }
 }

@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { Initializable } from "@solady/utils/Initializable.sol";
+import {Initializable} from "@solady/utils/Initializable.sol";
 
-import { IERC721 } from "../../interface/eip/IERC721.sol";
-import { IERC721Supply } from "../../interface/eip/IERC721Supply.sol";
-import { IERC721Metadata } from "../../interface/eip/IERC721Metadata.sol";
-import { IERC721CustomErrors } from "../../interface/errors/IERC721CustomErrors.sol";
-import { IERC721Receiver } from "../../interface/eip/IERC721Receiver.sol";
-import { IERC2981 } from "../../interface/eip/IERC2981.sol";
-
-import { ERC721InitializableStorage } from "../../storage/core/ERC721InitializableStorage.sol";
+import {IERC721} from "../../interface/eip/IERC721.sol";
+import {IERC721Supply} from "../../interface/eip/IERC721Supply.sol";
+import {IERC721Metadata} from "../../interface/eip/IERC721Metadata.sol";
+import {IERC721CustomErrors} from "../../interface/errors/IERC721CustomErrors.sol";
+import {IERC721Receiver} from "../../interface/eip/IERC721Receiver.sol";
+import {IERC2981} from "../../interface/eip/IERC2981.sol";
 
 abstract contract ERC721Initializable is
     Initializable,
@@ -24,6 +22,24 @@ abstract contract ERC721Initializable is
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The name of the token collection.
+    string private name_;
+    /// @notice The symbol of the token collection.
+    string private symbol_;
+    /**
+     *  @notice The total circulating supply of NFTs.
+     *  @dev Initialized as `1` in `initialize` to save on `mint` gas.
+     */
+    uint256 private totalSupply_;
+    /// @notice Mapping from token ID to TokenData i.e. owner and metadata source.
+    mapping(uint256 => address) private ownerOf_;
+    /// @notice Mapping from owner address to number of owned token.
+    mapping(address => uint256) private balanceOf_;
+    /// @notice Mapping from token ID to approved spender address.
+    mapping(uint256 => address) private getApproved_;
+    /// @notice Mapping from owner to operator approvals.
+    mapping(address => mapping(address => bool)) private isApprovedForAll_;
+
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -34,11 +50,9 @@ abstract contract ERC721Initializable is
 
     /// @dev Initializes the contract with collection name and symbol.
     function __ERC721_init(string memory _name, string memory _symbol) internal onlyInitializing {
-        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
-
-        data.name = _name;
-        data.symbol = _symbol;
-        data.totalSupply = 1;
+        name_ = _name;
+        symbol_ = _symbol;
+        totalSupply_ = 1;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -47,22 +61,22 @@ abstract contract ERC721Initializable is
 
     /// @notice The name of the token.
     function name() public view virtual override returns (string memory) {
-        return ERC721InitializableStorage.data().name;
+        return name_;
     }
 
     /// @notice The symbol of the token.
     function symbol() public view virtual override returns (string memory) {
-        return ERC721InitializableStorage.data().symbol;
+        return symbol_;
     }
 
     /// @notice Returns the address of the approved spender of a token.
     function getApproved(uint256 _id) public view virtual override returns (address) {
-        return ERC721InitializableStorage.data().getApproved[_id];
+        return getApproved_[_id];
     }
 
     /// @notice Returns whether the caller is approved to transfer any of the owner's NFTs.
     function isApprovedForAll(address _owner, address _operator) public view virtual override returns (bool) {
-        return ERC721InitializableStorage.data().isApprovedForAll[_owner][_operator];
+        return isApprovedForAll_[_owner][_operator];
     }
 
     /**
@@ -72,7 +86,7 @@ abstract contract ERC721Initializable is
      *  @return owner The address of the owner of the NFT.
      */
     function ownerOf(uint256 _id) public view virtual returns (address owner) {
-        if ((owner = ERC721InitializableStorage.data().ownerOf[_id]) == address(0)) {
+        if ((owner = ownerOf_[_id]) == address(0)) {
             revert ERC721NotMinted(_id);
         }
     }
@@ -86,7 +100,7 @@ abstract contract ERC721Initializable is
         if (_owner == address(0)) {
             revert ERC721ZeroAddress();
         }
-        return ERC721InitializableStorage.data().balanceOf[_owner];
+        return balanceOf_[_owner];
     }
 
     /**
@@ -94,7 +108,7 @@ abstract contract ERC721Initializable is
      *  @return supply The total circulating supply of NFTs
      */
     function totalSupply() public view virtual returns (uint256) {
-        return ERC721InitializableStorage.data().totalSupply - 1; // We initialize totalSupply as `1` in `initialize` to save on `mint` gas.
+        return totalSupply_ - 1; // We initialize totalSupply as `1` in `initialize` to save on `mint` gas.
     }
 
     /**
@@ -102,9 +116,8 @@ abstract contract ERC721Initializable is
      *  @param _interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            _interfaceId == 0x80ac58cd; // ERC165 Interface ID for ERC721
+        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || _interfaceId == 0x80ac58cd; // ERC165 Interface ID for ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -117,14 +130,13 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      */
     function approve(address _spender, uint256 _id) public virtual {
-        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
-        address owner = data.ownerOf[_id];
+        address owner = ownerOf_[_id];
 
-        if (msg.sender != owner && !data.isApprovedForAll[owner][msg.sender]) {
+        if (msg.sender != owner && !isApprovedForAll_[owner][msg.sender]) {
             revert ERC721NotApproved(msg.sender, _id);
         }
 
-        data.getApproved[_id] = _spender;
+        getApproved_[_id] = _spender;
 
         emit Approval(owner, _spender, _id);
     }
@@ -135,7 +147,7 @@ abstract contract ERC721Initializable is
      *  @param _approved Whether the operator is approved
      */
     function setApprovalForAll(address _operator, bool _approved) public virtual {
-        ERC721InitializableStorage.data().isApprovedForAll[msg.sender][_operator] = _approved;
+        isApprovedForAll_[msg.sender][_operator] = _approved;
 
         emit ApprovalForAll(msg.sender, _operator, _approved);
     }
@@ -146,14 +158,8 @@ abstract contract ERC721Initializable is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _id
-    ) public virtual {
-        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
-
-        if (_from != data.ownerOf[_id]) {
+    function transferFrom(address _from, address _to, uint256 _id) public virtual {
+        if (_from != ownerOf_[_id]) {
             revert ERC721NotOwner(_from, _id);
         }
 
@@ -161,21 +167,21 @@ abstract contract ERC721Initializable is
             revert ERC721InvalidRecipient();
         }
 
-        if (msg.sender != _from && !data.isApprovedForAll[_from][msg.sender] && msg.sender != data.getApproved[_id]) {
+        if (msg.sender != _from && !isApprovedForAll_[_from][msg.sender] && msg.sender != getApproved_[_id]) {
             revert ERC721NotApproved(msg.sender, _id);
         }
 
         // Underflow of the sender's balance is impossible because we check for
         // ownership above and the recipient's balance can't realistically overflow.
         unchecked {
-            data.balanceOf[_from]--;
+            balanceOf_[_from]--;
 
-            data.balanceOf[_to]++;
+            balanceOf_[_to]++;
         }
 
-        data.ownerOf[_id] = _to;
+        ownerOf_[_id] = _to;
 
-        delete data.getApproved[_id];
+        delete getApproved_[_id];
 
         emit Transfer(_from, _to, _id);
     }
@@ -187,17 +193,13 @@ abstract contract ERC721Initializable is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _id
-    ) public virtual {
+    function safeTransferFrom(address _from, address _to, uint256 _id) public virtual {
         transferFrom(_from, _to, _id);
 
         if (
-            _to.code.length != 0 &&
-            IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, "") !=
-            IERC721Receiver.onERC721Received.selector
+            _to.code.length != 0
+                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, "")
+                    != IERC721Receiver.onERC721Received.selector
         ) {
             revert ERC721UnsafeRecipient(_to);
         }
@@ -211,18 +213,13 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      *  @param _data Additional data passed onto the `onERC721Received` call to the recipient
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _id,
-        bytes calldata _data
-    ) public virtual {
+    function safeTransferFrom(address _from, address _to, uint256 _id, bytes calldata _data) public virtual {
         transferFrom(_from, _to, _id);
 
         if (
-            _to.code.length != 0 &&
-            IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, _data) !=
-            IERC721Receiver.onERC721Received.selector
+            _to.code.length != 0
+                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, _data)
+                    != IERC721Receiver.onERC721Received.selector
         ) {
             revert ERC721UnsafeRecipient(_to);
         }
@@ -238,31 +235,25 @@ abstract contract ERC721Initializable is
      *  @param _startId The token ID of the first NFT to mint
      *  @param _quantity The quantity of NFTs to mint
      */
-    function _mint(
-        address _to,
-        uint256 _startId,
-        uint256 _quantity
-    ) internal virtual {
+    function _mint(address _to, uint256 _startId, uint256 _quantity) internal virtual {
         if (_to == address(0)) {
             revert ERC721InvalidRecipient();
         }
 
         uint256 endId = _startId + _quantity;
 
-        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
-
         // Counter overflow is incredibly unrealistic.
         unchecked {
-            data.balanceOf[_to] += _quantity;
-            data.totalSupply += _quantity;
+            balanceOf_[_to] += _quantity;
+            totalSupply_ += _quantity;
         }
 
         for (uint256 id = _startId; id < endId; id++) {
-            if (data.ownerOf[id] != address(0)) {
+            if (ownerOf_[id] != address(0)) {
                 revert ERC721AlreadyMinted(id);
             }
 
-            data.ownerOf[id] = _to;
+            ownerOf_[id] = _to;
 
             emit Transfer(address(0), _to, id);
         }
@@ -273,9 +264,7 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT to burn
      */
     function _burn(uint256 _id) internal virtual {
-        ERC721InitializableStorage.Data storage data = ERC721InitializableStorage.data();
-
-        address owner = data.ownerOf[_id];
+        address owner = ownerOf_[_id];
 
         if (owner == address(0)) {
             revert ERC721NotMinted(_id);
@@ -283,12 +272,12 @@ abstract contract ERC721Initializable is
 
         // Ownership check above ensures no underflow.
         unchecked {
-            data.balanceOf[owner]--;
-            data.totalSupply--;
+            balanceOf_[owner]--;
+            totalSupply_--;
         }
 
-        delete data.ownerOf[_id];
-        delete data.getApproved[_id];
+        delete ownerOf_[_id];
+        delete getApproved_[_id];
 
         emit Transfer(owner, address(0), _id);
     }

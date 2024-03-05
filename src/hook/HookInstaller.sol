@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import { LibBitmap } from "@solady/utils/LibBitmap.sol";
+import {LibBitmap} from "@solady/utils/LibBitmap.sol";
 
-import { IHook } from "../interface/hook/IHook.sol";
-import { IHookInstaller } from "../interface/hook/IHookInstaller.sol";
+import {IHook} from "../interface/hook/IHook.sol";
+import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
 
-import { HookInstallerStorage } from "../storage/hook/HookInstallerStorage.sol";
+import {HookInstallerStorage} from "../storage/hook/HookInstallerStorage.sol";
 
 abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;
@@ -50,7 +50,7 @@ abstract contract HookInstaller is IHookInstaller {
      *  @return returndata The return data from the hook view function call.
      */
     function hookFunctionRead(uint256 _hookFlag, bytes calldata _data) external view returns (bytes memory) {
-        if (_hookFlag > 2**_maxHookFlag()) {
+        if (_hookFlag > 2 ** _maxHookFlag()) {
             revert HookInstallerInvalidHook();
         }
 
@@ -97,15 +97,15 @@ abstract contract HookInstaller is IHookInstaller {
     /**
      *  @notice A generic entrypoint to write state of any of the installed hooks.
      */
-    function hookFunctionWrite(
-        uint256 _hookFlag,
-        uint256 _value,
-        bytes calldata _data
-    ) external payable returns (bytes memory) {
+    function hookFunctionWrite(uint256 _hookFlag, uint256 _value, bytes calldata _data)
+        external
+        payable
+        returns (bytes memory)
+    {
         if (!_canWriteToHooks(msg.sender)) {
             revert HookInstallerUnauthorizedWrite();
         }
-        if (_hookFlag > 2**_maxHookFlag()) {
+        if (_hookFlag > 2 ** _maxHookFlag()) {
             revert HookInstallerInvalidHook();
         }
         if (msg.value != _value) {
@@ -117,7 +117,7 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerHookNotInstalled();
         }
 
-        (bool success, bytes memory returndata) = target.call{ value: _value }(_data);
+        (bool success, bytes memory returndata) = target.call{value: _value}(_data);
         if (!success) {
             _revert(returndata);
         }
@@ -189,7 +189,7 @@ abstract contract HookInstaller is IHookInstaller {
 
         uint256 currentActivehooks = data.installedHooks;
 
-        uint256 flag = 2**_maxHookFlag();
+        uint256 flag = 2 ** _maxHookFlag();
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActivehooks = _addOrRemovehook(flag, currentActivehooks);
