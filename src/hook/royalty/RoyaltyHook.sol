@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import {IPermission} from "../../interface/common/IPermission.sol";
 import {IRoyaltyInfo} from "../../interface/common/IRoyaltyInfo.sol";
 import {ERC1155Hook} from "../ERC1155Hook.sol";
 

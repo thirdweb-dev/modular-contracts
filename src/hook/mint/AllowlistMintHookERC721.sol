@@ -6,7 +6,7 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
-import {IPermission} from "../../interface/common/IPermission.sol";
+
 import {ERC721Hook} from "../ERC721Hook.sol";
 
 import {AllowlistMintHookERC721Storage} from "../../storage/hook/mint/AllowlistMintHookERC721Storage.sol";

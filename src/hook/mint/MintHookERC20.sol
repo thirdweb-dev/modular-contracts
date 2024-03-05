@@ -9,7 +9,6 @@ import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {Ownable} from "@solady/auth/Ownable.sol";
 
 import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
-import {IPermission} from "../../interface/common/IPermission.sol";
 import {IClaimCondition} from "../../interface/common/IClaimCondition.sol";
 import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 
