@@ -23,7 +23,7 @@ Install dependencies:
 forge install
 ```
 
-Run benchmark comparison tests:
+Run benchmark comparison tests on testnets:
 
 ```bash
 # create a wallet for the benchmark (make sure there's enough gas funds)
@@ -31,6 +31,10 @@ cast wallet import testnet -i
 
 # deploy the benchmark contracts and perform the tests
 forge script script/benchmark-ext/erc721/BenchmarkERC721.s.sol --rpc-url "https://sepolia.rpc.thirdweb.com" --account testnet [--broadcast]
+```
+
+```bash
+forge snapshot --isolate --mp 'test/benchmark/*'
 ```
 
 ## Usage
