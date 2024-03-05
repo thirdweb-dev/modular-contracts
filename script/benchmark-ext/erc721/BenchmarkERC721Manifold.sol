@@ -89,28 +89,54 @@ contract ERC721Creator is Proxy {
     }
 }
 
+interface IManifoldNFT {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) external;
+
+    function mintBase(address to, string calldata uri)
+        external
+        returns (uint256);
+
+    function mintBaseBatch(address to, uint16 count)
+        external
+        returns (uint256[] memory);
+
+    function mintBaseBatch(address to, string[] calldata uris)
+        external
+        returns (uint256[] memory);
+}
+
 contract BenchmarkERC721Manifold is BenchmarkERC721Base {
-    function _deployContract(
+    function deployContract(
         address deployerAddress,
         string memory name,
         string memory symbol,
         string memory contractURI
-    ) internal override returns (address contractAddress) {
+    ) external override returns (address contractAddress) {
         //Reference:
         // https://sepolia.etherscan.io/address/0xfc958641e52563f071534495886a8ac590dcbfa2#code
         // https://sepolia.etherscan.io/tx/0xbc029723fbfd3cfef3c47c523bc9a4e7f073d6f0e89de3f5761701adbd4118a8
         contractAddress = address(new ERC721Creator(name, symbol));
     }
 
-    function _setupToken() internal override {}
+    function setupToken(address contractAddress) external override {}
 
-    function _mintToken() internal override {
+    function mintToken(address contractAddress) external override {
         // ERC721 Mint token
         // https://sepolia.etherscan.io/tx/0x05e54d052b160cf46e8133c2cb4fb5ecfec754e791ae8dd7197a02d332531899
         // https://sepolia.etherscan.io/tx/0x6815e65fc7376ba80daa8cbe0bd1bd63476bf78639a554702f981b5545ba0732
+        IManifoldNFT(contractAddress).mintBase(
+            tx.origin,
+            "https://studio.api.manifoldxyz.dev/asset_uploader/1/asset/3356006855/metadata/full"
+        );
     }
 
-    function _mintBatchHundredTokens() internal override {}
+    function mintBatchTokens(address contractAddress) external override {}
 
-    function _transferToken() internal override {}
+    function transferTokenFrom(address contractAddress) external override {
+        IERC721(contractAddress).transferFrom(tx.origin, address(0xdead), 1);
+    }
 }

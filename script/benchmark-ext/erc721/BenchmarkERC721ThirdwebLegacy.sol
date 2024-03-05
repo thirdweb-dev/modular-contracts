@@ -24,13 +24,19 @@ interface IBenchmarkERC721 {
     ) external;
 }
 
+interface IThirdwebNFT {
+    function mintTo(address _to, string calldata _uri)
+        external
+        returns (uint256);
+}
+
 contract BenchmarkERC721ThirdwebLegacy is BenchmarkERC721Base {
-    function _deployContract(
+    function deployContract(
         address deployerAddress,
         string memory name,
         string memory symbol,
         string memory contractURI
-    ) internal override returns (address contractAddress) {
+    ) external override returns (address contractAddress) {
         bytes memory encodedInitializer = abi.encodeCall(
             IBenchmarkERC721.initialize,
             (
@@ -50,19 +56,26 @@ contract BenchmarkERC721ThirdwebLegacy is BenchmarkERC721Base {
         contractAddress = IBenchmarkERC721(
             0x76F948E5F13B9A84A81E5681df8682BBf524805E
         ).deployProxyByImplementation(
-                0x6F6010fB5da6f757D5b1822Aadf1D3B806D6546d,
+                0xd534AC695ab818863FdE799afb2335F989C935e0,
                 encodedInitializer,
                 bytes32(
-                    0x3531393037313300000000000000000000000000000000000000000000000000
+                    0x3534313939303300000000000000000000000000000000000000000000000000
                 )
             );
     }
 
-    function _setupToken() internal override {}
+    function setupToken(address contractAddress) external override {}
 
-    function _mintToken() internal override {}
+    function mintToken(address contractAddress) external override {
+        IThirdwebNFT(contractAddress).mintTo(
+            tx.origin,
+            "ipfs://QmVKEzCzn2wnakB33f2Zqhdnk5LrQiAKbuTA95bFcmKuUR/0"
+        );
+    }
 
-    function _mintBatchHundredTokens() internal override {}
+    function mintBatchTokens(address contractAddress) external override {}
 
-    function _transferToken() internal override {}
+    function transferTokenFrom(address contractAddress) external override {
+        IERC721(contractAddress).transferFrom(tx.origin, address(0xdead), 0);
+    }
 }

@@ -30,7 +30,7 @@ Run benchmark comparison tests:
 cast wallet import testnet -i
 
 # deploy the benchmark contracts and perform the tests
-forge script script/benchmark-ext/erc721/BenchmarkERC721.s.sol --rpc-url "https://sepolia.rpc.thirdweb.com" --account testnet
+forge script script/benchmark-ext/erc721/BenchmarkERC721.s.sol --rpc-url "https://sepolia.rpc.thirdweb.com" --account testnet [--broadcast]
 ```
 
 ## Usage
