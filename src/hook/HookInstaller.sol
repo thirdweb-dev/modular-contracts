@@ -24,9 +24,6 @@ abstract contract HookInstaller is IHookInstaller {
     /// @notice Emitted on attempt to call an uninstalled hook.
     error HookInstallerHookNotInstalled();
 
-    /// @notice Emitted on attempting to call with more value than sent.
-    error HookInstallerInvalidValue();
-
     /// @notice Emitted on attempt to write to hooks without permission.
     error HookInstallerUnauthorizedWrite();
 
