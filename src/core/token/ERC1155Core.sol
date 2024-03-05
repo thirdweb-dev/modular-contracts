@@ -13,8 +13,6 @@ import {ERC1155Initializable} from "./ERC1155Initializable.sol";
 import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
 import {Permission} from "../../common/Permission.sol";
 
-import {ERC1155CoreStorage} from "../../storage/core/ERC1155CoreStorage.sol";
-
 contract ERC1155Core is
     Initializable,
     Multicallable,
@@ -50,6 +48,13 @@ contract ERC1155Core is
 
     /// @notice Bits representing the before transfer hook.
     uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2 ** 7;
+
+    /*//////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The contract URI of the contract.
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -122,7 +127,7 @@ contract ERC1155Core is
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view override returns (string memory) {
-        return ERC1155CoreStorage.data().contractURI;
+        return contractURI_;
     }
 
     /**
@@ -253,7 +258,7 @@ contract ERC1155Core is
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _uri) internal {
-        ERC1155CoreStorage.data().contractURI = _uri;
+        contractURI_ = _uri;
         emit ContractURIUpdated();
     }
 

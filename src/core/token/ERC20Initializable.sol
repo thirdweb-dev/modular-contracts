@@ -7,9 +7,22 @@ import {IERC20} from "../../interface/eip/IERC20.sol";
 import {IERC20Metadata} from "../../interface/eip/IERC20Metadata.sol";
 import {IERC20CustomErrors} from "../../interface/errors/IERC20CustomErrors.sol";
 
-import {ERC20InitializableStorage} from "../../storage/core/ERC20InitializableStorage.sol";
-
 abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, IERC20CustomErrors {
+    /*//////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The name of the token.
+    string private name_;
+    /// @notice The symbol of the token.
+    string private symbol_;
+    /// @notice The total circulating supply of tokens.
+    uint256 private totalSupply_;
+    /// @notice Mapping from owner address to number of owned token.
+    mapping(address => uint256) private balanceOf_;
+    /// @notice Mapping from owner to spender allowance.
+    mapping(address => mapping(address => uint256)) private allowances_;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -20,9 +33,8 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
 
     /// @dev Initializes the contract with collection name and symbol.
     function __ERC20_init(string memory _name, string memory _symbol) internal onlyInitializing {
-        ERC20InitializableStorage.Data storage data = ERC20InitializableStorage.data();
-        data.name = _name;
-        data.symbol = _symbol;
+        name_ = _name;
+        symbol_ = _symbol;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -31,12 +43,12 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
 
     /// @notice The name of the token.
     function name() public view virtual override returns (string memory) {
-        return ERC20InitializableStorage.data().name;
+        return name_;
     }
 
     /// @notice The symbol of the token.
     function symbol() public view virtual override returns (string memory) {
-        return ERC20InitializableStorage.data().symbol;
+        return symbol_;
     }
 
     /// @notice Returns the number of decimals used to get its user representation.
@@ -50,12 +62,12 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
      *  @return balance The quantity of tokens owned by `owner`.
      */
     function balanceOf(address _owner) public view virtual returns (uint256) {
-        return ERC20InitializableStorage.data().balanceOf[_owner];
+        return balanceOf_[_owner];
     }
 
     /// @notice Returns the total circulating supply of tokens.
     function totalSupply() public view virtual returns (uint256) {
-        return ERC20InitializableStorage.data().totalSupply;
+        return totalSupply_;
     }
 
     /**
@@ -65,7 +77,7 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
      *  @return allowance The quantity of tokens `spender` is allowed to spend on behalf of `owner`.
      */
     function allowance(address _owner, address _spender) public view virtual override returns (uint256) {
-        return ERC20InitializableStorage.data().allowances[_owner][_spender];
+        return allowances_[_owner][_spender];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -93,21 +105,19 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
             revert ERC20TransferToZeroAddress();
         }
 
-        ERC20InitializableStorage.Data storage data = ERC20InitializableStorage.data();
-
         address _owner = msg.sender;
-        uint256 _balance = data.balanceOf[_owner];
+        uint256 _balance = balanceOf_[_owner];
 
         if (_balance < _amount) {
             revert ERC20TransferAmountExceedsBalance(_amount, _balance);
         }
 
         unchecked {
-            data.balanceOf[_owner] = _balance - _amount;
+            balanceOf_[_owner] = _balance - _amount;
 
             // Cannot overflow because the sum of all user
             // balances can't exceed the max uint256 value.
-            data.balanceOf[_to] += _amount;
+            balanceOf_[_to] += _amount;
         }
 
         emit Transfer(_owner, _to, _amount);
@@ -130,17 +140,15 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
             revert ERC20TransferFromZeroAddress();
         }
 
-        ERC20InitializableStorage.Data storage data = ERC20InitializableStorage.data();
-
         address _spender = msg.sender;
-        uint256 _allowance = data.allowances[_from][_spender];
-        uint256 _balance = data.balanceOf[_from];
+        uint256 _allowance = allowances_[_from][_spender];
+        uint256 _balance = balanceOf_[_from];
 
         if (_allowance != type(uint256).max) {
             if (_allowance < _amount) {
                 revert ERC20InsufficientAllowance(_allowance, _amount);
             }
-            data.allowances[_from][_spender] = _allowance - _amount;
+            allowances_[_from][_spender] = _allowance - _amount;
         }
 
         if (_balance < _amount) {
@@ -148,11 +156,11 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
         }
 
         unchecked {
-            data.balanceOf[_from] = _balance - _amount;
+            balanceOf_[_from] = _balance - _amount;
 
             // Cannot overflow because the sum of all user
             // balances can't exceed the max uint256 value.
-            data.balanceOf[_to] += _amount;
+            balanceOf_[_to] += _amount;
         }
 
         emit Transfer(_from, _to, _amount);
@@ -170,14 +178,12 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
             revert ERC20ToZeroAddress(_to, _amount);
         }
 
-        ERC20InitializableStorage.Data storage data = ERC20InitializableStorage.data();
-
-        data.totalSupply += _amount;
+        totalSupply_ += _amount;
 
         // Cannot overflow because the sum of all user
         // balances can't exceed the max uint256 value.
         unchecked {
-            data.balanceOf[_to] += _amount;
+            balanceOf_[_to] += _amount;
         }
 
         emit Transfer(address(0), _to, _amount);
@@ -189,20 +195,18 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
             revert ERC20FromZeroAddress(_owner, _amount);
         }
 
-        ERC20InitializableStorage.Data storage data = ERC20InitializableStorage.data();
-
-        uint256 _balance = data.balanceOf[_owner];
+        uint256 _balance = balanceOf_[_owner];
 
         if (_balance < _amount) {
             revert ERC20TransferAmountExceedsBalance(_amount, _balance);
         }
 
         unchecked {
-            data.balanceOf[_owner] = _balance - _amount;
+            balanceOf_[_owner] = _balance - _amount;
 
             // Cannot underflow because a user's balance
             // will never be larger than the total supply.
-            data.totalSupply -= _amount;
+            totalSupply_ -= _amount;
         }
 
         emit Transfer(_owner, address(0), _amount);
@@ -218,7 +222,7 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
             revert ERC20ToZeroAddress(_spender, _amount);
         }
 
-        ERC20InitializableStorage.data().allowances[_owner][_spender] = _amount;
+        allowances_[_owner][_spender] = _amount;
 
         emit Approval(_owner, _spender, _amount);
     }
