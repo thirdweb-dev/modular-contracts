@@ -13,8 +13,6 @@ import {ERC20Initializable} from "./ERC20Initializable.sol";
 import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
 import {Permission} from "../../common/Permission.sol";
 
-import {ERC20CoreStorage} from "../../storage/core/ERC20CoreStorage.sol";
-
 contract ERC20Core is
     Initializable,
     Multicallable,
@@ -45,6 +43,15 @@ contract ERC20Core is
     /// @notice The EIP-2612 permit typehash.
     bytes32 private constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    /*//////////////////////////////////////////////////////////////
+                                  STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The contract URI of the contract.
+    string private contractURI_;
+    /// @notice nonces for EIP-2612 Permit functionality.
+    mapping(address => uint256) private nonces_;
 
     /*//////////////////////////////////////////////////////////////
                       CONSTRUCTOR + INITIALIZE
@@ -114,7 +121,7 @@ contract ERC20Core is
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view override returns (string memory) {
-        return ERC20CoreStorage.data().contractURI;
+        return contractURI_;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -211,16 +218,7 @@ contract ERC20Core is
                     abi.encodePacked(
                         "\x19\x01",
                         computeDomainSeparator(),
-                        keccak256(
-                            abi.encode(
-                                PERMIT_TYPEHASH,
-                                _owner,
-                                _spender,
-                                _value,
-                                ERC20CoreStorage.data().nonces[_owner]++,
-                                _deadline
-                            )
-                        )
+                        keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, nonces_[_owner]++, _deadline))
                     )
                 ),
                 _v,
@@ -243,7 +241,7 @@ contract ERC20Core is
      * section].
      */
     function nonces(address owner) external view returns (uint256) {
-        return ERC20CoreStorage.data().nonces[owner];
+        return nonces_[owner];
     }
 
     /**
@@ -275,7 +273,7 @@ contract ERC20Core is
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _uri) internal {
-        ERC20CoreStorage.data().contractURI = _uri;
+        contractURI_ = _uri;
         emit ContractURIUpdated();
     }
 

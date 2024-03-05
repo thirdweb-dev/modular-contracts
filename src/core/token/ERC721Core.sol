@@ -13,8 +13,6 @@ import {ERC721Initializable} from "./ERC721Initializable.sol";
 import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
 import {Permission} from "../../common/Permission.sol";
 
-import {ERC721CoreStorage} from "../../storage/core/ERC721CoreStorage.sol";
-
 contract ERC721Core is
     Initializable,
     Multicallable,
@@ -47,6 +45,13 @@ contract ERC721Core is
 
     /// @notice Bits representing the royalty hook.
     uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+
+    /*//////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The contract URI of the contract.
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                     CONSTRUCTOR + INITIALIZE
@@ -117,7 +122,7 @@ contract ERC721Core is
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view override returns (string memory) {
-        return ERC721CoreStorage.data().contractURI;
+        return contractURI_;
     }
 
     /**
@@ -232,7 +237,7 @@ contract ERC721Core is
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _uri) internal {
-        ERC721CoreStorage.data().contractURI = _uri;
+        contractURI_ = _uri;
         emit ContractURIUpdated();
     }
 
