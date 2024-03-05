@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Initializable} from "@solady/utils/Initializable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {Ownable} from "@solady/auth/Ownable.sol";
 
 import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IERC20CoreCustomErrors} from "../../interface/errors/IERC20CoreCustomErrors.sol";
@@ -11,14 +12,13 @@ import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol"
 import {IInitCall} from "../../interface/common/IInitCall.sol";
 import {ERC20Initializable} from "./ERC20Initializable.sol";
 import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
-import {Permission} from "../../common/Permission.sol";
 
 contract ERC20Core is
     Initializable,
     Multicallable,
+    Ownable,
     ERC20Initializable,
     HookInstaller,
-    Permission,
     IInitCall,
     IERC20HookInstaller,
     IERC20CoreCustomErrors,
@@ -64,7 +64,7 @@ contract ERC20Core is
     /**
      *  @notice Initializes the ERC-20 Core contract.
      *  @param _hooks The hooks to install.
-     *  @param _defaultAdmin The default admin for the contract.
+     *  @param _owner The owner of the contract.
      *  @param _name The name of the token collection.
      *  @param _symbol The symbol of the token collection.
      *  @param _contractURI Contract URI.
@@ -72,14 +72,14 @@ contract ERC20Core is
     function initialize(
         InitCall calldata _initCall,
         address[] memory _hooks,
-        address _defaultAdmin,
+        address _owner,
         string memory _name,
         string memory _symbol,
         string memory _contractURI
     ) external initializer {
         _setupContractURI(_contractURI);
         __ERC20_init(_name, _symbol);
-        _setupRole(_defaultAdmin, ADMIN_ROLE_BITS);
+        _setOwner(_owner);
 
         uint256 len = _hooks.length;
         for (uint256 i = 0; i < len; i++) {
@@ -133,7 +133,7 @@ contract ERC20Core is
      *  @dev Only callable by contract admin.
      *  @param _uri The contract URI to set.
      */
-    function setContractURI(string memory _uri) external onlyAuthorized(ADMIN_ROLE_BITS) {
+    function setContractURI(string memory _uri) external onlyOwner {
         _setupContractURI(_uri);
     }
 
@@ -279,12 +279,12 @@ contract ERC20Core is
 
     /// @dev Returns whether the given caller can update hooks.
     function _canUpdateHooks(address _caller) internal view override returns (bool) {
-        return hasRole(_caller, ADMIN_ROLE_BITS);
+        return _caller == owner();
     }
 
     /// @dev Returns whether the caller can write to hooks.
     function _canWriteToHooks(address _caller) internal view override returns (bool) {
-        return hasRole(_caller, ADMIN_ROLE_BITS);
+        return _caller == owner();
     }
 
     /// @dev Should return the max flag that represents a hook.
