@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {LibBitmap} from "@solady/utils/LibBitmap.sol";
+
 import {IHook} from "../interface/hook/IHook.sol";
 import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
 

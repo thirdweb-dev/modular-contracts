@@ -6,9 +6,9 @@ import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {Ownable} from "@solady/auth/Ownable.sol";
 
 import {IFeeConfig} from "../../interface/common/IFeeConfig.sol";
-import {IPermission} from "../../interface/common/IPermission.sol";
 import {IClaimCondition} from "../../interface/common/IClaimCondition.sol";
 import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 
@@ -196,7 +196,7 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
         }
 
         address signer = _recoverAddress(_req);
-        if (!IPermission(_req.token).hasRole(signer, ADMIN_ROLE_BITS)) {
+        if (Ownable(_req.token).owner() != signer) {
             revert MintHookInvalidSignature();
         }
 

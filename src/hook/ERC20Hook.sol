@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import "@solady/utils/Initializable.sol";
 import "@solady/utils/UUPSUpgradeable.sol";
-import "../common/Permission.sol";
+import "@solady/auth/Ownable.sol";
 
 import {IERC20Hook} from "../interface/hook/IERC20Hook.sol";
 
-abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Permission, IERC20Hook {
+abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Ownable, IERC20Hook {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -48,12 +48,12 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Permission, IERC2
 
     /// @notice Initializes the contract. Grants admin role (i.e. upgrade authority) to given `_upgradeAdmin`.
     function __ERC20Hook_init(address _upgradeAdmin) public onlyInitializing {
-        _setupRole(_upgradeAdmin, ADMIN_ROLE_BITS);
+        _setOwner(_upgradeAdmin);
     }
 
     /// @notice Checks if `msg.sender` is authorized to upgrade the proxy to `newImplementation`, reverting if not.
     function _authorizeUpgrade(address) internal view override {
-        if (!hasRole(msg.sender, ADMIN_ROLE_BITS)) {
+        if (msg.sender != owner()) {
             revert ERC20UnauthorizedUpgrade();
         }
     }

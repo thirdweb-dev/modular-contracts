@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {Merkle} from "@murky/Merkle.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import "@solady/utils/LibClone.sol";
 import "@solady/utils/UUPSUpgradeable.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
