@@ -6,7 +6,6 @@ import {Initializable} from "@solady/utils/Initializable.sol";
 import {IERC721} from "../../interface/eip/IERC721.sol";
 import {IERC721Supply} from "../../interface/eip/IERC721Supply.sol";
 import {IERC721Metadata} from "../../interface/eip/IERC721Metadata.sol";
-import {IERC721CustomErrors} from "../../interface/errors/IERC721CustomErrors.sol";
 import {IERC721Receiver} from "../../interface/eip/IERC721Receiver.sol";
 import {IERC2981} from "../../interface/eip/IERC2981.sol";
 
@@ -15,9 +14,33 @@ abstract contract ERC721Initializable is
     IERC721,
     IERC721Supply,
     IERC721Metadata,
-    IERC721CustomErrors,
     IERC2981
 {
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted on an attempt to burn or query ownership of an unminted token.
+    error ERC721NotMinted(uint256 tokenId);
+
+    /// @notice Emitted on an attempt to mint a token that has already been minted.
+    error ERC721AlreadyMinted(uint256 tokenId);
+
+    /// @notice Emitted when an unapproved operator attempts to transfer or issue approval for a token.
+    error ERC721NotApproved(address operator, uint256 tokenId);
+
+    /// @notice Emitted on an attempt to transfer a token from non-owner's address.
+    error ERC721NotOwner(address caller, uint256 tokenId);
+
+    /// @notice Emitted on an attempt to mint or transfer a token to the zero address.
+    error ERC721InvalidRecipient();
+
+    /// @notice Emitted on an attempt to transfer a token to a contract not implementing ERC-721 Receiver interface.
+    error ERC721UnsafeRecipient(address recipient);
+
+    /// @notice Revert for zero address param
+    error ERC721ZeroAddress();
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -49,7 +72,10 @@ abstract contract ERC721Initializable is
     }
 
     /// @dev Initializes the contract with collection name and symbol.
-    function __ERC721_init(string memory _name, string memory _symbol) internal onlyInitializing {
+    function __ERC721_init(string memory _name, string memory _symbol)
+        internal
+        onlyInitializing
+    {
         name_ = _name;
         symbol_ = _symbol;
         totalSupply_ = 1;
@@ -70,12 +96,24 @@ abstract contract ERC721Initializable is
     }
 
     /// @notice Returns the address of the approved spender of a token.
-    function getApproved(uint256 _id) public view virtual override returns (address) {
+    function getApproved(uint256 _id)
+        public
+        view
+        virtual
+        override
+        returns (address)
+    {
         return getApproved_[_id];
     }
 
     /// @notice Returns whether the caller is approved to transfer any of the owner's NFTs.
-    function isApprovedForAll(address _owner, address _operator) public view virtual override returns (bool) {
+    function isApprovedForAll(address _owner, address _operator)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
         return isApprovedForAll_[_owner][_operator];
     }
 
@@ -115,9 +153,15 @@ abstract contract ERC721Initializable is
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param _interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
-        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
-            || _interfaceId == 0x80ac58cd; // ERC165 Interface ID for ERC721
+    function supportsInterface(bytes4 _interfaceId)
+        public
+        view
+        virtual
+        returns (bool)
+    {
+        return
+            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+            _interfaceId == 0x80ac58cd; // ERC165 Interface ID for ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -146,7 +190,10 @@ abstract contract ERC721Initializable is
      *  @param _operator The address to approve or revoke approval from
      *  @param _approved Whether the operator is approved
      */
-    function setApprovalForAll(address _operator, bool _approved) public virtual {
+    function setApprovalForAll(address _operator, bool _approved)
+        public
+        virtual
+    {
         isApprovedForAll_[msg.sender][_operator] = _approved;
 
         emit ApprovalForAll(msg.sender, _operator, _approved);
@@ -158,7 +205,11 @@ abstract contract ERC721Initializable is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(address _from, address _to, uint256 _id) public virtual {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _id
+    ) public virtual {
         if (_from != ownerOf_[_id]) {
             revert ERC721NotOwner(_from, _id);
         }
@@ -167,7 +218,11 @@ abstract contract ERC721Initializable is
             revert ERC721InvalidRecipient();
         }
 
-        if (msg.sender != _from && !isApprovedForAll_[_from][msg.sender] && msg.sender != getApproved_[_id]) {
+        if (
+            msg.sender != _from &&
+            !isApprovedForAll_[_from][msg.sender] &&
+            msg.sender != getApproved_[_id]
+        ) {
             revert ERC721NotApproved(msg.sender, _id);
         }
 
@@ -193,13 +248,17 @@ abstract contract ERC721Initializable is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function safeTransferFrom(address _from, address _to, uint256 _id) public virtual {
+    function safeTransferFrom(
+        address _from,
+        address _to,
+        uint256 _id
+    ) public virtual {
         transferFrom(_from, _to, _id);
 
         if (
-            _to.code.length != 0
-                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, "")
-                    != IERC721Receiver.onERC721Received.selector
+            _to.code.length != 0 &&
+            IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, "") !=
+            IERC721Receiver.onERC721Received.selector
         ) {
             revert ERC721UnsafeRecipient(_to);
         }
@@ -213,13 +272,23 @@ abstract contract ERC721Initializable is
      *  @param _id The token ID of the NFT
      *  @param _data Additional data passed onto the `onERC721Received` call to the recipient
      */
-    function safeTransferFrom(address _from, address _to, uint256 _id, bytes calldata _data) public virtual {
+    function safeTransferFrom(
+        address _from,
+        address _to,
+        uint256 _id,
+        bytes calldata _data
+    ) public virtual {
         transferFrom(_from, _to, _id);
 
         if (
-            _to.code.length != 0
-                && IERC721Receiver(_to).onERC721Received(msg.sender, _from, _id, _data)
-                    != IERC721Receiver.onERC721Received.selector
+            _to.code.length != 0 &&
+            IERC721Receiver(_to).onERC721Received(
+                msg.sender,
+                _from,
+                _id,
+                _data
+            ) !=
+            IERC721Receiver.onERC721Received.selector
         ) {
             revert ERC721UnsafeRecipient(_to);
         }
@@ -235,7 +304,11 @@ abstract contract ERC721Initializable is
      *  @param _startId The token ID of the first NFT to mint
      *  @param _quantity The quantity of NFTs to mint
      */
-    function _mint(address _to, uint256 _startId, uint256 _quantity) internal virtual {
+    function _mint(
+        address _to,
+        uint256 _startId,
+        uint256 _quantity
+    ) internal virtual {
         if (_to == address(0)) {
             revert ERC721InvalidRecipient();
         }

@@ -5,9 +5,30 @@ import {Initializable} from "@solady/utils/Initializable.sol";
 
 import {IERC20} from "../../interface/eip/IERC20.sol";
 import {IERC20Metadata} from "../../interface/eip/IERC20Metadata.sol";
-import {IERC20CustomErrors} from "../../interface/errors/IERC20CustomErrors.sol";
 
-abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, IERC20CustomErrors {
+abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata {
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when burning or approving tokens from zero address as owner.
+    error ERC20FromZeroAddress(address owner, uint256 amount);
+
+    /// @notice Emitted when minting or approving tokens to zero address as spender.
+    error ERC20ToZeroAddress(address spender, uint256 amount);
+
+    /// @notice Emitted when a spender transfers more tokens than their allowance.
+    error ERC20InsufficientAllowance(uint256 allowance, uint256 amount);
+
+    /// @notice Emitted on token transfer to zero address.
+    error ERC20TransferToZeroAddress();
+
+    /// @notice Emitted on token transfer from zero address.
+    error ERC20TransferFromZeroAddress();
+
+    /// @notice Emitted when transfer amount exceeds balance.
+    error ERC20TransferAmountExceedsBalance(uint256 amount, uint256 balance);
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -32,7 +53,10 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
     }
 
     /// @dev Initializes the contract with collection name and symbol.
-    function __ERC20_init(string memory _name, string memory _symbol) internal onlyInitializing {
+    function __ERC20_init(string memory _name, string memory _symbol)
+        internal
+        onlyInitializing
+    {
         name_ = _name;
         symbol_ = _symbol;
     }
@@ -76,7 +100,13 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
      *  @param _spender The address that is approved to spend tokens.
      *  @return allowance The quantity of tokens `spender` is allowed to spend on behalf of `owner`.
      */
-    function allowance(address _owner, address _spender) public view virtual override returns (uint256) {
+    function allowance(address _owner, address _spender)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return allowances_[_owner][_spender];
     }
 
@@ -89,7 +119,11 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
      *  @param _spender The address to approve spending on behalf of the token owner.
      *  @param _amount The quantity of tokens to approve.
      */
-    function approve(address _spender, uint256 _amount) public virtual returns (bool) {
+    function approve(address _spender, uint256 _amount)
+        public
+        virtual
+        returns (bool)
+    {
         _approve(msg.sender, _spender, _amount);
 
         return true;
@@ -100,7 +134,11 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
      *  @param _to The address to transfer tokens to.
      *  @param _amount The quantity of tokens to transfer.
      */
-    function transfer(address _to, uint256 _amount) public virtual returns (bool) {
+    function transfer(address _to, uint256 _amount)
+        public
+        virtual
+        returns (bool)
+    {
         if (_to == address(0)) {
             revert ERC20TransferToZeroAddress();
         }
@@ -131,7 +169,11 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
      *  @param _to The address to transfer tokens to.
      *  @param _amount The quantity of tokens to transfer.
      */
-    function transferFrom(address _from, address _to, uint256 _amount) public virtual returns (bool) {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) public virtual returns (bool) {
         if (_to == address(0)) {
             revert ERC20TransferToZeroAddress();
         }
@@ -213,7 +255,11 @@ abstract contract ERC20Initializable is Initializable, IERC20, IERC20Metadata, I
     }
 
     /// @dev Approves a spender to spend tokens on behalf of an owner.
-    function _approve(address _owner, address _spender, uint256 _amount) public virtual {
+    function _approve(
+        address _owner,
+        address _spender,
+        uint256 _amount
+    ) public virtual {
         if (_owner == address(0)) {
             revert ERC20FromZeroAddress(_owner, _amount);
         }
