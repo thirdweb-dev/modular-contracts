@@ -83,7 +83,7 @@ contract ERC721CoreTest is Test, TestPlus {
             ERC721Core.initialize.selector, initCall, new address[](0), admin, "Token", "TKN", "contractURI://"
         );
         token = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
-        token.installHook(IHook(hookProxyAddress));
+        token.installHook(IHook(hookProxyAddress), bytes(""));
 
         vm.stopPrank();
 

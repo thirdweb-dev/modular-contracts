@@ -102,7 +102,7 @@ contract LazyMintHookTest is Test {
         // Lazy mint tokens
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI, data)
+            TOKEN_URI_FLAG, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI, data)
         );
 
         // Query token URI
@@ -120,7 +120,7 @@ contract LazyMintHookTest is Test {
         // Lazy mint morre tokens
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI2, data)
+            TOKEN_URI_FLAG, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI2, data)
         );
 
         assertEq(lazyMintHook.getBaseURICount(address(erc721Core)), 2);
@@ -136,7 +136,7 @@ contract LazyMintHookTest is Test {
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(LazyMintHook.LazyMintHookZeroAmount.selector));
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI, data)
+            TOKEN_URI_FLAG, abi.encodeWithSelector(LazyMintHook.lazyMint.selector, amount, baseURI, data)
         );
     }
 

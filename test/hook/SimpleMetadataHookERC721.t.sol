@@ -86,7 +86,7 @@ contract SimpleMetadataHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI)
+            TOKEN_URI_FLAG, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI)
         );
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI);
@@ -95,7 +95,7 @@ contract SimpleMetadataHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, 0, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2)
+            TOKEN_URI_FLAG, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2)
         );
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI2);

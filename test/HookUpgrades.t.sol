@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {Merkle} from "@murky/Merkle.sol";
 
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
@@ -121,15 +123,6 @@ contract HookUpgradesTest is Test {
         vm.label(address(MintHookERC721Impl), "AllowlistMintHookERC721");
         vm.label(address(MintHookERC1155Impl), "AllowlistMintHookERC1155");
 
-        // Developer installs hooks.
-        vm.startPrank(developer);
-
-        erc20Core.installHook(IHook(MintHookERC20Proxy));
-        erc721Core.installHook(IHook(MintHookERC721Proxy));
-        erc1155Core.installHook(IHook(MintHookERC1155Proxy));
-
-        vm.stopPrank();
-
         // Developer sets claim conditions; non-zero price
         address[] memory addresses = new address[](3);
         addresses[0] = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
@@ -158,44 +151,44 @@ contract HookUpgradesTest is Test {
             allowlistMerkleRoot: root
         });
 
-        vm.startPrank(developer);
-        erc20Core.hookFunctionWrite(
-            erc20Core.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, conditionERC20)
-        );
-        erc721Core.hookFunctionWrite(
-            erc721Core.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC721.setClaimCondition.selector, conditionERC721)
-        );
-        erc1155Core.hookFunctionWrite(
-            erc1155Core.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, conditionERC1155)
-        );
-        vm.stopPrank();
-
         // Developer sets fee config; sets self as primary sale recipient
         AllowlistMintHookERC20.FeeConfig memory feeConfig;
         feeConfig.primarySaleRecipient = developer;
 
+        bytes[] memory multicallInitializeDataERC20 = new bytes[](2);
+        multicallInitializeDataERC20[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, conditionERC20);
+        multicallInitializeDataERC20[1] =
+            abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig);
+
+        bytes[] memory multicallInitializeDataERC721 = new bytes[](2);
+        multicallInitializeDataERC721[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC721.setClaimCondition.selector, conditionERC721);
+        multicallInitializeDataERC721[1] =
+            abi.encodeWithSelector(AllowlistMintHookERC721.setDefaultFeeConfig.selector, feeConfig);
+
+        bytes[] memory multicallInitializeDataERC1155 = new bytes[](2);
+        multicallInitializeDataERC1155[0] =
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, conditionERC1155);
+        multicallInitializeDataERC1155[1] =
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig);
+
+        // Developer installs hooks.
         vm.startPrank(developer);
-        erc20Core.hookFunctionWrite(
-            erc20Core.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig)
+
+        erc20Core.installHook(
+            IHook(MintHookERC20Proxy),
+            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC20)
         );
-        erc721Core.hookFunctionWrite(
-            erc721Core.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC721.setDefaultFeeConfig.selector, feeConfig)
+        erc721Core.installHook(
+            IHook(MintHookERC721Proxy),
+            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC721)
         );
-        erc1155Core.hookFunctionWrite(
-            erc1155Core.BEFORE_MINT_FLAG(),
-            0,
-            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
+        erc1155Core.installHook(
+            IHook(MintHookERC1155Proxy),
+            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC1155)
         );
+
         vm.stopPrank();
 
         // Set minting params
