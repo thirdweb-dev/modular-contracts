@@ -37,22 +37,22 @@ contract ERC721Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2**1;
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
 
     /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2**2;
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
 
     /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2**3;
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
 
     /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2**4;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice Bits representing the token URI hook.
-    uint256 public constant TOKEN_URI_FLAG = 2**5;
+    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_INFO_FLAG = 2**6;
+    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -95,9 +95,7 @@ contract ERC721Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returndata) = _initCall.target.call{
-                value: _initCall.value
-            }(_initCall.data);
+            (bool success, bytes memory returndata) = _initCall.target.call{value: _initCall.value}(_initCall.data);
             if (!success) {
                 if (returndata.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -152,11 +150,7 @@ contract ERC721Core is
      *  @return recipient The royalty recipient address
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
      */
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
-        external
-        view
-        returns (address, uint256)
-    {
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice) external view returns (address, uint256) {
         return _getRoyaltyInfo(_tokenId, _salePrice);
     }
 
@@ -164,17 +158,11 @@ contract ERC721Core is
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param _interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 _interfaceId)
-        public
-        view
-        override
-        returns (bool)
-    {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            _interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            _interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
-            _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+    function supportsInterface(bytes4 _interfaceId) public view override returns (bool) {
+        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
+            || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
+            || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -196,9 +184,7 @@ contract ERC721Core is
      *  @param _tokenId The token ID of the NFT to burn.
      *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
-    function burn(uint256 _tokenId, bytes memory _encodedBeforeBurnArgs)
-        external
-    {
+    function burn(uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) external {
         address owner = ownerOf(_tokenId);
         if (owner != msg.sender) {
             revert ERC721NotOwner(msg.sender, _tokenId);
@@ -215,16 +201,8 @@ contract ERC721Core is
      *  @param _quantity The quantity of tokens to mint.
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
-    function mint(
-        address _to,
-        uint256 _quantity,
-        bytes memory _encodedBeforeMintArgs
-    ) external payable {
-        (uint256 startTokenId, uint256 quantityToMint) = _beforeMint(
-            _to,
-            _quantity,
-            _encodedBeforeMintArgs
-        );
+    function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
+        (uint256 startTokenId, uint256 quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
         _mint(_to, startTokenId, quantityToMint);
     }
 
@@ -235,11 +213,7 @@ contract ERC721Core is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _id
-    ) public override {
+    function transferFrom(address _from, address _to, uint256 _id) public override {
         _beforeTransfer(_from, _to, _id);
         super.transferFrom(_from, _to, _id);
     }
@@ -260,10 +234,7 @@ contract ERC721Core is
      *  @param _operator The address to approve or revoke approval from
      *  @param _approved Whether the operator is approved
      */
-    function setApprovalForAll(address _operator, bool _approved)
-        public
-        override
-    {
+    function setApprovalForAll(address _operator, bool _approved) public override {
         _beforeApprove(msg.sender, _operator, type(uint256).max, _approved);
         super.setApprovalForAll(_operator, _approved);
     }
@@ -279,22 +250,12 @@ contract ERC721Core is
     }
 
     /// @dev Returns whether the given caller can update hooks.
-    function _canUpdateHooks(address _caller)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _canUpdateHooks(address _caller) internal view override returns (bool) {
         return _caller == owner();
     }
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address _caller)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _canWriteToHooks(address _caller) internal view override returns (bool) {
         return _caller == owner();
     }
 
@@ -308,112 +269,62 @@ contract ERC721Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(
-        address _to,
-        uint256 _quantity,
-        bytes memory _data
-    ) internal virtual returns (uint256 tokenIdToMint, uint256 quantityToMint) {
+    function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
+        internal
+        virtual
+        returns (uint256 tokenIdToMint, uint256 quantityToMint)
+    {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{
-                value: msg.value
-            }(
-                abi.encodeWithSelector(
-                    IERC721Hook.beforeMint.selector,
-                    _to,
-                    _quantity,
-                    _data
-                )
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC721Hook.beforeMint.selector, _to, _quantity, _data)
             );
             if (!success) _revert(returndata);
-            (tokenIdToMint, quantityToMint) = abi.decode(
-                returndata,
-                (uint256, uint256)
-            );
+            (tokenIdToMint, quantityToMint) = abi.decode(returndata, (uint256, uint256));
         } else {
             revert ERC721CoreMintingDisabled();
         }
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(
-        address _from,
-        address _to,
-        uint256 _tokenId
-    ) internal virtual {
+    function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{
-                value: msg.value
-            }(
-                abi.encodeWithSelector(
-                    IERC721Hook.beforeTransfer.selector,
-                    _from,
-                    _to,
-                    _tokenId
-                )
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC721Hook.beforeTransfer.selector, _from, _to, _tokenId)
             );
             if (!success) _revert(returndata);
         }
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(
-        address _from,
-        uint256 _tokenId,
-        bytes memory _encodedBeforeBurnArgs
-    ) internal virtual {
+    function _beforeBurn(address _from, uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{
-                value: msg.value
-            }(
-                abi.encodeWithSelector(
-                    IERC721Hook.beforeBurn.selector,
-                    _from,
-                    _tokenId,
-                    _encodedBeforeBurnArgs
-                )
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC721Hook.beforeBurn.selector, _from, _tokenId, _encodedBeforeBurnArgs)
             );
             if (!success) _revert(returndata);
         }
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(
-        address _from,
-        address _to,
-        uint256 _tokenId,
-        bool _approve
-    ) internal virtual {
+    function _beforeApprove(address _from, address _to, uint256 _tokenId, bool _approve) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{
-                value: msg.value
-            }(
-                abi.encodeWithSelector(
-                    IERC721Hook.beforeApprove.selector,
-                    _from,
-                    _to,
-                    _tokenId,
-                    _approve
-                )
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC721Hook.beforeApprove.selector, _from, _to, _tokenId, _approve)
             );
             if (!success) _revert(returndata);
         }
     }
 
     /// @dev Fetches token URI from the token metadata hook.
-    function _getTokenURI(uint256 _tokenId)
-        internal
-        view
-        virtual
-        returns (string memory uri)
-    {
+    function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory uri) {
         address hook = getHookImplementation(TOKEN_URI_FLAG);
 
         if (hook != address(0)) {
@@ -431,10 +342,7 @@ contract ERC721Core is
         address hook = getHookImplementation(ROYALTY_INFO_FLAG);
 
         if (hook != address(0)) {
-            (receiver, royaltyAmount) = IERC721Hook(hook).royaltyInfo(
-                _tokenId,
-                _salePrice
-            );
+            (receiver, royaltyAmount) = IERC721Hook(hook).royaltyInfo(_tokenId, _salePrice);
         }
     }
 }

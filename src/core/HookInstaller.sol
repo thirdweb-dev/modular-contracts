@@ -50,11 +50,7 @@ abstract contract HookInstaller is IHookInstaller {
      *  @param _flag The bits representing the hook.
      *  @return impl The implementation of the hook.
      */
-    function getHookImplementation(uint256 _flag)
-        public
-        view
-        returns (address)
-    {
+    function getHookImplementation(uint256 _flag) public view returns (address) {
         return hookImplementationMap[_flag];
     }
 
@@ -64,12 +60,8 @@ abstract contract HookInstaller is IHookInstaller {
      *  @param _data The data to pass to the hook staticcall.
      *  @return returndata The return data from the hook view function call.
      */
-    function hookFunctionRead(uint256 _hookFlag, bytes calldata _data)
-        external
-        view
-        returns (bytes memory)
-    {
-        if (_hookFlag > 2**_maxHookFlag()) {
+    function hookFunctionRead(uint256 _hookFlag, bytes calldata _data) external view returns (bytes memory) {
+        if (_hookFlag > 2 ** _maxHookFlag()) {
             revert HookInstallerInvalidHook();
         }
 
@@ -94,10 +86,7 @@ abstract contract HookInstaller is IHookInstaller {
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
      *  @param _hook The hook to install.
      */
-    function installHook(IHook _hook, bytes calldata _initializeData)
-        external
-        payable
-    {
+    function installHook(IHook _hook, bytes calldata _initializeData) external payable {
         if (address(_hook) == address(0)) {
             revert HookInstallerInvalidHook();
         }
@@ -108,9 +97,7 @@ abstract contract HookInstaller is IHookInstaller {
 
         if (_initializeData.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = address(_hook).call{
-                value: msg.value
-            }(_initializeData);
+            (bool success, bytes memory returnData) = address(_hook).call{value: msg.value}(_initializeData);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -142,15 +129,11 @@ abstract contract HookInstaller is IHookInstaller {
     /**
      *  @notice A generic entrypoint to write state of any of the installed hooks.
      */
-    function hookFunctionWrite(uint256 _hookFlag, bytes calldata _data)
-        external
-        payable
-        returns (bytes memory)
-    {
+    function hookFunctionWrite(uint256 _hookFlag, bytes calldata _data) external payable returns (bytes memory) {
         if (!_canWriteToHooks(msg.sender)) {
             revert HookInstallerUnauthorizedWrite();
         }
-        if (_hookFlag > 2**_maxHookFlag()) {
+        if (_hookFlag > 2 ** _maxHookFlag()) {
             revert HookInstallerInvalidHook();
         }
 
@@ -159,9 +142,7 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerHookNotInstalled();
         }
 
-        (bool success, bytes memory returndata) = target.call{value: msg.value}(
-            _data
-        );
+        (bool success, bytes memory returndata) = target.call{value: msg.value}(_data);
         if (!success) {
             _revert(returndata);
         }
@@ -174,18 +155,10 @@ abstract contract HookInstaller is IHookInstaller {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns whether the caller can update hooks.
-    function _canUpdateHooks(address _caller)
-        internal
-        view
-        virtual
-        returns (bool);
+    function _canUpdateHooks(address _caller) internal view virtual returns (bool);
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address _caller)
-        internal
-        view
-        virtual
-        returns (bool);
+    function _canWriteToHooks(address _caller) internal view virtual returns (bool);
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure virtual returns (uint256) {
@@ -217,11 +190,7 @@ abstract contract HookInstaller is IHookInstaller {
     }
 
     /// @dev Adds a hook to the given integer represented hooks.
-    function _addhook(uint256 _flag, uint256 _currenthooks)
-        internal
-        pure
-        returns (uint256)
-    {
+    function _addhook(uint256 _flag, uint256 _currenthooks) internal pure returns (uint256) {
         if (_currenthooks & _flag > 0) {
             revert HookAlreadyInstalled();
         }
@@ -229,11 +198,7 @@ abstract contract HookInstaller is IHookInstaller {
     }
 
     /// @dev Removes a hook from the given integer represented hooks.
-    function _removehook(uint256 _flag, uint256 _currenthooks)
-        internal
-        pure
-        returns (uint256)
-    {
+    function _removehook(uint256 _flag, uint256 _currenthooks) internal pure returns (uint256) {
         return _currenthooks & ~_flag;
     }
 
@@ -248,7 +213,7 @@ abstract contract HookInstaller is IHookInstaller {
     ) internal {
         uint256 currentActivehooks = installedHooks;
 
-        uint256 flag = 2**_maxHookFlag();
+        uint256 flag = 2 ** _maxHookFlag();
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActivehooks = _addOrRemovehook(flag, currentActivehooks);

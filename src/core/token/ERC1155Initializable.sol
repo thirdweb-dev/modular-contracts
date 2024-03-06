@@ -9,13 +9,7 @@ import {IERC1155MetadataURI} from "../../interface/eip/IERC1155Metadata.sol";
 import {IERC1155Receiver} from "../../interface/eip/IERC1155Receiver.sol";
 import {IERC2981} from "../../interface/eip/IERC2981.sol";
 
-abstract contract ERC1155Initializable is
-    Initializable,
-    IERC1155,
-    IERC1155Supply,
-    IERC1155MetadataURI,
-    IERC2981
-{
+abstract contract ERC1155Initializable is Initializable, IERC1155, IERC1155Supply, IERC1155MetadataURI, IERC2981 {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -64,10 +58,7 @@ abstract contract ERC1155Initializable is
     }
 
     /// @dev Initializes the contract with collection name and symbol.
-    function __ERC1155_init(string memory _name, string memory _symbol)
-        internal
-        onlyInitializing
-    {
+    function __ERC1155_init(string memory _name, string memory _symbol) internal onlyInitializing {
         name_ = _name;
         symbol_ = _symbol;
     }
@@ -87,13 +78,7 @@ abstract contract ERC1155Initializable is
     }
 
     /// @notice Returns whether an operator is approved to transfer any NFTs of the owner.
-    function isApprovedForAll(address _owner, address _operator)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function isApprovedForAll(address _owner, address _operator) public view virtual override returns (bool) {
         return isApprovedForAll_[_owner][_operator];
     }
 
@@ -102,19 +87,15 @@ abstract contract ERC1155Initializable is
      *  @param _owner The address to query the balance of
      *  @return balance The number of NFTs owned by the queried address
      */
-    function balanceOf(address _owner, uint256 _tokenId)
-        public
-        view
-        virtual
-        returns (uint256)
-    {
+    function balanceOf(address _owner, uint256 _tokenId) public view virtual returns (uint256) {
         return balanceOf_[_owner][_tokenId];
     }
 
-    function balanceOfBatch(
-        address[] calldata _owners,
-        uint256[] calldata _tokenIds
-    ) external view returns (uint256[] memory _balances) {
+    function balanceOfBatch(address[] calldata _owners, uint256[] calldata _tokenIds)
+        external
+        view
+        returns (uint256[] memory _balances)
+    {
         if (_owners.length != _tokenIds.length) {
             revert ERC1155ArrayLengthMismatch();
         }
@@ -134,12 +115,7 @@ abstract contract ERC1155Initializable is
      *  @notice Returns the total circulating supply of NFTs.
      *  @return supply The total circulating supply of NFTs
      */
-    function totalSupply(uint256 _tokenId)
-        public
-        view
-        virtual
-        returns (uint256)
-    {
+    function totalSupply(uint256 _tokenId) public view virtual returns (uint256) {
         return totalSupply_[_tokenId];
     }
 
@@ -147,16 +123,10 @@ abstract contract ERC1155Initializable is
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param _interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 _interfaceId)
-        public
-        view
-        virtual
-        returns (bool)
-    {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            _interfaceId == 0xd9b67a26 || // ERC165 Interface ID for ERC1155
-            _interfaceId == 0x0e89341c; // ERC165 Interface ID for ERC1155MetadataURI
+    function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
+        return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || _interfaceId == 0xd9b67a26 // ERC165 Interface ID for ERC1155
+            || _interfaceId == 0x0e89341c; // ERC165 Interface ID for ERC1155MetadataURI
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -168,10 +138,7 @@ abstract contract ERC1155Initializable is
      *  @param _operator The address to approve or revoke approval from
      *  @param _approved Whether the operator is approved
      */
-    function setApprovalForAll(address _operator, bool _approved)
-        public
-        virtual
-    {
+    function setApprovalForAll(address _operator, bool _approved) public virtual {
         isApprovedForAll_[msg.sender][_operator] = _approved;
 
         emit ApprovalForAll(msg.sender, _operator, _approved);
@@ -186,13 +153,10 @@ abstract contract ERC1155Initializable is
      *  @param _value Total number of NFTs with that id
      *  @param _data data
      */
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes calldata _data
-    ) public virtual {
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId, uint256 _value, bytes calldata _data)
+        public
+        virtual
+    {
         if (msg.sender != _from && !isApprovedForAll_[_from][msg.sender]) {
             revert ERC1155NotApprovedOrOwner(msg.sender);
         }
@@ -205,13 +169,8 @@ abstract contract ERC1155Initializable is
         if (
             _to.code.length == 0
                 ? _to == address(0)
-                : IERC1155Receiver(_to).onERC1155Received(
-                    msg.sender,
-                    _from,
-                    _tokenId,
-                    _value,
-                    _data
-                ) != IERC1155Receiver.onERC1155Received.selector
+                : IERC1155Receiver(_to).onERC1155Received(msg.sender, _from, _tokenId, _value, _data)
+                    != IERC1155Receiver.onERC1155Received.selector
         ) {
             revert ERC1155UnsafeRecipient(_to);
         }
@@ -245,7 +204,7 @@ abstract contract ERC1155Initializable is
         uint256 id;
         uint256 value;
 
-        for (uint256 i = 0; i < _tokenIds.length; ) {
+        for (uint256 i = 0; i < _tokenIds.length;) {
             id = _tokenIds[i];
             value = _values[i];
 
@@ -264,13 +223,8 @@ abstract contract ERC1155Initializable is
         if (
             _to.code.length == 0
                 ? _to == address(0)
-                : IERC1155Receiver(_to).onERC1155BatchReceived(
-                    msg.sender,
-                    _from,
-                    _tokenIds,
-                    _values,
-                    _data
-                ) != IERC1155Receiver.onERC1155BatchReceived.selector
+                : IERC1155Receiver(_to).onERC1155BatchReceived(msg.sender, _from, _tokenIds, _values, _data)
+                    != IERC1155Receiver.onERC1155BatchReceived.selector
         ) {
             revert ERC1155UnsafeRecipient(_to);
         }
@@ -280,12 +234,7 @@ abstract contract ERC1155Initializable is
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _mint(
-        address _to,
-        uint256 _tokenId,
-        uint256 _value,
-        bytes memory _data
-    ) internal virtual {
+    function _mint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
         balanceOf_[_to][_tokenId] += _value;
         totalSupply_[_tokenId] += _value;
 
@@ -294,23 +243,14 @@ abstract contract ERC1155Initializable is
         if (
             _to.code.length == 0
                 ? _to == address(0)
-                : IERC1155Receiver(_to).onERC1155Received(
-                    msg.sender,
-                    address(0),
-                    _tokenId,
-                    _value,
-                    _data
-                ) != IERC1155Receiver.onERC1155Received.selector
+                : IERC1155Receiver(_to).onERC1155Received(msg.sender, address(0), _tokenId, _value, _data)
+                    != IERC1155Receiver.onERC1155Received.selector
         ) {
             revert ERC1155UnsafeRecipient(_to);
         }
     }
 
-    function _burn(
-        address _from,
-        uint256 _tokenId,
-        uint256 _value
-    ) internal virtual {
+    function _burn(address _from, uint256 _tokenId, uint256 _value) internal virtual {
         if (_from == address(0)) {
             revert ERC1155BurnFromZeroAddress();
         }

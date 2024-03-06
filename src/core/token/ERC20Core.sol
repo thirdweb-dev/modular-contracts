@@ -46,22 +46,20 @@ contract ERC20Core is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2**1;
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
 
     /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2**2;
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
 
     /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2**3;
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
 
     /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2**4;
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice The EIP-2612 permit typehash.
     bytes32 private constant PERMIT_TYPEHASH =
-        keccak256(
-            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-        );
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     /*//////////////////////////////////////////////////////////////
                                   STORAGE
@@ -107,9 +105,7 @@ contract ERC20Core is
 
         if (_initCall.target != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{
-                value: _initCall.value
-            }(_initCall.data);
+            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -164,9 +160,7 @@ contract ERC20Core is
      *  @param _amount The amount of tokens to burn.
      *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
-    function burn(uint256 _amount, bytes memory _encodedBeforeBurnArgs)
-        external
-    {
+    function burn(uint256 _amount, bytes memory _encodedBeforeBurnArgs) external {
         _beforeBurn(msg.sender, _amount, _encodedBeforeBurnArgs);
         _burn(msg.sender, _amount);
     }
@@ -178,16 +172,8 @@ contract ERC20Core is
      *  @param _amount The amount of tokens to mint.
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
-    function mint(
-        address _to,
-        uint256 _amount,
-        bytes memory _encodedBeforeMintArgs
-    ) external payable {
-        uint256 quantityToMint = _beforeMint(
-            _to,
-            _amount,
-            _encodedBeforeMintArgs
-        );
+    function mint(address _to, uint256 _amount, bytes memory _encodedBeforeMintArgs) external payable {
+        uint256 quantityToMint = _beforeMint(_to, _amount, _encodedBeforeMintArgs);
         _mint(_to, quantityToMint);
     }
 
@@ -197,11 +183,7 @@ contract ERC20Core is
      *  @param _to The address to transfer tokens to.
      *  @param _amount The quantity of tokens to transfer.
      */
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) public override returns (bool) {
+    function transferFrom(address _from, address _to, uint256 _amount) public override returns (bool) {
         _beforeTransfer(_from, _to, _amount);
         return super.transferFrom(_from, _to, _amount);
     }
@@ -211,11 +193,7 @@ contract ERC20Core is
      *  @param _spender The address to approve spending on behalf of the token owner.
      *  @param _amount The quantity of tokens to approve.
      */
-    function approve(address _spender, uint256 _amount)
-        public
-        override
-        returns (bool)
-    {
+    function approve(address _spender, uint256 _amount) public override returns (bool) {
         _beforeApprove(msg.sender, _spender, _amount);
         return super.approve(_spender, _amount);
     }
@@ -257,16 +235,7 @@ contract ERC20Core is
                     abi.encodePacked(
                         "\x19\x01",
                         computeDomainSeparator(),
-                        keccak256(
-                            abi.encode(
-                                PERMIT_TYPEHASH,
-                                _owner,
-                                _spender,
-                                _value,
-                                nonces_[_owner]++,
-                                _deadline
-                            )
-                        )
+                        keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, nonces_[_owner]++, _deadline))
                     )
                 ),
                 _v,
@@ -308,18 +277,15 @@ contract ERC20Core is
 
     /// @dev Returns the domain separator used in the encoding of the signature for permit.
     function computeDomainSeparator() internal view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    keccak256(
-                        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                    ),
-                    keccak256(bytes(name())),
-                    keccak256("1"),
-                    block.chainid,
-                    address(this)
-                )
-            );
+        return keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes(name())),
+                keccak256("1"),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     /// @dev Sets contract URI
@@ -329,22 +295,12 @@ contract ERC20Core is
     }
 
     /// @dev Returns whether the given caller can update hooks.
-    function _canUpdateHooks(address _caller)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _canUpdateHooks(address _caller) internal view override returns (bool) {
         return _caller == owner();
     }
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address _caller)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _canWriteToHooks(address _caller) internal view override returns (bool) {
         return _caller == owner();
     }
 
@@ -358,24 +314,16 @@ contract ERC20Core is
       //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(
-        address _to,
-        uint256 _amount,
-        bytes memory _data
-    ) internal virtual returns (uint256 quantityToMint) {
+    function _beforeMint(address _to, uint256 _amount, bytes memory _data)
+        internal
+        virtual
+        returns (uint256 quantityToMint)
+    {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{
-                value: msg.value
-            }(
-                abi.encodeWithSelector(
-                    IERC20Hook.beforeMint.selector,
-                    _to,
-                    _amount,
-                    _data
-                )
-            );
+            (bool success, bytes memory returndata) =
+                hook.call{value: msg.value}(abi.encodeWithSelector(IERC20Hook.beforeMint.selector, _to, _amount, _data));
 
             if (!success) _revert(returndata);
             quantityToMint = abi.decode(returndata, (uint256));
@@ -385,66 +333,35 @@ contract ERC20Core is
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) internal virtual {
+    function _beforeTransfer(address _from, address _to, uint256 _amount) internal virtual {
         address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call(
-                abi.encodeWithSelector(
-                    IERC20Hook.beforeTransfer.selector,
-                    _from,
-                    _to,
-                    _amount
-                )
-            );
+            (bool success, bytes memory returndata) =
+                hook.call(abi.encodeWithSelector(IERC20Hook.beforeTransfer.selector, _from, _to, _amount));
             if (!success) _revert(returndata);
         }
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(
-        address _from,
-        uint256 _amount,
-        bytes memory _encodedBeforeBurnArgs
-    ) internal virtual {
+    function _beforeBurn(address _from, uint256 _amount, bytes memory _encodedBeforeBurnArgs) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{
-                value: msg.value
-            }(
-                abi.encodeWithSelector(
-                    IERC20Hook.beforeBurn.selector,
-                    _from,
-                    _amount,
-                    _encodedBeforeBurnArgs
-                )
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(IERC20Hook.beforeBurn.selector, _from, _amount, _encodedBeforeBurnArgs)
             );
             if (!success) _revert(returndata);
         }
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) internal virtual {
+    function _beforeApprove(address _from, address _to, uint256 _amount) internal virtual {
         address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call(
-                abi.encodeWithSelector(
-                    IERC20Hook.beforeApprove.selector,
-                    _from,
-                    _to,
-                    _amount
-                )
-            );
+            (bool success, bytes memory returndata) =
+                hook.call(abi.encodeWithSelector(IERC20Hook.beforeApprove.selector, _from, _to, _amount));
             if (!success) _revert(returndata);
         }
     }
