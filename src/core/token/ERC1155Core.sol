@@ -10,7 +10,7 @@ import {IERC1155Hook} from "../../interface/hook/IERC1155Hook.sol";
 import {IERC1155HookInstaller} from "../../interface/hook/IERC1155HookInstaller.sol";
 import {IInitCall} from "../../interface/common/IInitCall.sol";
 import {ERC1155Initializable} from "./ERC1155Initializable.sol";
-import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
+import {IHook, HookInstaller} from "../../core/HookInstaller.sol";
 
 contract ERC1155Core is
     Initializable,

@@ -6,8 +6,6 @@ import {LibBitmap} from "@solady/utils/LibBitmap.sol";
 import {IHook} from "../interface/hook/IHook.sol";
 import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
 
-import {HookInstallerStorage} from "../storage/hook/HookInstallerStorage.sol";
-
 abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;
 
@@ -31,6 +29,19 @@ abstract contract HookInstaller is IHookInstaller {
     error HookInstallerInitializationFailed();
 
     /*//////////////////////////////////////////////////////////////
+                                Storage
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Bits representing all hooks installed.
+    uint256 installedHooks;
+
+    /// @notice Whether a given hook is installed in the contract.
+    LibBitmap.Bitmap hookImplementations;
+
+    /// @notice Mapping from hook bits representation => implementation of the hook.
+    mapping(uint256 => address) hookImplementationMap;
+
+    /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -39,8 +50,12 @@ abstract contract HookInstaller is IHookInstaller {
      *  @param _flag The bits representing the hook.
      *  @return impl The implementation of the hook.
      */
-    function getHookImplementation(uint256 _flag) public view returns (address) {
-        return HookInstallerStorage.data().hookImplementationMap[_flag];
+    function getHookImplementation(uint256 _flag)
+        public
+        view
+        returns (address)
+    {
+        return hookImplementationMap[_flag];
     }
 
     /**
@@ -49,8 +64,12 @@ abstract contract HookInstaller is IHookInstaller {
      *  @param _data The data to pass to the hook staticcall.
      *  @return returndata The return data from the hook view function call.
      */
-    function hookFunctionRead(uint256 _hookFlag, bytes calldata _data) external view returns (bytes memory) {
-        if (_hookFlag > 2 ** _maxHookFlag()) {
+    function hookFunctionRead(uint256 _hookFlag, bytes calldata _data)
+        external
+        view
+        returns (bytes memory)
+    {
+        if (_hookFlag > 2**_maxHookFlag()) {
             revert HookInstallerInvalidHook();
         }
 
@@ -75,7 +94,10 @@ abstract contract HookInstaller is IHookInstaller {
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
      *  @param _hook The hook to install.
      */
-    function installHook(IHook _hook, bytes calldata _initializeData) external payable {
+    function installHook(IHook _hook, bytes calldata _initializeData)
+        external
+        payable
+    {
         if (address(_hook) == address(0)) {
             revert HookInstallerInvalidHook();
         }
@@ -86,7 +108,9 @@ abstract contract HookInstaller is IHookInstaller {
 
         if (_initializeData.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = address(_hook).call{value: msg.value}(_initializeData);
+            (bool success, bytes memory returnData) = address(_hook).call{
+                value: msg.value
+            }(_initializeData);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -118,11 +142,15 @@ abstract contract HookInstaller is IHookInstaller {
     /**
      *  @notice A generic entrypoint to write state of any of the installed hooks.
      */
-    function hookFunctionWrite(uint256 _hookFlag, bytes calldata _data) external payable returns (bytes memory) {
+    function hookFunctionWrite(uint256 _hookFlag, bytes calldata _data)
+        external
+        payable
+        returns (bytes memory)
+    {
         if (!_canWriteToHooks(msg.sender)) {
             revert HookInstallerUnauthorizedWrite();
         }
-        if (_hookFlag > 2 ** _maxHookFlag()) {
+        if (_hookFlag > 2**_maxHookFlag()) {
             revert HookInstallerInvalidHook();
         }
 
@@ -131,7 +159,9 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerHookNotInstalled();
         }
 
-        (bool success, bytes memory returndata) = target.call{value: msg.value}(_data);
+        (bool success, bytes memory returndata) = target.call{value: msg.value}(
+            _data
+        );
         if (!success) {
             _revert(returndata);
         }
@@ -144,10 +174,18 @@ abstract contract HookInstaller is IHookInstaller {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns whether the caller can update hooks.
-    function _canUpdateHooks(address _caller) internal view virtual returns (bool);
+    function _canUpdateHooks(address _caller)
+        internal
+        view
+        virtual
+        returns (bool);
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address _caller) internal view virtual returns (bool);
+    function _canWriteToHooks(address _caller)
+        internal
+        view
+        virtual
+        returns (bool);
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure virtual returns (uint256) {
@@ -159,29 +197,31 @@ abstract contract HookInstaller is IHookInstaller {
         uint256 hooksToInstall = _hook.getHooks();
 
         _updateHooks(hooksToInstall, address(_hook), _addhook);
-        HookInstallerStorage.data().hookImplementations.set(uint160(address(_hook)));
+        hookImplementations.set(uint160(address(_hook)));
 
         emit HooksInstalled(address(_hook), hooksToInstall);
     }
 
     /// @dev Uninstalls a hook in the contract.
     function _uninstallHook(IHook _hook) internal {
-        HookInstallerStorage.Data storage data = HookInstallerStorage.data();
-
-        if (!data.hookImplementations.get(uint160(address(_hook)))) {
+        if (!hookImplementations.get(uint160(address(_hook)))) {
             revert HookNotInstalled();
         }
 
         uint256 hooksToUninstall = _hook.getHooks();
 
         _updateHooks(hooksToUninstall, address(0), _removehook);
-        data.hookImplementations.unset(uint160(address(_hook)));
+        hookImplementations.unset(uint160(address(_hook)));
 
         emit HooksUninstalled(address(_hook), hooksToUninstall);
     }
 
     /// @dev Adds a hook to the given integer represented hooks.
-    function _addhook(uint256 _flag, uint256 _currenthooks) internal pure returns (uint256) {
+    function _addhook(uint256 _flag, uint256 _currenthooks)
+        internal
+        pure
+        returns (uint256)
+    {
         if (_currenthooks & _flag > 0) {
             revert HookAlreadyInstalled();
         }
@@ -189,7 +229,11 @@ abstract contract HookInstaller is IHookInstaller {
     }
 
     /// @dev Removes a hook from the given integer represented hooks.
-    function _removehook(uint256 _flag, uint256 _currenthooks) internal pure returns (uint256) {
+    function _removehook(uint256 _flag, uint256 _currenthooks)
+        internal
+        pure
+        returns (uint256)
+    {
         return _currenthooks & ~_flag;
     }
 
@@ -197,23 +241,24 @@ abstract contract HookInstaller is IHookInstaller {
     function _updateHooks(
         uint256 _hooksToUpdate,
         address _implementation,
-        function(uint256, uint256) internal pure returns (uint256) _addOrRemovehook
+        function(uint256, uint256)
+            internal
+            pure
+            returns (uint256) _addOrRemovehook
     ) internal {
-        HookInstallerStorage.Data storage data = HookInstallerStorage.data();
+        uint256 currentActivehooks = installedHooks;
 
-        uint256 currentActivehooks = data.installedHooks;
-
-        uint256 flag = 2 ** _maxHookFlag();
+        uint256 flag = 2**_maxHookFlag();
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActivehooks = _addOrRemovehook(flag, currentActivehooks);
-                data.hookImplementationMap[flag] = _implementation;
+                hookImplementationMap[flag] = _implementation;
             }
 
             flag >>= 1;
         }
 
-        data.installedHooks = currentActivehooks;
+        installedHooks = currentActivehooks;
     }
 
     /// @dev Reverts with the given return data / error message.

@@ -10,7 +10,7 @@ import {IERC721Hook} from "../../interface/hook/IERC721Hook.sol";
 import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
 import {IInitCall} from "../../interface/common/IInitCall.sol";
 import {ERC721Initializable} from "./ERC721Initializable.sol";
-import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
+import {IHook, HookInstaller} from "../../core/HookInstaller.sol";
 
 contract ERC721Core is
     Initializable,

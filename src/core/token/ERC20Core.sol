@@ -10,7 +10,7 @@ import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
 import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
 import {IInitCall} from "../../interface/common/IInitCall.sol";
 import {ERC20Initializable} from "./ERC20Initializable.sol";
-import {IHook, HookInstaller} from "../../hook/HookInstaller.sol";
+import {IHook, HookInstaller} from "../../core/HookInstaller.sol";
 
 contract ERC20Core is
     Initializable,
