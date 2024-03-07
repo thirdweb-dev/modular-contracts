@@ -10,6 +10,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/hook/IHook.sol";
+import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
@@ -81,24 +82,33 @@ contract HookUpgradesTest is Test {
         // Deploy core contracts
         CloneFactory cloneFactory = new CloneFactory();
 
-        ERC20Core.InitCall memory initCall;
-        bytes memory initData = abi.encodeWithSelector(
-            ERC20Core.initialize.selector,
-            initCall,
-            new address[](0),
-            developer, // core contract admin
+        ERC20Core.OnInitializeParams memory onInitializeCall;
+        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
+
+        erc20Core = new ERC20Core(
             "Test ERC20",
             "TST",
-            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0"
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            developer, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
         );
-
-        address erc20CoreImpl = address(new ERC20Core());
-        address erc721CoreImpl = address(new ERC721Core());
-        address erc1155CoreImpl = address(new ERC1155Core());
-
-        erc20Core = ERC20Core(cloneFactory.deployProxyByImplementation(erc20CoreImpl, initData, bytes32("salt")));
-        erc721Core = ERC721Core(cloneFactory.deployProxyByImplementation(erc721CoreImpl, initData, bytes32("salt")));
-        erc1155Core = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155CoreImpl, initData, bytes32("salt")));
+        erc721Core = new ERC721Core(
+            "Test ERC721",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            developer, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
+        erc1155Core = new ERC1155Core(
+            "Test ERC1155",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            developer, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
 
         // Set labels
         vm.deal(endUser, 100 ether);

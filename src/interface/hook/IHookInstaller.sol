@@ -5,6 +5,36 @@ import {IHook} from "./IHook.sol";
 
 interface IHookInstaller {
     /*//////////////////////////////////////////////////////////////
+                                STRUCTS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @notice Parameters for installing a hook.
+     *
+     *  @param hook The hook to install.
+     *  @param initCallValue The value to send with the initialization call.
+     *  @param initCalldata The calldata to send with the initialization call.
+     */
+    struct InstallHookParams {
+        IHook hook;
+        uint256 initCallValue;
+        bytes initCalldata;
+    }
+
+    /**
+     *  @notice Parameters for any external call to make on initializing a core contract.
+     *
+     *  @param target The address of the contract to call.
+     *  @param value The value to send with the call.
+     *  @param data The calldata to send with the call.
+     */
+    struct OnInitializeParams {
+        address target;
+        uint256 value;
+        bytes data;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 

@@ -72,7 +72,6 @@ contract AllowlistMintHookERC20Test is Test {
         MintHook = AllowlistMintHookERC20(MintHookProxy);
 
         // Platform deploys ERC20 core implementation and clone factory.
-        address erc20CoreImpl = address(new ERC20Core());
         CloneFactory factory = new CloneFactory();
 
         vm.stopPrank();
@@ -83,20 +82,19 @@ contract AllowlistMintHookERC20Test is Test {
         // Developer deploys proxy for ERC20 core with AllowlistMintHookERC20 preinstalled.
         vm.startPrank(developer);
 
-        ERC20Core.InitCall memory initCall;
-        address[] memory preinstallHooks = new address[](1);
-        preinstallHooks[0] = address(MintHook);
+        ERC20Core.OnInitializeParams memory onInitializeCall;
+        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit = new ERC20Core.InstallHookParams[](1);
 
-        bytes memory erc20InitData = abi.encodeWithSelector(
-            ERC20Core.initialize.selector,
-            initCall,
-            preinstallHooks,
-            developer, // core contract admin
+        hooksToInstallOnInit[0].hook = IHook(address(MintHook));
+
+        erc20Core = new ERC20Core(
             "Test ERC20",
             "TST",
-            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0" // mock contract URI of actual length
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            developer, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
         );
-        erc20Core = ERC20Core(factory.deployProxyByImplementation(erc20CoreImpl, erc20InitData, bytes32("salt")));
 
         vm.stopPrank();
 
