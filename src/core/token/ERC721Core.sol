@@ -243,7 +243,7 @@ contract ERC721Core is ERC721, HookInstaller, Ownable, Multicallable, IERC7572, 
      *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
      */
     function burn(uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) external {
-        _beforeBurn(msg.sender, _tokenId, _encodedBeforeBurnArgs);
+        _beforeBurn(ownerOf(_tokenId), _tokenId, _encodedBeforeBurnArgs);
         _burn(msg.sender, _tokenId);
         totalSupply_--;
     }
