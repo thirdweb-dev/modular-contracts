@@ -1,29 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {Initializable} from "@solady/utils/Initializable.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {Ownable} from "@solady/auth/Ownable.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
-import {IERC1155CoreCustomErrors} from "../../interface/errors/IERC1155CoreCustomErrors.sol";
-import {IERC1155Hook} from "../../interface/hook/IERC1155Hook.sol";
+import {HookInstaller} from "../HookInstaller.sol";
+
 import {IERC1155HookInstaller} from "../../interface/hook/IERC1155HookInstaller.sol";
-import {IInitCall} from "../../interface/common/IInitCall.sol";
-import {ERC1155Initializable} from "./ERC1155Initializable.sol";
-import {IHook, HookInstaller} from "../HookInstaller.sol";
+import {IERC1155Hook} from "../../interface/hook/IERC1155Hook.sol";
+import {IERC7572} from "../../interface/eip/IERC7572.sol";
 
-contract ERC1155Core is
-    Initializable,
-    Multicallable,
-    Ownable,
-    ERC1155Initializable,
-    HookInstaller,
-    IInitCall,
-    IERC1155HookInstaller,
-    IERC1155CoreCustomErrors,
-    IERC7572
-{
+contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572, IERC1155HookInstaller {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -53,73 +41,113 @@ contract ERC1155Core is
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The contract URI of the contract.
+    /// @notice The name of the NFT collection.
+    string private name_;
+
+    /// @notice The symbol of the NFT collection.
+    string private symbol_;
+
+    /// @notice The contract metadata URI of the contract.
     string private contractURI_;
 
+    /// @notice The total supply of a tokenId of the NFT collection.
+    mapping(uint256 => uint256) private totalSupply_;
+
     /*//////////////////////////////////////////////////////////////
-                    CONSTRUCTOR + INITIALIZE
+                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    constructor() {
-        _disableInitializers();
-    }
+    /// @notice Emitted when the on initialize call fails.
+    error ERC1155CoreOnInitializeCallFailed();
+
+    /// @notice Emitted when a hook initialization call fails.
+    error ERC1155CoreHookInitializeCallFailed();
+
+    /// @notice Emitted when a hook call fails.
+    error ERC1155CoreHookCallFailed();
+
+    /// @notice Emitted when insufficient value is sent in the constructor.
+    error ERC1155CoreInsufficientValueInConstructor();
+
+    /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
+    error ERC1155CoreMintDisabled();
 
     /**
-     *  @notice Initializes the ERC-1155 Core contract.
-     *  @param _hooks The hooks to install.
+     *  @notice Initializes the ERC1155 NFT collection.
+     *
+     *  @param _name The name of the NFT collection.
+     *  @param _symbol The symbol of the NFT collection.
+     *  @param _contractURI The contract URI of the NFT collection.
      *  @param _owner The owner of the contract.
-     *  @param _name The name of the token collection.
-     *  @param _symbol The symbol of the token collection.
-     *  @param _contractURI Contract URI
+     *  @param _onInitializeCall Any external call to make on contract initialization.
+     *  @param _hooksToInstall Any hooks to install and initialize on contract initialization.
      */
-    function initialize(
-        InitCall calldata _initCall,
-        address[] memory _hooks,
-        address _owner,
+    constructor(
         string memory _name,
         string memory _symbol,
-        string memory _contractURI
-    ) external initializer {
+        string memory _contractURI,
+        address _owner,
+        OnInitializeParams memory _onInitializeCall,
+        InstallHookParams[] memory _hooksToInstall
+    ) payable {
+        // Set contract metadata
+        name_ = _name;
+        symbol_ = _symbol;
         _setupContractURI(_contractURI);
-        __ERC1155_init(_name, _symbol);
+
+        // Set contract owner
         _setOwner(_owner);
 
-        uint256 len = _hooks.length;
-        for (uint256 i = 0; i < len; i++) {
-            _installHook(IHook(_hooks[i]));
+        // Track native token value sent to the constructor
+        uint256 constructorValue = msg.value;
+
+        // Initialize the core NFT collection
+        if (_onInitializeCall.target != address(0)) {
+            if (constructorValue < _onInitializeCall.value) revert ERC1155CoreInsufficientValueInConstructor();
+            constructorValue -= _onInitializeCall.value;
+
+            (bool successOnInitialize, bytes memory returndataOnInitialize) =
+                _onInitializeCall.target.call{value: _onInitializeCall.value}(_onInitializeCall.data);
+
+            if (!successOnInitialize) _revert(returndataOnInitialize, ERC1155CoreOnInitializeCallFailed.selector);
         }
 
-        if (_initCall.target != address(0)) {
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returndata) = _initCall.target.call{value: _initCall.value}(_initCall.data);
-            if (!success) {
-                if (returndata.length > 0) {
-                    // solhint-disable-next-line no-inline-assembly
-                    assembly {
-                        revert(add(returndata, 32), mload(returndata))
-                    }
-                } else {
-                    revert ERC1155CoreInitializationFailed();
-                }
+        // Install and initialize hooks
+        bool successHookInstall;
+        bytes memory returndataHookInstall;
+
+        for (uint256 i = 0; i < _hooksToInstall.length; i++) {
+            if (constructorValue < _hooksToInstall[i].initCallValue) revert ERC1155CoreInsufficientValueInConstructor();
+            constructorValue -= _onInitializeCall.value;
+
+            if (address(_hooksToInstall[i].hook) == address(0)) {
+                revert HookInstallerInvalidHook();
+            }
+
+            _installHook(_hooksToInstall[i].hook);
+
+            if (_hooksToInstall[i].initCalldata.length > 0) {
+                (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
+                    value: _hooksToInstall[i].initCallValue
+                }(_hooksToInstall[i].initCalldata);
+
+                if (!successHookInstall) _revert(returndataHookInstall, ERC1155CoreHookInitializeCallFailed.selector);
             }
         }
     }
 
     /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
+                              VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all of the contract's hooks and their implementations.
-    function getAllHooks() external view returns (ERC1155Hooks memory hooks) {
-        hooks = ERC1155Hooks({
-            beforeMint: getHookImplementation(BEFORE_MINT_FLAG),
-            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
-            beforeBatchTransfer: getHookImplementation(BEFORE_BATCH_TRANSFER_FLAG),
-            beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
-            beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
-            uri: getHookImplementation(TOKEN_URI_FLAG),
-            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
-        });
+    /// @notice Returns the name of the NFT Collection.
+    function name() public view returns (string memory) {
+        return name_;
+    }
+
+    /// @notice Returns the symbol of the NFT Collection.
+    function symbol() public view returns (string memory) {
+        return symbol_;
     }
 
     /**
@@ -131,12 +159,20 @@ contract ERC1155Core is
     }
 
     /**
+     *  @notice Returns the total supply of a tokenId of the NFT collection.
+     *  @param _tokenId The token ID of the NFT.
+     */
+    function totalSupply(uint256 _tokenId) public view virtual returns (uint256) {
+        return totalSupply_[_tokenId];
+    }
+
+    /**
      *  @notice Returns the token metadata of an NFT.
      *  @dev Always returns metadata queried from the metadata source.
      *  @param _tokenId The token ID of the NFT.
      *  @return metadata The URI to fetch metadata from.
      */
-    function uri(uint256 _tokenId) public view returns (string memory) {
+    function uri(uint256 _tokenId) public view override returns (string memory) {
         return _getTokenURI(_tokenId);
     }
 
@@ -162,6 +198,19 @@ contract ERC1155Core is
             || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
+    /// @notice Returns all of the contract's hooks and their implementations.
+    function getAllHooks() external view returns (ERC1155Hooks memory hooks) {
+        hooks = ERC1155Hooks({
+            beforeMint: getHookImplementation(BEFORE_MINT_FLAG),
+            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
+            beforeBatchTransfer: getHookImplementation(BEFORE_BATCH_TRANSFER_FLAG),
+            beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
+            beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
+            uri: getHookImplementation(TOKEN_URI_FLAG),
+            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
+        });
+    }
+
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -173,23 +222,6 @@ contract ERC1155Core is
      */
     function setContractURI(string memory _uri) external onlyOwner {
         _setupContractURI(_uri);
-    }
-
-    /**
-     *  @notice Burns given amount of tokens.
-     *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
-     *  @param _from Owner of the tokens
-     *  @param _tokenId The token ID of the NFTs to burn.
-     *  @param _value The amount of tokens to burn.
-     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
-     */
-    function burn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs) external {
-        if (_from != msg.sender && isApprovedForAll(_from, msg.sender)) {
-            revert ERC1155NotApprovedOrOwner(msg.sender);
-        }
-
-        _beforeBurn(_from, _tokenId, _value, _encodedBeforeBurnArgs);
-        _burn(_from, _tokenId, _value);
     }
 
     /**
@@ -206,6 +238,21 @@ contract ERC1155Core is
     {
         (uint256 tokenIdToMint, uint256 quantityToMint) = _beforeMint(_to, _tokenId, _value, _encodedBeforeMintArgs);
         _mint(_to, tokenIdToMint, quantityToMint, "");
+        totalSupply_[tokenIdToMint] += quantityToMint;
+    }
+
+    /**
+     *  @notice Burns given amount of tokens.
+     *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
+     *  @param _from Owner of the tokens
+     *  @param _tokenId The token ID of the NFTs to burn.
+     *  @param _value The amount of tokens to burn.
+     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
+     */
+    function burn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs) external {
+        _beforeBurn(_from, _tokenId, _value, _encodedBeforeBurnArgs);
+        _burn(msg.sender, _from, _tokenId, _value);
+        totalSupply_[_tokenId] -= _value;
     }
 
     /**
@@ -256,12 +303,6 @@ contract ERC1155Core is
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Sets contract URI
-    function _setupContractURI(string memory _uri) internal {
-        contractURI_ = _uri;
-        emit ContractURIUpdated();
-    }
-
     /// @dev Returns whether the given caller can update hooks.
     function _canUpdateHooks(address _caller) internal view override returns (bool) {
         return _caller == owner();
@@ -274,7 +315,31 @@ contract ERC1155Core is
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint256) {
-        return ROYALTY_INFO_FLAG;
+        return BEFORE_BATCH_TRANSFER_FLAG;
+    }
+
+    /// @dev Sets contract URI
+    function _setupContractURI(string memory _uri) internal {
+        contractURI_ = _uri;
+        emit ContractURIUpdated();
+    }
+
+    /// @dev Reverts with the given return data / error message.
+    function _revert(bytes memory _returndata, bytes4 _errorSignature) internal pure {
+        // Look for revert reason and bubble it up if present
+        if (_returndata.length > 0) {
+            // The easiest way to bubble the revert reason is using memory via assembly
+            /// @solidity memory-safe-assembly
+            assembly {
+                let returndata_size := mload(_returndata)
+                revert(add(32, _returndata), returndata_size)
+            }
+        } else {
+            assembly {
+                mstore(0x00, _errorSignature)
+                revert(0x1c, 0x04)
+            }
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -293,10 +358,10 @@ contract ERC1155Core is
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(IERC1155Hook.beforeMint.selector, _to, _tokenId, _value, _data)
             );
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
             (tokenIdToMint, quantityToMint) = abi.decode(returndata, (uint256, uint256));
         } else {
-            revert ERC1155CoreMintingDisabled();
+            revert ERC1155CoreMintDisabled();
         }
     }
 
@@ -308,7 +373,7 @@ contract ERC1155Core is
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(IERC1155Hook.beforeTransfer.selector, _from, _to, _tokenId, _value)
             );
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
         }
     }
 
@@ -323,7 +388,7 @@ contract ERC1155Core is
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(IERC1155Hook.beforeBatchTransfer.selector, _from, _to, _tokenIds, _values)
             );
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
         }
     }
 
@@ -340,7 +405,7 @@ contract ERC1155Core is
                     IERC1155Hook.beforeBurn.selector, _from, _tokenId, _value, _encodedBeforeBurnArgs
                 )
             );
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
         }
     }
 
@@ -352,7 +417,7 @@ contract ERC1155Core is
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(IERC1155Hook.beforeApprove.selector, _from, _to, _approved)
             );
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
         }
     }
 

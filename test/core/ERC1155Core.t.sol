@@ -5,11 +5,11 @@ import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
 import {EmptyHookERC1155} from "../mocks/EmptyHook.sol";
 
+import {ERC1155} from "@solady/tokens/ERC1155.sol";
+
 import {CloneFactory} from "src/infra/CloneFactory.sol";
-import {ERC1155Core, ERC1155Initializable} from "src/core/token/ERC1155Core.sol";
+import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {IERC1155} from "src/interface/eip/IERC1155.sol";
-import {IERC1155CustomErrors} from "src/interface/errors/IERC1155CustomErrors.sol";
-import {IERC1155CoreCustomErrors} from "src/interface/errors/IERC1155CoreCustomErrors.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IInitCall} from "src/interface/common/IInitCall.sol";
 
@@ -132,7 +132,6 @@ contract ERC1155CoreTest is Test, TestPlus {
 
     CloneFactory public cloneFactory;
 
-    address public erc1155Implementation;
     address public hookProxyAddress;
 
     ERC1155Core public token;
@@ -143,23 +142,26 @@ contract ERC1155CoreTest is Test, TestPlus {
 
     function setUp() public {
         cloneFactory = new CloneFactory();
-
-        erc1155Implementation = address(new ERC1155Core());
         hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC1155()), "", bytes32("salt"));
 
         vm.startPrank(admin);
 
-        IInitCall.InitCall memory initCall;
-        bytes memory data = abi.encodeWithSelector(
-            ERC1155Core.initialize.selector, initCall, new address[](0), admin, "Token", "TKN", "contractURI://"
+        ERC1155Core.OnInitializeParams memory onInitializeCall;
+        ERC1155Core.InstallHookParams[] memory hooksToInstallOnInit;
+
+        token = new ERC1155Core(
+            "Token",
+            "TKN",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            admin, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
         );
-        token = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
         token.installHook(IHook(hookProxyAddress), bytes(""));
 
         vm.stopPrank();
 
         vm.label(address(token), "ERC1155Core");
-        vm.label(erc1155Implementation, "ERC1155CoreImpl");
         vm.label(admin, "Admin");
     }
 
@@ -187,6 +189,7 @@ contract ERC1155CoreTest is Test, TestPlus {
         token.mint(address(0xBEEF), 1337, 100, "");
         assertEq(token.totalSupply(1337), 100);
 
+        vm.prank(address(0xBEEF));
         token.burn(address(0xBEEF), 1337, 70, "");
 
         assertEq(token.balanceOf(address(0xBEEF), 1337), 30);
@@ -386,7 +389,7 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function test_revert_MintToZero() public {
-        vm.expectRevert(abi.encodeWithSelector(IERC1155CustomErrors.ERC1155UnsafeRecipient.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
         token.mint(address(0), 1337, 1, "");
     }
 
@@ -400,7 +403,7 @@ contract ERC1155CoreTest is Test, TestPlus {
 
     function test_revert_MintToWrongReturnDataERC155Recipient() public {
         address recipient = address(new WrongReturnDataERC1155Recipient());
-        vm.expectRevert(abi.encodeWithSelector(IERC1155CustomErrors.ERC1155UnsafeRecipient.selector, recipient));
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToNonERC1155ReceiverImplementer.selector));
         token.mint(recipient, 1337, 1, "");
     }
 
@@ -408,9 +411,7 @@ contract ERC1155CoreTest is Test, TestPlus {
         token.mint(address(0xBEEF), 1337, 70, "");
 
         vm.prank(address(0xBEEF));
-        vm.expectRevert(
-            abi.encodeWithSelector(IERC1155CustomErrors.ERC1155NotBalance.selector, address(0xBEEF), 1337, 100)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.InsufficientBalance.selector));
         token.burn(address(0xBEEF), 1337, 100, "");
     }
 
@@ -436,7 +437,7 @@ contract ERC1155CoreTest is Test, TestPlus {
         token.mint(address(0xCAFE), 1337, 100, "");
 
         vm.prank(address(0xCAFE));
-        vm.expectRevert(abi.encodeWithSelector(IERC1155CustomErrors.ERC1155UnsafeRecipient.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
         token.safeTransferFrom(address(0xCAFE), address(0), 1337, 70, "");
     }
 
@@ -464,7 +465,7 @@ contract ERC1155CoreTest is Test, TestPlus {
         address recipient = address(new WrongReturnDataERC1155Recipient());
 
         vm.prank(address(0xCAFE));
-        vm.expectRevert(abi.encodeWithSelector(IERC1155CustomErrors.ERC1155UnsafeRecipient.selector, recipient));
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToNonERC1155ReceiverImplementer.selector));
         token.safeTransferFrom(address(0xCAFE), recipient, 1337, 70, "");
     }
 
@@ -538,7 +539,7 @@ contract ERC1155CoreTest is Test, TestPlus {
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
 
-        vm.expectRevert(abi.encodeWithSelector(IERC1155CustomErrors.ERC1155UnsafeRecipient.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
         token.safeBatchTransferFrom(from, address(0), ids, transferAmounts, "");
     }
 
@@ -699,7 +700,7 @@ contract ERC1155CoreTest is Test, TestPlus {
         ids[2] = 1339;
         ids[3] = 1340;
 
-        vm.expectRevert(abi.encodeWithSelector(IERC1155CustomErrors.ERC1155ArrayLengthMismatch.selector));
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.ArrayLengthsMismatch.selector));
         token.balanceOfBatch(tos, ids);
     }
 
@@ -728,6 +729,8 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function testBurn(address to, uint256 id, uint256 mintAmount, uint256 burnAmount) public {
+        vm.assume(mintAmount > 0);
+
         if (to == address(0)) to = address(0xBEEF);
 
         if (uint256(uint160(to)) <= 18 || to.code.length > 0) return;
@@ -736,6 +739,7 @@ contract ERC1155CoreTest is Test, TestPlus {
 
         token.mint(to, id, mintAmount, "");
 
+        vm.prank(to);
         token.burn(to, id, burnAmount, "");
 
         assertEq(token.balanceOf(address(to), id), mintAmount - burnAmount);
@@ -924,7 +928,7 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function test_revert_MintToZero(uint256 id, uint256 amount) public {
-        vm.expectRevert(abi.encodeWithSelector(IERC1155CustomErrors.ERC1155UnsafeRecipient.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
         token.mint(address(0), id, amount, "");
     }
 
@@ -985,7 +989,7 @@ contract ERC1155CoreTest is Test, TestPlus {
         token.mint(address(0xCAFE), id, mintAmount, "");
 
         vm.prank(address(0xCAFE));
-        vm.expectRevert(abi.encodeWithSelector(IERC1155CustomErrors.ERC1155UnsafeRecipient.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
         token.safeTransferFrom(address(0xCAFE), address(0), id, transferAmount, "");
     }
 

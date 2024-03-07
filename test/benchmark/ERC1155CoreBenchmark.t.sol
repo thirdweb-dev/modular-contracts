@@ -10,7 +10,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
-import {ERC1155Core, ERC1155Initializable} from "src/core/token/ERC1155Core.sol";
+import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.sol";
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
 import {IERC1155} from "src/interface/eip/IERC1155.sol";
@@ -67,7 +67,6 @@ contract ERC1155CoreBenchmarkTest is Test {
     CloneFactory public cloneFactory;
 
     // Target test contracts
-    address public erc1155Implementation;
     address public hookProxyAddress;
 
     ERC1155Core public erc1155;
@@ -93,23 +92,26 @@ contract ERC1155CoreBenchmarkTest is Test {
             address(new MinimalUpgradeableRouter(platformAdmin, address(new LazyMintHook())));
         lazyMintHook = LazyMintHook(lazyMintHookProxyAddress);
 
-        erc1155Implementation = address(new ERC1155Core());
-
         vm.stopPrank();
 
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        IInitCall.InitCall memory initCall;
-        bytes memory data = abi.encodeWithSelector(
-            ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+        ERC1155Core.OnInitializeParams memory onInitializeCall;
+        ERC1155Core.InstallHookParams[] memory hooksToInstallOnInit;
+
+        erc1155 = new ERC1155Core(
+            "Test ERC1155",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
         );
-        erc1155 = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
 
         vm.label(address(erc1155), "ERC1155Core");
-        vm.label(erc1155Implementation, "ERC1155CoreImpl");
         vm.label(hookProxyAddress, "AllowlistMintHookERC1155");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
@@ -171,17 +173,19 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.pauseGasMetering();
 
-        IInitCall.InitCall memory initCall;
-
-        address impl = erc1155Implementation;
-        bytes memory data = abi.encodeWithSelector(
-            ERC1155Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
-        );
-        bytes32 salt = bytes32("salt");
+        ERC1155Core.OnInitializeParams memory onInitializeCall;
+        ERC1155Core.InstallHookParams[] memory hooksToInstallOnInit;
 
         vm.resumeGasMetering();
 
-        cloneFactory.deployProxyByImplementation(impl, data, salt);
+        ERC1155Core core = new ERC1155Core(
+            "Test ERC1155",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

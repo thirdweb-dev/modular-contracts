@@ -82,21 +82,8 @@ contract HookUpgradesTest is Test {
         // Deploy core contracts
         CloneFactory cloneFactory = new CloneFactory();
 
-        IInitCall.InitCall memory initCall;
-        bytes memory initData = abi.encodeWithSelector(
-            ERC1155Core.initialize.selector,
-            initCall,
-            new address[](0),
-            developer, // core contract admin
-            "Test ERC20",
-            "TST",
-            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0"
-        );
-
         ERC20Core.OnInitializeParams memory onInitializeCall;
         ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
-
-        address erc1155CoreImpl = address(new ERC1155Core());
 
         erc20Core = new ERC20Core(
             "Test ERC20",
@@ -114,7 +101,14 @@ contract HookUpgradesTest is Test {
             onInitializeCall,
             hooksToInstallOnInit
         );
-        erc1155Core = ERC1155Core(cloneFactory.deployProxyByImplementation(erc1155CoreImpl, initData, bytes32("salt")));
+        erc1155Core = new ERC1155Core(
+            "Test ERC1155",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            developer, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
 
         // Set labels
         vm.deal(endUser, 100 ether);

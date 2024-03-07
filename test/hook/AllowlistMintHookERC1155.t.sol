@@ -74,7 +74,6 @@ contract AllowlistMintHookERC1155Test is Test {
         MintHook = AllowlistMintHookERC1155(MintHookProxy);
 
         // Platform deploys ERC1155 core implementation and clone factory.
-        address erc1155CoreImpl = address(new ERC1155Core());
         CloneFactory factory = new CloneFactory();
 
         vm.stopPrank();
@@ -85,21 +84,19 @@ contract AllowlistMintHookERC1155Test is Test {
         // Developer deploys proxy for ERC1155 core with AllowlistMintHookERC1155 preinstalled.
         vm.startPrank(developer);
 
-        ERC1155Core.InitCall memory initCall;
-        address[] memory preinstallHooks = new address[](1);
-        preinstallHooks[0] = address(MintHook);
+        ERC1155Core.OnInitializeParams memory onInitializeCall;
+        ERC1155Core.InstallHookParams[] memory hooksToInstallOnInit = new ERC1155Core.InstallHookParams[](1);
 
-        bytes memory erc1155InitData = abi.encodeWithSelector(
-            ERC1155Core.initialize.selector,
-            initCall,
-            preinstallHooks,
-            developer, // core contract admin
+        hooksToInstallOnInit[0].hook = IHook(address(MintHook));
+
+        erc1155Core = new ERC1155Core(
             "Test ERC1155",
             "TST",
-            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0" // mock contract URI of actual length
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            developer, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
         );
-        erc1155Core =
-            ERC1155Core(factory.deployProxyByImplementation(erc1155CoreImpl, erc1155InitData, bytes32("salt")));
 
         vm.stopPrank();
 
