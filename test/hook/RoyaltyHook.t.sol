@@ -7,6 +7,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {ERC721Core, HookInstaller} from "src/core/token/ERC721Core.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
 import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
 
 contract RoyaltyHookTest is Test {
@@ -37,25 +38,23 @@ contract RoyaltyHookTest is Test {
         royaltyHook = RoyaltyHook(royaltyHookProxy);
 
         // Platform deploys ERC721 core implementation and clone factory.
-        address erc721CoreImpl = address(new ERC721Core());
         CloneFactory factory = new CloneFactory();
 
         vm.startPrank(developer);
 
-        ERC721Core.InitCall memory initCall;
-        address[] memory preinstallHooks = new address[](1);
-        preinstallHooks[0] = address(royaltyHook);
+        ERC721Core.OnInitializeParams memory onInitializeCall;
+        ERC721Core.InstallHookParams[] memory hooksToInstallOnInit = new ERC721Core.InstallHookParams[](1);
 
-        bytes memory erc721InitData = abi.encodeWithSelector(
-            ERC721Core.initialize.selector,
-            initCall,
-            preinstallHooks,
-            developer, // core contract admin
+        hooksToInstallOnInit[0].hook = IHook(address(royaltyHook));
+
+        erc721Core = new ERC721Core(
             "Test ERC721",
             "TST",
-            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0" // mock contract URI of actual length
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            developer, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
         );
-        erc721Core = ERC721Core(factory.deployProxyByImplementation(erc721CoreImpl, erc721InitData, bytes32("salt")));
 
         vm.stopPrank();
 

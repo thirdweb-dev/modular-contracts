@@ -13,7 +13,7 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 
-import {ERC721Core, ERC721Initializable} from "src/core/token/ERC721Core.sol";
+import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {ERC721Hook, AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
 import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
@@ -71,7 +71,6 @@ contract ERC721CoreBenchmarkTest is Test {
     CloneFactory public cloneFactory;
 
     // Target test contracts
-    address public erc721Implementation;
     address public extensionProxyAddress;
 
     ERC721Core public erc721;
@@ -129,23 +128,26 @@ contract ERC721CoreBenchmarkTest is Test {
         );
         mockFourHook = MockFourHookImpl(mockAddress);
 
-        erc721Implementation = address(new ERC721Core());
-
         vm.stopPrank();
 
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        IInitCall.InitCall memory initCall;
-        bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+        ERC721Core.OnInitializeParams memory onInitializeCall;
+        ERC721Core.InstallHookParams[] memory hooksToInstallOnInit;
+
+        erc721 = new ERC721Core(
+            "Test ERC721",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
         );
-        erc721 = ERC721Core(cloneFactory.deployProxyByImplementation(erc721Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
 
         vm.label(address(erc721), "ERC721Core");
-        vm.label(erc721Implementation, "ERC721CoreImpl");
         vm.label(extensionProxyAddress, "AllowlistMintHookERC721");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
@@ -207,17 +209,19 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.pauseGasMetering();
 
-        IInitCall.InitCall memory initCall;
-
-        address impl = erc721Implementation;
-        bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
-        );
-        bytes32 salt = bytes32("salt");
+        ERC721Core.OnInitializeParams memory onInitializeCall;
+        ERC721Core.InstallHookParams[] memory hooksToInstallOnInit;
 
         vm.resumeGasMetering();
 
-        cloneFactory.deployProxyByImplementation(impl, data, salt);
+        ERC721Core core = new ERC721Core(
+            "Test ERC721",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
     }
 
     function test_deployEndUserContract_withHooks() public {
@@ -230,17 +234,23 @@ contract ERC721CoreBenchmarkTest is Test {
         extensions[1] = address(lazyMintHook);
         extensions[2] = address(royaltyHook);
 
-        IInitCall.InitCall memory initCall;
+        ERC721Core.OnInitializeParams memory onInitializeCall;
+        ERC721Core.InstallHookParams[] memory hooksToInstallOnInit = new ERC721Core.InstallHookParams[](3);
 
-        address impl = erc721Implementation;
-        bytes memory data = abi.encodeWithSelector(
-            ERC721Core.initialize.selector, initCall, extensions, platformUser, "Test", "TST", "contractURI://"
-        );
-        bytes32 salt = bytes32("salt");
+        hooksToInstallOnInit[0].hook = IHook(address(simpleClaimHook));
+        hooksToInstallOnInit[1].hook = IHook(address(lazyMintHook));
+        hooksToInstallOnInit[2].hook = IHook(address(royaltyHook));
 
         vm.resumeGasMetering();
 
-        cloneFactory.deployProxyByImplementation(impl, data, salt);
+        ERC721Core core = new ERC721Core(
+            "Test ERC721",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
