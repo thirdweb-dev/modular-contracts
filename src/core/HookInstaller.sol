@@ -6,10 +6,21 @@ import {LibBitmap} from "@solady/utils/LibBitmap.sol";
 import {IHook} from "../interface/hook/IHook.sol";
 import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
 
-import {HookInstallerStorage} from "../storage/hook/HookInstallerStorage.sol";
-
 abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Bits representing all hooks installed.
+    uint256 private installedHooks_;
+
+    /// @notice Whether a given hook is installed in the contract.
+    LibBitmap.Bitmap private hookImplementations_;
+
+    /// @notice Mapping from hook bits representation => implementation of the hook.
+    mapping(uint256 => address) private hookImplementationMap_;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -40,7 +51,7 @@ abstract contract HookInstaller is IHookInstaller {
      *  @return impl The implementation of the hook.
      */
     function getHookImplementation(uint256 _flag) public view returns (address) {
-        return HookInstallerStorage.data().hookImplementationMap[_flag];
+        return hookImplementationMap_[_flag];
     }
 
     /**
@@ -159,23 +170,21 @@ abstract contract HookInstaller is IHookInstaller {
         uint256 hooksToInstall = _hook.getHooks();
 
         _updateHooks(hooksToInstall, address(_hook), _addhook);
-        HookInstallerStorage.data().hookImplementations.set(uint160(address(_hook)));
+        hookImplementations_.set(uint160(address(_hook)));
 
         emit HooksInstalled(address(_hook), hooksToInstall);
     }
 
     /// @dev Uninstalls a hook in the contract.
     function _uninstallHook(IHook _hook) internal {
-        HookInstallerStorage.Data storage data = HookInstallerStorage.data();
-
-        if (!data.hookImplementations.get(uint160(address(_hook)))) {
+        if (!hookImplementations_.get(uint160(address(_hook)))) {
             revert HookNotInstalled();
         }
 
         uint256 hooksToUninstall = _hook.getHooks();
 
         _updateHooks(hooksToUninstall, address(0), _removehook);
-        data.hookImplementations.unset(uint160(address(_hook)));
+        hookImplementations_.unset(uint160(address(_hook)));
 
         emit HooksUninstalled(address(_hook), hooksToUninstall);
     }
@@ -199,21 +208,19 @@ abstract contract HookInstaller is IHookInstaller {
         address _implementation,
         function(uint256, uint256) internal pure returns (uint256) _addOrRemovehook
     ) internal {
-        HookInstallerStorage.Data storage data = HookInstallerStorage.data();
-
-        uint256 currentActivehooks = data.installedHooks;
+        uint256 currentActivehooks = installedHooks_;
 
         uint256 flag = 2 ** _maxHookFlag();
         while (flag > 1) {
             if (_hooksToUpdate & flag > 0) {
                 currentActivehooks = _addOrRemovehook(flag, currentActivehooks);
-                data.hookImplementationMap[flag] = _implementation;
+                hookImplementationMap_[flag] = _implementation;
             }
 
             flag >>= 1;
         }
 
-        data.installedHooks = currentActivehooks;
+        installedHooks_ = currentActivehooks;
     }
 
     /// @dev Reverts with the given return data / error message.
