@@ -5,12 +5,13 @@ import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
 import {EmptyHookERC20} from "../mocks/EmptyHook.sol";
 
+import {ERC20} from "@solady/tokens/ERC20.sol";
+
 import {CloneFactory} from "src/infra/CloneFactory.sol";
-import {ERC20Core, ERC20Initializable} from "src/core/token/ERC20Core.sol";
+import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {IERC20} from "src/interface/eip/IERC20.sol";
-import {IERC20CustomErrors} from "src/interface/errors/IERC20CustomErrors.sol";
-import {IERC20CoreCustomErrors} from "src/interface/errors/IERC20CoreCustomErrors.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
@@ -47,30 +48,33 @@ contract ERC20CoreTest is Test, TestPlus {
     CloneFactory public cloneFactory;
 
     // Target test contracts
-    address public erc20Implementation;
     address public hookProxyAddress;
 
     ERC20Core public token;
 
     function setUp() public {
         cloneFactory = new CloneFactory();
-
-        erc20Implementation = address(new ERC20Core());
         hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC20()), "", bytes32("salt"));
 
         vm.startPrank(admin);
 
-        IInitCall.InitCall memory initCall;
-        bytes memory data = abi.encodeWithSelector(
-            ERC20Core.initialize.selector, initCall, new address[](0), admin, "Token", "TKN", "contractURI://"
-        );
-        token = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
-        token.installHook(IHook(hookProxyAddress), bytes(""));
+        IHookInstaller.OnInitializeParams memory onInitializeCall;
+        IHookInstaller.InstallHookParams[] memory hooksToInstallOnInit = new ERC20Core.InstallHookParams[](1);
 
+        hooksToInstallOnInit[0] =
+            IHookInstaller.InstallHookParams({hook: IHook(hookProxyAddress), initCallValue: 0, initCalldata: bytes("")});
+
+        token = new ERC20Core(
+            "Token",
+            "TKN",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            admin, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
         vm.stopPrank();
 
         vm.label(address(token), "ERC20Core");
-        vm.label(erc20Implementation, "ERC20CoreImpl");
         vm.label(admin, "Admin");
     }
 
@@ -172,9 +176,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
     function testTransferInsufficientBalanceReverts() public {
         token.mint(address(this), 0.9e18, "");
-        vm.expectRevert(
-            abi.encodeWithSelector(IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector, 1e18, 0.9e18)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
         token.transfer(address(0xBEEF), 1e18);
     }
 
@@ -186,7 +188,7 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.prank(from);
         token.approve(address(this), 0.9e18);
 
-        vm.expectRevert(abi.encodeWithSelector(IERC20CustomErrors.ERC20InsufficientAllowance.selector, 0.9e18, 1e18));
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientAllowance.selector));
         token.transferFrom(from, address(0xBEEF), 1e18);
     }
 
@@ -198,9 +200,7 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.prank(from);
         token.approve(address(this), 1e18);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector, 1e18, 0.9e18)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
         token.transferFrom(from, address(0xBEEF), 1e18);
     }
 
@@ -308,11 +308,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
         token.mint(to, mintAmount, "");
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector, burnAmount, mintAmount
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
         vm.prank(to);
         token.burn(burnAmount, "");
     }
@@ -323,11 +319,7 @@ contract ERC20CoreTest is Test, TestPlus {
         sendAmount = _bound(sendAmount, mintAmount + 1, type(uint256).max);
 
         token.mint(address(this), mintAmount, "");
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector, sendAmount, mintAmount
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
         token.transfer(to, sendAmount);
     }
 
@@ -343,9 +335,7 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.prank(from);
         token.approve(address(this), approval);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(IERC20CustomErrors.ERC20InsufficientAllowance.selector, approval, amount)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientAllowance.selector));
         token.transferFrom(from, to, amount);
     }
 
@@ -361,11 +351,7 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.prank(from);
         token.approve(address(this), sendAmount);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IERC20CustomErrors.ERC20TransferAmountExceedsBalance.selector, sendAmount, mintAmount
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
         token.transferFrom(from, to, sendAmount);
     }
 
@@ -376,7 +362,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
         _signPermit(t);
 
-        vm.expectRevert(abi.encodeWithSelector(IERC20CoreCustomErrors.ERC20PermitInvalidSigner.selector));
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InvalidPermit.selector));
         token.permit(t.owner, t.to, t.amount, t.deadline, t.v, t.r, t.s);
     }
 
@@ -387,7 +373,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
         _signPermit(t);
 
-        vm.expectRevert(abi.encodeWithSelector(IERC20CoreCustomErrors.ERC20PermitInvalidSigner.selector));
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InvalidPermit.selector));
         t.deadline += 1;
         token.permit(t.owner, t.to, t.amount, t.deadline, t.v, t.r, t.s);
     }
@@ -398,7 +384,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
         _signPermit(t);
 
-        vm.expectRevert(abi.encodeWithSelector(IERC20CoreCustomErrors.ERC20PermitDeadlineExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ERC20.PermitExpired.selector));
         token.permit(t.owner, t.to, t.amount, t.deadline, t.v, t.r, t.s);
     }
 
@@ -410,7 +396,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
         _expectPermitEmitApproval(t);
         token.permit(t.owner, t.to, t.amount, t.deadline, t.v, t.r, t.s);
-        vm.expectRevert(abi.encodeWithSelector(IERC20CoreCustomErrors.ERC20PermitInvalidSigner.selector));
+        vm.expectRevert(abi.encodeWithSelector(ERC20.InvalidPermit.selector));
         token.permit(t.owner, t.to, t.amount, t.deadline, t.v, t.r, t.s);
     }
 

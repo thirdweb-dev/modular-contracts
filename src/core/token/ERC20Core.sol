@@ -1,29 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {Initializable} from "@solady/utils/Initializable.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {Ownable} from "@solady/auth/Ownable.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {ERC20} from "@solady/tokens/ERC20.sol";
 
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
-import {IERC20CoreCustomErrors} from "../../interface/errors/IERC20CoreCustomErrors.sol";
-import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
+import {HookInstaller} from "../HookInstaller.sol";
+
 import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
-import {IInitCall} from "../../interface/common/IInitCall.sol";
-import {ERC20Initializable} from "./ERC20Initializable.sol";
-import {IHook, HookInstaller} from "../HookInstaller.sol";
+import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
+import {IERC7572} from "../../interface/eip/IERC7572.sol";
 
-contract ERC20Core is
-    Initializable,
-    Multicallable,
-    Ownable,
-    ERC20Initializable,
-    HookInstaller,
-    IInitCall,
-    IERC20HookInstaller,
-    IERC20CoreCustomErrors,
-    IERC7572
-{
+contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IERC20HookInstaller {
     /*//////////////////////////////////////////////////////////////
                                   CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -40,71 +28,127 @@ contract ERC20Core is
     /// @notice Bits representing the before approve hook.
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
-    /// @notice The EIP-2612 permit typehash.
-    bytes32 private constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-
     /*//////////////////////////////////////////////////////////////
-                                  STORAGE
+                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The contract URI of the contract.
+    /// @notice The name of the token.
+    string private name_;
+
+    /// @notice The symbol of the token.
+    string private symbol_;
+
+    /// @notice The contract metadata URI of the contract.
     string private contractURI_;
-    /// @notice nonces for EIP-2612 Permit functionality.
-    mapping(address => uint256) private nonces_;
 
     /*//////////////////////////////////////////////////////////////
-                      CONSTRUCTOR + INITIALIZE
+                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    constructor() {
-        _disableInitializers();
-    }
+    /// @notice Emitted when the on initialize call fails.
+    error ERC20CoreOnInitializeCallFailed();
+
+    /// @notice Emitted when a hook initialization call fails.
+    error ERC20CoreHookInitializeCallFailed();
+
+    /// @notice Emitted when a hook call fails.
+    error ERC20CoreHookCallFailed();
+
+    /// @notice Emitted when insufficient value is sent in the constructor.
+    error ERC20CoreInsufficientValueInConstructor();
+
+    /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
+    error ERC20CoreMintDisabled();
+
+    /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice Initializes the ERC-20 Core contract.
-     *  @param _hooks The hooks to install.
+     *  @notice Initializes the ERC20 token.
+     *
+     *  @param _name The name of the token.
+     *  @param _symbol The symbol of the token.
+     *  @param _contractURI The contract URI of the token.
      *  @param _owner The owner of the contract.
-     *  @param _name The name of the token collection.
-     *  @param _symbol The symbol of the token collection.
-     *  @param _contractURI Contract URI.
+     *  @param _onInitializeCall Any external call to make on contract initialization.
+     *  @param _hooksToInstall Any hooks to install and initialize on contract initialization.
      */
-    function initialize(
-        InitCall calldata _initCall,
-        address[] memory _hooks,
-        address _owner,
+    constructor(
         string memory _name,
         string memory _symbol,
-        string memory _contractURI
-    ) external initializer {
+        string memory _contractURI,
+        address _owner,
+        OnInitializeParams memory _onInitializeCall,
+        InstallHookParams[] memory _hooksToInstall
+    ) payable {
+        // Set contract metadata
+        name_ = _name;
+        symbol_ = _symbol;
         _setupContractURI(_contractURI);
-        __ERC20_init(_name, _symbol);
+
+        // Set contract owner
         _setOwner(_owner);
 
-        uint256 len = _hooks.length;
-        for (uint256 i = 0; i < len; i++) {
-            _installHook(IHook(_hooks[i]));
+        // Track native token value sent to the constructor
+        uint256 constructorValue = msg.value;
+
+        // Initialize the core token
+        if (_onInitializeCall.target != address(0)) {
+            if (constructorValue < _onInitializeCall.value) revert ERC20CoreInsufficientValueInConstructor();
+            constructorValue -= _onInitializeCall.value;
+
+            (bool successOnInitialize, bytes memory returndataOnInitialize) =
+                _onInitializeCall.target.call{value: _onInitializeCall.value}(_onInitializeCall.data);
+
+            if (!successOnInitialize) _revert(returndataOnInitialize, ERC20CoreOnInitializeCallFailed.selector);
         }
 
-        if (_initCall.target != address(0)) {
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = _initCall.target.call{value: _initCall.value}(_initCall.data);
-            if (!success) {
-                if (returnData.length > 0) {
-                    // solhint-disable-next-line no-inline-assembly
-                    assembly {
-                        revert(add(returnData, 32), mload(returnData))
-                    }
-                } else {
-                    revert ERC20CoreInitializationFailed();
-                }
+        // Install and initialize hooks
+        bool successHookInstall;
+        bytes memory returndataHookInstall;
+
+        for (uint256 i = 0; i < _hooksToInstall.length; i++) {
+            if (constructorValue < _hooksToInstall[i].initCallValue) revert ERC20CoreInsufficientValueInConstructor();
+            constructorValue -= _onInitializeCall.value;
+
+            if (address(_hooksToInstall[i].hook) == address(0)) {
+                revert HookInstallerInvalidHook();
+            }
+
+            _installHook(_hooksToInstall[i].hook);
+
+            if (_hooksToInstall[i].initCalldata.length > 0) {
+                (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
+                    value: _hooksToInstall[i].initCallValue
+                }(_hooksToInstall[i].initCalldata);
+
+                if (!successHookInstall) _revert(returndataHookInstall, ERC20CoreHookInitializeCallFailed.selector);
             }
         }
     }
 
     /*//////////////////////////////////////////////////////////////
                               VIEW FUNCTIONS
-      //////////////////////////////////////////////////////////////*/
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Returns the name of the token.
+    function name() public view override returns (string memory) {
+        return name_;
+    }
+
+    /// @notice Returns the symbol of the token.
+    function symbol() public view override returns (string memory) {
+        return symbol_;
+    }
+
+    /**
+     *  @notice Returns the contract URI of the contract.
+     *  @return uri The contract URI of the contract.
+     */
+    function contractURI() external view override returns (string memory) {
+        return contractURI_;
+    }
 
     /// @notice Returns all of the contract's hooks and their implementations.
     function getAllHooks() external view returns (ERC20Hooks memory hooks) {
@@ -116,36 +160,17 @@ contract ERC20Core is
         });
     }
 
-    /**
-     *  @notice Returns the contract URI of the contract.
-     *  @return uri The contract URI of the contract.
-     */
-    function contractURI() external view override returns (string memory) {
-        return contractURI_;
-    }
-
     /*//////////////////////////////////////////////////////////////
                           EXTERNAL FUNCTIONS
-      //////////////////////////////////////////////////////////////*/
+    //////////////////////////////////////////////////////////////*/
 
     /**
      *  @notice Sets the contract URI of the contract.
      *  @dev Only callable by contract admin.
-     *  @param _uri The contract URI to set.
+     *  @param _contractURI The contract URI to set.
      */
-    function setContractURI(string memory _uri) external onlyOwner {
-        _setupContractURI(_uri);
-    }
-
-    /**
-     *  @notice Burns tokens.
-     *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
-     *  @param _amount The amount of tokens to burn.
-     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
-     */
-    function burn(uint256 _amount, bytes memory _encodedBeforeBurnArgs) external {
-        _beforeBurn(msg.sender, _amount, _encodedBeforeBurnArgs);
-        _burn(msg.sender, _amount);
+    function setContractURI(string memory _contractURI) external onlyOwner {
+        _setupContractURI(_contractURI);
     }
 
     /**
@@ -158,6 +183,17 @@ contract ERC20Core is
     function mint(address _to, uint256 _amount, bytes memory _encodedBeforeMintArgs) external payable {
         uint256 quantityToMint = _beforeMint(_to, _amount, _encodedBeforeMintArgs);
         _mint(_to, quantityToMint);
+    }
+
+    /**
+     *  @notice Burns tokens.
+     *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
+     *  @param _amount The amount of tokens to burn.
+     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
+     */
+    function burn(uint256 _amount, bytes memory _encodedBeforeBurnArgs) external {
+        _beforeBurn(msg.sender, _amount, _encodedBeforeBurnArgs);
+        _burn(msg.sender, _amount);
     }
 
     /**
@@ -181,10 +217,6 @@ contract ERC20Core is
         return super.approve(_spender, _amount);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                          EIP 2612 related functions
-      //////////////////////////////////////////////////////////////*/
-
     /**
      * @notice Sets allowance based on token owner's signed approval.
      *
@@ -203,81 +235,16 @@ contract ERC20Core is
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-    ) public {
+    ) public override {
         _beforeApprove(_owner, _spender, _value);
-
-        if (_deadline < block.timestamp) {
-            revert ERC20PermitDeadlineExpired();
-        }
-
-        // Unchecked because the only math done is incrementing
-        // the owner's nonce which cannot realistically overflow.
-        unchecked {
-            address recoveredAddress = ecrecover(
-                keccak256(
-                    abi.encodePacked(
-                        "\x19\x01",
-                        computeDomainSeparator(),
-                        keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, nonces_[_owner]++, _deadline))
-                    )
-                ),
-                _v,
-                _r,
-                _s
-            );
-
-            if (recoveredAddress == address(0) || recoveredAddress != _owner) {
-                revert ERC20PermitInvalidSigner();
-            }
-
-            super._approve(_owner, _spender, _value);
-        }
-    }
-
-    /**
-     * @notice Returns the current nonce for token owner.
-     *
-     * See https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
-     * section].
-     */
-    function nonces(address owner) external view returns (uint256) {
-        return nonces_[owner];
-    }
-
-    /**
-     * @notice Returns the domain separator used in the encoding of the signature for permit.
-     *
-     * See https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
-     * section].
-     */
-    function DOMAIN_SEPARATOR() public view virtual returns (bytes32) {
-        return computeDomainSeparator();
+        super.permit(_owner, _spender, _value, _deadline, _v, _r, _s);
     }
 
     /*//////////////////////////////////////////////////////////////
-                              INTERNAL FUNCTIONS
+                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Returns the domain separator used in the encoding of the signature for permit.
-    function computeDomainSeparator() internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                keccak256(bytes(name())),
-                keccak256("1"),
-                block.chainid,
-                address(this)
-            )
-        );
-    }
-
-    /// @dev Sets contract URI
-    function _setupContractURI(string memory _uri) internal {
-        contractURI_ = _uri;
-        emit ContractURIUpdated();
-    }
-
-    /// @dev Returns whether the given caller can update hooks.
+    /// @dev Returns whether the caller can update hooks.
     function _canUpdateHooks(address _caller) internal view override returns (bool) {
         return _caller == owner();
     }
@@ -292,9 +259,33 @@ contract ERC20Core is
         return BEFORE_APPROVE_FLAG;
     }
 
+    /// @dev Sets contract URI
+    function _setupContractURI(string memory _contractURI) internal {
+        contractURI_ = _contractURI;
+        emit ContractURIUpdated();
+    }
+
+    /// @dev Reverts with the given return data / error message.
+    function _revert(bytes memory _returndata, bytes4 _errorSignature) internal pure {
+        // Look for revert reason and bubble it up if present
+        if (_returndata.length > 0) {
+            // The easiest way to bubble the revert reason is using memory via assembly
+            /// @solidity memory-safe-assembly
+            assembly {
+                let returndata_size := mload(_returndata)
+                revert(add(32, _returndata), returndata_size)
+            }
+        } else {
+            assembly {
+                mstore(0x00, _errorSignature)
+                revert(0x1c, 0x04)
+            }
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                           HOOKS INTERNAL FUNCTIONS
-      //////////////////////////////////////////////////////////////*/
+    //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _amount, bytes memory _data)
@@ -308,10 +299,10 @@ contract ERC20Core is
             (bool success, bytes memory returndata) =
                 hook.call{value: msg.value}(abi.encodeWithSelector(IERC20Hook.beforeMint.selector, _to, _amount, _data));
 
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
             quantityToMint = abi.decode(returndata, (uint256));
         } else {
-            revert ERC20CoreMintingDisabled();
+            revert ERC20CoreMintDisabled();
         }
     }
 
@@ -322,7 +313,7 @@ contract ERC20Core is
         if (hook != address(0)) {
             (bool success, bytes memory returndata) =
                 hook.call(abi.encodeWithSelector(IERC20Hook.beforeTransfer.selector, _from, _to, _amount));
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
         }
     }
 
@@ -334,7 +325,7 @@ contract ERC20Core is
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(IERC20Hook.beforeBurn.selector, _from, _amount, _encodedBeforeBurnArgs)
             );
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
         }
     }
 
@@ -345,7 +336,7 @@ contract ERC20Core is
         if (hook != address(0)) {
             (bool success, bytes memory returndata) =
                 hook.call(abi.encodeWithSelector(IERC20Hook.beforeApprove.selector, _from, _to, _amount));
-            if (!success) _revert(returndata);
+            if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
         }
     }
 }

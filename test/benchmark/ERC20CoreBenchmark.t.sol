@@ -10,7 +10,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {MinimalUpgradeableRouter} from "src/infra/MinimalUpgradeableRouter.sol";
 import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/MockHookImpl.sol";
 
-import {ERC20Core, ERC20Initializable} from "src/core/token/ERC20Core.sol";
+import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
 import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
@@ -64,7 +64,6 @@ contract ERC20CoreBenchmarkTest is Test {
     CloneFactory public cloneFactory;
 
     // Target test contracts
-    address public erc20Implementation;
     address public hookProxyAddress;
 
     ERC20Core public erc20;
@@ -85,23 +84,26 @@ contract ERC20CoreBenchmarkTest is Test {
         hookProxyAddress = address(new MinimalUpgradeableRouter(platformAdmin, address(new AllowlistMintHookERC20())));
         simpleClaimHook = AllowlistMintHookERC20(hookProxyAddress);
 
-        erc20Implementation = address(new ERC20Core());
-
         vm.stopPrank();
 
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        IInitCall.InitCall memory initCall;
-        bytes memory data = abi.encodeWithSelector(
-            ERC20Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
+        ERC20Core.OnInitializeParams memory onInitializeCall;
+        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
+
+        erc20 = new ERC20Core(
+            "Test ERC20",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
         );
-        erc20 = ERC20Core(cloneFactory.deployProxyByImplementation(erc20Implementation, data, bytes32("salt")));
 
         vm.stopPrank();
 
         vm.label(address(erc20), "ERC20Core");
-        vm.label(erc20Implementation, "ERC20CoreImpl");
         vm.label(hookProxyAddress, "AllowlistMintHookERC20");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
@@ -157,17 +159,19 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.pauseGasMetering();
 
-        IInitCall.InitCall memory initCall;
-
-        address impl = erc20Implementation;
-        bytes memory data = abi.encodeWithSelector(
-            ERC20Core.initialize.selector, initCall, new address[](0), platformUser, "Test", "TST", "contractURI://"
-        );
-        bytes32 salt = bytes32("salt");
+        ERC20Core.OnInitializeParams memory onInitializeCall;
+        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
 
         vm.resumeGasMetering();
 
-        cloneFactory.deployProxyByImplementation(impl, data, salt);
+        ERC20Core core = new ERC20Core(
+            "Test ERC20",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
