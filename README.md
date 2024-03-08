@@ -33,6 +33,18 @@ cast wallet import testnet -i
 forge script script/benchmark-ext/erc721/BenchmarkERC721.s.sol --rpc-url "https://sepolia.rpc.thirdweb.com" --account testnet [--broadcast]
 ```
 
+Run formatter:
+
+```bash
+forge fmt src test script
+```
+
+Run gas snapshot:
+
+```bash
+forge snapshot --isolate --mp 'test/benchmark/*'
+```
+
 ## Usage
 
 You can find testnet deployments of this hooks design setup, and JS scripts to interact with an ERC-721 core contract and its hooks here: https://github.com/thirdweb-dev/contracts-next-scripts
