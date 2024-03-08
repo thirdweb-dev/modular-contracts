@@ -13,16 +13,12 @@ contract MockHook is IHook {
 
 contract MockCore is HookInstaller {
     /// @dev Returns whether the caller can update hooks.
-    function _canUpdateHooks(
-        address /* _caller */
-    ) internal pure override returns (bool) {
+    function _canUpdateHooks(address /* _caller */ ) internal pure override returns (bool) {
         return true;
     }
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(
-        address /* _caller */
-    ) internal pure override returns (bool) {
+    function _canWriteToHooks(address /* _caller */ ) internal pure override returns (bool) {
         return true;
     }
 

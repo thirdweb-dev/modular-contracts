@@ -311,7 +311,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(mockHook, "");
     }
 
     function test_installfiveHooks() public {
@@ -327,7 +327,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(mockHook, "");
     }
 
     function test_uninstallOneHook() public {
@@ -337,7 +337,7 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(mockHook, "");
 
         vm.prank(platformUser);
 
@@ -356,7 +356,7 @@ contract ERC20CoreBenchmarkTest is Test {
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(mockHook, "");
 
         vm.prank(platformUser);
 
