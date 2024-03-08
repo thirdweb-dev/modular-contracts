@@ -11,10 +11,7 @@ contract BenchmarkERC721 is Script {
         BenchmarkERC721ThirdwebLegacy benchmark = new BenchmarkERC721ThirdwebLegacy();
 
         address contractAddress = benchmark.deployContract(
-            address(benchmark),
-            "BenchmarkERC721",
-            "B721",
-            "ipfs://QmSkieqXz9voc614Q5LAhQY13LjX6bUzqp2dpDdJhARL7X/0"
+            address(benchmark), "BenchmarkERC721", "B721", "ipfs://QmSkieqXz9voc614Q5LAhQY13LjX6bUzqp2dpDdJhARL7X/0"
         );
         benchmark.mintToken(contractAddress);
         IERC721(contractAddress).setApprovalForAll(address(benchmark), true);
@@ -23,12 +20,7 @@ contract BenchmarkERC721 is Script {
 
     function benchmarkManifold() public {
         BenchmarkERC721Manifold benchmark = new BenchmarkERC721Manifold();
-        address contractAddress = benchmark.deployContract(
-            address(0),
-            "BenchmarkERC721",
-            "B721",
-            ""
-        );
+        address contractAddress = benchmark.deployContract(address(0), "BenchmarkERC721", "B721", "");
         benchmark.mintToken(contractAddress);
         IERC721(contractAddress).setApprovalForAll(address(benchmark), true);
         benchmark.transferTokenFrom(contractAddress);

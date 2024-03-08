@@ -3,7 +3,7 @@
 solc-version = "0.8.24"
 evm_version = "london"
 optimizer = true
-optimizer_runs = 100000
+optimizer_runs = 1000000
 cache = true
 src = "src"
 out = "out"
@@ -13,14 +13,6 @@ gas_reports = [
   "ERC20Core",
   "ERC721Core",
   "ERC1155Core"
-]
-remappings = [
-  'ds-test/=lib/forge-std/lib/ds-test/src/',
-  'forge-std/=lib/forge-std/src/',
-  '@murky/=lib/murky/src/',
-  '@solady/=lib/solady/src/',
-  '@erc721a/=lib/erc721a/contracts/',
-  '@thirdweb-dev/dynamic-contracts/=lib/dynamic-contracts/src/',
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
