@@ -11,14 +11,18 @@ contract MockHook is IHook {
     }
 }
 
-contract MockCore is HookInstaller {
+contract MockCore0 is HookInstaller {
     /// @dev Returns whether the caller can update hooks.
-    function _canUpdateHooks(address /* _caller */ ) internal pure override returns (bool) {
+    function _canUpdateHooks(
+        address /* _caller */
+    ) internal pure override returns (bool) {
         return true;
     }
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address /* _caller */ ) internal pure override returns (bool) {
+    function _canWriteToHooks(
+        address /* _caller */
+    ) internal pure override returns (bool) {
         return true;
     }
 
@@ -28,24 +32,59 @@ contract MockCore is HookInstaller {
     }
 }
 
+contract MockCore256 is HookInstaller {
+    /// @dev Returns whether the caller can update hooks.
+    function _canUpdateHooks(
+        address /* _caller */
+    ) internal pure override returns (bool) {
+        return true;
+    }
+
+    /// @dev Returns whether the caller can write to hooks.
+    function _canWriteToHooks(
+        address /* _caller */
+    ) internal pure override returns (bool) {
+        return true;
+    }
+
+    /// @dev Should return the max flag that represents a hook.
+    function _maxHookFlag() internal pure override returns (uint256) {
+        return 255;
+    }
+}
+
 contract HookBenchmark is Test {
     MockHook private hook;
-    MockCore private core;
+    MockCore0 private core0;
+    MockCore256 private core256;
 
     function setUp() public {
         hook = new MockHook();
-        core = new MockCore();
+        core0 = new MockCore0();
+        core256 = new MockCore256();
     }
 
-    function test_installHook() public {
-        core.installHook(hook, "");
+    function test_installHook_0() public {
+        core0.installHook(hook, "");
     }
 
-    function test_uninstallHook() public {
+    function test_uninstallHook_0() public {
         vm.pauseGasMetering();
-        core.installHook(hook, "");
+        core0.installHook(hook, "");
         vm.resumeGasMetering();
 
-        core.uninstallHook(hook);
+        core0.uninstallHook(hook);
+    }
+
+    function test_installHook_256() public {
+        core256.installHook(hook, "");
+    }
+
+    function test_uninstallHook_256() public {
+        vm.pauseGasMetering();
+        core256.installHook(hook, "");
+        vm.resumeGasMetering();
+
+        core256.uninstallHook(hook);
     }
 }
