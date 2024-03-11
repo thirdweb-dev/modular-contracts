@@ -16,9 +16,7 @@ abstract contract UniswapHelper {
     struct UniswapHelperConfig {
         /// @notice Minimum native asset amount to receive from a single swap
         uint256 minSwapAmount;
-
         uint24 uniswapPoolFee;
-
         uint8 slippage;
     }
 
@@ -38,7 +36,7 @@ abstract contract UniswapHelper {
         IERC20 _wrappedNative,
         ISwapRouter _uniswap,
         UniswapHelperConfig memory _uniswapHelperConfig
-    ){
+    ) {
         _token.approve(address(_uniswap), type(uint256).max);
         token = _token;
         wrappedNative = _wrappedNative;
@@ -58,18 +56,13 @@ abstract contract UniswapHelper {
         }
         // note: calling 'swapToToken' but destination token is Wrapped Ether
         return swapToToken(
-            address(tokenIn),
-            address(wrappedNative),
-            tokenBalance,
-            amountOutMin,
-            uniswapHelperConfig.uniswapPoolFee
+            address(tokenIn), address(wrappedNative), tokenBalance, amountOutMin, uniswapHelperConfig.uniswapPoolFee
         );
     }
 
     function addSlippage(uint256 amount, uint8 slippage) private pure returns (uint256) {
         return amount * (1000 - slippage) / 1000;
     }
-
 
     function tokenToWei(uint256 amount, uint256 price) public pure returns (uint256) {
         return amount * price / PRICE_DENOMINATOR;
@@ -84,13 +77,10 @@ abstract contract UniswapHelper {
     }
 
     // swap ERC-20 tokens at market price
-    function swapToToken(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        uint24 fee
-    ) internal returns (uint256 amountOut) {
+    function swapToToken(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, uint24 fee)
+        internal
+        returns (uint256 amountOut)
+    {
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams(
             tokenIn, //tokenIn
             tokenOut, //tokenOut
