@@ -14,5 +14,6 @@
     "openzeppelin-contracts/=lib/murky/lib/openzeppelin-contracts/",
     "solady/=lib/solady/src/",
     "sstore2/=lib/dynamic-contracts/lib/sstore2/contracts/"
-  ]
+  ],
+  "solidity.compileUsingRemoteVersion": "v0.8.24+commit.e11b9ed9"
 }
