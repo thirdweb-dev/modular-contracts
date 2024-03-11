@@ -21,8 +21,8 @@ import "@account-abstraction/core/BasePaymaster.sol";
 import "@account-abstraction/core/Helpers.sol";
 
 //  ==========  Internal imports    ==========
-import "./utils/UniswapHelper.sol";
-import "./utils/OracleHelper.sol";
+import "../utils/UniswapHelper.sol";
+import "../utils/OracleHelper.sol";
 
 /// @title Sample ERC-20 ERC20 Paymaster for ERC-4337
 /// This Paymaster covers gas fees in exchange for ERC20 tokens charged using allowance pre-issued by ERC-4337 accounts.
@@ -59,7 +59,7 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
         address userFeePayee;
     }
 
-    event ConfigUpdated(ERC20PaymasterConfig ERC20PaymasterConfig);
+    event ConfigUpdated(ERC20PaymasterConfig erc20PaymasterConfig);
 
     event UserOperationSponsored(address indexed user, uint256 actualTokenCharge, uint256 actualGasCost, uint256 actualTokenPriceWithMarkup);
 
@@ -68,14 +68,14 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
     /// @notice All 'price' variables are multiplied by this value to avoid rounding up
     uint256 private constant PRICE_DENOMINATOR = 1e26;
 
-    ERC20PaymasterConfig public ERC20PaymasterConfig;
+    ERC20PaymasterConfig public erc20PaymasterConfig;
 
     /// @notice Initializes the ERC20Paymaster contract with the given parameters.
     /// @param _token The ERC20 token used for transaction fee payments.
     /// @param _entryPoint The EntryPoint contract used in the Account Abstraction infrastructure.
     /// @param _wrappedNative The ERC-20 token that wraps the native asset for current chain.
     /// @param _uniswap The Uniswap V3 SwapRouter contract.
-    /// @param _ERC20PaymasterConfig The configuration for the ERC20 Paymaster.
+    /// @param _erc20PaymasterConfig The configuration for the ERC20 Paymaster.
     /// @param _oracleHelperConfig The configuration for the Oracle Helper.
     /// @param _uniswapHelperConfig The configuration for the Uniswap Helper.
     /// @param _owner The address that will be set as the owner of the contract.
@@ -84,7 +84,7 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
         IEntryPoint _entryPoint,
         IERC20 _wrappedNative,
         ISwapRouter _uniswap,
-        ERC20PaymasterConfig memory _ERC20PaymasterConfig,
+        ERC20PaymasterConfig memory _erc20PaymasterConfig,
         OracleHelperConfig memory _oracleHelperConfig,
         UniswapHelperConfig memory _uniswapHelperConfig,
         address _owner
@@ -102,19 +102,19 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
     _uniswapHelperConfig
     )
     {
-        setERC20PaymasterConfig(_ERC20PaymasterConfig);
+        setERC20PaymasterConfig(_erc20PaymasterConfig);
         transferOwnership(_owner);
     }
 
     /// @notice Updates the configuration for the ERC20 Paymaster.
-    /// @param _ERC20PaymasterConfig The new configuration struct.
+    /// @param _erc20PaymasterConfig The new configuration struct.
     function setERC20PaymasterConfig(
-        ERC20PaymasterConfig memory _ERC20PaymasterConfig
+        ERC20PaymasterConfig memory _erc20PaymasterConfig
     ) public onlyOwner {
-        require(_ERC20PaymasterConfig.priceMarkup <= 2 * PRICE_DENOMINATOR, "TPM: price markup too high");
-        require(_ERC20PaymasterConfig.priceMarkup >= PRICE_DENOMINATOR, "TPM: price markup too low");
-        ERC20PaymasterConfig = _ERC20PaymasterConfig;
-        emit ConfigUpdated(_ERC20PaymasterConfig);
+        require(_erc20PaymasterConfig.priceMarkup <= 2 * PRICE_DENOMINATOR, "TPM: price markup too high");
+        require(_erc20PaymasterConfig.priceMarkup >= PRICE_DENOMINATOR, "TPM: price markup too low");
+        erc20PaymasterConfig = _erc20PaymasterConfig;
+        emit ConfigUpdated(_erc20PaymasterConfig);
     }
 
     function setUniswapConfiguration(
@@ -139,13 +139,13 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
     internal
     override
     returns (bytes memory context, uint256 validationResult) {unchecked {
-            uint256 priceMarkup = ERC20PaymasterConfig.priceMarkup;
+            uint256 priceMarkup = erc20PaymasterConfig.priceMarkup;
             uint256 dataLength = userOp.paymasterAndData.length - PAYMASTER_DATA_OFFSET;
             require(dataLength == 0 || dataLength == 32,
                 "TPM: invalid data length"
             );
             uint256 maxFeePerGas = userOp.unpackMaxFeePerGas();
-            uint256 refundPostopCost = ERC20PaymasterConfig.refundPostopCost;
+            uint256 refundPostopCost = erc20PaymasterConfig.refundPostopCost;
             require(refundPostopCost < userOp.unpackPostOpGasLimit(), "TPM: postOpGasLimit too low");
             uint256 preChargeNative = requiredPreFund + (refundPostopCost * maxFeePerGas);
             // note: as price is in native-asset-per-token and we want more tokens increasing it means dividing it by markup
@@ -162,13 +162,15 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
             context = abi.encode(tokenAmount, userOp.sender);
             validationResult = _packValidationData(
                 false,
-                uint48(cachedPriceTimestamp + ERC20PaymasterConfig.priceMaxAge),
+                uint48(cachedPriceTimestamp + erc20PaymasterConfig.priceMaxAge),
                 0
             );
 
-            if(ERC20PaymasterConfig.userFeeBps > 0 && ERC20PaymasterConfig.userFeePayee != address(0)) {
-                uint256 userFee = tokenAmount * ERC20PaymasterConfig.userFeeBps / 10000;
-                SafeERC20.safeTransfer(token, ERC20PaymasterConfig.userFeePayee, userFee);
+            uint16 userFeeBps = erc20PaymasterConfig.userFeeBps;
+            address userFeePayee = erc20PaymasterConfig.userFeePayee;
+            if(userFeeBps > 0 && userFeePayee != address(0)) {
+                uint256 userFee = tokenAmount * userFeeBps / 10000;
+                SafeERC20.safeTransfer(token, userFeePayee, userFee);
             }
         }
     }
@@ -182,7 +184,7 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
     //      It is not the same as tx.gasprice, which is what the bundler pays.
     function _postOp(PostOpMode, bytes calldata context, uint256 actualGasCost, uint256 actualUserOpFeePerGas) internal override {
         unchecked {
-            uint256 priceMarkup = ERC20PaymasterConfig.priceMarkup;
+            uint256 priceMarkup = erc20PaymasterConfig.priceMarkup;
             (
                 uint256 preCharge,
                 address userOpSender
@@ -191,7 +193,7 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
             // note: as price is in native-asset-per-token and we want more tokens increasing it means dividing it by markup
             uint256 cachedPriceWithMarkup = _cachedPrice * PRICE_DENOMINATOR / priceMarkup;
             // Refund tokens based on actual gas cost
-            uint256 actualChargeNative = actualGasCost + ERC20PaymasterConfig.refundPostopCost * actualUserOpFeePerGas;
+            uint256 actualChargeNative = actualGasCost + erc20PaymasterConfig.refundPostopCost * actualUserOpFeePerGas;
             uint256 actualTokenNeeded = weiToToken(actualChargeNative, cachedPriceWithMarkup);
             if (preCharge > actualTokenNeeded) {
                 // If the initially provided token amount is greater than the actual amount needed, refund the difference
@@ -221,7 +223,7 @@ contract ERC20Paymaster is BasePaymaster, UniswapHelper, OracleHelper {
     function refillEntryPointDeposit(uint256 _cachedPrice) private {
         uint256 currentEntryPointBalance = entryPoint.balanceOf(address(this));
         if (
-            currentEntryPointBalance < ERC20PaymasterConfig.minEntryPointBalance
+            currentEntryPointBalance < erc20PaymasterConfig.minEntryPointBalance
         ) {
             uint256 swappedWeth = _maybeSwapTokenToWeth(token, _cachedPrice);
             unwrapWeth(swappedWeth);
