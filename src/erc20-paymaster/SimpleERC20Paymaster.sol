@@ -13,13 +13,13 @@ pragma solidity ^0.8.11;
 //    \____/ \__|  \__|\__|\__|       \_______| \_____\____/  \_______|\_______/
 
 // ====== External imports ======
-import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol" ; 
+import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol"; 
 
 
 //  ==========  Internal imports    ==========
 import { IERC20 } from "../interface/eip/IERC20.sol";
-import { BasePaymaster, UserOperation } from "../utils/BasePaymaster.sol";
-import { IEntryPoint } from "../interface/IEntrypoint.sol";
+import { BasePaymaster, PackedUserOperation } from "@account-abstraction/core/BasePaymaster.sol";
+import { IEntryPoint } from "@account-abstraction/interfaces/IEntrypoint.sol";
 
 /**
  * @title SimpleERC20Paymaster
@@ -101,7 +101,7 @@ contract SimpleERC20Paymaster is BasePaymaster {
      * @return validationResult The result of the validation, 0 if successful.
      */
     function _validatePaymasterUserOp(
-        UserOperation calldata userOp,
+        PackedUserOperation calldata userOp,
         bytes32,
         uint256
     ) internal override returns (bytes memory context, uint256 validationResult) {
