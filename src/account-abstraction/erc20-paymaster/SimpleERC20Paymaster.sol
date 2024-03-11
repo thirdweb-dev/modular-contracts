@@ -65,11 +65,7 @@ contract SimpleERC20Paymaster is BasePaymaster {
      * @param _token The ERC20 token address used for payments.
      * @param _tokenPricePerOp The cost per operation in tokens.
      */
-    constructor(
-        IEntryPoint _entryPoint,
-        IERC20 _token,
-        uint256 _tokenPricePerOp
-    ) BasePaymaster(_entryPoint) {
+    constructor(IEntryPoint _entryPoint, IERC20 _token, uint256 _tokenPricePerOp) BasePaymaster(_entryPoint) {
         token = _token;
         tokenPricePerOp = _tokenPricePerOp;
     }
@@ -106,11 +102,7 @@ contract SimpleERC20Paymaster is BasePaymaster {
      * @param userOpHash - The hash of the user operation.
      * @param maxCost    - The maximum cost of the user operation.
      */
-    function _validatePaymasterUserOp(
-        PackedUserOperation calldata userOp,
-        bytes32 userOpHash,
-        uint256 maxCost
-    )
+    function _validatePaymasterUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 maxCost)
         internal
         override
         returns (bytes memory context, uint256 validationResult)
@@ -122,24 +114,15 @@ contract SimpleERC20Paymaster is BasePaymaster {
             require(cachedTokenPrice != 0, "SPM: price not set");
             uint256 length = userOp.paymasterAndData.length - 20;
             require(
-                length &
-                    0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdf ==
-                    0,
+                length & 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdf == 0,
                 "SPM: invalid data length"
             );
             if (length == 32) {
                 require(
-                    cachedTokenPrice <=
-                        uint256(bytes32(userOp.paymasterAndData[20:52])),
-                    "SPM: token amount too high"
+                    cachedTokenPrice <= uint256(bytes32(userOp.paymasterAndData[20:52])), "SPM: token amount too high"
                 );
             }
-            SafeTransferLib.safeTransferFrom(
-                address(token),
-                userOp.sender,
-                address(this),
-                cachedTokenPrice
-            );
+            SafeTransferLib.safeTransferFrom(address(token), userOp.sender, address(this), cachedTokenPrice);
             return (abi.encodePacked(cachedTokenPrice, userOp.sender), 0);
         }
     }
@@ -159,12 +142,10 @@ contract SimpleERC20Paymaster is BasePaymaster {
      *                        and maxPriorityFee (and basefee)
      *                        It is not the same as tx.gasprice, which is what the bundler pays.
      */
-    function _postOp(
-        PostOpMode mode,
-        bytes calldata context,
-        uint256 actualGasCost,
-        uint256 actualUserOpFeePerGas
-    ) internal override {
+    function _postOp(PostOpMode mode, bytes calldata context, uint256 actualGasCost, uint256 actualUserOpFeePerGas)
+        internal
+        override
+    {
         emit UserOperationSponsored(
             mode,
             address(bytes20(context[32:52])),
