@@ -5,6 +5,9 @@
   "author": "Krishang <krishang@thirdweb.com>",
   "license": "Apache-2.0",
   "devDependencies": {},
-  "dependencies": {},
+  "dependencies": {
+    "@account-abstraction/contracts": "^0.7.0",
+    "@openzeppelin/contracts": "^5.0.0"
+  },
   "scripts": {}
 }

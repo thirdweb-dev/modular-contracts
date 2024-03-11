@@ -13,13 +13,11 @@ pragma solidity ^0.8.11;
 //    \____/ \__|  \__|\__|\__|       \_______| \_____\____/  \_______|\_______/
 
 // ====== External imports ======
-import { SafeTransferLib } from "@solady/utils/SafeTransferLib.sol"; 
-
+import {IEntryPoint, BasePaymaster, PackedUserOperation} from "@account-abstraction/core/BasePaymaster.sol";
+import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 //  ==========  Internal imports    ==========
-import { IERC20 } from "../interface/eip/IERC20.sol";
-import { BasePaymaster, PackedUserOperation } from "@account-abstraction/core/BasePaymaster.sol";
-import { IEntryPoint } from "@account-abstraction/interfaces/IEntrypoint.sol";
+import {IERC20} from "../../interface/eip/IERC20.sol";
 
 /**
  * @title SimpleERC20Paymaster
@@ -27,7 +25,6 @@ import { IEntryPoint } from "@account-abstraction/interfaces/IEntrypoint.sol";
  * It inherits from the BasePaymaster contract and implements specific logic to handle ERC20 payments for transactions.
  */
 contract SimpleERC20Paymaster is BasePaymaster {
-
     /*///////////////////////////////////////////////////////////////
                             State Variables
     //////////////////////////////////////////////////////////////*/
@@ -45,7 +42,13 @@ contract SimpleERC20Paymaster is BasePaymaster {
     /**
      * @dev Emitted when a user operation is successfully sponsored, indicating the actual token cost and gas cost.
      */
-    event UserOperationSponsored(address indexed user, uint256 actualTokenNeeded, uint256 actualGasCost);
+    event UserOperationSponsored(
+        PostOpMode indexed mode,
+        address indexed user,
+        uint256 actualTokenNeeded,
+        uint256 actualGasCost,
+        uint256 actualUserOpFeePerGas
+    );
 
     /**
      * @dev Emitted when the token price per operation is updated.
@@ -62,7 +65,11 @@ contract SimpleERC20Paymaster is BasePaymaster {
      * @param _token The ERC20 token address used for payments.
      * @param _tokenPricePerOp The cost per operation in tokens.
      */
-    constructor(IEntryPoint _entryPoint, IERC20 _token, uint256 _tokenPricePerOp) BasePaymaster(_entryPoint) {
+    constructor(
+        IEntryPoint _entryPoint,
+        IERC20 _token,
+        uint256 _tokenPricePerOp
+    ) BasePaymaster(_entryPoint) {
         token = _token;
         tokenPricePerOp = _tokenPricePerOp;
     }
@@ -94,58 +101,76 @@ contract SimpleERC20Paymaster is BasePaymaster {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Validates the paymaster user operation before execution, ensuring sufficient payment and proper data format.
-     * @param userOp The user operation to validate.
-     * @param context Additional context for validation (unused).
-     * @return context A bytes array for the operation context.
-     * @return validationResult The result of the validation, 0 if successful.
+     * Validate a user operation.
+     * @param userOp     - The user operation.
+     * @param userOpHash - The hash of the user operation.
+     * @param maxCost    - The maximum cost of the user operation.
      */
     function _validatePaymasterUserOp(
         PackedUserOperation calldata userOp,
-        bytes32,
-        uint256
-    ) internal override returns (bytes memory context, uint256 validationResult) {
+        bytes32 userOpHash,
+        uint256 maxCost
+    )
+        internal
+        override
+        returns (bytes memory context, uint256 validationResult)
+    {
+        (userOpHash, maxCost); // unused
+
         unchecked {
             uint256 cachedTokenPrice = tokenPricePerOp;
             require(cachedTokenPrice != 0, "SPM: price not set");
             uint256 length = userOp.paymasterAndData.length - 20;
             require(
-                length & 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdf == 0,
+                length &
+                    0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdf ==
+                    0,
                 "SPM: invalid data length"
             );
             if (length == 32) {
                 require(
-                    cachedTokenPrice <= uint256(bytes32(userOp.paymasterAndData[20:52])),
+                    cachedTokenPrice <=
+                        uint256(bytes32(userOp.paymasterAndData[20:52])),
                     "SPM: token amount too high"
                 );
             }
-            SafeTransferLib.safeTransferFrom(address(token), userOp.sender, address(this), cachedTokenPrice);
+            SafeTransferLib.safeTransferFrom(
+                address(token),
+                userOp.sender,
+                address(this),
+                cachedTokenPrice
+            );
             return (abi.encodePacked(cachedTokenPrice, userOp.sender), 0);
         }
     }
 
-    /// @notice Performs post-operation tasks, such as potential refunds and event emission.
-    /// @dev This function is called after a user operation has been executed or reverted.
-    /// @param mode The post-operation mode (either successful or reverted).
-    /// @param context The context containing the token amount and user sender address.
-    /// @param actualGasCost The actual gas cost of the transaction.
-    function _postOp(PostOpMode mode, bytes calldata context, uint256 actualGasCost) internal override {
-        if (mode == PostOpMode.postOpReverted) {
-            return; // If operation reverted, do nothing to avoid affecting bundle reputation
-        }
-        unchecked {
-            uint256 actualTokenNeeded = tokenPricePerOp;
-            // Refund excess tokens if more were provided than needed
-            if (uint256(bytes32(context[0:32])) > actualTokenNeeded) {
-                SafeTransferLib.safeTransfer(
-                    address(token),
-                    address(bytes20(context[32:52])),
-                    uint256(bytes32(context[0:32])) - actualTokenNeeded
-                );
-            } // If the token amount is not greater than the actual amount needed, no refund occurs
-
-            // Emit an event indicating the user operation was sponsored
-            emit UserOperationSponsored(address(bytes20(context[32:52])), actualTokenNeeded, actualGasCost);
-        }
+    /**
+     * Post-operation handler.
+     * (verified to be called only through the entryPoint)
+     * @dev If subclass returns a non-empty context from validatePaymasterUserOp,
+     *      it must also implement this method.
+     * @param mode          - Enum with the following options:
+     *                        opSucceeded - User operation succeeded.
+     *                        opReverted  - User op reverted. The paymaster still has to pay for gas.
+     *                        postOpReverted - never passed in a call to postOp().
+     * @param context       - The context value returned by validatePaymasterUserOp
+     * @param actualGasCost - Actual gas used so far (without this postOp call).
+     * @param actualUserOpFeePerGas - the gas price this UserOp pays. This value is based on the UserOp's maxFeePerGas
+     *                        and maxPriorityFee (and basefee)
+     *                        It is not the same as tx.gasprice, which is what the bundler pays.
+     */
+    function _postOp(
+        PostOpMode mode,
+        bytes calldata context,
+        uint256 actualGasCost,
+        uint256 actualUserOpFeePerGas
+    ) internal override {
+        emit UserOperationSponsored(
+            mode,
+            address(bytes20(context[32:52])),
+            uint256(bytes32(context[0:32])),
+            actualGasCost,
+            actualUserOpFeePerGas
+        );
     }
 }
