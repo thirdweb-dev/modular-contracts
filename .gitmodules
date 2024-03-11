@@ -13,3 +13,6 @@
 [submodule "lib/erc721a"]
 	path = lib/erc721a
 	url = https://github.com/chiru-labs/erc721a
+[submodule "lib/account-abstraction"]
+	path = lib/account-abstraction
+	url = https://github.com/eth-infinitism/account-abstraction
