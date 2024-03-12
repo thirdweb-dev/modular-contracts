@@ -12,7 +12,6 @@ import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
     bytes32 constant PERMIT_TYPEHASH =

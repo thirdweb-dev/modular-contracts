@@ -11,7 +11,6 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
