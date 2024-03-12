@@ -13,7 +13,6 @@ import "../interfaces/IContractMetadata.sol";
  *           for you contract.
  *           Additionally, `ContractMetadata` is necessary for NFT contracts that want royalties to get distributed on OpenSea.
  */
-
 library ContractMetadataStorage {
     /// @custom:storage-location erc7201:contract.metadata.storage
     /// @dev keccak256(abi.encode(uint256(keccak256("contract.metadata.storage")) - 1)) & ~bytes32(uint256(0xff))

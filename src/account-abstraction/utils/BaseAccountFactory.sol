@@ -9,7 +9,7 @@ import "../utils/BaseAccount.sol";
 import "../lib/BytesLib.sol";
 
 // Interface
-import "@account-abstraction/interfaces/IEntrypoint.sol";
+import "@account-abstraction/interfaces/IEntryPoint.sol";
 import "../interfaces/IAccountFactory.sol";
 import "../interfaces/IAccountPermissions.sol";
 
