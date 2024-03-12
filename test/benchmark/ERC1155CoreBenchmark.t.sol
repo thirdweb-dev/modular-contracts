@@ -15,7 +15,7 @@ import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.s
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
 import {IERC1155} from "src/interface/eip/IERC1155.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 /**
  *  This test showcases how users would use ERC-1155 contracts on the thirdweb platform.
@@ -155,9 +155,15 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         // Developer installs `AllowlistMintHookERC1155` hook
         erc1155.installHook(
-            IHook(hookProxyAddress), abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+            IHookInstaller.InstallHookParams(
+                IHook(hookProxyAddress),
+                0,
+                abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+            )
         );
-        erc1155.installHook(IHook(lazyMintHookProxyAddress), initializeDataLazyMint);
+        erc1155.installHook(
+            IHookInstaller.InstallHookParams(IHook(lazyMintHookProxyAddress), 0, initializeDataLazyMint)
+        );
 
         vm.stopPrank();
 
@@ -327,7 +333,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
     }
 
     function test_installfiveHooks() public {
@@ -343,7 +349,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
     }
 
     function test_uninstallOneHooks() public {
@@ -353,7 +359,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
 
         vm.prank(platformUser);
 
@@ -372,7 +378,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
 
         vm.prank(platformUser);
 

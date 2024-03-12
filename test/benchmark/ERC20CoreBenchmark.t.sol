@@ -14,7 +14,7 @@ import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
 import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 /**
  *  This test showcases how users would use ERC-20 contracts on the thirdweb platform.
@@ -142,7 +142,11 @@ contract ERC20CoreBenchmarkTest is Test {
         // Developer installs `AllowlistMintHookERC20` hook
         vm.prank(platformUser);
         erc20.installHook(
-            IHook(hookProxyAddress), abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+            IHookInstaller.InstallHookParams(
+                IHook(hookProxyAddress),
+                0,
+                abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+            )
         );
 
         vm.stopPrank();
@@ -311,7 +315,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, "");
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
     }
 
     function test_installfiveHooks() public {
@@ -327,7 +331,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, "");
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
     }
 
     function test_uninstallOneHook() public {
@@ -337,7 +341,7 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, "");
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
 
         vm.prank(platformUser);
 
@@ -356,7 +360,7 @@ contract ERC20CoreBenchmarkTest is Test {
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, "");
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
 
         vm.prank(platformUser);
 

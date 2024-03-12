@@ -45,19 +45,6 @@ interface IHookInstaller {
     event HooksUninstalled(address indexed implementation, uint256 hooks);
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when the caller is not authorized to install/uninstall hooks.
-    error HookNotAuthorized();
-
-    /// @notice Emitted when the caller attempts to install a hook that is already installed.
-    error HookAlreadyInstalled();
-
-    /// @notice Emitted when the caller attempts to uninstall a hook that is not installed.
-    error HookNotInstalled();
-
-    /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -75,10 +62,9 @@ interface IHookInstaller {
     /**
      *  @notice Installs a hook in the contract.
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
-     *  @param hook The hook to install.
-     * @param initializeData The initialization calldata.
+     *  @param _params The parameters for installing the hook and initializing it with some data.
      */
-    function installHook(IHook hook, bytes calldata initializeData) external payable;
+    function installHook(InstallHookParams memory _params) external payable;
 
     /**
      *  @notice Uninstalls a hook in the contract.
