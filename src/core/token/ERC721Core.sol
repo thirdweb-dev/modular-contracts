@@ -296,8 +296,8 @@ contract ERC721Core is ERC721, HookInstaller, Ownable, Multicallable, IERC7572, 
     }
 
     /// @dev Should return the max flag that represents a hook.
-    function _maxHookFlag() internal pure override returns (uint256) {
-        return ROYALTY_INFO_FLAG;
+    function _maxHookFlag() internal pure override returns (uint8) {
+        return uint8(ROYALTY_INFO_FLAG);
     }
 
     /// @dev Sets contract URI

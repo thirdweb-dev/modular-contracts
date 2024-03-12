@@ -169,7 +169,7 @@ abstract contract HookInstaller is IHookInstaller {
     function _canWriteToHooks(address _caller) internal view virtual returns (bool);
 
     /// @dev Should return the max flag that represents a hook.
-    function _maxHookFlag() internal pure virtual returns (uint256) {
+    function _maxHookFlag() internal pure virtual returns (uint8) {
         return 0;
     }
 

@@ -23,7 +23,7 @@ contract MockCore is HookInstaller {
     }
 
     /// @dev Should return the max flag that represents a hook.
-    function _maxHookFlag() internal pure override returns (uint256) {
+    function _maxHookFlag() internal pure override returns (uint8) {
         return 0;
     }
 }

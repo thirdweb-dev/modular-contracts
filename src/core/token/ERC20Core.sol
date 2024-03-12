@@ -255,8 +255,8 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IE
     }
 
     /// @dev Should return the max flag that represents a hook.
-    function _maxHookFlag() internal pure override returns (uint256) {
-        return BEFORE_APPROVE_FLAG;
+    function _maxHookFlag() internal pure override returns (uint8) {
+        return uint8(BEFORE_APPROVE_FLAG);
     }
 
     /// @dev Sets contract URI
