@@ -11,7 +11,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {IERC1155} from "src/interface/eip/IERC1155.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 abstract contract ERC1155TokenReceiver {
     function onERC1155Received(address, address, uint256, uint256, bytes calldata) external virtual returns (bytes4) {
@@ -157,7 +157,7 @@ contract ERC1155CoreTest is Test, TestPlus {
             onInitializeCall,
             hooksToInstallOnInit
         );
-        token.installHook(IHook(hookProxyAddress), bytes(""));
+        token.installHook(IHookInstaller.InstallHookParams(IHook(hookProxyAddress), 0, bytes("")));
 
         vm.stopPrank();
 

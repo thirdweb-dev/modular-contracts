@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {HookInstaller} from "src/core/HookInstaller.sol";
+import {IHookInstaller, HookInstaller} from "src/core/HookInstaller.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 
 contract MockHook is IHook {
@@ -38,12 +38,12 @@ contract HookBenchmark is Test {
     }
 
     function test_installHook() public {
-        core.installHook(hook, "");
+        core.installHook(IHookInstaller.InstallHookParams(hook, 0, ""));
     }
 
     function test_uninstallHook() public {
         vm.pauseGasMetering();
-        core.installHook(hook, "");
+        core.installHook(IHookInstaller.InstallHookParams(hook, 0, ""));
         vm.resumeGasMetering();
 
         core.uninstallHook(hook);

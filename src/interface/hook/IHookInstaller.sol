@@ -75,10 +75,9 @@ interface IHookInstaller {
     /**
      *  @notice Installs a hook in the contract.
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
-     *  @param hook The hook to install.
-     * @param initializeData The initialization calldata.
+     *  @param _params The parameters for installing the hook and initializing it with some data.
      */
-    function installHook(IHook hook, bytes calldata initializeData) external payable;
+    function installHook(InstallHookParams memory _params) external payable;
 
     /**
      *  @notice Uninstalls a hook in the contract.

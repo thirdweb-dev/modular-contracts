@@ -41,6 +41,9 @@ abstract contract HookInstaller is IHookInstaller {
     /// @notice Emitted on failure to initialize a hook on installation.
     error HookInstallerInitializationFailed();
 
+    /// @notice Emitted on attempt to initialize a hook with invalid msg.value.
+    error HookInstallerInvalidMsgValue();
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -84,20 +87,25 @@ abstract contract HookInstaller is IHookInstaller {
     /**
      *  @notice Installs a hook in the contract.
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
-     *  @param _hook The hook to install.
+     *  @param _params The parameters for installing a hook and initializing it with some data.
      */
-    function installHook(IHook _hook, bytes calldata _initializeData) external payable {
-        if (address(_hook) == address(0)) {
-            revert HookInstallerInvalidHook();
-        }
+    function installHook(InstallHookParams memory _params) external payable {
         if (!_canUpdateHooks(msg.sender)) {
             revert HookNotAuthorized();
         }
-        _installHook(_hook);
+        if (address(_params.hook) == address(0)) {
+            revert HookInstallerInvalidHook();
+        }
+        if (_params.initCallValue != msg.value) {
+            revert HookInstallerInvalidMsgValue();
+        }
 
-        if (_initializeData.length > 0) {
+        _installHook(_params.hook);
+
+        if (_params.initCalldata.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) = address(_hook).call{value: msg.value}(_initializeData);
+            (bool success, bytes memory returnData) =
+                address(_params.hook).call{value: _params.initCallValue}(_params.initCalldata);
             if (!success) {
                 if (returnData.length > 0) {
                     // solhint-disable-next-line no-inline-assembly
@@ -117,11 +125,11 @@ abstract contract HookInstaller is IHookInstaller {
      *  @param _hook The hook to uninstall.
      */
     function uninstallHook(IHook _hook) external {
-        if (address(_hook) == address(0)) {
-            revert HookInstallerInvalidHook();
-        }
         if (!_canUpdateHooks(msg.sender)) {
             revert HookNotAuthorized();
+        }
+        if (address(_hook) == address(0)) {
+            revert HookInstallerInvalidHook();
         }
         _uninstallHook(_hook);
     }
