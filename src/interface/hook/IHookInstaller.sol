@@ -45,19 +45,6 @@ interface IHookInstaller {
     event HooksUninstalled(address indexed implementation, uint256 hooks);
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when the caller is not authorized to install/uninstall hooks.
-    error HookNotAuthorized();
-
-    /// @notice Emitted when the caller attempts to install a hook that is already installed.
-    error HookAlreadyInstalled();
-
-    /// @notice Emitted when the caller attempts to uninstall a hook that is not installed.
-    error HookNotInstalled();
-
-    /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

@@ -324,24 +324,6 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
         emit ContractURIUpdated();
     }
 
-    /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory _returndata, bytes4 _errorSignature) internal pure {
-        // Look for revert reason and bubble it up if present
-        if (_returndata.length > 0) {
-            // The easiest way to bubble the revert reason is using memory via assembly
-            /// @solidity memory-safe-assembly
-            assembly {
-                let returndata_size := mload(_returndata)
-                revert(add(32, _returndata), returndata_size)
-            }
-        } else {
-            assembly {
-                mstore(0x00, _errorSignature)
-                revert(0x1c, 0x04)
-            }
-        }
-    }
-
     /*//////////////////////////////////////////////////////////////
                         HOOKS INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/

@@ -10,7 +10,7 @@ abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
+                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bits representing all hooks installed.
@@ -26,20 +26,23 @@ abstract contract HookInstaller is IHookInstaller {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted on failure to perform a call.
-    error HookInstallerCallFailed();
+    /// @notice Emitted when the caller is not authorized to install/uninstall hooks.
+    error HookInstallerNotAuthorized();
 
-    /// @notice Emitted on attempt to call non-existent hook.
+    /// @notice Emitted on failure to perform a call to a hook contract.
+    error HookInstallerHookCallFailed();
+
+    /// @notice Emitted on attempt to call a non-existent hook.
     error HookInstallerInvalidHook();
+
+    /// @notice Emitted when the caller attempts to install a hook that is already installed.
+    error HookInstallerHookAlreadyInstalled();
 
     /// @notice Emitted on attempt to call an uninstalled hook.
     error HookInstallerHookNotInstalled();
 
     /// @notice Emitted on attempt to write to hooks without permission.
     error HookInstallerUnauthorizedWrite();
-
-    /// @notice Emitted on failure to initialize a hook on installation.
-    error HookInstallerInitializationFailed();
 
     /// @notice Emitted on attempt to initialize a hook with invalid msg.value.
     error HookInstallerInvalidMsgValue();
@@ -75,7 +78,7 @@ abstract contract HookInstaller is IHookInstaller {
 
         (bool success, bytes memory returndata) = target.staticcall(_data);
         if (!success) {
-            _revert(returndata);
+            _revert(returndata, HookInstallerHookCallFailed.selector);
         }
         return returndata;
     }
@@ -91,7 +94,7 @@ abstract contract HookInstaller is IHookInstaller {
      */
     function installHook(InstallHookParams memory _params) external payable {
         if (!_canUpdateHooks(msg.sender)) {
-            revert HookNotAuthorized();
+            revert HookInstallerNotAuthorized();
         }
         if (address(_params.hook) == address(0)) {
             revert HookInstallerInvalidHook();
@@ -104,17 +107,10 @@ abstract contract HookInstaller is IHookInstaller {
 
         if (_params.initCalldata.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returnData) =
+            (bool success, bytes memory returndata) =
                 address(_params.hook).call{value: _params.initCallValue}(_params.initCalldata);
             if (!success) {
-                if (returnData.length > 0) {
-                    // solhint-disable-next-line no-inline-assembly
-                    assembly {
-                        revert(add(returnData, 32), mload(returnData))
-                    }
-                } else {
-                    revert HookInstallerInitializationFailed();
-                }
+                _revert(returndata, HookInstallerHookCallFailed.selector);
             }
         }
     }
@@ -126,7 +122,7 @@ abstract contract HookInstaller is IHookInstaller {
      */
     function uninstallHook(IHook _hook) external {
         if (!_canUpdateHooks(msg.sender)) {
-            revert HookNotAuthorized();
+            revert HookInstallerNotAuthorized();
         }
         if (address(_hook) == address(0)) {
             revert HookInstallerInvalidHook();
@@ -152,7 +148,7 @@ abstract contract HookInstaller is IHookInstaller {
 
         (bool success, bytes memory returndata) = target.call{value: msg.value}(_data);
         if (!success) {
-            _revert(returndata);
+            _revert(returndata, HookInstallerHookCallFailed.selector);
         }
 
         return returndata;
@@ -186,7 +182,7 @@ abstract contract HookInstaller is IHookInstaller {
     /// @dev Uninstalls a hook in the contract.
     function _uninstallHook(IHook _hook) internal {
         if (!hookImplementations_.get(uint160(address(_hook)))) {
-            revert HookNotInstalled();
+            revert HookInstallerHookNotInstalled();
         }
 
         uint256 hooksToUninstall = _hook.getHooks();
@@ -200,7 +196,7 @@ abstract contract HookInstaller is IHookInstaller {
     /// @dev Adds a hook to the given integer represented hooks.
     function _addhook(uint256 _flag, uint256 _currenthooks) internal pure returns (uint256) {
         if (_currenthooks & _flag > 0) {
-            revert HookAlreadyInstalled();
+            revert HookInstallerHookAlreadyInstalled();
         }
         return _currenthooks | _flag;
     }
@@ -232,7 +228,7 @@ abstract contract HookInstaller is IHookInstaller {
     }
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory _returndata) internal pure {
+    function _revert(bytes memory _returndata, bytes4 _errorSignature) internal pure {
         // Look for revert reason and bubble it up if present
         if (_returndata.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly
@@ -242,7 +238,10 @@ abstract contract HookInstaller is IHookInstaller {
                 revert(add(32, _returndata), returndata_size)
             }
         } else {
-            revert HookInstallerCallFailed();
+            assembly {
+                mstore(0x00, _errorSignature)
+                revert(0x1c, 0x04)
+            }
         }
     }
 }
