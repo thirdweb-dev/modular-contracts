@@ -202,9 +202,7 @@ contract MintHookERC20Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc20Core.mint{value: (condition.pricePerToken * req.quantity) / 1 ether}(
-            req.minter, req.quantity, abi.encode(req)
-        );
+        erc20Core.mint{value: (condition.pricePerToken * req.quantity) / 1 ether}(req);
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(MintHook.getClaimCondition(address(erc20Core)).supplyClaimed, 5 ether);
@@ -261,9 +259,7 @@ contract MintHookERC20Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc20Core.mint{value: (condition.pricePerToken * req.quantity) / 1 ether}(
-            req.minter, req.quantity, abi.encode(req)
-        );
+        erc20Core.mint{value: (condition.pricePerToken * req.quantity) / 1 ether}(req);
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(MintHook.getClaimCondition(address(erc20Core)).supplyClaimed, 5 ether);
@@ -340,9 +336,7 @@ contract MintHookERC20Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc20Core.mint{value: (condition.pricePerToken * req.quantity) / 1 ether}(
-            req.minter, req.quantity, abi.encode(req)
-        );
+        erc20Core.mint{value: (condition.pricePerToken * req.quantity) / 1 ether}(req);
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(MintHook.getClaimCondition(address(erc20Core)).supplyClaimed, 5 ether);
@@ -422,7 +416,7 @@ contract MintHookERC20Test is Test {
         });
 
         vm.prank(endUser);
-        erc20Core.mint{value: 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: 1 ether}(req);
 
         assertEq(developer.balance, 0.9 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether); // platform fee recipient
@@ -489,9 +483,7 @@ contract MintHookERC20Test is Test {
                 (condition.pricePerToken * req.quantity - 1) / 1 ether
             )
         );
-        erc20Core.mint{value: (condition.pricePerToken * req.quantity - 1) / 1 ether}(
-            req.minter, req.quantity, abi.encode(req)
-        );
+        erc20Core.mint{value: (condition.pricePerToken * req.quantity - 1) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_erc20Price_sentMsgValue() public {
@@ -531,7 +523,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookInvalidPrice.selector, 0, 1 wei));
-        erc20Core.mint{value: 1 wei}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: 1 wei}(req);
     }
 
     function test_beforeMint_state_permissionlessMint_erc20Price() public {
@@ -594,7 +586,7 @@ contract MintHookERC20Test is Test {
         currency.approve(address(MintHook), condition.pricePerToken * 5);
 
         vm.prank(endUser);
-        erc20Core.mint(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint(req);
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(erc20Core.totalSupply(), 5 ether);
@@ -657,7 +649,7 @@ contract MintHookERC20Test is Test {
         });
 
         vm.prank(endUser);
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(erc20Core.totalSupply(), 5 ether);
@@ -715,113 +707,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookNotToken.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(endUser, req.quantity, abi.encode(req));
-    }
-
-    function test_beforeMint_revert_permissionlessMint_minterNotMintRequestMinter() public {
-        // Developer sets claim condition
-        IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
-            startTimestamp: 0,
-            endTimestamp: 200,
-            maxClaimableSupply: 1000 ether,
-            supplyClaimed: 0,
-            quantityLimitPerWallet: 10 ether,
-            merkleRoot: allowlistRoot,
-            pricePerToken: 0.2 ether,
-            currency: NATIVE_TOKEN,
-            metadata: "ipfs:Qme123"
-        });
-
-        vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC20.setClaimCondition.selector, condition, false)
-        );
-
-        // Developer sets fee config
-        IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
-            primarySaleRecipient: developer,
-            platformFeeRecipient: platformAdmin,
-            platformFeeBps: 1000 // 10%
-        });
-
-        vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC20.setDefaultFeeConfig.selector, feeConfig)
-        );
-
-        // End user claims 5 tokens
-
-        IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
-            token: address(erc20Core),
-            tokenId: 0,
-            minter: developer, // not end user
-            quantity: 5 ether,
-            pricePerToken: condition.pricePerToken,
-            currency: condition.currency,
-            allowlistProof: allowlistProof,
-            signature: new bytes(0),
-            sigValidityStartTimestamp: 0,
-            sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
-        });
-
-        vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookInvalidRecipient.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(endUser, req.quantity, abi.encode(req));
-    }
-
-    function test_beforeMint_revert_permissionlessMint_quantityToMintNotMintRequestQuantity() public {
-        // Developer sets claim condition
-        IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
-            startTimestamp: 0,
-            endTimestamp: 200,
-            maxClaimableSupply: 1000 ether,
-            supplyClaimed: 0,
-            quantityLimitPerWallet: 10 ether,
-            merkleRoot: allowlistRoot,
-            pricePerToken: 0.2 ether,
-            currency: NATIVE_TOKEN,
-            metadata: "ipfs:Qme123"
-        });
-
-        vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC20.setClaimCondition.selector, condition, false)
-        );
-
-        // Developer sets fee config
-        IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
-            primarySaleRecipient: developer,
-            platformFeeRecipient: platformAdmin,
-            platformFeeBps: 1000 // 10%
-        });
-
-        vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC20.setDefaultFeeConfig.selector, feeConfig)
-        );
-
-        // End user claims 5 tokens.
-
-        IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
-            token: address(erc20Core),
-            tokenId: 0,
-            minter: endUser,
-            quantity: 5 ether,
-            pricePerToken: condition.pricePerToken,
-            currency: condition.currency,
-            allowlistProof: allowlistProof,
-            signature: new bytes(0),
-            sigValidityStartTimestamp: 0,
-            sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
-        });
-
-        vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookInvalidQuantity.selector, req.quantity - 1));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(
-            req.minter, req.quantity - 1, abi.encode(req)
-        );
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_mintNotStarted() public {
@@ -873,7 +759,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookMintNotStarted.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_mintEnded() public {
@@ -927,7 +813,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookMintEnded.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_notInAllowlist() public {
@@ -979,7 +865,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookNotInAllowlist.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidCurrency() public {
@@ -1033,7 +919,7 @@ contract MintHookERC20Test is Test {
         vm.expectRevert(
             abi.encodeWithSelector(MintHookERC20.MintHookInvalidCurrency.selector, condition.currency, req.currency)
         );
-        erc20Core.mint(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidPrice() public {
@@ -1089,7 +975,7 @@ contract MintHookERC20Test is Test {
                 MintHookERC20.MintHookInvalidPrice.selector, condition.pricePerToken, req.pricePerToken
             )
         );
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidQuantity() public {
@@ -1143,13 +1029,13 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookInvalidQuantity.selector, req.quantity));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
 
         req.quantity = 0;
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookInvalidQuantity.selector, req.quantity));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_maxSupplyClaimed() public {
@@ -1200,13 +1086,13 @@ contract MintHookERC20Test is Test {
         });
 
         vm.prank(endUser);
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
 
         req.minter = developer;
 
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookMaxSupplyClaimed.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(developer, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -1284,7 +1170,7 @@ contract MintHookERC20Test is Test {
         assertEq(currency.balanceOf(platformAdmin), 0);
 
         vm.prank(endUser);
-        erc20Core.mint(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint(req);
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(erc20Core.totalSupply(), 5 ether);
@@ -1331,7 +1217,7 @@ contract MintHookERC20Test is Test {
         assertEq(platformAdmin.balance, 0);
 
         vm.prank(endUser);
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
 
         assertEq(erc20Core.balanceOf(endUser), 5 ether);
         assertEq(erc20Core.totalSupply(), 5 ether);
@@ -1373,7 +1259,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookInvalidSignature.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_permissionedMint_requestExpired() public {
@@ -1411,7 +1297,7 @@ contract MintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookRequestExpired.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 
     function test_beforeMint_revert_permissionedMint_requestUsed() public {
@@ -1446,10 +1332,10 @@ contract MintHookERC20Test is Test {
         req.signature = sig;
 
         vm.prank(endUser);
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookRequestUsed.selector));
-        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req);
     }
 }

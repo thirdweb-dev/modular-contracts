@@ -15,6 +15,7 @@ import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.s
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
 import {IERC1155} from "src/interface/eip/IERC1155.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
+import {IERC1155Hook} from "src/interface/hook/IERC1155Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 /**
@@ -76,6 +77,8 @@ contract ERC1155CoreBenchmarkTest is Test {
     // Token claim params
     uint256 public pricePerToken = 0.1 ether;
     uint256 public availableSupply = 100;
+
+    IERC1155Hook.MintRequest public mintRequest;
 
     function setUp() public {
         // Setup up to enabling minting on ERC-1155 contract.
@@ -226,7 +229,13 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+        mintRequest.token = address(claimContract);
+        mintRequest.minter = claimerAddress;
+        mintRequest.tokenId = tokenId;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        claimContract.mint{value: pricePerToken}(mintRequest);
     }
 
     function test_mintTenTokens() public {
@@ -256,7 +265,13 @@ contract ERC1155CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+        mintRequest.token = address(claimContract);
+        mintRequest.minter = claimerAddress;
+        mintRequest.tokenId = tokenId;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        claimContract.mint{value: pricePerToken * 10}(mintRequest);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -283,8 +298,14 @@ contract ERC1155CoreBenchmarkTest is Test {
         uint256 tokenId = 0;
 
         // Claim token
+        mintRequest.token = address(erc1155);
+        mintRequest.minter = claimer;
+        mintRequest.tokenId = tokenId;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
         vm.prank(claimer);
-        erc1155.mint{value: pricePerToken}(claimer, tokenId, quantityToClaim, encodedArgs);
+        erc1155.mint{value: pricePerToken}(mintRequest);
 
         address to = address(0x121212);
         address from = claimer;

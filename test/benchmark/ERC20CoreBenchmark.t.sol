@@ -14,6 +14,7 @@ import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
 import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
+import {IERC20Hook} from "src/interface/hook/IERC20Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 /**
@@ -72,6 +73,8 @@ contract ERC20CoreBenchmarkTest is Test {
     // Token claim params
     uint256 public pricePerToken = 1 ether;
     uint256 public availableSupply = 100 ether;
+
+    IERC20Hook.MintRequest public mintRequest;
 
     function setUp() public {
         // Setup up to enabling minting on ERC-20 contract.
@@ -209,7 +212,12 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
+        mintRequest.token = address(erc20);
+        mintRequest.minter = claimerAddress;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        claimContract.mint{value: pricePerToken}(mintRequest);
     }
 
     function test_mintTenTokens() public {
@@ -239,7 +247,12 @@ contract ERC20CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
+        mintRequest.token = address(erc20);
+        mintRequest.minter = claimerAddress;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        claimContract.mint{value: pricePerToken * 10}(mintRequest);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -267,7 +280,12 @@ contract ERC20CoreBenchmarkTest is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc20.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
+        mintRequest.token = address(erc20);
+        mintRequest.minter = claimer;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        erc20.mint{value: pricePerToken}(mintRequest);
 
         address to = address(0x121212);
         address from = claimer;

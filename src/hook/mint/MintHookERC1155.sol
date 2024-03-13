@@ -234,53 +234,50 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
 
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
-     *  @param _claimer The address that is minting tokens.
-     *  @param _tokenId The token ID being minted.
-     *  @param _quantity The quantity of tokens to mint.
-     *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return tokenIdToMint The start tokenId to mint.
+     *  @param _mintRequest The token mint request details.
+     *  @return tokenIdToMint The tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _claimer, uint256 _tokenId, uint256 _quantity, bytes memory _encodedArgs)
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         override
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
-        MintRequest memory req = abi.decode(_encodedArgs, (MintRequest));
-
-        if (req.token != msg.sender) {
+        if (_mintRequest.token != msg.sender) {
             revert MintHookNotToken();
-        }
-        if (req.quantity != _quantity) {
-            revert MintHookInvalidQuantity(_quantity);
-        }
-
-        if (req.minter != _claimer) {
-            revert MintHookInvalidRecipient();
-        }
-        if (req.tokenId != _tokenId) {
-            revert MintHookInvalidTokenId(_tokenId);
         }
 
         // Check against active claim condition unless permissioned.
         MintHookERC1155Storage.Data storage data = MintHookERC1155Storage.data();
-        if (req.signature.length > 0) {
-            verifyPermissionedClaim(req);
-            data.uidUsed[req.sigUid] = true;
+        if (_mintRequest.signature.length > 0) {
+            verifyPermissionedClaim(_mintRequest);
+            data.uidUsed[_mintRequest.sigUid] = true;
         } else {
             verifyClaim(
-                req.token, req.tokenId, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof
+                _mintRequest.token,
+                _mintRequest.tokenId,
+                _mintRequest.minter,
+                _mintRequest.quantity,
+                _mintRequest.pricePerToken,
+                _mintRequest.currency,
+                _mintRequest.allowlistProof
             );
-            data.claimCondition[req.token][req.tokenId].supplyClaimed += req.quantity;
-            data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[req.token][req.tokenId], req.minter))] +=
-                req.quantity;
+            data.claimCondition[_mintRequest.token][_mintRequest.tokenId].supplyClaimed += _mintRequest.quantity;
+            data.supplyClaimedByWallet[keccak256(
+                abi.encode(data.conditionId[_mintRequest.token][_mintRequest.tokenId], _mintRequest.minter)
+            )] += _mintRequest.quantity;
         }
 
-        tokenIdToMint = req.tokenId;
-        quantityToMint = req.quantity;
+        tokenIdToMint = _mintRequest.tokenId;
+        quantityToMint = _mintRequest.quantity;
 
-        _collectPrice(req.minter, tokenIdToMint, req.pricePerToken * req.quantity, req.currency);
+        _collectPrice(
+            _mintRequest.minter,
+            tokenIdToMint,
+            _mintRequest.pricePerToken * _mintRequest.quantity,
+            _mintRequest.currency
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

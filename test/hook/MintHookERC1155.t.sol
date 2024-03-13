@@ -201,9 +201,7 @@ contract MintHookERC1155Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc1155Core.mint{value: condition.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: condition.pricePerToken * req.quantity}(req);
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 5);
         assertEq(MintHook.getClaimCondition(address(erc1155Core), 0).supplyClaimed, 5);
@@ -260,9 +258,7 @@ contract MintHookERC1155Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc1155Core.mint{value: condition.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: condition.pricePerToken * req.quantity}(req);
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 5);
         assertEq(MintHook.getClaimCondition(address(erc1155Core), 0).supplyClaimed, 5);
@@ -339,9 +335,7 @@ contract MintHookERC1155Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc1155Core.mint{value: condition.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: condition.pricePerToken * req.quantity}(req);
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 5);
         assertEq(MintHook.getClaimCondition(address(erc1155Core), 0).supplyClaimed, 5);
@@ -421,7 +415,7 @@ contract MintHookERC1155Test is Test {
         });
 
         vm.prank(endUser);
-        erc1155Core.mint{value: 1 ether}(req.minter, req.tokenId, req.quantity, abi.encode(req));
+        erc1155Core.mint{value: 1 ether}(req);
 
         assertEq(developer.balance, 0.9 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether); // platform fee recipient
@@ -467,7 +461,7 @@ contract MintHookERC1155Test is Test {
         });
 
         vm.prank(endUser);
-        erc1155Core.mint{value: 1 ether}(req.minter, req.tokenId, req.quantity, abi.encode(req));
+        erc1155Core.mint{value: 1 ether}(req);
 
         assertEq(developer.balance, 0.9 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether); // platform fee recipient
@@ -495,7 +489,7 @@ contract MintHookERC1155Test is Test {
         IMintRequest.MintRequest memory req2 = req;
 
         vm.prank(endUser);
-        erc1155Core.mint{value: 1 ether}(req2.minter, req2.tokenId, req2.quantity, abi.encode(req2));
+        erc1155Core.mint{value: 1 ether}(req2);
 
         assertEq(developer.balance, 0.9 ether + 0.8 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether + 0.2 ether); // platform fee recipient
@@ -562,9 +556,7 @@ contract MintHookERC1155Test is Test {
                 condition.pricePerToken * req.quantity - 1
             )
         );
-        erc1155Core.mint{value: condition.pricePerToken * req.quantity - 1}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: condition.pricePerToken * req.quantity - 1}(req);
     }
 
     function test_beforeMint_revert_erc20Price_sentMsgValue() public {
@@ -604,7 +596,7 @@ contract MintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookInvalidPrice.selector, 0, 1 wei));
-        erc1155Core.mint{value: 1 wei}(req.minter, req.tokenId, req.quantity, abi.encode(req));
+        erc1155Core.mint{value: 1 wei}(req);
     }
 
     function test_beforeMint_state_permissionlessMint_erc20Price() public {
@@ -667,7 +659,7 @@ contract MintHookERC1155Test is Test {
         currency.approve(address(MintHook), condition.pricePerToken * 5);
 
         vm.prank(endUser);
-        erc1155Core.mint(req.minter, req.tokenId, req.quantity, abi.encode(req));
+        erc1155Core.mint(req);
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 5);
         assertEq(erc1155Core.totalSupply(0), 5);
@@ -730,9 +722,7 @@ contract MintHookERC1155Test is Test {
         });
 
         vm.prank(endUser);
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 5);
         assertEq(erc1155Core.totalSupply(0), 5);
@@ -790,113 +780,7 @@ contract MintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookNotToken.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(endUser, 0, req.quantity, abi.encode(req));
-    }
-
-    function test_beforeMint_revert_permissionlessMint_minterNotMintRequestMinter() public {
-        // Developer sets claim condition
-        IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
-            startTimestamp: 0,
-            endTimestamp: 200,
-            maxClaimableSupply: 1000,
-            supplyClaimed: 0,
-            quantityLimitPerWallet: 10,
-            merkleRoot: allowlistRoot,
-            pricePerToken: 0.2 ether,
-            currency: NATIVE_TOKEN,
-            metadata: "ipfs:Qme123"
-        });
-
-        vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC1155.setClaimCondition.selector, 0, condition, false)
-        );
-
-        // Developer sets fee config
-        IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
-            primarySaleRecipient: developer,
-            platformFeeRecipient: platformAdmin,
-            platformFeeBps: 1000 // 10%
-        });
-
-        vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
-        );
-
-        // End user claims 5 tokens.
-
-        IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
-            token: address(erc1155Core),
-            tokenId: 0,
-            minter: developer, // not end user
-            quantity: 5,
-            pricePerToken: condition.pricePerToken,
-            currency: condition.currency,
-            allowlistProof: allowlistProof,
-            signature: new bytes(0),
-            sigValidityStartTimestamp: 0,
-            sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
-        });
-
-        vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookInvalidRecipient.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(endUser, 0, req.quantity, abi.encode(req));
-    }
-
-    function test_beforeMint_revert_permissionlessMint_quantityToMintNotMintRequestQuantity() public {
-        // Developer sets claim condition
-        IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
-            startTimestamp: 0,
-            endTimestamp: 200,
-            maxClaimableSupply: 1000,
-            supplyClaimed: 0,
-            quantityLimitPerWallet: 10,
-            merkleRoot: allowlistRoot,
-            pricePerToken: 0.2 ether,
-            currency: NATIVE_TOKEN,
-            metadata: "ipfs:Qme123"
-        });
-
-        vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC1155.setClaimCondition.selector, 0, condition, false)
-        );
-
-        // Developer sets fee config
-        IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
-            primarySaleRecipient: developer,
-            platformFeeRecipient: platformAdmin,
-            platformFeeBps: 1000 // 10%
-        });
-
-        vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
-        );
-
-        // End user claims 5 tokens.
-
-        IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
-            token: address(erc1155Core),
-            tokenId: 0,
-            minter: endUser,
-            quantity: 5,
-            pricePerToken: condition.pricePerToken,
-            currency: condition.currency,
-            allowlistProof: allowlistProof,
-            signature: new bytes(0),
-            sigValidityStartTimestamp: 0,
-            sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
-        });
-
-        vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookInvalidQuantity.selector, req.quantity - 1));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity - 1, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_mintNotStarted() public {
@@ -948,9 +832,7 @@ contract MintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookMintNotStarted.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_mintEnded() public {
@@ -1004,9 +886,7 @@ contract MintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookMintEnded.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_notInAllowlist() public {
@@ -1058,9 +938,7 @@ contract MintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookNotInAllowlist.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidCurrency() public {
@@ -1114,7 +992,7 @@ contract MintHookERC1155Test is Test {
         vm.expectRevert(
             abi.encodeWithSelector(MintHookERC1155.MintHookInvalidCurrency.selector, condition.currency, req.currency)
         );
-        erc1155Core.mint(req.minter, req.tokenId, req.quantity, abi.encode(req));
+        erc1155Core.mint(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidPrice() public {
@@ -1170,9 +1048,7 @@ contract MintHookERC1155Test is Test {
                 MintHookERC1155.MintHookInvalidPrice.selector, condition.pricePerToken, req.pricePerToken
             )
         );
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidQuantity() public {
@@ -1226,17 +1102,13 @@ contract MintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookInvalidQuantity.selector, req.quantity));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         req.quantity = 0;
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookInvalidQuantity.selector, req.quantity));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_maxSupplyClaimed() public {
@@ -1287,15 +1159,13 @@ contract MintHookERC1155Test is Test {
         });
 
         vm.prank(endUser);
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         req.minter = developer;
 
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookMaxSupplyClaimed.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(developer, req.tokenId, req.quantity, abi.encode(req));
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -1373,7 +1243,7 @@ contract MintHookERC1155Test is Test {
         assertEq(currency.balanceOf(platformAdmin), 0);
 
         vm.prank(endUser);
-        erc1155Core.mint(req.minter, req.tokenId, req.quantity, abi.encode(req));
+        erc1155Core.mint(req);
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 5);
         assertEq(erc1155Core.totalSupply(0), 5);
@@ -1420,9 +1290,7 @@ contract MintHookERC1155Test is Test {
         assertEq(platformAdmin.balance, 0);
 
         vm.prank(endUser);
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 5);
         assertEq(erc1155Core.totalSupply(0), 5);
@@ -1464,9 +1332,7 @@ contract MintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookInvalidSignature.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionedMint_requestExpired() public {
@@ -1504,9 +1370,7 @@ contract MintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookRequestExpired.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionedMint_requestUsed() public {
@@ -1541,14 +1405,10 @@ contract MintHookERC1155Test is Test {
         req.signature = sig;
 
         vm.prank(endUser);
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC1155.MintHookRequestUsed.selector));
-        erc1155Core.mint{value: req.pricePerToken * req.quantity}(
-            req.minter, req.tokenId, req.quantity, abi.encode(req)
-        );
+        erc1155Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 }

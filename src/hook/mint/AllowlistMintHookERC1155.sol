@@ -102,15 +102,15 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook, Multicallable {
                             BEFORE MINT hook
     //////////////////////////////////////////////////////////////*/
 
+    error AllowlistMintHookNotToken();
+
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
-     *  @param _claimer The address that is minting tokens.
-     *  @param _id The token ID being minted.
-     *  @param _value The quantity of tokens to mint.
-     *  @return tokenIdToMint The start tokenId to mint.
+     *  @param _mintRequest The token mint request details.
+     *  @return tokenIdToMint The tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _claimer, uint256 _id, uint256 _value, bytes memory _encodedArgs)
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         virtual
@@ -118,31 +118,35 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook, Multicallable {
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
+        if (_mintRequest.token != msg.sender) {
+            revert AllowlistMintHookNotToken();
+        }
+
         AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
-        ClaimCondition memory condition = data.claimCondition[token][_id];
+        ClaimCondition memory condition = data.claimCondition[token][_mintRequest.tokenId];
 
-        if (_value == 0 || _value > condition.availableSupply) {
+        if (_mintRequest.quantity == 0 || _mintRequest.quantity > condition.availableSupply) {
             revert AllowlistMintHookInvalidQuantity();
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
-            bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
+            bytes32[] memory allowlistProof = _mintRequest.allowlistProof;
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_mintRequest.minter))
             );
             if (!isAllowlisted) {
-                revert AllowlistMintHookNotInAllowlist(token, _claimer);
+                revert AllowlistMintHookNotInAllowlist(token, _mintRequest.minter);
             }
         }
 
-        tokenIdToMint = _id;
-        quantityToMint = _value;
+        tokenIdToMint = _mintRequest.tokenId;
+        quantityToMint = _mintRequest.quantity;
 
-        data.claimCondition[token][_id].availableSupply -= _value;
+        data.claimCondition[token][_mintRequest.tokenId].availableSupply -= _mintRequest.quantity;
 
-        _collectPrice(condition.price * _value, _id);
+        _collectPrice(condition.price * _mintRequest.quantity, _mintRequest.tokenId);
     }
 
     /*//////////////////////////////////////////////////////////////

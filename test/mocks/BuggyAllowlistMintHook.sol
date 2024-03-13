@@ -8,7 +8,12 @@ import {AllowlistMintHookERC721, AllowlistMintHookERC721Storage} from "src/hook/
 import {AllowlistMintHookERC1155, AllowlistMintHookERC1155Storage} from "src/hook/mint/AllowlistMintHookERC1155.sol";
 
 contract BuggyAllowlistMintHookERC20 is AllowlistMintHookERC20 {
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+    /**
+     *  @notice The beforeMint hook that is called by a core token before minting a token.
+     *  @param _mintRequest The token mint request details.
+     *  @return quantityToMint The quantity of tokens to mint.
+     */
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         virtual
@@ -16,30 +21,34 @@ contract BuggyAllowlistMintHookERC20 is AllowlistMintHookERC20 {
         returns (uint256 quantityToMint)
     {
         address token = msg.sender;
+        if (_mintRequest.token != msg.sender) {
+            revert AllowlistMintHookNotToken();
+        }
+
         AllowlistMintHookERC20Storage.Data storage data = AllowlistMintHookERC20Storage.data();
 
         ClaimCondition memory condition = data.claimCondition[token];
 
-        if (_quantity == 0 || _quantity > condition.availableSupply) {
+        if (_mintRequest.quantity == 0 || _mintRequest.quantity > condition.availableSupply) {
             revert AllowlistMintHookInvalidQuantity();
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
-            bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
+            bytes32[] memory allowlistProof = _mintRequest.allowlistProof;
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_mintRequest.minter))
             );
             if (!isAllowlisted) {
-                revert AllowlistMintHookNotInAllowlist(token, _claimer);
+                revert AllowlistMintHookNotInAllowlist(token, _mintRequest.minter);
             }
         }
 
-        quantityToMint = uint96(_quantity);
+        quantityToMint = uint96(_mintRequest.quantity);
         // `price` is interpreted as price per 1 ether unit of the ERC20 tokens.
-        uint256 totalPrice = (_quantity * condition.price) / 1 ether;
+        uint256 totalPrice = (_mintRequest.quantity * condition.price) / 1 ether;
 
-        data.claimCondition[token].availableSupply -= _quantity;
+        data.claimCondition[token].availableSupply -= _mintRequest.quantity;
 
         // BUG: FORGOT TO COLLECT PRICE!
         // _collectPrice(totalPrice);
@@ -97,7 +106,13 @@ contract BuggyAllowlistMintHookERC721 is AllowlistMintHookERC721 {
 }
 
 contract BuggyAllowlistMintHookERC1155 is AllowlistMintHookERC1155 {
-    function beforeMint(address _claimer, uint256 _id, uint256 _value, bytes memory _encodedArgs)
+    /**
+     *  @notice The beforeMint hook that is called by a core token before minting a token.
+     *  @param _mintRequest The token mint request details.
+     *  @return tokenIdToMint The tokenId to mint.
+     *  @return quantityToMint The quantity of tokens to mint.
+     */
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         virtual
@@ -105,31 +120,35 @@ contract BuggyAllowlistMintHookERC1155 is AllowlistMintHookERC1155 {
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
+        if (_mintRequest.token != msg.sender) {
+            revert AllowlistMintHookNotToken();
+        }
+
         AllowlistMintHookERC1155Storage.Data storage data = AllowlistMintHookERC1155Storage.data();
 
-        ClaimCondition memory condition = data.claimCondition[token][_id];
+        ClaimCondition memory condition = data.claimCondition[token][_mintRequest.tokenId];
 
-        if (_value == 0 || _value > condition.availableSupply) {
+        if (_mintRequest.quantity == 0 || _mintRequest.quantity > condition.availableSupply) {
             revert AllowlistMintHookInvalidQuantity();
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
-            bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
+            bytes32[] memory allowlistProof = _mintRequest.allowlistProof;
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_mintRequest.minter))
             );
             if (!isAllowlisted) {
-                revert AllowlistMintHookNotInAllowlist(token, _claimer);
+                revert AllowlistMintHookNotInAllowlist(token, _mintRequest.minter);
             }
         }
 
-        tokenIdToMint = _id;
-        quantityToMint = _value;
+        tokenIdToMint = _mintRequest.tokenId;
+        quantityToMint = _mintRequest.quantity;
 
-        data.claimCondition[token][_id].availableSupply -= _value;
+        data.claimCondition[token][_mintRequest.tokenId].availableSupply -= _mintRequest.quantity;
 
         // BUG: FORGOT TO COLLECT PRICE!
-        // _collectPrice(condition.price * _value, _id);
+        // _collectPrice(condition.price * _mintRequest.quantity, _mintRequest.tokenId);
     }
 }

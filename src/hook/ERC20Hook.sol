@@ -77,18 +77,11 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Ownable, IERC20Ho
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice The beforeMint hook that is called by a core token before minting tokens.
-     *  @param _to The address that is minting tokens.
-     *  @param _amount The amount of tokens to mint.
-     *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return quantityToMint The quantity of tokens to mint.s
+     *  @notice The beforeMint hook that is called by a core token before minting a token.
+     *  @param _mintRequest The token mint request details.
+     *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _to, uint256 _amount, bytes memory _encodedArgs)
-        external
-        payable
-        virtual
-        returns (uint256 quantityToMint)
-    {
+    function beforeMint(MintRequest calldata _mintRequest) external payable virtual returns (uint256 quantityToMint) {
         revert ERC20HookNotImplemented();
     }
 
@@ -103,12 +96,10 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Ownable, IERC20Ho
     }
 
     /**
-     *  @notice The beforeBurn hook that is called by a core token before burning tokens.
-     *  @param _from The address that is burning tokens.
-     *  @param _amount The amount of tokens being burned.
-     *  @param _encodedArgs The encoded arguments for the beforeBurn hook.
+     *  @notice The beforeBurn hook that is called by a core token before burning a token.
+     *  @param _burnRequest The token burn request details.
      */
-    function beforeBurn(address _from, uint256 _amount, bytes memory _encodedArgs) external virtual {
+    function beforeBurn(BurnRequest calldata _burnRequest) external virtual {
         revert ERC20HookNotImplemented();
     }
 

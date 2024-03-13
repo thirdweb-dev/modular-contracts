@@ -12,14 +12,14 @@ contract EmptyHookERC20 is ERC20Hook {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         virtual
         override
         returns (uint256 quantityToMint)
     {
-        return _quantity;
+        return _mintRequest.quantity;
     }
 }
 
@@ -62,7 +62,7 @@ contract EmptyHookERC1155 is ERC1155Hook {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    function beforeMint(address _to, uint256 _id, uint256 _value, bytes memory _encodedArgs)
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         virtual
@@ -71,7 +71,7 @@ contract EmptyHookERC1155 is ERC1155Hook {
     {
         address token = msg.sender;
 
-        tokenIdToMint = _id;
-        quantityToMint = _value;
+        tokenIdToMint = _mintRequest.tokenId;
+        quantityToMint = _mintRequest.quantity;
     }
 }

@@ -2,8 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {IHook} from "./IHook.sol";
+import {IMintRequest} from "../common/IMintRequest.sol";
+import {IBurnRequest} from "../common/IBurnRequest.sol";
 
-interface IERC1155Hook is IHook {
+interface IERC1155Hook is IHook, IMintRequest, IBurnRequest {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -12,26 +14,16 @@ interface IERC1155Hook is IHook {
     error ERC1155HookNotImplemented();
 
     /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external view returns (string memory argSignature);
-
-    /*//////////////////////////////////////////////////////////////
                             HOOK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
-     *  @param to The address that is minting tokens.
-     *  @param id The token ID being minted.
-     *  @param value The quantity of tokens to mint.
-     *  @param encodedArgs The encoded arguments for the beforeMint hook.
+     *  @param mintRequest The token mint request details.
      *  @return tokenIdToMint The tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address to, uint256 id, uint256 value, bytes memory encodedArgs)
+    function beforeMint(MintRequest calldata mintRequest)
         external
         payable
         returns (uint256 tokenIdToMint, uint256 quantityToMint);
@@ -57,13 +49,9 @@ interface IERC1155Hook is IHook {
 
     /**
      *  @notice The beforeBurn hook that is called by a core token before burning a token.
-     *  @notice The beforeBurn hook that is called by a core token before burning a token.
-     *  @param from The address that is burning tokens.
-     *  @param id The token ID being burned.
-     *  @param value The quantity of tokens being burned.
-     *  @param encodedArgs The encoded arguments for the beforeBurn hook.
+     *  @param burnRequest The token burn request details.
      */
-    function beforeBurn(address from, uint256 id, uint256 value, bytes memory encodedArgs) external;
+    function beforeBurn(BurnRequest calldata burnRequest) external;
 
     /**
      *  @notice The beforeApprove hook that is called by a core token before approving a token.

@@ -218,46 +218,38 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
 
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
-     *  @param _claimer The address that is minting tokens.
-     *  @param _quantity The quantity of tokens to mint.
-     *  @param _encodedArgs The encoded arguments for the beforeMint hook.
+     *  @param _mintRequest The token mint request details.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
-        external
-        payable
-        override
-        returns (uint256 quantityToMint)
-    {
-        MintRequest memory req = abi.decode(_encodedArgs, (MintRequest));
-
-        if (req.token != msg.sender) {
+    function beforeMint(MintRequest calldata _mintRequest) external payable override returns (uint256 quantityToMint) {
+        if (_mintRequest.token != msg.sender) {
             revert MintHookNotToken();
-        }
-        if (req.quantity != _quantity) {
-            revert MintHookInvalidQuantity(_quantity);
-        }
-
-        if (req.minter != _claimer) {
-            revert MintHookInvalidRecipient();
         }
 
         // Check against active claim condition unless permissioned.
         MintHookERC20Storage.Data storage data = MintHookERC20Storage.data();
-        if (req.signature.length > 0) {
-            verifyPermissionedClaim(req);
-            data.uidUsed[req.sigUid] = true;
+        if (_mintRequest.signature.length > 0) {
+            verifyPermissionedClaim(_mintRequest);
+            data.uidUsed[_mintRequest.sigUid] = true;
         } else {
-            verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
-            data.claimCondition[req.token].supplyClaimed += req.quantity;
-            data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[req.token], req.minter))] += req.quantity;
+            verifyClaim(
+                _mintRequest.token,
+                _mintRequest.minter,
+                _mintRequest.quantity,
+                _mintRequest.pricePerToken,
+                _mintRequest.currency,
+                _mintRequest.allowlistProof
+            );
+            data.claimCondition[_mintRequest.token].supplyClaimed += _mintRequest.quantity;
+            data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[_mintRequest.token], _mintRequest.minter))]
+            += _mintRequest.quantity;
         }
 
-        quantityToMint = req.quantity;
+        quantityToMint = _mintRequest.quantity;
         // `pricePerToken` is interpreted as price per 1 ether unit of the ERC20 tokens.
-        uint256 totalPrice = (_quantity * req.pricePerToken) / 1 ether;
+        uint256 totalPrice = (_mintRequest.quantity * _mintRequest.pricePerToken) / 1 ether;
 
-        _collectPrice(req.minter, totalPrice, req.currency);
+        _collectPrice(_mintRequest.minter, totalPrice, _mintRequest.currency);
     }
 
     /*//////////////////////////////////////////////////////////////
