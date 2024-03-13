@@ -28,7 +28,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @notice The EIP-712 typehash for the mint request struct.
     bytes32 private constant TYPEHASH = keccak256(
-        "MintRequest(address minter,address token,uint256 tokenId,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+        "MintRequest(address minter,address token,uint256 tokenId,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid,bytes auxData)"
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -405,23 +405,25 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @dev Returns the address of the signer of the mint request.
     function _recoverAddress(MintRequest memory _req) internal view returns (address) {
-        return _hashTypedData(
-            keccak256(
-                abi.encode(
-                    TYPEHASH,
-                    _req.minter,
-                    _req.token,
-                    _req.tokenId,
-                    _req.quantity,
-                    _req.pricePerToken,
-                    _req.currency,
-                    _req.allowlistProof,
-                    keccak256(bytes("")),
-                    _req.sigValidityStartTimestamp,
-                    _req.sigValidityEndTimestamp,
-                    _req.sigUid
-                )
-            )
-        ).recover(_req.signature);
+        return _hashTypedData(keccak256(_encodeRequest(_req))).recover(_req.signature);
+    }
+
+    /// @dev Encodes the typed data struct.
+    function _encodeRequest(MintRequest memory _req) internal view returns (bytes memory) {
+        return abi.encode(
+            TYPEHASH,
+            _req.minter,
+            _req.token,
+            _req.tokenId,
+            _req.quantity,
+            _req.pricePerToken,
+            _req.currency,
+            _req.allowlistProof,
+            keccak256(bytes("")),
+            _req.sigValidityStartTimestamp,
+            _req.sigValidityEndTimestamp,
+            _req.sigUid,
+            keccak256(_req.auxData)
+        );
     }
 }

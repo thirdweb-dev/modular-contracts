@@ -40,7 +40,7 @@ contract MintHookERC721Test is Test {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     bytes32 private constant TYPEHASH = keccak256(
-        "MintRequest(address minter,address token,uint256 tokenId,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+        "MintRequest(address minter,address token,uint256 tokenId,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid,bytes auxData)"
     );
     bytes32 public domainSeparator;
 
@@ -197,7 +197,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.warp(condition.startTimestamp + 1);
@@ -254,7 +255,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.warp(condition.startTimestamp + 1);
@@ -331,7 +333,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.warp(condition.startTimestamp + 1);
@@ -413,7 +416,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -459,7 +463,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -548,7 +553,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -594,7 +600,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -660,7 +667,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         currency.mint(endUser, 100 ether);
@@ -738,7 +746,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -800,7 +809,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -852,7 +862,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.warp(condition.endTimestamp);
@@ -906,7 +917,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -958,7 +970,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -1012,7 +1025,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -1068,7 +1082,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         req.quantity = condition.quantityLimitPerWallet + 1;
@@ -1128,7 +1143,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         vm.prank(endUser);
@@ -1162,7 +1178,8 @@ contract MintHookERC721Test is Test {
             keccak256(bytes("")),
             _req.sigValidityStartTimestamp,
             _req.sigValidityEndTimestamp,
-            _req.sigUid
+            _req.sigUid,
+            keccak256(_req.auxData)
         );
         bytes32 structHash = keccak256(encodedRequest);
         bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -1203,7 +1220,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
@@ -1261,7 +1279,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
@@ -1319,7 +1338,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         bytes memory sig = _signMintRequest(req, 12345);
@@ -1355,7 +1375,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
@@ -1393,7 +1414,8 @@ contract MintHookERC721Test is Test {
             signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
-            sigUid: bytes32("random-1")
+            sigUid: bytes32("random-1"),
+            auxData: new bytes(0)
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);

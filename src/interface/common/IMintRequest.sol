@@ -16,6 +16,7 @@ interface IMintRequest {
      *  @param sigValidityStartTimestamp The timestamp from which the signature is valid.
      *  @param sigValidityEndTimestamp The timestamp until which the signature is valid.
      *  @param sigUid The unique id of the signature.
+     *  @param auxData Additional data.
      */
     struct MintRequest {
         address minter;
@@ -29,5 +30,6 @@ interface IMintRequest {
         uint128 sigValidityStartTimestamp;
         uint128 sigValidityEndTimestamp;
         bytes32 sigUid;
+        bytes auxData;
     }
 }
