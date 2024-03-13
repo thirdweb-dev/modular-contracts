@@ -207,17 +207,19 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core claimContract = erc20;
         address claimerAddress = claimer;
 
-        vm.prank(claimerAddress);
-
-        vm.resumeGasMetering();
-
-        // Claim token
         mintRequest.token = address(erc20);
         mintRequest.minter = claimerAddress;
         mintRequest.quantity = quantityToClaim;
         mintRequest.allowlistProof = proofs;
 
-        claimContract.mint{value: pricePerToken}(mintRequest);
+        IERC20Hook.MintRequest memory req = mintRequest;
+
+        vm.prank(claimerAddress);
+
+        vm.resumeGasMetering();
+
+        // Claim token
+        claimContract.mint{value: pricePerToken}(req);
     }
 
     function test_mintTenTokens() public {
@@ -242,17 +244,19 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core claimContract = erc20;
         address claimerAddress = claimer;
 
-        vm.prank(claimerAddress);
-
-        vm.resumeGasMetering();
-
-        // Claim token
         mintRequest.token = address(erc20);
         mintRequest.minter = claimerAddress;
         mintRequest.quantity = quantityToClaim;
         mintRequest.allowlistProof = proofs;
 
-        claimContract.mint{value: pricePerToken * 10}(mintRequest);
+        IERC20Hook.MintRequest memory req = mintRequest;
+
+        vm.prank(claimerAddress);
+
+        vm.resumeGasMetering();
+
+        // Claim token
+        claimContract.mint{value: pricePerToken * 10}(req);
     }
 
     /*//////////////////////////////////////////////////////////////
