@@ -11,6 +11,7 @@ import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
@@ -189,16 +190,25 @@ contract HookUpgradesTest is Test {
         vm.startPrank(developer);
 
         erc20Core.installHook(
-            IHook(MintHookERC20Proxy),
-            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC20)
+            IHookInstaller.InstallHookParams(
+                IHook(MintHookERC20Proxy),
+                0,
+                abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC20)
+            )
         );
         erc721Core.installHook(
-            IHook(MintHookERC721Proxy),
-            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC721)
+            IHookInstaller.InstallHookParams(
+                IHook(MintHookERC721Proxy),
+                0,
+                abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC721)
+            )
         );
         erc1155Core.installHook(
-            IHook(MintHookERC1155Proxy),
-            abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC1155)
+            IHookInstaller.InstallHookParams(
+                IHook(MintHookERC1155Proxy),
+                0,
+                abi.encodeWithSelector(Multicallable.multicall.selector, multicallInitializeDataERC1155)
+            )
         );
 
         vm.stopPrank();

@@ -20,7 +20,7 @@ import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
 import {IERC721} from "src/interface/eip/IERC721.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 /**
  *  This test showcases how users would use ERC-721 contracts on the thirdweb platform.
@@ -186,19 +186,27 @@ contract ERC721CoreBenchmarkTest is Test {
 
         multicallDataMintHook[1] = abi.encodeWithSelector(AllowlistMintHookERC721.setClaimCondition.selector, condition);
 
-        bytes memory initializeDataLazyMint =
-            abi.encodeWithSelector(LazyMintHook.lazyMint.selector, 3, "https://example.com/", "");
-
         // Developer installs `AllowlistMintHookERC721` extension
-        vm.startPrank(platformUser);
+        {
+            vm.startPrank(platformUser);
 
-        erc721.installHook(
-            IHook(extensionProxyAddress),
-            abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
-        );
-        erc721.installHook(IHook(lazyMintHookProxyAddress), initializeDataLazyMint);
+            erc721.installHook(
+                IHookInstaller.InstallHookParams(
+                    IHook(extensionProxyAddress),
+                    0,
+                    abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+                )
+            );
+            erc721.installHook(
+                IHookInstaller.InstallHookParams(
+                    IHook(lazyMintHookProxyAddress),
+                    0,
+                    abi.encodeWithSelector(LazyMintHook.lazyMint.selector, 3, "https://example.com/", "")
+                )
+            );
 
-        vm.stopPrank();
+            vm.stopPrank();
+        }
 
         vm.deal(claimer, 10 ether);
     }
@@ -422,7 +430,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.installHook(mockHook, bytes(""));
+        extensionConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
     }
 
     function test_installfiveHooks() public {
@@ -439,7 +447,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.installHook(mockHook, bytes(""));
+        extensionConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
     }
 
     function test_uninstallOneHook() public {
@@ -450,7 +458,7 @@ contract ERC721CoreBenchmarkTest is Test {
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.installHook(mockHook, bytes(""));
+        extensionConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
 
         vm.prank(platformUser);
 
@@ -470,7 +478,7 @@ contract ERC721CoreBenchmarkTest is Test {
         extensionConsumer.uninstallHook(IHook(extensionProxyAddress));
 
         vm.prank(platformUser);
-        extensionConsumer.installHook(mockHook, bytes(""));
+        extensionConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
 
         vm.prank(platformUser);
 
