@@ -40,7 +40,7 @@ contract MintHookERC20Test is Test {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     bytes32 private constant TYPEHASH = keccak256(
-        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+        "MintRequest(address minter,address token,uint256 tokenId,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
     );
     bytes32 public domainSeparator;
 
@@ -193,7 +193,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -252,7 +252,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -331,7 +331,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -415,7 +415,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: 1 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -475,7 +475,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -523,7 +523,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -583,7 +583,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -650,7 +650,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -707,7 +707,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -759,7 +759,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -811,7 +811,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -865,7 +865,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -917,7 +917,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -971,7 +971,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1023,7 +1023,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: address(new MockERC20()),
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1077,7 +1077,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: 0.01 ether,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1133,7 +1133,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1193,7 +1193,7 @@ contract MintHookERC20Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1220,9 +1220,9 @@ contract MintHookERC20Test is Test {
     {
         bytes memory encodedRequest = abi.encode(
             TYPEHASH,
+            _req.minter,
             _req.token,
             _req.tokenId,
-            _req.minter,
             _req.quantity,
             _req.pricePerToken,
             _req.currency,
@@ -1268,14 +1268,14 @@ contract MintHookERC20Test is Test {
             pricePerToken: 0.2 ether,
             currency: address(currency),
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         assertEq(erc20Core.balanceOf(endUser), 0);
         assertEq(erc20Core.totalSupply(), 0);
@@ -1315,14 +1315,14 @@ contract MintHookERC20Test is Test {
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         assertEq(erc20Core.balanceOf(endUser), 0);
         assertEq(erc20Core.totalSupply(), 0);
@@ -1362,14 +1362,14 @@ contract MintHookERC20Test is Test {
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, 12345);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC20.MintHookInvalidSignature.selector));
@@ -1398,14 +1398,14 @@ contract MintHookERC20Test is Test {
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         vm.warp(req.sigValidityEndTimestamp);
 
@@ -1436,14 +1436,14 @@ contract MintHookERC20Test is Test {
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         vm.prank(endUser);
         erc20Core.mint{value: (req.pricePerToken * req.quantity) / 1 ether}(req.minter, req.quantity, abi.encode(req));

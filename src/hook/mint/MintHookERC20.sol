@@ -28,7 +28,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
 
     /// @notice The EIP-712 typehash for the mint request struct.
     bytes32 private constant TYPEHASH = keccak256(
-        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+        "MintRequest(address minter,address token,uint256 tokenId,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -244,7 +244,7 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
 
         // Check against active claim condition unless permissioned.
         MintHookERC20Storage.Data storage data = MintHookERC20Storage.data();
-        if (req.permissionSignature.length > 0) {
+        if (req.signature.length > 0) {
             verifyPermissionedClaim(req);
             data.uidUsed[req.sigUid] = true;
         } else {
@@ -366,9 +366,9 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
             keccak256(
                 abi.encode(
                     TYPEHASH,
+                    _req.minter,
                     _req.token,
                     _req.tokenId,
-                    _req.minter,
                     _req.quantity,
                     _req.pricePerToken,
                     _req.currency,
@@ -379,6 +379,6 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
                     _req.sigUid
                 )
             )
-        ).recover(_req.permissionSignature);
+        ).recover(_req.signature);
     }
 }

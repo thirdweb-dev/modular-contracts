@@ -40,7 +40,7 @@ contract MintHookERC721Test is Test {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     bytes32 private constant TYPEHASH = keccak256(
-        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+        "MintRequest(address minter,address token,uint256 tokenId,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
     );
     bytes32 public domainSeparator;
 
@@ -194,7 +194,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -203,7 +203,7 @@ contract MintHookERC721Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc721Core.mint{value: condition.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: condition.pricePerToken * req.quantity}(req);
 
         assertEq(erc721Core.balanceOf(endUser), 5);
         assertEq(MintHook.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
@@ -251,7 +251,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -260,7 +260,7 @@ contract MintHookERC721Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc721Core.mint{value: condition.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: condition.pricePerToken * req.quantity}(req);
 
         assertEq(erc721Core.balanceOf(endUser), 5);
         assertEq(MintHook.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
@@ -328,7 +328,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -337,7 +337,7 @@ contract MintHookERC721Test is Test {
         vm.warp(condition.startTimestamp + 1);
 
         vm.prank(endUser);
-        erc721Core.mint{value: condition.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: condition.pricePerToken * req.quantity}(req);
 
         assertEq(erc721Core.balanceOf(endUser), 5);
         assertEq(MintHook.getClaimCondition(address(erc721Core)).supplyClaimed, 5);
@@ -410,14 +410,14 @@ contract MintHookERC721Test is Test {
             pricePerToken: 1 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
         });
 
         vm.prank(endUser);
-        erc721Core.mint{value: 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: 1 ether}(req);
 
         assertEq(developer.balance, 0.9 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether); // platform fee recipient
@@ -456,14 +456,14 @@ contract MintHookERC721Test is Test {
             pricePerToken: 1 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
         });
 
         vm.prank(endUser);
-        erc721Core.mint{value: 1 ether}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: 1 ether}(req);
 
         assertEq(developer.balance, 0.9 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether); // platform fee recipient
@@ -492,7 +492,7 @@ contract MintHookERC721Test is Test {
         req2.tokenId = 1;
 
         vm.prank(endUser);
-        erc721Core.mint{value: 1 ether}(req2.minter, req2.quantity, abi.encode(req2));
+        erc721Core.mint{value: 1 ether}(req2);
 
         assertEq(developer.balance, 0.9 ether + 0.8 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether + 0.2 ether); // platform fee recipient
@@ -545,7 +545,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -559,7 +559,7 @@ contract MintHookERC721Test is Test {
                 condition.pricePerToken * req.quantity - 1
             )
         );
-        erc721Core.mint{value: condition.pricePerToken * req.quantity - 1}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: condition.pricePerToken * req.quantity - 1}(req);
     }
 
     function test_beforeMint_revert_erc20Price_sentMsgValue() public {
@@ -591,7 +591,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -599,7 +599,7 @@ contract MintHookERC721Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidPrice.selector, 0, 1 wei));
-        erc721Core.mint{value: 1 wei}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: 1 wei}(req);
     }
 
     function test_beforeMint_state_permissionlessMint_erc20Price() public {
@@ -657,7 +657,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -668,7 +668,7 @@ contract MintHookERC721Test is Test {
         currency.approve(address(MintHook), condition.pricePerToken * 5);
 
         vm.prank(endUser);
-        erc721Core.mint(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint(req);
 
         assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 5);
         assertEq(erc721Core.balanceOf(endUser), 5);
@@ -735,14 +735,14 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
         });
 
         vm.prank(endUser);
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 5);
         assertEq(erc721Core.balanceOf(endUser), 5);
@@ -754,162 +754,6 @@ contract MintHookERC721Test is Test {
 
         assertEq(developer.balance, 0.9 ether);
         assertEq(platformAdmin.balance, 0.1 ether);
-    }
-
-    function test_beforeMint_revert_permissionlessMint_callerNotMintRequestToken() public {
-        // Developer sets claim condition
-        IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
-            startTimestamp: 0,
-            endTimestamp: 200,
-            maxClaimableSupply: 1000,
-            supplyClaimed: 0,
-            quantityLimitPerWallet: 10,
-            merkleRoot: allowlistRoot,
-            pricePerToken: 0.2 ether,
-            currency: NATIVE_TOKEN,
-            metadata: "ipfs:Qme123"
-        });
-
-        vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
-        );
-
-        // Developer sets fee config
-        IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
-            primarySaleRecipient: developer,
-            platformFeeRecipient: platformAdmin,
-            platformFeeBps: 1000 // 10%
-        });
-
-        vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
-        );
-
-        // End user claims 5 tokens.
-
-        IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
-            token: address(0x3232),
-            tokenId: 0,
-            minter: endUser,
-            quantity: 5,
-            pricePerToken: condition.pricePerToken,
-            currency: condition.currency,
-            allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
-            sigValidityStartTimestamp: 0,
-            sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
-        });
-
-        vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookNotToken.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(endUser, req.quantity, abi.encode(req));
-    }
-
-    function test_beforeMint_revert_permissionlessMint_minterNotMintRequestMinter() public {
-        // Developer sets claim condition
-        IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
-            startTimestamp: 0,
-            endTimestamp: 200,
-            maxClaimableSupply: 1000,
-            supplyClaimed: 0,
-            quantityLimitPerWallet: 10,
-            merkleRoot: allowlistRoot,
-            pricePerToken: 0.2 ether,
-            currency: NATIVE_TOKEN,
-            metadata: "ipfs:Qme123"
-        });
-
-        vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
-        );
-
-        // Developer sets fee config
-        IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
-            primarySaleRecipient: developer,
-            platformFeeRecipient: platformAdmin,
-            platformFeeBps: 1000 // 10%
-        });
-
-        vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
-        );
-
-        // End user claims 5 tokens.
-
-        IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
-            token: address(erc721Core),
-            tokenId: 0,
-            minter: developer, // not end user
-            quantity: 5,
-            pricePerToken: condition.pricePerToken,
-            currency: condition.currency,
-            allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
-            sigValidityStartTimestamp: 0,
-            sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
-        });
-
-        vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidRecipient.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(endUser, req.quantity, abi.encode(req));
-    }
-
-    function test_beforeMint_revert_permissionlessMint_quantityToMintNotMintRequestQuantity() public {
-        // Developer sets claim condition
-        IClaimCondition.ClaimCondition memory condition = IClaimCondition.ClaimCondition({
-            startTimestamp: 0,
-            endTimestamp: 200,
-            maxClaimableSupply: 1000,
-            supplyClaimed: 0,
-            quantityLimitPerWallet: 10,
-            merkleRoot: allowlistRoot,
-            pricePerToken: 0.2 ether,
-            currency: NATIVE_TOKEN,
-            metadata: "ipfs:Qme123"
-        });
-
-        vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC721.setClaimCondition.selector, condition, false)
-        );
-
-        // Developer sets fee config
-        IFeeConfig.FeeConfig memory feeConfig = IFeeConfig.FeeConfig({
-            primarySaleRecipient: developer,
-            platformFeeRecipient: platformAdmin,
-            platformFeeBps: 1000 // 10%
-        });
-
-        vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(MintHookERC721.setDefaultFeeConfig.selector, feeConfig)
-        );
-
-        // End user claims 5 tokens.
-
-        IMintRequest.MintRequest memory req = IMintRequest.MintRequest({
-            token: address(erc721Core),
-            tokenId: 0,
-            minter: endUser,
-            quantity: 5,
-            pricePerToken: condition.pricePerToken,
-            currency: condition.currency,
-            allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
-            sigValidityStartTimestamp: 0,
-            sigValidityEndTimestamp: 0,
-            sigUid: bytes32("random-1")
-        });
-
-        vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidQuantity.selector, req.quantity - 1));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity - 1, abi.encode(req));
     }
 
     function test_beforeMint_revert_permissionlessMint_mintNotStarted() public {
@@ -953,7 +797,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -961,7 +805,7 @@ contract MintHookERC721Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookMintNotStarted.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_mintEnded() public {
@@ -1005,7 +849,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1015,7 +859,7 @@ contract MintHookERC721Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookMintEnded.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_notInAllowlist() public {
@@ -1059,7 +903,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1067,7 +911,7 @@ contract MintHookERC721Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookNotInAllowlist.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidCurrency() public {
@@ -1111,7 +955,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: address(new MockERC20()),
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1121,7 +965,7 @@ contract MintHookERC721Test is Test {
         vm.expectRevert(
             abi.encodeWithSelector(MintHookERC721.MintHookInvalidCurrency.selector, condition.currency, req.currency)
         );
-        erc721Core.mint(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidPrice() public {
@@ -1165,7 +1009,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: 0.01 ether,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1177,7 +1021,7 @@ contract MintHookERC721Test is Test {
                 MintHookERC721.MintHookInvalidPrice.selector, condition.pricePerToken, req.pricePerToken
             )
         );
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_invalidQuantity() public {
@@ -1221,7 +1065,7 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
@@ -1231,13 +1075,13 @@ contract MintHookERC721Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidQuantity.selector, req.quantity));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         req.quantity = 0;
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidQuantity.selector, req.quantity));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionlessMint_maxSupplyClaimed() public {
@@ -1281,20 +1125,20 @@ contract MintHookERC721Test is Test {
             pricePerToken: condition.pricePerToken,
             currency: condition.currency,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 0,
             sigUid: bytes32("random-1")
         });
 
         vm.prank(endUser);
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         req.minter = developer;
 
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookMaxSupplyClaimed.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(developer, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -1308,9 +1152,9 @@ contract MintHookERC721Test is Test {
     {
         bytes memory encodedRequest = abi.encode(
             TYPEHASH,
+            _req.minter,
             _req.token,
             _req.tokenId,
-            _req.minter,
             _req.quantity,
             _req.pricePerToken,
             _req.currency,
@@ -1356,14 +1200,14 @@ contract MintHookERC721Test is Test {
             pricePerToken: 0.2 ether,
             currency: address(currency),
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 0);
         assertEq(erc721Core.balanceOf(endUser), 0);
@@ -1378,7 +1222,7 @@ contract MintHookERC721Test is Test {
         assertEq(currency.balanceOf(platformAdmin), 0);
 
         vm.prank(endUser);
-        erc721Core.mint(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint(req);
 
         assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 5);
         assertEq(erc721Core.balanceOf(endUser), 5);
@@ -1414,14 +1258,14 @@ contract MintHookERC721Test is Test {
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 0);
         assertEq(erc721Core.balanceOf(endUser), 0);
@@ -1436,7 +1280,7 @@ contract MintHookERC721Test is Test {
         assertEq(platformAdmin.balance, 0);
 
         vm.prank(endUser);
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         assertEq(MintHook.getNextTokenIdToMint(address(erc721Core)), 5);
         assertEq(erc721Core.balanceOf(endUser), 5);
@@ -1472,18 +1316,18 @@ contract MintHookERC721Test is Test {
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, 12345);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookInvalidSignature.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionedMint_requestExpired() public {
@@ -1508,20 +1352,20 @@ contract MintHookERC721Test is Test {
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         vm.warp(req.sigValidityEndTimestamp);
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookRequestExpired.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 
     function test_beforeMint_revert_permissionedMint_requestUsed() public {
@@ -1546,20 +1390,20 @@ contract MintHookERC721Test is Test {
             pricePerToken: 0.2 ether,
             currency: NATIVE_TOKEN,
             allowlistProof: allowlistProof,
-            permissionSignature: new bytes(0),
+            signature: new bytes(0),
             sigValidityStartTimestamp: 0,
             sigValidityEndTimestamp: 200,
             sigUid: bytes32("random-1")
         });
 
         bytes memory sig = _signMintRequest(req, developerPKey);
-        req.permissionSignature = sig;
+        req.signature = sig;
 
         vm.prank(endUser);
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(MintHookERC721.MintHookRequestUsed.selector));
-        erc721Core.mint{value: req.pricePerToken * req.quantity}(req.minter, req.quantity, abi.encode(req));
+        erc721Core.mint{value: req.pricePerToken * req.quantity}(req);
     }
 }

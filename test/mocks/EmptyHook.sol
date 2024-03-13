@@ -32,7 +32,9 @@ contract EmptyHookERC721 is ERC721Hook {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+    error EmptyHookNotToken();
+
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         virtual
@@ -40,11 +42,14 @@ contract EmptyHookERC721 is ERC721Hook {
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
         address token = msg.sender;
+        if (_mintRequest.token != msg.sender) {
+            revert EmptyHookNotToken();
+        }
 
         tokenIdToMint = nextTokenIdToMint[token];
-        nextTokenIdToMint[token] += _quantity;
+        nextTokenIdToMint[token] += _mintRequest.quantity;
 
-        quantityToMint = _quantity;
+        quantityToMint = _mintRequest.quantity;
     }
 }
 

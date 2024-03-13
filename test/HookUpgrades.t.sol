@@ -10,7 +10,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
@@ -59,6 +59,8 @@ contract HookUpgradesTest is Test {
 
     // Minting params
     bytes public encodedAllowlistProof;
+
+    IERC721Hook.MintRequest public mintRequest;
 
     function setUp() public {
         // Platform deploys hook implementations
@@ -205,6 +207,9 @@ contract HookUpgradesTest is Test {
         bytes32[] memory allowlistProof = merkle.getProof(data, 0);
 
         encodedAllowlistProof = abi.encode(allowlistProof);
+
+        mintRequest.minter = endUser;
+        mintRequest.allowlistProof = allowlistProof;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -265,8 +270,12 @@ contract HookUpgradesTest is Test {
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether);
 
+        mintRequest.quantity = 1;
+        mintRequest.token = address(erc721Core);
+        mintRequest.pricePerToken = pricePerToken;
+
         vm.prank(endUser);
-        erc721Core.mint{value: pricePerToken}(endUser, 1, encodedAllowlistProof);
+        erc721Core.mint{value: pricePerToken}(mintRequest);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
         //      Money stuck in hook contract.
@@ -284,7 +293,7 @@ contract HookUpgradesTest is Test {
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
-        erc721Core.mint{value: pricePerToken}(endUser, 1, encodedAllowlistProof);
+        erc721Core.mint{value: pricePerToken}(mintRequest);
 
         assertEq(MintHookERC721Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
