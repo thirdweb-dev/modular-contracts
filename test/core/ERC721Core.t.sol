@@ -10,7 +10,6 @@ import {IERC721A} from "erc721a/IERC721A.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {IERC721} from "src/interface/eip/IERC721.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";

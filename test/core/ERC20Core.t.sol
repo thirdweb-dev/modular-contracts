@@ -9,7 +9,6 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC20Hook} from "src/interface/hook/IERC20Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";

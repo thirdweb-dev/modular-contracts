@@ -13,7 +13,6 @@ import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.sol";
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
-import {IERC1155} from "src/interface/eip/IERC1155.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC1155Hook} from "src/interface/hook/IERC1155Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";

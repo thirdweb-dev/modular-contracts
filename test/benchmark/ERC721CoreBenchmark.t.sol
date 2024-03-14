@@ -17,7 +17,6 @@ import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {ERC721Hook, AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
 import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
-import {IERC721} from "src/interface/eip/IERC721.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";

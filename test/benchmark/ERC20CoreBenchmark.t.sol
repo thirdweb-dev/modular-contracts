@@ -12,7 +12,6 @@ import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/MockHookImpl.sol
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
-import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC20Hook} from "src/interface/hook/IERC20Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
