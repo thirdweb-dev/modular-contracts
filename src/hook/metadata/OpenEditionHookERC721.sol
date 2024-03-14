@@ -36,7 +36,14 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook, Multicallable {
 
     /// @notice Returns all hook functions implemented by this hook contract.
     function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = TOKEN_URI_FLAG();
+        hooksImplemented = ON_TOKEN_URI_FLAG();
+    }
+
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = this.setSharedMetadata.selector;
+        return selectors;
     }
 
     /**
@@ -44,7 +51,7 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook, Multicallable {
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function tokenURI(uint256 _id) external view override returns (string memory) {
+    function onTokenURI(uint256 _id) external view override returns (string memory) {
         return _getURIFromSharedMetadata(msg.sender, _id);
     }
 

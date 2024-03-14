@@ -7,11 +7,24 @@ import {IERC721A, ERC721A, ERC721AQueryable} from "erc721a/extensions/ERC721AQue
 
 import {HookInstaller} from "../HookInstaller.sol";
 
+import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
 import {IERC721Hook} from "../../interface/hook/IERC721Hook.sol";
 import {IERC7572} from "../../interface/eip/IERC7572.sol";
 
-contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, IERC7572, IERC721HookInstaller {
+import {IMintRequest} from "../../interface/common/IMintRequest.sol";
+import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
+
+contract ERC721Core is
+    ERC721AQueryable,
+    HookInstaller,
+    Ownable,
+    Multicallable,
+    IERC7572,
+    IERC721HookInstaller,
+    IMintRequest,
+    IBurnRequest
+{
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -29,10 +42,10 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice Bits representing the token URI hook.
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 6;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -117,6 +130,7 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
             }
 
             _installHook(_hooksToInstall[i].hook);
+            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
 
             if (_hooksToInstall[i].initCalldata.length > 0) {
                 (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
@@ -179,8 +193,8 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
             beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
             beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
             beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
-            tokenURI: getHookImplementation(TOKEN_URI_FLAG),
-            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
+            tokenURI: getHookImplementation(ON_TOKEN_URI_FLAG),
+            royaltyInfo: getHookImplementation(ON_ROYALTY_INFO_FLAG)
         });
     }
 
@@ -198,26 +212,23 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
     }
 
     /**
-     *  @notice Mints a token. Calls the beforeMint hook.
+     *  @notice Mints tokens. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
-     *  @param _to The address to mint the token to.
-     *  @param _quantity The quantity of tokens to mint.
-     *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
+     *  @param _mintRequest The request to mint tokens.
      */
-    function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
-        (, uint256 quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
-        _mint(_to, quantityToMint);
+    function mint(MintRequest calldata _mintRequest) external payable {
+        (, uint256 quantityToMint) = _beforeMint(_mintRequest);
+        _mint(_mintRequest.minter, quantityToMint);
     }
 
     /**
      *  @notice Burns an NFT.
      *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
-     *  @param _tokenId The token ID of the NFT to burn.
-     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
+     *  @param _burnRequest The request to burn a token.
      */
-    function burn(uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) external {
-        _beforeBurn(ownerOf(_tokenId), _tokenId, _encodedBeforeBurnArgs);
-        _burn(_tokenId, true);
+    function burn(BurnRequest calldata _burnRequest) external {
+        _beforeBurn(_burnRequest);
+        _burn(_burnRequest.tokenId, true);
     }
 
     /**
@@ -269,7 +280,7 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return uint8(ROYALTY_INFO_FLAG);
+        return uint8(ON_ROYALTY_INFO_FLAG);
     }
 
     /// @dev Sets contract URI
@@ -283,7 +294,7 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address _to, uint256 _quantity, bytes memory _data)
+    function _beforeMint(MintRequest calldata _mintRequest)
         internal
         virtual
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
@@ -291,9 +302,8 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(IERC721Hook.beforeMint.selector, _to, _quantity, _data)
-            );
+            (bool success, bytes memory returndata) =
+                hook.call{value: msg.value}(abi.encodeWithSelector(IERC721Hook.beforeMint.selector, _mintRequest));
             if (!success) _revert(returndata, ERC721CoreHookCallFailed.selector);
             (tokenIdToMint, quantityToMint) = abi.decode(returndata, (uint256, uint256));
         } else {
@@ -314,13 +324,12 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) internal virtual {
+    function _beforeBurn(BurnRequest calldata _burnRequest) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(IERC721Hook.beforeBurn.selector, _from, _tokenId, _encodedBeforeBurnArgs)
-            );
+            (bool success, bytes memory returndata) =
+                hook.call{value: msg.value}(abi.encodeWithSelector(IERC721Hook.beforeBurn.selector, _burnRequest));
             if (!success) _revert(returndata, ERC721CoreHookCallFailed.selector);
         }
     }
@@ -339,10 +348,10 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
 
     /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory uri) {
-        address hook = getHookImplementation(TOKEN_URI_FLAG);
+        address hook = getHookImplementation(ON_TOKEN_URI_FLAG);
 
         if (hook != address(0)) {
-            uri = IERC721Hook(hook).tokenURI(_tokenId);
+            uri = IERC721Hook(hook).onTokenURI(_tokenId);
         }
     }
 
@@ -353,10 +362,10 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address hook = getHookImplementation(ROYALTY_INFO_FLAG);
+        address hook = getHookImplementation(ON_ROYALTY_INFO_FLAG);
 
         if (hook != address(0)) {
-            (receiver, royaltyAmount) = IERC721Hook(hook).royaltyInfo(_tokenId, _salePrice);
+            (receiver, royaltyAmount) = IERC721Hook(hook).onRoyaltyInfo(_tokenId, _salePrice);
         }
     }
 }

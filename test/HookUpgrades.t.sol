@@ -10,6 +10,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/hook/IHook.sol";
+import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
@@ -59,6 +60,8 @@ contract HookUpgradesTest is Test {
 
     // Minting params
     bytes public encodedAllowlistProof;
+
+    IERC721Hook.MintRequest public mintRequest;
 
     function setUp() public {
         // Platform deploys hook implementations
@@ -214,6 +217,9 @@ contract HookUpgradesTest is Test {
         bytes32[] memory allowlistProof = merkle.getProof(data, 0);
 
         encodedAllowlistProof = abi.encode(allowlistProof);
+
+        mintRequest.minter = endUser;
+        mintRequest.allowlistProof = allowlistProof;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -228,13 +234,18 @@ contract HookUpgradesTest is Test {
         // End user claims token: BUG: pays price but contract fails to distribute it!
 
         // Claim token
+        mintRequest.token = address(erc20Core);
 
         assertEq(MintHookERC20Proxy.balance, 0);
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether);
 
+        mintRequest.minter = endUser;
+        mintRequest.quantity = 1 ether;
+        mintRequest.allowlistProof = abi.decode(encodedAllowlistProof, (bytes32[]));
+
         vm.prank(endUser);
-        erc20Core.mint{value: pricePerToken}(endUser, 1 ether, encodedAllowlistProof);
+        erc20Core.mint{value: pricePerToken}(mintRequest);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
         //      Money stuck in hook contract.
@@ -251,8 +262,13 @@ contract HookUpgradesTest is Test {
         AllowlistMintHookERC20(MintHookERC20Proxy).upgradeToAndCall(address(MintHookERC20Impl), bytes(""));
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
+
+        mintRequest.minter = endUser;
+        mintRequest.quantity = 1 ether;
+        mintRequest.allowlistProof = abi.decode(encodedAllowlistProof, (bytes32[]));
+
         vm.prank(endUser);
-        erc20Core.mint{value: pricePerToken}(endUser, 1 ether, encodedAllowlistProof);
+        erc20Core.mint{value: pricePerToken}(mintRequest);
 
         assertEq(MintHookERC20Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
@@ -274,8 +290,12 @@ contract HookUpgradesTest is Test {
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether);
 
+        mintRequest.quantity = 1;
+        mintRequest.token = address(erc721Core);
+        mintRequest.pricePerToken = pricePerToken;
+
         vm.prank(endUser);
-        erc721Core.mint{value: pricePerToken}(endUser, 1, encodedAllowlistProof);
+        erc721Core.mint{value: pricePerToken}(mintRequest);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
         //      Money stuck in hook contract.
@@ -293,7 +313,7 @@ contract HookUpgradesTest is Test {
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
         vm.prank(endUser);
-        erc721Core.mint{value: pricePerToken}(endUser, 1, encodedAllowlistProof);
+        erc721Core.mint{value: pricePerToken}(mintRequest);
 
         assertEq(MintHookERC721Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);
@@ -314,12 +334,19 @@ contract HookUpgradesTest is Test {
 
         // Claim token
 
+        mintRequest.token = address(erc1155Core);
+
         assertEq(MintHookERC1155Proxy.balance, 0);
         assertEq(developer.balance, 0);
         assertEq(endUser.balance, 100 ether);
 
         vm.prank(endUser);
-        erc1155Core.mint{value: pricePerToken}(endUser, tokenId, 1, encodedAllowlistProof);
+        mintRequest.minter = endUser;
+        mintRequest.tokenId = tokenId;
+        mintRequest.quantity = 1;
+        mintRequest.allowlistProof = abi.decode(encodedAllowlistProof, (bytes32[]));
+
+        erc1155Core.mint{value: pricePerToken}(mintRequest);
 
         // BUG: Contract fails to distribute price to primary sale recipient.
         //      Money stuck in hook contract.
@@ -336,8 +363,13 @@ contract HookUpgradesTest is Test {
         AllowlistMintHookERC1155(MintHookERC1155Proxy).upgradeToAndCall(address(MintHookERC1155Impl), bytes(""));
 
         // Claim token again; this time sale value gets distributed to primary sale recipient.
+        mintRequest.minter = endUser;
+        mintRequest.tokenId = tokenId;
+        mintRequest.quantity = 1;
+        mintRequest.allowlistProof = abi.decode(encodedAllowlistProof, (bytes32[]));
+
         vm.prank(endUser);
-        erc1155Core.mint{value: pricePerToken}(endUser, tokenId, 1, encodedAllowlistProof);
+        erc1155Core.mint{value: pricePerToken}(mintRequest);
 
         assertEq(MintHookERC1155Proxy.balance, pricePerToken);
         assertEq(developer.balance, pricePerToken);

@@ -10,8 +10,19 @@ import {HookInstaller} from "../HookInstaller.sol";
 import {IERC1155HookInstaller} from "../../interface/hook/IERC1155HookInstaller.sol";
 import {IERC1155Hook} from "../../interface/hook/IERC1155Hook.sol";
 import {IERC7572} from "../../interface/eip/IERC7572.sol";
+import {IMintRequest} from "../../interface/common/IMintRequest.sol";
+import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
 
-contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572, IERC1155HookInstaller {
+contract ERC1155Core is
+    ERC1155,
+    HookInstaller,
+    Ownable,
+    Multicallable,
+    IERC7572,
+    IERC1155HookInstaller,
+    IMintRequest,
+    IBurnRequest
+{
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -29,10 +40,10 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice Bits representing the token URI hook.
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 6;
 
     /// @notice Bits representing the before transfer hook.
     uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2 ** 7;
@@ -125,6 +136,7 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
             }
 
             _installHook(_hooksToInstall[i].hook);
+            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
 
             if (_hooksToInstall[i].initCalldata.length > 0) {
                 (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
@@ -206,8 +218,8 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
             beforeBatchTransfer: getHookImplementation(BEFORE_BATCH_TRANSFER_FLAG),
             beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
             beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
-            uri: getHookImplementation(TOKEN_URI_FLAG),
-            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
+            uri: getHookImplementation(ON_TOKEN_URI_FLAG),
+            royaltyInfo: getHookImplementation(ON_ROYALTY_INFO_FLAG)
         });
     }
 
@@ -227,32 +239,23 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
     /**
      *  @notice Mints tokens with a given tokenId. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
-     *  @param _to The address to mint the token to.
-     *  @param _tokenId The tokenId to mint.
-     *  @param _value The amount of tokens to mint.
-     *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
+     *  @param _mintRequest The token mint request details.
      */
-    function mint(address _to, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeMintArgs)
-        external
-        payable
-    {
-        (uint256 tokenIdToMint, uint256 quantityToMint) = _beforeMint(_to, _tokenId, _value, _encodedBeforeMintArgs);
-        _mint(_to, tokenIdToMint, quantityToMint, "");
+    function mint(MintRequest calldata _mintRequest) external payable {
+        (uint256 tokenIdToMint, uint256 quantityToMint) = _beforeMint(_mintRequest);
+        _mint(_mintRequest.minter, tokenIdToMint, quantityToMint, "");
         totalSupply_[tokenIdToMint] += quantityToMint;
     }
 
     /**
      *  @notice Burns given amount of tokens.
      *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
-     *  @param _from Owner of the tokens
-     *  @param _tokenId The token ID of the NFTs to burn.
-     *  @param _value The amount of tokens to burn.
-     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
+     *  @param _burnRequest The token burn request details.
      */
-    function burn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs) external {
-        _beforeBurn(_from, _tokenId, _value, _encodedBeforeBurnArgs);
-        _burn(msg.sender, _from, _tokenId, _value);
-        totalSupply_[_tokenId] -= _value;
+    function burn(BurnRequest calldata _burnRequest) external {
+        _beforeBurn(_burnRequest);
+        _burn(msg.sender, _burnRequest.owner, _burnRequest.tokenId, _burnRequest.quantity);
+        totalSupply_[_burnRequest.tokenId] -= _burnRequest.quantity;
     }
 
     /**
@@ -329,7 +332,7 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data)
+    function _beforeMint(MintRequest calldata _mintRequest)
         internal
         virtual
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
@@ -337,9 +340,8 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(IERC1155Hook.beforeMint.selector, _to, _tokenId, _value, _data)
-            );
+            (bool success, bytes memory returndata) =
+                hook.call{value: msg.value}(abi.encodeWithSelector(IERC1155Hook.beforeMint.selector, _mintRequest));
             if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
             (tokenIdToMint, quantityToMint) = abi.decode(returndata, (uint256, uint256));
         } else {
@@ -375,18 +377,12 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _tokenId, uint256 _value, bytes memory _encodedBeforeBurnArgs)
-        internal
-        virtual
-    {
+    function _beforeBurn(BurnRequest calldata _burnRequest) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(
-                    IERC1155Hook.beforeBurn.selector, _from, _tokenId, _value, _encodedBeforeBurnArgs
-                )
-            );
+            (bool success, bytes memory returndata) =
+                hook.call{value: msg.value}(abi.encodeWithSelector(IERC1155Hook.beforeBurn.selector, _burnRequest));
             if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
         }
     }
@@ -405,10 +401,10 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
 
     /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory _uri) {
-        address hook = getHookImplementation(TOKEN_URI_FLAG);
+        address hook = getHookImplementation(ON_TOKEN_URI_FLAG);
 
         if (hook != address(0)) {
-            _uri = IERC1155Hook(hook).uri(_tokenId);
+            _uri = IERC1155Hook(hook).onUri(_tokenId);
         }
     }
 
@@ -419,10 +415,10 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address hook = getHookImplementation(ROYALTY_INFO_FLAG);
+        address hook = getHookImplementation(ON_ROYALTY_INFO_FLAG);
 
         if (hook != address(0)) {
-            (receiver, royaltyAmount) = IERC1155Hook(hook).royaltyInfo(_tokenId, _salePrice);
+            (receiver, royaltyAmount) = IERC1155Hook(hook).onRoyaltyInfo(_tokenId, _salePrice);
         }
     }
 }
