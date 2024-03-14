@@ -9,20 +9,10 @@ import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
 import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
 
-contract ERC20Core is
-    ERC20,
-    HookInstaller,
-    Ownable,
-    Multicallable,
-    IERC7572,
-    IERC20HookInstaller,
-    IMintRequest,
-    IBurnRequest
-{
+contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookInstaller, IMintRequest, IBurnRequest {
     /*//////////////////////////////////////////////////////////////
                                   CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -70,6 +60,13 @@ contract ERC20Core is
 
     /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
     error ERC20CoreMintDisabled();
+
+    /*//////////////////////////////////////////////////////////////
+                               EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when the contract URI is updated.
+    event ContractURIUpdated();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -158,7 +155,7 @@ contract ERC20Core is
      *  @notice Returns the contract URI of the contract.
      *  @return uri The contract URI of the contract.
      */
-    function contractURI() external view override returns (string memory) {
+    function contractURI() external view returns (string memory) {
         return contractURI_;
     }
 

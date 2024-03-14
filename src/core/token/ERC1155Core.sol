@@ -9,7 +9,6 @@ import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC1155HookInstaller} from "../../interface/hook/IERC1155HookInstaller.sol";
 import {IERC1155Hook} from "../../interface/hook/IERC1155Hook.sol";
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
 
@@ -18,7 +17,6 @@ contract ERC1155Core is
     HookInstaller,
     Ownable,
     Multicallable,
-    IERC7572,
     IERC1155HookInstaller,
     IMintRequest,
     IBurnRequest
@@ -82,6 +80,13 @@ contract ERC1155Core is
 
     /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
     error ERC1155CoreMintDisabled();
+
+    /*//////////////////////////////////////////////////////////////
+                               EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when the contract URI is updated.
+    event ContractURIUpdated();
 
     /**
      *  @notice Initializes the ERC1155 NFT collection.
@@ -166,7 +171,7 @@ contract ERC1155Core is
      *  @notice Returns the contract URI of the contract.
      *  @return uri The contract URI of the contract.
      */
-    function contractURI() external view override returns (string memory) {
+    function contractURI() external view returns (string memory) {
         return contractURI_;
     }
 
