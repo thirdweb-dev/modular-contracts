@@ -101,6 +101,20 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
+        _funcs = new bytes4[](9);
+        _funcs[0] = this.verifyClaim.selector;
+        _funcs[1] = this.verifyPermissionedClaim.selector;
+        _funcs[2] = this.getSupplyClaimedByWallet.selector;
+        _funcs[3] = this.setDefaultFeeConfig.selector;
+        _funcs[4] = this.getDefaultFeeConfig.selector;
+        _funcs[5] = this.getClaimCondition.selector;
+        _funcs[6] = this.setClaimCondition.selector;
+        _funcs[7] = this.getFeeConfigForToken.selector;
+        _funcs[8] = this.setFeeConfigForToken.selector;
+    }
+
     /// @notice Returns the claim condition for a given token.
     function getClaimCondition(address _token, uint256 _tokenId)
         external

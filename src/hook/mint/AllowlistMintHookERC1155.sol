@@ -78,6 +78,17 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook, Multicallable {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
+        _funcs = new bytes4[](6);
+        _funcs[0] = this.setFeeConfigForToken.selector;
+        _funcs[1] = this.getDefaultFeeConfig.selector;
+        _funcs[2] = this.getClaimCondition.selector;
+        _funcs[3] = this.setClaimCondition.selector;
+        _funcs[4] = this.getFeeConfigForToken.selector;
+        _funcs[5] = this.setDefaultFeeConfig.selector;
+    }
+
     /// @notice Returns the fee config for a token.
     function getFeeConfigForToken(address _token, uint256 _id) external view returns (FeeConfig memory) {
         return AllowlistMintHookERC1155Storage.data().feeConfig[_token][_id];

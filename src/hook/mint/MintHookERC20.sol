@@ -98,6 +98,19 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
+        _funcs = new bytes4[](8);
+        _funcs[0] = this.verifyClaim.selector;
+        _funcs[1] = this.verifyPermissionedClaim.selector;
+        _funcs[2] = this.getSupplyClaimedByWallet.selector;
+        _funcs[3] = this.getFeeConfig.selector;
+        _funcs[4] = this.getDefaultFeeConfig.selector;
+        _funcs[5] = this.getClaimCondition.selector;
+        _funcs[6] = this.setClaimCondition.selector;
+        _funcs[7] = this.setDefaultFeeConfig.selector;
+    }
+
     /// @notice Returns the fee config for a token.
     function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
         return MintHookERC20Storage.data().feeConfig[_token];

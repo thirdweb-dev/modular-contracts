@@ -101,6 +101,22 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
+        _funcs = new bytes4[](11);
+        _funcs[0] = this.verifyClaim.selector;
+        _funcs[1] = this.verifyPermissionedClaim.selector;
+        _funcs[2] = this.getSupplyClaimedByWallet.selector;
+        _funcs[3] = this.setDefaultFeeConfig.selector;
+        _funcs[4] = this.getDefaultFeeConfig.selector;
+        _funcs[5] = this.getClaimCondition.selector;
+        _funcs[6] = this.setClaimCondition.selector;
+        _funcs[7] = this.setNextIdToMint.selector;
+        _funcs[8] = this.getNextTokenIdToMint.selector;
+        _funcs[9] = this.getFeeConfigForToken.selector;
+        _funcs[10] = this.setFeeConfigForToken.selector;
+    }
+
     /// @notice Returns the next token ID to mint for a given token.
     function getNextTokenIdToMint(address _token) external view returns (uint256) {
         return MintHookERC721Storage.data().nextTokenIdToMint[_token];

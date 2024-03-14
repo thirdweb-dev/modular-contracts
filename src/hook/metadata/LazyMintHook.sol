@@ -53,6 +53,15 @@ contract LazyMintHook is ERC721Hook, Multicallable {
         hooksImplemented = ON_TOKEN_URI_FLAG();
     }
 
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        bytes4[] memory selectors = new bytes4[](3);
+        selectors[0] = this.getBaseURICount.selector;
+        selectors[1] = this.getBatchIdAtIndex.selector;
+        selectors[2] = this.lazyMint.selector;
+        return selectors;
+    }
+
     /**
      *  @notice Returns the count of batches of NFTs for a token.
      *  @param _token The token address.

@@ -126,6 +126,7 @@ contract ERC721Core is ERC721, HookInstaller, Ownable, Multicallable, IERC7572, 
             }
 
             _installHook(_hooksToInstall[i].hook);
+            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
 
             if (_hooksToInstall[i].initCalldata.length > 0) {
                 (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{

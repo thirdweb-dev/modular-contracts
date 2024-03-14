@@ -75,6 +75,15 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook, Multicallable {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
+        _funcs = new bytes4[](4);
+        _funcs[0] = this.getFeeConfig.selector;
+        _funcs[1] = this.getClaimCondition.selector;
+        _funcs[2] = this.setClaimCondition.selector;
+        _funcs[3] = this.setDefaultFeeConfig.selector;
+    }
+
     /// @notice Returns the fee config for a token.
     function getFeeConfig(address _token) external view returns (FeeConfig memory) {
         return AllowlistMintHookERC20Storage.data().feeConfig[_token];

@@ -84,18 +84,14 @@ contract SimpleMetadataHookTest is Test {
         string memory tokenURI = "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/454";
 
         vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            ON_TOKEN_URI_FLAG, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI)
-        );
+        address(erc721Core).call(abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI));
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI);
 
         string memory tokenURI2 = "ipfs://QmPVMveABCDEYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/454";
 
         vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            ON_TOKEN_URI_FLAG, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2)
-        );
+        address(erc721Core).call(abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2));
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI2);
     }

@@ -42,6 +42,13 @@ contract SimpleMetadataHook is ERC721Hook, Multicallable {
         hooksImplemented = ON_TOKEN_URI_FLAG();
     }
 
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = this.setTokenURI.selector;
+        return selectors;
+    }
+
     /**
      *  @notice Returns the URI to fetch token metadata from.
      *  @dev Meant to be called by the core token contract.
