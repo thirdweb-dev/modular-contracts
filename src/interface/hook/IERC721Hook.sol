@@ -12,13 +12,6 @@ interface IERC721Hook is IHook {
     error ERC721HookNotImplemented();
 
     /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external view returns (string memory argSignature);
-
-    /*//////////////////////////////////////////////////////////////
                             HOOK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

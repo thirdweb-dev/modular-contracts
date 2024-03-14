@@ -78,11 +78,6 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook, Multicallable {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "bytes32[]";
-    }
-
     /// @notice Returns the next token ID to mint for a given token.
     function getNextTokenIdToMint(address _token) external view returns (uint256) {
         return AllowlistMintHookERC721Storage.data().nextTokenIdToMint[_token];

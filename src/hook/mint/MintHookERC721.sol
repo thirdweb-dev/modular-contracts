@@ -101,11 +101,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
-    }
-
     /// @notice Returns the next token ID to mint for a given token.
     function getNextTokenIdToMint(address _token) external view returns (uint256) {
         return MintHookERC721Storage.data().nextTokenIdToMint[_token];

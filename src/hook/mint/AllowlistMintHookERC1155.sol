@@ -78,11 +78,6 @@ contract AllowlistMintHookERC1155 is IFeeConfig, ERC1155Hook, Multicallable {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "bytes32[]";
-    }
-
     /// @notice Returns the fee config for a token.
     function getFeeConfigForToken(address _token, uint256 _id) external view returns (FeeConfig memory) {
         return AllowlistMintHookERC1155Storage.data().feeConfig[_token][_id];
