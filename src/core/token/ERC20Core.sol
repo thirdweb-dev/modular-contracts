@@ -106,34 +106,18 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
             if (constructorValue < _onInitializeCall.value) revert ERC20CoreInsufficientValueInConstructor();
             constructorValue -= _onInitializeCall.value;
 
-            (bool successOnInitialize, bytes memory returndataOnInitialize) =
+            (bool success, bytes memory returndata) =
                 _onInitializeCall.target.call{value: _onInitializeCall.value}(_onInitializeCall.data);
 
-            if (!successOnInitialize) _revert(returndataOnInitialize, ERC20CoreOnInitializeCallFailed.selector);
+            if (!success) _revert(returndata, ERC20CoreOnInitializeCallFailed.selector);
         }
 
         // Install and initialize hooks
-        bool successHookInstall;
-        bytes memory returndataHookInstall;
-
         for (uint256 i = 0; i < _hooksToInstall.length; i++) {
             if (constructorValue < _hooksToInstall[i].initCallValue) revert ERC20CoreInsufficientValueInConstructor();
-            constructorValue -= _onInitializeCall.value;
+            constructorValue -= _hooksToInstall[i].initCallValue;
 
-            if (address(_hooksToInstall[i].hook) == address(0)) {
-                revert HookInstallerInvalidHook();
-            }
-
-            _installHook(_hooksToInstall[i].hook);
-            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
-
-            if (_hooksToInstall[i].initCalldata.length > 0) {
-                (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
-                    value: _hooksToInstall[i].initCallValue
-                }(_hooksToInstall[i].initCalldata);
-
-                if (!successHookInstall) _revert(returndataHookInstall, ERC20CoreHookInitializeCallFailed.selector);
-            }
+            _installHook(_hooksToInstall[i]);
         }
     }
 
