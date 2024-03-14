@@ -74,13 +74,11 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Ownable, IERC721
 
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
-     *  @param _to The address that is minting tokens.
-     *  @param _quantity The quantity of tokens to mint.
-     *  @param _encodedArgs The encoded arguments for the beforeMint hook.
+     *  @param mintRequest The token mint request details.
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _to, uint256 _quantity, bytes memory _encodedArgs)
+    function beforeMint(MintRequest calldata mintRequest)
         external
         payable
         virtual
@@ -101,11 +99,9 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Ownable, IERC721
 
     /**
      *  @notice The beforeBurn hook that is called by a core token before burning a token.
-     *  @param _from The address that is burning tokens.
-     *  @param _tokenId The token ID being burned.
-     *  @param _encodedArgs The encoded arguments for the beforeBurn hook.
+     *  @param burnRequest The token burn request details.
      */
-    function beforeBurn(address _from, uint256 _tokenId, bytes memory _encodedArgs) external virtual {
+    function beforeBurn(BurnRequest calldata burnRequest) external virtual {
         revert ERC721HookNotImplemented();
     }
 

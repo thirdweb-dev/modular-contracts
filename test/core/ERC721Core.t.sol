@@ -11,6 +11,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {IERC721} from "src/interface/eip/IERC721.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
+import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 abstract contract ERC721TokenReceiver {
@@ -69,6 +70,9 @@ contract ERC721CoreTest is Test, TestPlus {
 
     ERC721Core public token;
 
+    IERC721Hook.MintRequest public mintRequest;
+    IERC721Hook.BurnRequest public burnRequest;
+
     function setUp() public {
         cloneFactory = new CloneFactory();
         hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC721()), "", bytes32("salt"));
@@ -101,7 +105,12 @@ contract ERC721CoreTest is Test, TestPlus {
 
     function testMint() public {
         uint256 quantity = 10;
-        token.mint(address(0xBEEF), quantity, "");
+
+        mintRequest.token = address(token);
+        mintRequest.minter = address(0xBEEF);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         assertEq(token.balanceOf(address(0xBEEF)), quantity);
 
@@ -114,10 +123,18 @@ contract ERC721CoreTest is Test, TestPlus {
         uint256 quantity = 10;
         uint256 idToBurn = 5;
 
-        token.mint(address(0xBEEF), quantity, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(0xBEEF);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
+
+        burnRequest.token = address(token);
+        burnRequest.owner = address(0xBEEF);
+        burnRequest.tokenId = idToBurn;
 
         vm.prank(address(0xBEEF));
-        token.burn(idToBurn, "");
+        token.burn(burnRequest);
 
         assertEq(token.balanceOf(address(0xBEEF)), quantity - 1);
 
@@ -129,7 +146,11 @@ contract ERC721CoreTest is Test, TestPlus {
         uint256 quantity = 10;
         uint256 idToApprove = 5;
 
-        token.mint(address(this), quantity, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         token.approve(address(0xBEEF), idToApprove);
 
@@ -139,11 +160,20 @@ contract ERC721CoreTest is Test, TestPlus {
     function testApproveBurn() public {
         uint256 quantity = 10;
         uint256 idToBurn = 5;
-        token.mint(address(this), quantity, "");
+
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         token.approve(address(0xBEEF), idToBurn);
 
-        token.burn(idToBurn, "");
+        burnRequest.token = address(token);
+        burnRequest.owner = address(this);
+        burnRequest.tokenId = idToBurn;
+
+        token.burn(burnRequest);
 
         assertEq(token.balanceOf(address(this)), quantity - 1);
 
@@ -166,7 +196,11 @@ contract ERC721CoreTest is Test, TestPlus {
 
         address from = address(0xABCD);
 
-        token.mint(from, quantity, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = from;
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.approve(address(this), tokenId);
@@ -183,7 +217,11 @@ contract ERC721CoreTest is Test, TestPlus {
         uint256 quantity = 1;
         uint256 tokenId = 0;
 
-        token.mint(address(this), quantity, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         token.transferFrom(address(this), address(0xBEEF), tokenId);
 
@@ -198,7 +236,11 @@ contract ERC721CoreTest is Test, TestPlus {
         uint256 tokenId = 0;
         address from = address(0xABCD);
 
-        token.mint(from, quantity, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(from);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -216,7 +258,11 @@ contract ERC721CoreTest is Test, TestPlus {
         uint256 tokenId = 0;
         address from = address(0xABCD);
 
-        token.mint(from, quantity, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(from);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -235,7 +281,11 @@ contract ERC721CoreTest is Test, TestPlus {
         address from = address(0xABCD);
         ERC721Recipient recipient = new ERC721Recipient();
 
-        token.mint(from, quantity, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(from);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -259,7 +309,11 @@ contract ERC721CoreTest is Test, TestPlus {
         address from = address(0xABCD);
         ERC721Recipient recipient = new ERC721Recipient();
 
-        token.mint(from, quantity, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(from);
+        mintRequest.quantity = quantity;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -279,21 +333,39 @@ contract ERC721CoreTest is Test, TestPlus {
 
     function test_revert_MintToZero() public {
         vm.expectRevert(abi.encodeWithSelector(ERC721.TransferToZeroAddress.selector));
-        token.mint(address(0), 1, "");
+
+        mintRequest.token = address(token);
+        mintRequest.minter = address(0);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
     }
 
     function test_revert_BurnUnMinted() public {
         vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
-        token.burn(10, "");
+
+        burnRequest.token = address(token);
+        burnRequest.owner = address(this);
+        burnRequest.tokenId = 10;
+
+        token.burn(burnRequest);
     }
 
     function test_revert_DoubleBurn() public {
-        token.mint(address(this), 5, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 5;
 
-        token.burn(0, "");
+        token.mint(mintRequest);
+
+        burnRequest.token = address(token);
+        burnRequest.owner = address(this);
+        burnRequest.tokenId = 1;
+
+        token.burn(burnRequest);
 
         vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
-        token.burn(0, "");
+        token.burn(burnRequest);
     }
 
     function test_revert_ApproveUnMinted() public {
@@ -302,7 +374,11 @@ contract ERC721CoreTest is Test, TestPlus {
     }
 
     function test_revert_ApproveUnAuthorized() public {
-        token.mint(address(0xCAFE), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         vm.expectRevert(abi.encodeWithSelector(ERC721.NotOwnerNorApproved.selector));
         token.approve(address(0xBEEF), 5);
@@ -314,52 +390,84 @@ contract ERC721CoreTest is Test, TestPlus {
     }
 
     function test_revert_TransferFromWrongFrom() public {
-        token.mint(address(0xCAFE), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         vm.expectRevert(abi.encodeWithSelector(ERC721.TransferFromIncorrectOwner.selector));
         token.transferFrom(address(0xFEED), address(0xBEEF), 5);
     }
 
     function test_revert_TransferFromToZero() public {
-        token.mint(address(this), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         vm.expectRevert(abi.encodeWithSelector(ERC721.TransferToZeroAddress.selector));
         token.transferFrom(address(this), address(0), 5);
     }
 
     function test_revert_TransferFromNotOwner() public {
-        token.mint(address(0xFEED), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(0xFEED);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         vm.expectRevert(abi.encodeWithSelector(ERC721.TransferFromIncorrectOwner.selector));
         token.transferFrom(address(0xCAFE), address(0xBEEF), 5);
     }
 
     function testFailSafeTransferFromToNonERC721Recipient() public {
-        token.mint(address(this), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         token.safeTransferFrom(address(this), address(new NonERC721Recipient()), 5);
     }
 
     function testFailSafeTransferFromToNonERC721RecipientWithData() public {
-        token.mint(address(this), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         token.safeTransferFrom(address(this), address(new NonERC721Recipient()), 5, "testing 123");
     }
 
     function testFailSafeTransferFromToRevertingERC721Recipient() public {
-        token.mint(address(this), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         token.safeTransferFrom(address(this), address(new RevertingERC721Recipient()), 5);
     }
 
     function testFailSafeTransferFromToRevertingERC721RecipientWithData() public {
-        token.mint(address(this), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         token.safeTransferFrom(address(this), address(new RevertingERC721Recipient()), 5, "testing 123");
     }
 
     function test_revert_SafeTransferFromToERC721RecipientWithWrongReturnData() public {
-        token.mint(address(this), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         address unsafeRecipient = address(new WrongReturnDataERC721Recipient());
         vm.expectRevert(abi.encodeWithSelector(ERC721.TransferToNonERC721ReceiverImplementer.selector));
@@ -367,7 +475,11 @@ contract ERC721CoreTest is Test, TestPlus {
     }
 
     function test_revert_SafeTransferFromToERC721RecipientWithWrongReturnDataWithData() public {
-        token.mint(address(this), 10, "");
+        mintRequest.token = address(token);
+        mintRequest.minter = address(this);
+        mintRequest.quantity = 10;
+
+        token.mint(mintRequest);
 
         address unsafeRecipient = address(new WrongReturnDataERC721Recipient());
         vm.expectRevert(abi.encodeWithSelector(ERC721.TransferToNonERC721ReceiverImplementer.selector));

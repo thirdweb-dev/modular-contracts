@@ -9,6 +9,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/hook/IHook.sol";
+import {IERC1155Hook} from "src/interface/hook/IERC1155Hook.sol";
 
 import {ERC1155Core, HookInstaller} from "src/core/token/ERC1155Core.sol";
 import {AllowlistMintHookERC1155, ERC1155Hook} from "src/hook/mint/AllowlistMintHookERC1155.sol";
@@ -37,12 +38,14 @@ contract AllowlistMintHookERC1155Test is Test {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     bytes32 private constant TYPEHASH = keccak256(
-        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
     );
     bytes32 public domainSeparator;
 
     bytes32 public allowlistRoot;
     bytes32[] public allowlistProof;
+
+    IERC1155Hook.MintRequest public mintRequest;
 
     // Test events
     event ClaimConditionUpdate(
@@ -168,8 +171,14 @@ contract AllowlistMintHookERC1155Test is Test {
         assertEq(erc1155Core.balanceOf(endUser, 0), 0);
 
         // End user mints a token
+        mintRequest.token = address(erc1155Core);
+        mintRequest.minter = endUser;
+        mintRequest.tokenId = 0;
+        mintRequest.quantity = 1;
+        mintRequest.allowlistProof = allowlistProof;
+
         vm.prank(endUser);
-        erc1155Core.mint{value: condition.price}(endUser, 0, 1, abi.encode(allowlistProof));
+        erc1155Core.mint{value: condition.price}(mintRequest);
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 1);
 
@@ -188,7 +197,7 @@ contract AllowlistMintHookERC1155Test is Test {
                 AllowlistMintHookERC1155.AllowlistMintHookNotInAllowlist.selector, address(erc1155Core), endUser
             )
         );
-        erc1155Core.mint{value: condition.price}(endUser, 0, 1, abi.encode(allowlistProof));
+        erc1155Core.mint{value: condition.price}(mintRequest);
     }
 
     function test_setClaimCondition_revert_notAdminOfToken() public {
@@ -248,8 +257,14 @@ contract AllowlistMintHookERC1155Test is Test {
         assertEq(developer.balance, 0);
         assertEq(platformAdmin.balance, 0);
 
+        mintRequest.token = address(erc1155Core);
+        mintRequest.minter = endUser;
+        mintRequest.tokenId = 0;
+        mintRequest.quantity = 1;
+        mintRequest.allowlistProof = allowlistProof;
+
         vm.prank(endUser);
-        erc1155Core.mint{value: 1 ether}(endUser, 0, 1, abi.encode(allowlistProof));
+        erc1155Core.mint{value: 1 ether}(mintRequest);
 
         assertEq(developer.balance, 0.9 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether); // platform fee recipient
@@ -281,8 +296,14 @@ contract AllowlistMintHookERC1155Test is Test {
         assertEq(developer.balance, 0);
         assertEq(platformAdmin.balance, 0);
 
+        mintRequest.token = address(erc1155Core);
+        mintRequest.minter = endUser;
+        mintRequest.tokenId = 0;
+        mintRequest.quantity = 1;
+        mintRequest.allowlistProof = allowlistProof;
+
         vm.prank(endUser);
-        erc1155Core.mint{value: 1 ether}(endUser, 0, 1, abi.encode(allowlistProof));
+        erc1155Core.mint{value: 1 ether}(mintRequest);
 
         assertEq(developer.balance, 0.9 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether); // platform fee recipient
@@ -307,8 +328,10 @@ contract AllowlistMintHookERC1155Test is Test {
         assertEq(developer.balance, 0.9 ether);
         assertEq(platformAdmin.balance, 0.1 ether);
 
+        mintRequest.tokenId = 1;
+
         vm.prank(endUser);
-        erc1155Core.mint{value: 1 ether}(endUser, 1, 1, abi.encode(allowlistProof));
+        erc1155Core.mint{value: 1 ether}(mintRequest);
 
         assertEq(developer.balance, 0.9 ether + 0.8 ether); // primary sale recipient
         assertEq(platformAdmin.balance, 0.1 ether + 0.2 ether); // platform fee recipient
@@ -360,8 +383,14 @@ contract AllowlistMintHookERC1155Test is Test {
         assertEq(MintHook.getClaimCondition(address(erc1155Core), 0).availableSupply, 100);
 
         // End user mints a token
+        mintRequest.token = address(erc1155Core);
+        mintRequest.minter = endUser;
+        mintRequest.tokenId = 0;
+        mintRequest.quantity = 5;
+        mintRequest.allowlistProof = allowlistProof;
+
         vm.prank(endUser);
-        erc1155Core.mint{value: condition.price * 5}(endUser, 0, 5, abi.encode(allowlistProof));
+        erc1155Core.mint{value: condition.price * 5}(mintRequest);
 
         assertEq(developer.balance, 0.5 ether);
         assertEq(MintHook.getClaimCondition(address(erc1155Core), 0).availableSupply, 95);
@@ -381,13 +410,22 @@ contract AllowlistMintHookERC1155Test is Test {
         );
 
         // End user mints a token
-        vm.prank(endUser);
-        vm.expectRevert(abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookInvalidQuantity.selector));
-        erc1155Core.mint{value: condition.price * 11}(endUser, 0, 11, abi.encode(allowlistProof));
+
+        mintRequest.token = address(erc1155Core);
+        mintRequest.minter = endUser;
+        mintRequest.tokenId = 0;
+        mintRequest.quantity = 11;
+        mintRequest.allowlistProof = allowlistProof;
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookInvalidQuantity.selector));
-        erc1155Core.mint{value: 0}(endUser, 0, 0, abi.encode(allowlistProof));
+        erc1155Core.mint{value: condition.price * 11}(mintRequest);
+
+        mintRequest.quantity = 0;
+
+        vm.prank(endUser);
+        vm.expectRevert(abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookInvalidQuantity.selector));
+        erc1155Core.mint{value: 0}(mintRequest);
     }
 
     function test_beforeMint_revert_notInAllowlist() public {
@@ -404,13 +442,20 @@ contract AllowlistMintHookERC1155Test is Test {
         );
 
         // End user mints a token
+
+        mintRequest.token = address(erc1155Core);
+        mintRequest.minter = address(0x1212);
+        mintRequest.tokenId = 0;
+        mintRequest.quantity = 1;
+        mintRequest.allowlistProof = allowlistProof;
+
         vm.prank(endUser);
         vm.expectRevert(
             abi.encodeWithSelector(
                 AllowlistMintHookERC1155.AllowlistMintHookNotInAllowlist.selector, address(erc1155Core), address(0x1212)
             )
         );
-        erc1155Core.mint{value: condition.price}(address(0x1212), 0, 1, abi.encode(allowlistProof));
+        erc1155Core.mint{value: condition.price}(mintRequest);
     }
 
     function test_beforeMint_revert_incorrectValueSent() public {
@@ -427,8 +472,14 @@ contract AllowlistMintHookERC1155Test is Test {
         );
 
         // End user mints a token
+        mintRequest.token = address(erc1155Core);
+        mintRequest.minter = endUser;
+        mintRequest.tokenId = 0;
+        mintRequest.quantity = 1;
+        mintRequest.allowlistProof = allowlistProof;
+
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(AllowlistMintHookERC1155.AllowlistMintHookIncorrectValueSent.selector));
-        erc1155Core.mint{value: condition.price - 1}(endUser, 0, 1, abi.encode(allowlistProof));
+        erc1155Core.mint{value: condition.price - 1}(mintRequest);
     }
 }

@@ -2,8 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {IHook} from "./IHook.sol";
+import {IMintRequest} from "../common/IMintRequest.sol";
+import {IBurnRequest} from "../common/IBurnRequest.sol";
 
-interface IERC20Hook is IHook {
+interface IERC20Hook is IHook, IMintRequest, IBurnRequest {
     /*//////////////////////////////////////////////////////////////
                                   ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -17,15 +19,10 @@ interface IERC20Hook is IHook {
 
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
-     *  @param to The address that is minting tokens.
-     *  @param amount The quantity of tokens to mint.
-     *  @param encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return quantityToMint The quantity of tokens to mint.s
+     *  @param mintRequest The token mint request details.
+     *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address to, uint256 amount, bytes memory encodedArgs)
-        external
-        payable
-        returns (uint256 quantityToMint);
+    function beforeMint(MintRequest calldata mintRequest) external payable returns (uint256 quantityToMint);
 
     /**
      *  @notice The beforeTransfer hook that is called by a core token before transferring a token.
@@ -37,11 +34,9 @@ interface IERC20Hook is IHook {
 
     /**
      *  @notice The beforeBurn hook that is called by a core token before burning a token.
-     *  @param from The address that is burning tokens.
-     *  @param amount The quantity of tokens to burn.
-     *  @param encodedArgs The encoded arguments for the beforeBurn hook.
+     *  @param burnRequest The token burn request details.
      */
-    function beforeBurn(address from, uint256 amount, bytes memory encodedArgs) external;
+    function beforeBurn(BurnRequest calldata burnRequest) external;
 
     /**
      *  @notice The beforeApprove hook that is called by a core token before approving a token.

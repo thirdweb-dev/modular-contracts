@@ -98,14 +98,14 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook, Multicallable {
                             BEFORE MINT hook
     //////////////////////////////////////////////////////////////*/
 
+    error AllowlistMintHookNotToken();
+
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
-     *  @param _claimer The address that is minting tokens.
-     *  @param _quantity The quantity of tokens to mint.
-     *  @param _encodedArgs The encoded arguments for the beforeMint hook.
-     *  @return quantityToMint The quantity of tokens to mint.s
+     *  @param _mintRequest The token mint request details.
+     *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         virtual
@@ -113,30 +113,34 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook, Multicallable {
         returns (uint256 quantityToMint)
     {
         address token = msg.sender;
+        if (_mintRequest.token != msg.sender) {
+            revert AllowlistMintHookNotToken();
+        }
+
         AllowlistMintHookERC20Storage.Data storage data = AllowlistMintHookERC20Storage.data();
 
         ClaimCondition memory condition = data.claimCondition[token];
 
-        if (_quantity == 0 || _quantity > condition.availableSupply) {
+        if (_mintRequest.quantity == 0 || _mintRequest.quantity > condition.availableSupply) {
             revert AllowlistMintHookInvalidQuantity();
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
-            bytes32[] memory allowlistProof = abi.decode(_encodedArgs, (bytes32[]));
+            bytes32[] memory allowlistProof = _mintRequest.allowlistProof;
 
             bool isAllowlisted = MerkleProofLib.verify(
-                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_claimer))
+                allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_mintRequest.minter))
             );
             if (!isAllowlisted) {
-                revert AllowlistMintHookNotInAllowlist(token, _claimer);
+                revert AllowlistMintHookNotInAllowlist(token, _mintRequest.minter);
             }
         }
 
-        quantityToMint = uint96(_quantity);
+        quantityToMint = uint96(_mintRequest.quantity);
         // `price` is interpreted as price per 1 ether unit of the ERC20 tokens.
-        uint256 totalPrice = (_quantity * condition.price) / 1 ether;
+        uint256 totalPrice = (_mintRequest.quantity * condition.price) / 1 ether;
 
-        data.claimCondition[token].availableSupply -= _quantity;
+        data.claimCondition[token].availableSupply -= _mintRequest.quantity;
 
         _collectPrice(totalPrice);
     }

@@ -11,6 +11,7 @@ import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {IERC1155} from "src/interface/eip/IERC1155.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
+import {IERC1155Hook} from "src/interface/hook/IERC1155Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 abstract contract ERC1155TokenReceiver {
@@ -136,6 +137,9 @@ contract ERC1155CoreTest is Test, TestPlus {
 
     ERC1155Core public token;
 
+    IERC1155Hook.MintRequest public mintRequest;
+    IERC1155Hook.BurnRequest public burnRequest;
+
     mapping(address => mapping(uint256 => uint256)) public userMintAmounts;
     mapping(address => mapping(uint256 => uint256)) public userTransferOrBurnAmounts;
     mapping(uint256 => uint256) public supply;
@@ -166,7 +170,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function testMintToEOA() public {
-        token.mint(address(0xBEEF), 1337, 1, "");
+        mintRequest.minter = address(0xBEEF);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 1;
+
+        token.mint(mintRequest);
 
         assertEq(token.balanceOf(address(0xBEEF), 1337), 1);
         assertEq(token.totalSupply(1337), 1);
@@ -175,7 +183,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     function testMintToERC1155Recipient() public {
         ERC1155Recipient to = new ERC1155Recipient();
 
-        token.mint(address(to), 1337, 1, "");
+        mintRequest.minter = address(to);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 1;
+
+        token.mint(mintRequest);
 
         assertEq(token.balanceOf(address(to), 1337), 1);
         assertEq(token.totalSupply(1337), 1);
@@ -186,11 +198,19 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function testBurn() public {
-        token.mint(address(0xBEEF), 1337, 100, "");
+        mintRequest.minter = address(0xBEEF);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+
+        token.mint(mintRequest);
         assertEq(token.totalSupply(1337), 100);
 
+        burnRequest.owner = address(0xBEEF);
+        burnRequest.tokenId = 1337;
+        burnRequest.quantity = 70;
+
         vm.prank(address(0xBEEF));
-        token.burn(address(0xBEEF), 1337, 70, "");
+        token.burn(burnRequest);
 
         assertEq(token.balanceOf(address(0xBEEF), 1337), 30);
         assertEq(token.totalSupply(1337), 30);
@@ -205,7 +225,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     function testSafeTransferFromToEOA() public {
         address from = address(0xABCD);
 
-        token.mint(from, 1337, 100, "");
+        mintRequest.minter = address(from);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -221,8 +245,11 @@ contract ERC1155CoreTest is Test, TestPlus {
         ERC1155Recipient to = new ERC1155Recipient();
 
         address from = address(0xABCD);
+        mintRequest.minter = address(from);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
 
-        token.mint(from, 1337, 100, "");
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -239,7 +266,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function testSafeTransferFromSelf() public {
-        token.mint(address(0xCAFE), 1337, 100, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         token.safeTransferFrom(address(0xCAFE), address(0xBEEF), 1337, 70, "");
@@ -273,11 +304,26 @@ contract ERC1155CoreTest is Test, TestPlus {
         transferAmounts[3] = 200;
         transferAmounts[4] = 250;
 
-        token.mint(from, 1337, 100, "");
-        token.mint(from, 1338, 200, "");
-        token.mint(from, 1339, 300, "");
-        token.mint(from, 1340, 400, "");
-        token.mint(from, 1341, 500, "");
+        mintRequest.minter = address(from);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 300;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 400;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 500;
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -326,11 +372,26 @@ contract ERC1155CoreTest is Test, TestPlus {
         transferAmounts[3] = 200;
         transferAmounts[4] = 250;
 
-        token.mint(from, 1337, 100, "");
-        token.mint(from, 1338, 200, "");
-        token.mint(from, 1339, 300, "");
-        token.mint(from, 1340, 400, "");
-        token.mint(from, 1341, 500, "");
+        mintRequest.minter = address(from);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 300;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 400;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 500;
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -373,11 +434,30 @@ contract ERC1155CoreTest is Test, TestPlus {
         ids[3] = 1340;
         ids[4] = 1341;
 
-        token.mint(address(0xBEEF), 1337, 100, "");
-        token.mint(address(0xCAFE), 1338, 200, "");
-        token.mint(address(0xFACE), 1339, 300, "");
-        token.mint(address(0xDEAD), 1340, 400, "");
-        token.mint(address(0xFEED), 1341, 500, "");
+        mintRequest.minter = address(0xBEEF);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.minter = address(0xFACE);
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 300;
+        token.mint(mintRequest);
+
+        mintRequest.minter = address(0xDEAD);
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 400;
+        token.mint(mintRequest);
+
+        mintRequest.minter = address(0xFEED);
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 500;
+        token.mint(mintRequest);
 
         uint256[] memory balances = token.balanceOfBatch(tos, ids);
 
@@ -389,36 +469,61 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function test_revert_MintToZero() public {
+        mintRequest.minter = address(0);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 1;
+
         vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
-        token.mint(address(0), 1337, 1, "");
+        token.mint(mintRequest);
     }
 
     function testFailMintToNonERC155Recipient() public {
-        token.mint(address(new NonERC1155Recipient()), 1337, 1, "");
+        mintRequest.minter = address(new NonERC1155Recipient());
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 1;
+
+        token.mint(mintRequest);
     }
 
     function testFailMintToRevertingERC155Recipient() public {
-        token.mint(address(new RevertingERC1155Recipient()), 1337, 1, "");
+        mintRequest.minter = address(new RevertingERC1155Recipient());
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 1;
+        token.mint(mintRequest);
     }
 
     function test_revert_MintToWrongReturnDataERC155Recipient() public {
-        address recipient = address(new WrongReturnDataERC1155Recipient());
+        mintRequest.minter = address(new WrongReturnDataERC1155Recipient());
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 1;
+
         vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToNonERC1155ReceiverImplementer.selector));
-        token.mint(recipient, 1337, 1, "");
+        token.mint(mintRequest);
     }
 
     function test_revert_BurnInsufficientBalance() public {
-        token.mint(address(0xBEEF), 1337, 70, "");
+        mintRequest.minter = address(0xBEEF);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 70;
+
+        token.mint(mintRequest);
+
+        burnRequest.owner = address(0xBEEF);
+        burnRequest.tokenId = 1337;
+        burnRequest.quantity = 100;
 
         vm.prank(address(0xBEEF));
         vm.expectRevert(abi.encodeWithSelector(ERC1155.InsufficientBalance.selector));
-        token.burn(address(0xBEEF), 1337, 100, "");
+        token.burn(burnRequest);
     }
 
     function testFailSafeTransferFromInsufficientBalance() public {
         address from = address(0xABCD);
+        mintRequest.minter = from;
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 70;
 
-        token.mint(from, 1337, 70, "");
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -427,14 +532,22 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function testFailSafeTransferFromSelfInsufficientBalance() public {
-        token.mint(address(0xCAFE), 1337, 70, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 70;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         token.safeTransferFrom(address(0xCAFE), address(0xBEEF), 1337, 100, "");
     }
 
     function test_revert_SafeTransferFromToZero() public {
-        token.mint(address(0xCAFE), 1337, 100, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
@@ -442,7 +555,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function testFailSafeTransferFromToNonERC155Recipient() public {
-        token.mint(address(0xCAFE), 1337, 100, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+
+        token.mint(mintRequest);
 
         address recipient = address(new NonERC1155Recipient());
 
@@ -451,7 +568,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function testFailSafeTransferFromToRevertingERC1155Recipient() public {
-        token.mint(address(0xCAFE), 1337, 100, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+
+        token.mint(mintRequest);
 
         address recipient = address(new RevertingERC1155Recipient());
 
@@ -460,7 +581,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     }
 
     function test_revert_SafeTransferFromToWrongReturnDataERC1155Recipient() public {
-        token.mint(address(0xCAFE), 1337, 100, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+
+        token.mint(mintRequest);
 
         address recipient = address(new WrongReturnDataERC1155Recipient());
 
@@ -494,11 +619,27 @@ contract ERC1155CoreTest is Test, TestPlus {
         transferAmounts[3] = 400;
         transferAmounts[4] = 500;
 
-        token.mint(from, 1337, 50, "");
-        token.mint(from, 1338, 100, "");
-        token.mint(from, 1339, 150, "");
-        token.mint(from, 1340, 200, "");
-        token.mint(from, 1341, 250, "");
+        mintRequest.minter = address(from);
+
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 50;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 150;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 250;
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -530,11 +671,27 @@ contract ERC1155CoreTest is Test, TestPlus {
         transferAmounts[3] = 200;
         transferAmounts[4] = 250;
 
-        token.mint(from, 1337, 100, "");
-        token.mint(from, 1338, 200, "");
-        token.mint(from, 1339, 300, "");
-        token.mint(from, 1340, 400, "");
-        token.mint(from, 1341, 500, "");
+        mintRequest.minter = address(from);
+
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 300;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 400;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 500;
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -567,11 +724,27 @@ contract ERC1155CoreTest is Test, TestPlus {
         transferAmounts[3] = 200;
         transferAmounts[4] = 250;
 
-        token.mint(from, 1337, 100, "");
-        token.mint(from, 1338, 200, "");
-        token.mint(from, 1339, 300, "");
-        token.mint(from, 1340, 400, "");
-        token.mint(from, 1341, 500, "");
+        mintRequest.minter = address(from);
+
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 300;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 400;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 500;
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -603,11 +776,27 @@ contract ERC1155CoreTest is Test, TestPlus {
         transferAmounts[3] = 200;
         transferAmounts[4] = 250;
 
-        token.mint(from, 1337, 100, "");
-        token.mint(from, 1338, 200, "");
-        token.mint(from, 1339, 300, "");
-        token.mint(from, 1340, 400, "");
-        token.mint(from, 1341, 500, "");
+        mintRequest.minter = address(from);
+
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 300;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 400;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 500;
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -639,11 +828,27 @@ contract ERC1155CoreTest is Test, TestPlus {
         transferAmounts[3] = 200;
         transferAmounts[4] = 250;
 
-        token.mint(from, 1337, 100, "");
-        token.mint(from, 1338, 200, "");
-        token.mint(from, 1339, 300, "");
-        token.mint(from, 1340, 400, "");
-        token.mint(from, 1341, 500, "");
+        mintRequest.minter = address(from);
+
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 300;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 400;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 500;
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -674,11 +879,27 @@ contract ERC1155CoreTest is Test, TestPlus {
         transferAmounts[2] = 150;
         transferAmounts[3] = 200;
 
-        token.mint(from, 1337, 100, "");
-        token.mint(from, 1338, 200, "");
-        token.mint(from, 1339, 300, "");
-        token.mint(from, 1340, 400, "");
-        token.mint(from, 1341, 500, "");
+        mintRequest.minter = address(from);
+
+        mintRequest.tokenId = 1337;
+        mintRequest.quantity = 100;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1338;
+        mintRequest.quantity = 200;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1339;
+        mintRequest.quantity = 300;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1340;
+        mintRequest.quantity = 400;
+        token.mint(mintRequest);
+
+        mintRequest.tokenId = 1341;
+        mintRequest.quantity = 500;
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -704,12 +925,16 @@ contract ERC1155CoreTest is Test, TestPlus {
         token.balanceOfBatch(tos, ids);
     }
 
-    function testMintToEOA(address to, uint256 id, uint256 amount, bytes memory mintData) public {
+    function testMintToEOA(address to, uint256 id, uint256 amount) public {
         if (to == address(0)) to = address(0xBEEF);
 
         if (uint256(uint160(to)) <= 18 || to.code.length > 0) return;
 
-        token.mint(to, id, amount, mintData);
+        mintRequest.minter = to;
+        mintRequest.tokenId = id;
+        mintRequest.quantity = amount;
+
+        token.mint(mintRequest);
 
         assertEq(token.balanceOf(to, id), amount);
         assertEq(token.totalSupply(id), amount);
@@ -718,7 +943,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     function testMintToERC1155Recipient(uint256 id, uint256 amount) public {
         ERC1155Recipient to = new ERC1155Recipient();
 
-        token.mint(address(to), id, amount, "");
+        mintRequest.minter = address(to);
+        mintRequest.tokenId = id;
+        mintRequest.quantity = amount;
+
+        token.mint(mintRequest);
 
         assertEq(token.balanceOf(address(to), id), amount);
         assertEq(token.totalSupply(id), amount);
@@ -737,10 +966,18 @@ contract ERC1155CoreTest is Test, TestPlus {
 
         burnAmount = _hem(burnAmount, 0, mintAmount);
 
-        token.mint(to, id, mintAmount, "");
+        mintRequest.minter = to;
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
+
+        burnRequest.owner = to;
+        burnRequest.tokenId = id;
+        burnRequest.quantity = burnAmount;
 
         vm.prank(to);
-        token.burn(to, id, burnAmount, "");
+        token.burn(burnRequest);
 
         assertEq(token.balanceOf(address(to), id), mintAmount - burnAmount);
         assertEq(token.totalSupply(id), mintAmount - burnAmount);
@@ -761,7 +998,11 @@ contract ERC1155CoreTest is Test, TestPlus {
 
         address from = address(0xABCD);
 
-        token.mint(from, id, mintAmount, "");
+        mintRequest.minter = from;
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -785,7 +1026,11 @@ contract ERC1155CoreTest is Test, TestPlus {
 
         transferAmount = _hem(transferAmount, 0, mintAmount);
 
-        token.mint(from, id, mintAmount, "");
+        mintRequest.minter = from;
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -797,7 +1042,6 @@ contract ERC1155CoreTest is Test, TestPlus {
         assertEq(to.id(), id);
 
         assertEq(token.balanceOf(address(to), id), transferAmount);
-        assertEq(token.balanceOf(from, id), mintAmount - transferAmount);
         assertEq(token.totalSupply(id), mintAmount);
     }
 
@@ -810,7 +1054,11 @@ contract ERC1155CoreTest is Test, TestPlus {
 
         transferAmount = _hem(transferAmount, 0, mintAmount);
 
-        token.mint(address(0xCAFE), id, mintAmount, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         token.safeTransferFrom(address(0xCAFE), to, id, transferAmount, "");
@@ -855,7 +1103,11 @@ contract ERC1155CoreTest is Test, TestPlus {
             userMintAmounts[from][id] += mintAmount;
             userTransferOrBurnAmounts[from][id] += transferAmount;
 
-            token.mint(from, id, mintAmount, "");
+            mintRequest.minter = from;
+            mintRequest.tokenId = id;
+            mintRequest.quantity = mintAmount;
+
+            token.mint(mintRequest);
         }
 
         vm.prank(from);
@@ -904,7 +1156,11 @@ contract ERC1155CoreTest is Test, TestPlus {
             userMintAmounts[from][id] += mintAmount;
             userTransferOrBurnAmounts[from][id] += transferAmount;
 
-            token.mint(from, id, mintAmount, "");
+            mintRequest.minter = from;
+            mintRequest.tokenId = id;
+            mintRequest.quantity = mintAmount;
+
+            token.mint(mintRequest);
         }
 
         vm.prank(from);
@@ -929,26 +1185,51 @@ contract ERC1155CoreTest is Test, TestPlus {
 
     function test_revert_MintToZero(uint256 id, uint256 amount) public {
         vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
-        token.mint(address(0), id, amount, "");
+
+        mintRequest.minter = address(0);
+        mintRequest.tokenId = id;
+        mintRequest.quantity = amount;
+
+        token.mint(mintRequest);
     }
 
     function testFailMintToNonERC155Recipient(uint256 id, uint256 mintAmount) public {
-        token.mint(address(new NonERC1155Recipient()), id, mintAmount, "");
+        mintRequest.minter = address(new NonERC1155Recipient());
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
     }
 
     function testFailMintToRevertingERC155Recipient(uint256 id, uint256 mintAmount) public {
-        token.mint(address(new RevertingERC1155Recipient()), id, mintAmount, "");
+        mintRequest.minter = address(new RevertingERC1155Recipient());
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
     }
 
     function testFailMintToWrongReturnDataERC155Recipient(uint256 id, uint256 mintAmount) public {
-        token.mint(address(new RevertingERC1155Recipient()), id, mintAmount, "");
+        mintRequest.minter = address(new RevertingERC1155Recipient());
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
     }
 
     function testFailBurnInsufficientBalance(address to, uint256 id, uint256 mintAmount, uint256 burnAmount) public {
         burnAmount = _hem(burnAmount, mintAmount + 1, type(uint256).max);
 
-        token.mint(to, id, mintAmount, "");
-        token.burn(to, id, burnAmount, "");
+        mintRequest.minter = to;
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        burnRequest.owner = to;
+        burnRequest.tokenId = id;
+        burnRequest.quantity = burnAmount;
+
+        token.mint(mintRequest);
+        token.burn(burnRequest);
     }
 
     function testFailSafeTransferFromInsufficientBalance(
@@ -961,7 +1242,11 @@ contract ERC1155CoreTest is Test, TestPlus {
 
         transferAmount = _hem(transferAmount, mintAmount + 1, type(uint256).max);
 
-        token.mint(from, id, mintAmount, "");
+        mintRequest.minter = from;
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(from);
         token.setApprovalForAll(address(this), true);
@@ -977,7 +1262,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     ) public {
         transferAmount = _hem(transferAmount, mintAmount + 1, type(uint256).max);
 
-        token.mint(address(0xCAFE), id, mintAmount, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         token.safeTransferFrom(address(0xCAFE), to, id, transferAmount, "");
@@ -986,7 +1275,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     function test_revert_SafeTransferFromToZero(uint256 id, uint256 mintAmount, uint256 transferAmount) public {
         transferAmount = _hem(transferAmount, 0, mintAmount);
 
-        token.mint(address(0xCAFE), id, mintAmount, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         vm.expectRevert(abi.encodeWithSelector(ERC1155.TransferToZeroAddress.selector));
@@ -998,7 +1291,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     {
         transferAmount = _hem(transferAmount, 0, mintAmount);
 
-        token.mint(address(0xCAFE), id, mintAmount, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         token.safeTransferFrom(address(0xCAFE), address(new NonERC1155Recipient()), id, transferAmount, "");
@@ -1009,7 +1306,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     {
         transferAmount = _hem(transferAmount, 0, mintAmount);
 
-        token.mint(address(0xCAFE), id, mintAmount, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         token.safeTransferFrom(address(0xCAFE), address(new RevertingERC1155Recipient()), id, transferAmount, "");
@@ -1022,7 +1323,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     ) public {
         transferAmount = _hem(transferAmount, 0, mintAmount);
 
-        token.mint(address(0xCAFE), id, mintAmount, "");
+        mintRequest.minter = address(0xCAFE);
+        mintRequest.tokenId = id;
+        mintRequest.quantity = mintAmount;
+
+        token.mint(mintRequest);
 
         vm.prank(address(0xCAFE));
         token.safeTransferFrom(address(0xCAFE), address(new WrongReturnDataERC1155Recipient()), id, transferAmount, "");
