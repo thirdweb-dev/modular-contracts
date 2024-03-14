@@ -24,7 +24,7 @@ contract RoyaltyHookTest is Test {
     ERC721Core public erc721Core;
     RoyaltyHook public royaltyHook;
 
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 6;
 
     function setUp() public {
         // Platform deploys metadata hook.
@@ -80,7 +80,7 @@ contract RoyaltyHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ON_ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
 
         (address _recipient, uint256 _bps) = royaltyHook.getDefaultRoyaltyInfo(address(erc721Core));
@@ -90,7 +90,7 @@ contract RoyaltyHookTest is Test {
         uint256 price = 1 ether;
 
         vm.prank(address(erc721Core));
-        (address receiver, uint256 royaltyAmount) = royaltyHook.royaltyInfo(0, price);
+        (address receiver, uint256 royaltyAmount) = royaltyHook.onRoyaltyInfo(0, price);
 
         assertEq(receiver, recipient);
         assertEq(royaltyAmount, (price * bps) / 10_000);
@@ -103,7 +103,7 @@ contract RoyaltyHookTest is Test {
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(RoyaltyHook.RoyaltyHookExceedsMaxBps.selector));
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ON_ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
     }
 
@@ -113,7 +113,7 @@ contract RoyaltyHookTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ON_ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
     }
 
@@ -125,7 +125,7 @@ contract RoyaltyHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
+            ON_ROYALTY_INFO_FLAG, abi.encodeWithSelector(RoyaltyHook.setDefaultRoyaltyInfo.selector, recipient, bps)
         );
 
         (address _recipient, uint256 _bps) = royaltyHook.getDefaultRoyaltyInfo(address(erc721Core));
@@ -135,7 +135,7 @@ contract RoyaltyHookTest is Test {
         uint256 price = 1 ether;
 
         vm.prank(address(erc721Core));
-        (address receiver, uint256 royaltyAmount) = royaltyHook.royaltyInfo(tokenId, price);
+        (address receiver, uint256 royaltyAmount) = royaltyHook.onRoyaltyInfo(tokenId, price);
 
         assertEq(receiver, recipient);
         assertEq(royaltyAmount, (price * bps) / 10_000);
@@ -145,12 +145,12 @@ contract RoyaltyHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG,
+            ON_ROYALTY_INFO_FLAG,
             abi.encodeWithSelector(royaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps)
         );
 
         vm.prank(address(erc721Core));
-        (receiver, royaltyAmount) = royaltyHook.royaltyInfo(tokenId, price);
+        (receiver, royaltyAmount) = royaltyHook.onRoyaltyInfo(tokenId, price);
 
         assertEq(receiver, overrideRecipient);
         assertEq(royaltyAmount, (price * overrideBps) / 10_000);
@@ -165,7 +165,7 @@ contract RoyaltyHookTest is Test {
         vm.prank(developer);
         vm.expectRevert(abi.encodeWithSelector(RoyaltyHook.RoyaltyHookExceedsMaxBps.selector));
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG,
+            ON_ROYALTY_INFO_FLAG,
             abi.encodeWithSelector(RoyaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps)
         );
     }
@@ -178,7 +178,7 @@ contract RoyaltyHookTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
-            ROYALTY_INFO_FLAG,
+            ON_ROYALTY_INFO_FLAG,
             abi.encodeWithSelector(RoyaltyHook.setRoyaltyInfoForToken.selector, tokenId, overrideRecipient, overrideBps)
         );
     }

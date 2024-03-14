@@ -66,7 +66,7 @@ interface IERC721Hook is IHook {
      *  @param tokenId The token ID of the NFT.
      *  @return metadata The URI to fetch token metadata from.
      */
-    function tokenURI(uint256 tokenId) external view returns (string memory metadata);
+    function onTokenURI(uint256 tokenId) external view returns (string memory metadata);
 
     /**
      *  @notice Returns the royalty recipient and amount for a given sale.
@@ -76,7 +76,7 @@ interface IERC721Hook is IHook {
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+    function onRoyaltyInfo(uint256 tokenId, uint256 salePrice)
         external
         view
         returns (address receiver, uint256 royaltyAmount);
