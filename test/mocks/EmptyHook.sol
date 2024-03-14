@@ -12,6 +12,10 @@ contract EmptyHookERC20 is ERC20Hook {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        return new bytes4[](0);
+    }
+
     function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
@@ -30,6 +34,10 @@ contract EmptyHookERC721 is ERC721Hook {
 
     function getHooks() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = BEFORE_MINT_FLAG();
+    }
+
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        return new bytes4[](0);
     }
 
     error EmptyHookNotToken();
@@ -60,6 +68,10 @@ contract EmptyHookERC1155 is ERC1155Hook {
 
     function getHooks() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = BEFORE_MINT_FLAG();
+    }
+
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        return new bytes4[](0);
     }
 
     function beforeMint(MintRequest calldata _mintRequest)

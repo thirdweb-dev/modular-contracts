@@ -9,6 +9,10 @@ contract MockHook is IHook {
     function getHooks() external pure returns (uint256 hooksImplemented) {
         hooksImplemented = 0;
     }
+
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        return new bytes4[](0);
+    }
 }
 
 contract MockCore is HookInstaller {

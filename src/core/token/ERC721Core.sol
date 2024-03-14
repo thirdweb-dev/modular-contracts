@@ -40,10 +40,10 @@ contract ERC721Core is
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice Bits representing the token URI hook.
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 6;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -137,6 +137,7 @@ contract ERC721Core is
             }
 
             _installHook(_hooksToInstall[i].hook);
+            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
 
             if (_hooksToInstall[i].initCalldata.length > 0) {
                 (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
@@ -214,8 +215,8 @@ contract ERC721Core is
             beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
             beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
             beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
-            tokenURI: getHookImplementation(TOKEN_URI_FLAG),
-            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
+            tokenURI: getHookImplementation(ON_TOKEN_URI_FLAG),
+            royaltyInfo: getHookImplementation(ON_ROYALTY_INFO_FLAG)
         });
     }
 
@@ -305,7 +306,7 @@ contract ERC721Core is
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return uint8(ROYALTY_INFO_FLAG);
+        return uint8(ON_ROYALTY_INFO_FLAG);
     }
 
     /// @dev Sets contract URI
@@ -373,10 +374,10 @@ contract ERC721Core is
 
     /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory uri) {
-        address hook = getHookImplementation(TOKEN_URI_FLAG);
+        address hook = getHookImplementation(ON_TOKEN_URI_FLAG);
 
         if (hook != address(0)) {
-            uri = IERC721Hook(hook).tokenURI(_tokenId);
+            uri = IERC721Hook(hook).onTokenURI(_tokenId);
         }
     }
 
@@ -387,10 +388,10 @@ contract ERC721Core is
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address hook = getHookImplementation(ROYALTY_INFO_FLAG);
+        address hook = getHookImplementation(ON_ROYALTY_INFO_FLAG);
 
         if (hook != address(0)) {
-            (receiver, royaltyAmount) = IERC721Hook(hook).royaltyInfo(_tokenId, _salePrice);
+            (receiver, royaltyAmount) = IERC721Hook(hook).onRoyaltyInfo(_tokenId, _salePrice);
         }
     }
 }

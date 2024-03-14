@@ -66,7 +66,7 @@ interface IERC1155Hook is IHook, IMintRequest, IBurnRequest {
      *  @param id The token ID to retrieve the URI for.
      *  @return metadata The URI for the token.
      */
-    function uri(uint256 id) external view returns (string memory metadata);
+    function onUri(uint256 id) external view returns (string memory metadata);
 
     /**
      *  @notice The royaltyInfo hook that is called by a core token to retrieve the royalty information for a token.
@@ -75,7 +75,7 @@ interface IERC1155Hook is IHook, IMintRequest, IBurnRequest {
      *  @return receiver The address to send the royalty payment to.
      *  @return royaltyAmount The amount of royalty to pay.
      */
-    function royaltyInfo(uint256 id, uint256 salePrice)
+    function onRoyaltyInfo(uint256 id, uint256 salePrice)
         external
         view
         returns (address receiver, uint256 royaltyAmount);

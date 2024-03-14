@@ -143,8 +143,8 @@ contract AllowlistMintHookERC1155Test is Test {
         vm.prank(developer);
         vm.expectEmit(true, true, true, true);
         emit ClaimConditionUpdate(address(erc1155Core), 0, condition);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
         );
 
         AllowlistMintHookERC1155.ClaimCondition memory conditionStored =
@@ -164,8 +164,8 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
         );
 
         assertEq(erc1155Core.balanceOf(endUser, 0), 0);
@@ -187,8 +187,7 @@ contract AllowlistMintHookERC1155Test is Test {
         updatedCondition.allowlistMerkleRoot = bytes32("random");
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG,
+        address(erc1155Core).call(
             abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, updatedCondition)
         );
 
@@ -210,8 +209,8 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
         );
     }
 
@@ -228,8 +227,7 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG,
+        address(erc1155Core).call(
             abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, _id, condition)
         );
     }
@@ -245,8 +243,8 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
         );
 
         IFeeConfig.FeeConfig memory feeConfigStored = MintHook.getDefaultFeeConfig(address(erc1155Core));
@@ -284,8 +282,8 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
         );
 
         IFeeConfig.FeeConfig memory feeConfigStored = MintHook.getDefaultFeeConfig(address(erc1155Core));
@@ -316,8 +314,7 @@ contract AllowlistMintHookERC1155Test is Test {
         specialFeeConfig.platformFeeBps = 2000; // 20%
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG,
+        address(erc1155Core).call(
             abi.encodeWithSelector(AllowlistMintHookERC1155.setFeeConfigForToken.selector, 1, specialFeeConfig)
         );
 
@@ -349,8 +346,8 @@ contract AllowlistMintHookERC1155Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
         );
     }
 
@@ -367,8 +364,8 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
         );
 
         // Set primary sale recipient via fee config
@@ -376,8 +373,8 @@ contract AllowlistMintHookERC1155Test is Test {
             IFeeConfig.FeeConfig({primarySaleRecipient: developer, platformFeeRecipient: address(0), platformFeeBps: 0});
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setDefaultFeeConfig.selector, feeConfig)
         );
 
         // Mint tokens
@@ -408,8 +405,8 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
         );
 
         // End user mints a token
@@ -440,8 +437,8 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
         );
 
         // End user mints a token
@@ -470,8 +467,8 @@ contract AllowlistMintHookERC1155Test is Test {
         });
 
         vm.prank(developer);
-        erc1155Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
+        address(erc1155Core).call(
+            abi.encodeWithSelector(AllowlistMintHookERC1155.setClaimCondition.selector, 0, condition)
         );
 
         // End user mints a token

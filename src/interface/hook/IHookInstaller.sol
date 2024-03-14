@@ -49,11 +49,18 @@ interface IHookInstaller {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice Retusn the implementation of a given hook, if any.
+     *  @notice Returns the implementation of a given hook, if any.
      *  @param flag The bits representing the hook.
      *  @return impl The implementation of the hook.
      */
     function getHookImplementation(uint256 flag) external view returns (address impl);
+
+    /**
+     *  @notice Returns the call destination of a hook fallback function.
+     *  @param _selector The selector of the function.
+     *  @return target The address of the call destination.
+     */
+    function getHookFallbackFunctionTarget(bytes4 _selector) external view returns (address target);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS

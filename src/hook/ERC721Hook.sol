@@ -33,12 +33,12 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Ownable, IERC721
     }
 
     /// @notice Bits representing the token URI hook.
-    function TOKEN_URI_FLAG() public pure virtual returns (uint256) {
+    function ON_TOKEN_URI_FLAG() public pure virtual returns (uint256) {
         return 2 ** 5;
     }
 
     /// @notice Bits representing the royalty hook.
-    function ROYALTY_INFO_FLAG() public pure virtual returns (uint256) {
+    function ON_ROYALTY_INFO_FLAG() public pure virtual returns (uint256) {
         return 2 ** 6;
     }
 
@@ -66,20 +66,6 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Ownable, IERC721
         if (msg.sender != owner()) {
             revert ERC721UnauthorizedUpgrade();
         }
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external view virtual returns (string memory argSignature) {
-        argSignature = "";
-    }
-
-    /// @notice Returns the signature of the arguments expected by the beforeBurn hook.
-    function getBeforeBurnArgSignature() external view virtual returns (string memory argSignature) {
-        argSignature = "";
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -136,7 +122,7 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Ownable, IERC721
      *  @param tokenId The token ID of the NFT.
      *  @return metadata The URI to fetch token metadata from.
      */
-    function tokenURI(uint256 tokenId) external view virtual returns (string memory metadata) {
+    function onTokenURI(uint256 tokenId) external view virtual returns (string memory metadata) {
         revert ERC721HookNotImplemented();
     }
 
@@ -148,7 +134,7 @@ abstract contract ERC721Hook is Initializable, UUPSUpgradeable, Ownable, IERC721
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+    function onRoyaltyInfo(uint256 tokenId, uint256 salePrice)
         external
         view
         virtual
