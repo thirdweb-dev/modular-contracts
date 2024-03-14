@@ -20,7 +20,7 @@ contract SimpleMetadataHookTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     // Test params
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
 
     // Participants
     address public platformAdmin = address(0x123);

@@ -33,12 +33,12 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Ownable, IERC11
     }
 
     /// @notice Bits representing the token URI hook.
-    function TOKEN_URI_FLAG() public pure virtual returns (uint256) {
+    function ON_TOKEN_URI_FLAG() public pure virtual returns (uint256) {
         return 2 ** 5;
     }
 
     /// @notice Bits representing the royalty hook.
-    function ROYALTY_INFO_FLAG() public pure virtual returns (uint256) {
+    function ON_ROYALTY_INFO_FLAG() public pure virtual returns (uint256) {
         return 2 ** 6;
     }
 
@@ -71,20 +71,6 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Ownable, IERC11
         if (msg.sender != owner()) {
             revert ERC1155UnauthorizedUpgrade();
         }
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external view virtual returns (string memory argSignature) {
-        argSignature = "";
-    }
-
-    /// @notice Returns the signature of the arguments expected by the beforeBurn hook.
-    function getBeforeBurnArgSignature() external view virtual returns (string memory argSignature) {
-        argSignature = "";
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -161,7 +147,7 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Ownable, IERC11
      *  @param _id The token ID to retrieve the URI for.
      *  @return metadata The URI for the token.
      */
-    function uri(uint256 _id) external view virtual returns (string memory metadata) {
+    function onUri(uint256 _id) external view virtual returns (string memory metadata) {
         revert ERC1155HookNotImplemented();
     }
 
@@ -172,7 +158,7 @@ abstract contract ERC1155Hook is Initializable, UUPSUpgradeable, Ownable, IERC11
      *  @return receiver The address to send the royalty payment to.
      *  @return royaltyAmount The amount of royalty to pay.
      */
-    function royaltyInfo(uint256 _id, uint256 _salePrice)
+    function onRoyaltyInfo(uint256 _id, uint256 _salePrice)
         external
         view
         virtual

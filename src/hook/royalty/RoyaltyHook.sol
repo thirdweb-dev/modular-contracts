@@ -45,7 +45,7 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
 
     /// @notice Returns all hook functions implemented by this hook contract.
     function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = ROYALTY_INFO_FLAG();
+        hooksImplemented = ON_ROYALTY_INFO_FLAG();
     }
 
     /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
@@ -66,7 +66,7 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
+    function onRoyaltyInfo(uint256 _tokenId, uint256 _salePrice)
         external
         view
         virtual

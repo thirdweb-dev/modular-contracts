@@ -31,7 +31,7 @@ contract OpenEditionHookERC721Test is Test {
     OpenEditionHookERC721 public metadataHook;
 
     // Test params
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
     ISharedMetadata.SharedMetadataInfo public sharedMetadata;
 
     function setUp() public {
