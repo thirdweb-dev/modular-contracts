@@ -6,6 +6,7 @@ import {TestPlus} from "../utils/TestPlus.sol";
 import {EmptyHookERC721} from "../mocks/EmptyHook.sol";
 
 import {ERC721} from "@solady/tokens/ERC721.sol";
+import {IERC721A} from "erc721a/IERC721A.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
@@ -121,7 +122,7 @@ contract ERC721CoreTest is Test, TestPlus {
 
         assertEq(token.balanceOf(address(0xBEEF)), quantity - 1);
 
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.OwnerQueryForNonexistentToken.selector));
         token.ownerOf(idToBurn);
     }
 
@@ -147,10 +148,10 @@ contract ERC721CoreTest is Test, TestPlus {
 
         assertEq(token.balanceOf(address(this)), quantity - 1);
 
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.ApprovalQueryForNonexistentToken.selector));
         token.getApproved(idToBurn);
 
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.OwnerQueryForNonexistentToken.selector));
         token.ownerOf(idToBurn);
     }
 
@@ -278,12 +279,12 @@ contract ERC721CoreTest is Test, TestPlus {
     }
 
     function test_revert_MintToZero() public {
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TransferToZeroAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.MintToZeroAddress.selector));
         token.mint(address(0), 1, "");
     }
 
     function test_revert_BurnUnMinted() public {
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.OwnerQueryForNonexistentToken.selector));
         token.burn(10, "");
     }
 
@@ -292,24 +293,24 @@ contract ERC721CoreTest is Test, TestPlus {
 
         token.burn(0, "");
 
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.OwnerQueryForNonexistentToken.selector));
         token.burn(0, "");
     }
 
     function test_revert_ApproveUnMinted() public {
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.OwnerQueryForNonexistentToken.selector));
         token.approve(address(0xBEEF), 1337);
     }
 
     function test_revert_ApproveUnAuthorized() public {
         token.mint(address(0xCAFE), 10, "");
 
-        vm.expectRevert(abi.encodeWithSelector(ERC721.NotOwnerNorApproved.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.ApprovalCallerNotOwnerNorApproved.selector));
         token.approve(address(0xBEEF), 5);
     }
 
     function test_revert_TransferFromUnOwned() public {
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.OwnerQueryForNonexistentToken.selector));
         token.transferFrom(address(0xFEED), address(0xBEEF), 1337);
     }
 
@@ -380,7 +381,7 @@ contract ERC721CoreTest is Test, TestPlus {
     }
 
     function test_revert_OwnerOfUnminted() public {
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TokenDoesNotExist.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.OwnerQueryForNonexistentToken.selector));
         token.ownerOf(1337);
     }
 }
