@@ -31,7 +31,7 @@ contract OpenEditionHookERC721Test is Test {
     OpenEditionHookERC721 public metadataHook;
 
     // Test params
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
     ISharedMetadata.SharedMetadataInfo public sharedMetadata;
 
     function setUp() public {
@@ -101,7 +101,7 @@ contract OpenEditionHookERC721Test is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
+            ON_TOKEN_URI_FLAG, abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
         );
 
         assertEq(
@@ -131,7 +131,7 @@ contract OpenEditionHookERC721Test is Test {
     function test_revert_setSharedMetadata_notAdmin() public {
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
+            ON_TOKEN_URI_FLAG, abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
         );
     }
 }

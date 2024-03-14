@@ -29,10 +29,10 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     /// @notice Bits representing the token URI hook.
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
 
     /// @notice Bits representing the royalty hook.
-    uint256 public constant ROYALTY_INFO_FLAG = 2 ** 6;
+    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 6;
 
     /// @notice Bits representing the before transfer hook.
     uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2 ** 7;
@@ -206,8 +206,8 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
             beforeBatchTransfer: getHookImplementation(BEFORE_BATCH_TRANSFER_FLAG),
             beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
             beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG),
-            uri: getHookImplementation(TOKEN_URI_FLAG),
-            royaltyInfo: getHookImplementation(ROYALTY_INFO_FLAG)
+            uri: getHookImplementation(ON_TOKEN_URI_FLAG),
+            royaltyInfo: getHookImplementation(ON_ROYALTY_INFO_FLAG)
         });
     }
 
@@ -405,10 +405,10 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
 
     /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory _uri) {
-        address hook = getHookImplementation(TOKEN_URI_FLAG);
+        address hook = getHookImplementation(ON_TOKEN_URI_FLAG);
 
         if (hook != address(0)) {
-            _uri = IERC1155Hook(hook).uri(_tokenId);
+            _uri = IERC1155Hook(hook).onUri(_tokenId);
         }
     }
 
@@ -419,10 +419,10 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC7572
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address hook = getHookImplementation(ROYALTY_INFO_FLAG);
+        address hook = getHookImplementation(ON_ROYALTY_INFO_FLAG);
 
         if (hook != address(0)) {
-            (receiver, royaltyAmount) = IERC1155Hook(hook).royaltyInfo(_tokenId, _salePrice);
+            (receiver, royaltyAmount) = IERC1155Hook(hook).onRoyaltyInfo(_tokenId, _salePrice);
         }
     }
 }

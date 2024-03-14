@@ -101,11 +101,6 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
-    }
-
     /// @notice Returns the claim condition for a given token.
     function getClaimCondition(address _token, uint256 _tokenId)
         external

@@ -98,11 +98,6 @@ contract MintHookERC20 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ERC
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
-    }
-
     /// @notice Returns the fee config for a token.
     function getDefaultFeeConfig(address _token) external view returns (FeeConfig memory) {
         return MintHookERC20Storage.data().feeConfig[_token];

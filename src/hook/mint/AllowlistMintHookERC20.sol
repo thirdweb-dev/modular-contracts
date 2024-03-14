@@ -75,11 +75,6 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook, Multicallable {
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "bytes32[]";
-    }
-
     /// @notice Returns the fee config for a token.
     function getFeeConfig(address _token) external view returns (FeeConfig memory) {
         return AllowlistMintHookERC20Storage.data().feeConfig[_token];

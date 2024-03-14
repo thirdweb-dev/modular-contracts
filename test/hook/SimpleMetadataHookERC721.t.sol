@@ -20,7 +20,7 @@ contract SimpleMetadataHookTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     // Test params
-    uint256 public constant TOKEN_URI_FLAG = 2 ** 5;
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
 
     // Participants
     address public platformAdmin = address(0x123);
@@ -85,7 +85,7 @@ contract SimpleMetadataHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI)
+            ON_TOKEN_URI_FLAG, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI)
         );
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI);
@@ -94,7 +94,7 @@ contract SimpleMetadataHookTest is Test {
 
         vm.prank(developer);
         erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2)
+            ON_TOKEN_URI_FLAG, abi.encodeWithSelector(SimpleMetadataHook.setTokenURI.selector, tokenId, tokenURI2)
         );
 
         assertEq(erc721Core.tokenURI(tokenId), tokenURI2);

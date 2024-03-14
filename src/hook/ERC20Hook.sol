@@ -59,20 +59,6 @@ abstract contract ERC20Hook is Initializable, UUPSUpgradeable, Ownable, IERC20Ho
     }
 
     /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external view virtual returns (string memory argSignature) {
-        argSignature = "";
-    }
-
-    /// @notice Returns the signature of the arguments expected by the beforeBurn hook.
-    function getBeforeBurnArgSignature() external view virtual returns (string memory argSignature) {
-        argSignature = "";
-    }
-
-    /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
