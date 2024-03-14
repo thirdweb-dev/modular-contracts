@@ -48,6 +48,16 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
         hooksImplemented = ROYALTY_INFO_FLAG();
     }
 
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        bytes4[] memory selectors = new bytes4[](4);
+        selectors[0] = this.getRoyaltyInfoForToken.selector;
+        selectors[1] = this.getDefaultRoyaltyInfo.selector;
+        selectors[2] = this.setDefaultRoyaltyInfo.selector;
+        selectors[3] = this.setRoyaltyInfoForToken.selector;
+        return selectors;
+    }
+
     /**
      *  @notice Returns the royalty recipient and amount for a given sale.
      *  @dev Meant to be called by a token contract.

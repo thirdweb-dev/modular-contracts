@@ -138,9 +138,7 @@ contract AllowlistMintHookERC20Test is Test {
         vm.prank(developer);
         vm.expectEmit(true, true, true, true);
         emit ClaimConditionUpdate(address(erc20Core), condition);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
 
         AllowlistMintHookERC20.ClaimCondition memory conditionStored = MintHook.getClaimCondition(address(erc20Core));
 
@@ -158,9 +156,7 @@ contract AllowlistMintHookERC20Test is Test {
         });
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
 
         assertEq(erc20Core.balanceOf(endUser), 0);
 
@@ -175,8 +171,7 @@ contract AllowlistMintHookERC20Test is Test {
         updatedCondition.allowlistMerkleRoot = bytes32("random");
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG,
+        address(erc20Core).call(
             abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, updatedCondition)
         );
 
@@ -198,9 +193,7 @@ contract AllowlistMintHookERC20Test is Test {
         });
 
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -216,9 +209,7 @@ contract AllowlistMintHookERC20Test is Test {
         });
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
     }
 
     function test_setDefaultFeeConfig_state() public {
@@ -232,9 +223,7 @@ contract AllowlistMintHookERC20Test is Test {
         });
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig));
 
         IFeeConfig.FeeConfig memory feeConfigStored = MintHook.getFeeConfig(address(erc20Core));
 
@@ -262,9 +251,7 @@ contract AllowlistMintHookERC20Test is Test {
 
         vm.prank(endUser);
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -280,18 +267,14 @@ contract AllowlistMintHookERC20Test is Test {
         });
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
 
         // Set primary sale recipient via fee config
         IFeeConfig.FeeConfig memory feeConfig =
             IFeeConfig.FeeConfig({primarySaleRecipient: developer, platformFeeRecipient: address(0), platformFeeBps: 0});
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setDefaultFeeConfig.selector, feeConfig));
 
         // Mint tokens
 
@@ -315,9 +298,7 @@ contract AllowlistMintHookERC20Test is Test {
         });
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
 
         // End user mints a token
         vm.prank(endUser);
@@ -338,9 +319,7 @@ contract AllowlistMintHookERC20Test is Test {
         });
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
 
         // End user mints a token
         vm.prank(endUser);
@@ -361,9 +340,7 @@ contract AllowlistMintHookERC20Test is Test {
         });
 
         vm.prank(developer);
-        erc20Core.hookFunctionWrite(
-            BEFORE_MINT_FLAG, abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition)
-        );
+        address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
 
         // End user mints a token
         vm.prank(endUser);

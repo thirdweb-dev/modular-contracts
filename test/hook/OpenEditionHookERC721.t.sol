@@ -100,8 +100,8 @@ contract OpenEditionHookERC721Test is Test {
         );
 
         vm.prank(developer);
-        erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
+        address(erc721Core).call(
+            abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
         );
 
         assertEq(
@@ -130,8 +130,8 @@ contract OpenEditionHookERC721Test is Test {
 
     function test_revert_setSharedMetadata_notAdmin() public {
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedWrite.selector));
-        erc721Core.hookFunctionWrite(
-            TOKEN_URI_FLAG, abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
+        address(erc721Core).call(
+            abi.encodeWithSelector(OpenEditionHookERC721.setSharedMetadata.selector, sharedMetadata)
         );
     }
 }

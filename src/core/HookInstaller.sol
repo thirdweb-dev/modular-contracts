@@ -70,7 +70,7 @@ abstract contract HookInstaller is IHookInstaller {
                         FALLBACK FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    fallback() payable {
+    fallback() external payable {
         address target = hookFallbackFunctionMap_[msg.sig];
         if (target == address(0)) {
             revert HookInstallerHookNotInstalled();
@@ -81,6 +81,8 @@ abstract contract HookInstaller is IHookInstaller {
             _revert(returndata, HookInstallerHookCallFailed.selector);
         }
     }
+
+    receive() external payable virtual {}
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS

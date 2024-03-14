@@ -117,6 +117,7 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IE
             }
 
             _installHook(_hooksToInstall[i].hook);
+            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
 
             if (_hooksToInstall[i].initCalldata.length > 0) {
                 (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{

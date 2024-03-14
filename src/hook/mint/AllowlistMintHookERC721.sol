@@ -80,8 +80,8 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook, Multicallable {
 
     /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
     function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
-        _funcs = new bytes4[](9);
-        _funcs[0] = this.getFeeConfig.selector;
+        _funcs = new bytes4[](8);
+        _funcs[0] = this.setFeeConfigForToken.selector;
         _funcs[1] = this.getDefaultFeeConfig.selector;
         _funcs[2] = this.getClaimCondition.selector;
         _funcs[3] = this.setClaimCondition.selector;
@@ -89,7 +89,6 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook, Multicallable {
         _funcs[5] = this.getNextTokenIdToMint.selector;
         _funcs[6] = this.getFeeConfigForToken.selector;
         _funcs[7] = this.setDefaultFeeConfig.selector;
-        _funcs[8] = this.setFeeConfigForToken.selector;
     }
 
     /// @notice Returns the next token ID to mint for a given token.
