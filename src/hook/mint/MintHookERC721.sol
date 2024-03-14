@@ -28,7 +28,7 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @notice The EIP-712 typehash for the mint request struct.
     bytes32 private constant TYPEHASH = keccak256(
-        "MintRequest(address token,uint256 tokenId,address minter,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes permissionSignature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid)"
+        "MintRequest(address minter,address token,uint256 tokenId,uint256 quantity,uint256 pricePerToken,address currency,bytes32[] allowlistProof,bytes signature,uint128 sigValidityStartTimestamp,uint128 sigValidityEndTimestamp,bytes32 sigUid,bytes auxData)"
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -72,9 +72,6 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
     /// @notice Emitted when the claim condition has ended.
     error MintHookMintEnded();
 
-    /// @notice Emitted when minting to an invalid recipient.
-    error MintHookInvalidRecipient();
-
     /// @notice Emitted when a signature for permissioned mint is invalid
     error MintHookInvalidSignature();
 
@@ -101,9 +98,20 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
         hooksImplemented = BEFORE_MINT_FLAG();
     }
 
-    /// @notice Returns the signature of the arguments expected by the beforeMint hook.
-    function getBeforeMintArgSignature() external pure override returns (string memory argSignature) {
-        argSignature = "address,uint256,address,uint256,uint256,address,bytes32[],bytes,uint128,uint128,bytes32";
+    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
+    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
+        _funcs = new bytes4[](11);
+        _funcs[0] = this.verifyClaim.selector;
+        _funcs[1] = this.verifyPermissionedClaim.selector;
+        _funcs[2] = this.getSupplyClaimedByWallet.selector;
+        _funcs[3] = this.setDefaultFeeConfig.selector;
+        _funcs[4] = this.getDefaultFeeConfig.selector;
+        _funcs[5] = this.getClaimCondition.selector;
+        _funcs[6] = this.setClaimCondition.selector;
+        _funcs[7] = this.setNextIdToMint.selector;
+        _funcs[8] = this.getNextTokenIdToMint.selector;
+        _funcs[9] = this.getFeeConfigForToken.selector;
+        _funcs[10] = this.setFeeConfigForToken.selector;
     }
 
     /// @notice Returns the next token ID to mint for a given token.
@@ -225,49 +233,51 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /**
      *  @notice The beforeMint hook that is called by a core token before minting a token.
-     *  @param _claimer The address that is minting tokens.
-     *  @param _quantity The quantity of tokens to mint.
-     *  @param _encodedArgs The encoded arguments for the beforeMint hook.
+     *  @param _mintRequest The request to mint tokens.
      *  @return tokenIdToMint The start tokenId to mint.
      *  @return quantityToMint The quantity of tokens to mint.
      */
-    function beforeMint(address _claimer, uint256 _quantity, bytes memory _encodedArgs)
+    function beforeMint(MintRequest calldata _mintRequest)
         external
         payable
         override
         returns (uint256 tokenIdToMint, uint256 quantityToMint)
     {
-        MintRequest memory req = abi.decode(_encodedArgs, (MintRequest));
-
-        if (req.token != msg.sender) {
+        if (_mintRequest.token != msg.sender) {
             revert MintHookNotToken();
-        }
-        if (req.quantity != _quantity) {
-            revert MintHookInvalidQuantity(_quantity);
-        }
-
-        if (req.minter != _claimer) {
-            revert MintHookInvalidRecipient();
         }
 
         // Check against active claim condition unless permissioned.
         MintHookERC721Storage.Data storage data = MintHookERC721Storage.data();
 
-        if (req.permissionSignature.length > 0) {
-            verifyPermissionedClaim(req);
-            data.uidUsed[req.sigUid] = true;
+        if (_mintRequest.signature.length > 0) {
+            verifyPermissionedClaim(_mintRequest);
+            data.uidUsed[_mintRequest.sigUid] = true;
         } else {
-            verifyClaim(req.token, req.minter, req.quantity, req.pricePerToken, req.currency, req.allowlistProof);
-            data.claimCondition[req.token].supplyClaimed += req.quantity;
-            data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[req.token], req.minter))] += req.quantity;
+            verifyClaim(
+                _mintRequest.token,
+                _mintRequest.minter,
+                _mintRequest.quantity,
+                _mintRequest.pricePerToken,
+                _mintRequest.currency,
+                _mintRequest.allowlistProof
+            );
+            data.claimCondition[_mintRequest.token].supplyClaimed += _mintRequest.quantity;
+            data.supplyClaimedByWallet[keccak256(abi.encode(data.conditionId[_mintRequest.token], _mintRequest.minter))]
+            += _mintRequest.quantity;
         }
 
-        tokenIdToMint = data.nextTokenIdToMint[req.token];
-        data.nextTokenIdToMint[req.token] += req.quantity;
+        tokenIdToMint = data.nextTokenIdToMint[_mintRequest.token];
+        data.nextTokenIdToMint[_mintRequest.token] += _mintRequest.quantity;
 
-        quantityToMint = req.quantity;
+        quantityToMint = _mintRequest.quantity;
 
-        _collectPrice(req.minter, tokenIdToMint, req.pricePerToken * req.quantity, req.currency);
+        _collectPrice(
+            _mintRequest.minter,
+            tokenIdToMint,
+            _mintRequest.pricePerToken * _mintRequest.quantity,
+            _mintRequest.currency
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -406,23 +416,25 @@ contract MintHookERC721 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, ER
 
     /// @dev Returns the address of the signer of the mint request.
     function _recoverAddress(MintRequest memory _req) internal view returns (address) {
-        return _hashTypedData(
-            keccak256(
-                abi.encode(
-                    TYPEHASH,
-                    _req.token,
-                    _req.tokenId,
-                    _req.minter,
-                    _req.quantity,
-                    _req.pricePerToken,
-                    _req.currency,
-                    _req.allowlistProof,
-                    keccak256(bytes("")),
-                    _req.sigValidityStartTimestamp,
-                    _req.sigValidityEndTimestamp,
-                    _req.sigUid
-                )
-            )
-        ).recover(_req.permissionSignature);
+        return _hashTypedData(keccak256(_encodeRequest(_req))).recover(_req.signature);
+    }
+
+    /// @dev Encodes the typed data struct.
+    function _encodeRequest(MintRequest memory _req) internal view returns (bytes memory) {
+        return abi.encode(
+            TYPEHASH,
+            _req.minter,
+            _req.token,
+            _req.tokenId,
+            _req.quantity,
+            _req.pricePerToken,
+            _req.currency,
+            _req.allowlistProof,
+            keccak256(bytes("")),
+            _req.sigValidityStartTimestamp,
+            _req.sigValidityEndTimestamp,
+            _req.sigUid,
+            keccak256(_req.auxData)
+        );
     }
 }

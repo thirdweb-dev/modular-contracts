@@ -45,28 +45,22 @@ interface IHookInstaller {
     event HooksUninstalled(address indexed implementation, uint256 hooks);
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when the caller is not authorized to install/uninstall hooks.
-    error HookNotAuthorized();
-
-    /// @notice Emitted when the caller attempts to install a hook that is already installed.
-    error HookAlreadyInstalled();
-
-    /// @notice Emitted when the caller attempts to uninstall a hook that is not installed.
-    error HookNotInstalled();
-
-    /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice Retusn the implementation of a given hook, if any.
+     *  @notice Returns the implementation of a given hook, if any.
      *  @param flag The bits representing the hook.
      *  @return impl The implementation of the hook.
      */
     function getHookImplementation(uint256 flag) external view returns (address impl);
+
+    /**
+     *  @notice Returns the call destination of a hook fallback function.
+     *  @param _selector The selector of the function.
+     *  @return target The address of the call destination.
+     */
+    function getHookFallbackFunctionTarget(bytes4 _selector) external view returns (address target);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -75,10 +69,9 @@ interface IHookInstaller {
     /**
      *  @notice Installs a hook in the contract.
      *  @dev Maps all hook functions implemented by the hook to the hook's address.
-     *  @param hook The hook to install.
-     * @param initializeData The initialization calldata.
+     *  @param _params The parameters for installing the hook and initializing it with some data.
      */
-    function installHook(IHook hook, bytes calldata initializeData) external payable;
+    function installHook(InstallHookParams memory _params) external payable;
 
     /**
      *  @notice Uninstalls a hook in the contract.

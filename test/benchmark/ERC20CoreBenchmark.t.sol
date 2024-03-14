@@ -14,7 +14,8 @@ import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
 import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import {IERC20Hook} from "src/interface/hook/IERC20Hook.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 /**
  *  This test showcases how users would use ERC-20 contracts on the thirdweb platform.
@@ -72,6 +73,8 @@ contract ERC20CoreBenchmarkTest is Test {
     // Token claim params
     uint256 public pricePerToken = 1 ether;
     uint256 public availableSupply = 100 ether;
+
+    IERC20Hook.MintRequest public mintRequest;
 
     function setUp() public {
         // Setup up to enabling minting on ERC-20 contract.
@@ -142,7 +145,11 @@ contract ERC20CoreBenchmarkTest is Test {
         // Developer installs `AllowlistMintHookERC20` hook
         vm.prank(platformUser);
         erc20.installHook(
-            IHook(hookProxyAddress), abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+            IHookInstaller.InstallHookParams(
+                IHook(hookProxyAddress),
+                0,
+                abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+            )
         );
 
         vm.stopPrank();
@@ -200,12 +207,19 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core claimContract = erc20;
         address claimerAddress = claimer;
 
+        mintRequest.token = address(erc20);
+        mintRequest.minter = claimerAddress;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        IERC20Hook.MintRequest memory req = mintRequest;
+
         vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken}(req);
     }
 
     function test_mintTenTokens() public {
@@ -230,12 +244,19 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core claimContract = erc20;
         address claimerAddress = claimer;
 
+        mintRequest.token = address(erc20);
+        mintRequest.minter = claimerAddress;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        IERC20Hook.MintRequest memory req = mintRequest;
+
         vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken * 10}(req);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -263,7 +284,12 @@ contract ERC20CoreBenchmarkTest is Test {
 
         // Claim token
         vm.prank(claimer);
-        erc20.mint{value: pricePerToken}(claimer, quantityToClaim, encodedArgs);
+        mintRequest.token = address(erc20);
+        mintRequest.minter = claimer;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        erc20.mint{value: pricePerToken}(mintRequest);
 
         address to = address(0x121212);
         address from = claimer;
@@ -311,7 +337,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, "");
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
     }
 
     function test_installfiveHooks() public {
@@ -327,7 +353,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, "");
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
     }
 
     function test_uninstallOneHook() public {
@@ -337,7 +363,7 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, "");
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
 
         vm.prank(platformUser);
 
@@ -356,7 +382,7 @@ contract ERC20CoreBenchmarkTest is Test {
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, "");
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
 
         vm.prank(platformUser);
 

@@ -10,8 +10,19 @@ import {HookInstaller} from "../HookInstaller.sol";
 import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
 import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
 import {IERC7572} from "../../interface/eip/IERC7572.sol";
+import {IMintRequest} from "../../interface/common/IMintRequest.sol";
+import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
 
-contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IERC20HookInstaller {
+contract ERC20Core is
+    ERC20,
+    HookInstaller,
+    Ownable,
+    Multicallable,
+    IERC7572,
+    IERC20HookInstaller,
+    IMintRequest,
+    IBurnRequest
+{
     /*//////////////////////////////////////////////////////////////
                                   CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -117,6 +128,7 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IE
             }
 
             _installHook(_hooksToInstall[i].hook);
+            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
 
             if (_hooksToInstall[i].initCalldata.length > 0) {
                 (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
@@ -176,24 +188,21 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IE
     /**
      *  @notice Mints tokens. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
-     *  @param _to The address to mint the tokens to.
-     *  @param _amount The amount of tokens to mint.
-     *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
+     *  @param _mintRequest The token mint request details.
      */
-    function mint(address _to, uint256 _amount, bytes memory _encodedBeforeMintArgs) external payable {
-        uint256 quantityToMint = _beforeMint(_to, _amount, _encodedBeforeMintArgs);
-        _mint(_to, quantityToMint);
+    function mint(MintRequest calldata _mintRequest) external payable {
+        uint256 quantityToMint = _beforeMint(_mintRequest);
+        _mint(_mintRequest.minter, quantityToMint);
     }
 
     /**
      *  @notice Burns tokens.
      *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
-     *  @param _amount The amount of tokens to burn.
-     *  @param _encodedBeforeBurnArgs ABI encoded arguments to pass to the beforeBurn hook.
+     *  @param _burnRequest The token burn request details.
      */
-    function burn(uint256 _amount, bytes memory _encodedBeforeBurnArgs) external {
-        _beforeBurn(msg.sender, _amount, _encodedBeforeBurnArgs);
-        _burn(msg.sender, _amount);
+    function burn(BurnRequest calldata _burnRequest) external {
+        _beforeBurn(_burnRequest);
+        _burn(msg.sender, _burnRequest.quantity);
     }
 
     /**
@@ -255,8 +264,8 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IE
     }
 
     /// @dev Should return the max flag that represents a hook.
-    function _maxHookFlag() internal pure override returns (uint256) {
-        return BEFORE_APPROVE_FLAG;
+    function _maxHookFlag() internal pure override returns (uint8) {
+        return uint8(BEFORE_APPROVE_FLAG);
     }
 
     /// @dev Sets contract URI
@@ -265,39 +274,17 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IE
         emit ContractURIUpdated();
     }
 
-    /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory _returndata, bytes4 _errorSignature) internal pure {
-        // Look for revert reason and bubble it up if present
-        if (_returndata.length > 0) {
-            // The easiest way to bubble the revert reason is using memory via assembly
-            /// @solidity memory-safe-assembly
-            assembly {
-                let returndata_size := mload(_returndata)
-                revert(add(32, _returndata), returndata_size)
-            }
-        } else {
-            assembly {
-                mstore(0x00, _errorSignature)
-                revert(0x1c, 0x04)
-            }
-        }
-    }
-
     /*//////////////////////////////////////////////////////////////
                           HOOKS INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address _to, uint256 _amount, bytes memory _data)
-        internal
-        virtual
-        returns (uint256 quantityToMint)
-    {
+    function _beforeMint(MintRequest calldata _mintRequest) internal virtual returns (uint256 quantityToMint) {
         address hook = getHookImplementation(BEFORE_MINT_FLAG);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) =
-                hook.call{value: msg.value}(abi.encodeWithSelector(IERC20Hook.beforeMint.selector, _to, _amount, _data));
+                hook.call{value: msg.value}(abi.encodeWithSelector(IERC20Hook.beforeMint.selector, _mintRequest));
 
             if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
             quantityToMint = abi.decode(returndata, (uint256));
@@ -318,13 +305,12 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC7572, IE
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _amount, bytes memory _encodedBeforeBurnArgs) internal virtual {
+    function _beforeBurn(BurnRequest calldata _burnRequest) internal virtual {
         address hook = getHookImplementation(BEFORE_BURN_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(IERC20Hook.beforeBurn.selector, _from, _amount, _encodedBeforeBurnArgs)
-            );
+            (bool success, bytes memory returndata) =
+                hook.call{value: msg.value}(abi.encodeWithSelector(IERC20Hook.beforeBurn.selector, _burnRequest));
             if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
         }
     }

@@ -15,7 +15,8 @@ import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.s
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
 import {IERC1155} from "src/interface/eip/IERC1155.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
-import {IInitCall} from "src/interface/common/IInitCall.sol";
+import {IERC1155Hook} from "src/interface/hook/IERC1155Hook.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
 /**
  *  This test showcases how users would use ERC-1155 contracts on the thirdweb platform.
@@ -76,6 +77,8 @@ contract ERC1155CoreBenchmarkTest is Test {
     // Token claim params
     uint256 public pricePerToken = 0.1 ether;
     uint256 public availableSupply = 100;
+
+    IERC1155Hook.MintRequest public mintRequest;
 
     function setUp() public {
         // Setup up to enabling minting on ERC-1155 contract.
@@ -155,9 +158,15 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         // Developer installs `AllowlistMintHookERC1155` hook
         erc1155.installHook(
-            IHook(hookProxyAddress), abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+            IHookInstaller.InstallHookParams(
+                IHook(hookProxyAddress),
+                0,
+                abi.encodeWithSelector(Multicallable.multicall.selector, multicallDataMintHook)
+            )
         );
-        erc1155.installHook(IHook(lazyMintHookProxyAddress), initializeDataLazyMint);
+        erc1155.installHook(
+            IHookInstaller.InstallHookParams(IHook(lazyMintHookProxyAddress), 0, initializeDataLazyMint)
+        );
 
         vm.stopPrank();
 
@@ -215,12 +224,20 @@ contract ERC1155CoreBenchmarkTest is Test {
         address claimerAddress = claimer;
         uint256 tokenId = 0;
 
+        mintRequest.token = address(claimContract);
+        mintRequest.minter = claimerAddress;
+        mintRequest.tokenId = tokenId;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        IERC1155Hook.MintRequest memory req = mintRequest;
+
         vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken}(req);
     }
 
     function test_mintTenTokens() public {
@@ -245,12 +262,20 @@ contract ERC1155CoreBenchmarkTest is Test {
         address claimerAddress = claimer;
         uint256 tokenId = 0;
 
+        mintRequest.token = address(claimContract);
+        mintRequest.minter = claimerAddress;
+        mintRequest.tokenId = tokenId;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
+        IERC1155Hook.MintRequest memory req = mintRequest;
+
         vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Claim token
-        claimContract.mint{value: pricePerToken * 10}(claimerAddress, tokenId, quantityToClaim, encodedArgs);
+        claimContract.mint{value: pricePerToken * 10}(req);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -277,8 +302,14 @@ contract ERC1155CoreBenchmarkTest is Test {
         uint256 tokenId = 0;
 
         // Claim token
+        mintRequest.token = address(erc1155);
+        mintRequest.minter = claimer;
+        mintRequest.tokenId = tokenId;
+        mintRequest.quantity = quantityToClaim;
+        mintRequest.allowlistProof = proofs;
+
         vm.prank(claimer);
-        erc1155.mint{value: pricePerToken}(claimer, tokenId, quantityToClaim, encodedArgs);
+        erc1155.mint{value: pricePerToken}(mintRequest);
 
         address to = address(0x121212);
         address from = claimer;
@@ -327,7 +358,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
     }
 
     function test_installfiveHooks() public {
@@ -343,7 +374,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
     }
 
     function test_uninstallOneHooks() public {
@@ -353,7 +384,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
 
         vm.prank(platformUser);
 
@@ -372,7 +403,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         hookConsumer.uninstallHook(IHook(hookProxyAddress));
 
         vm.prank(platformUser);
-        hookConsumer.installHook(mockHook, bytes(""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
 
         vm.prank(platformUser);
 
