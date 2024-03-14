@@ -38,17 +38,8 @@ contract ERC721Core is ERC721A, HookInstaller, Ownable, Multicallable, IERC7572,
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    // /// @notice The name of the NFT collection.
-    // string private name_;
-
-    // /// @notice The symbol of the NFT collection.
-    // string private symbol_;
-
     /// @notice The contract metadata URI of the contract.
     string private contractURI_;
-
-    /// @notice The total supply of the NFT collection.
-    // uint256 private totalSupply_;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -141,16 +132,6 @@ contract ERC721Core is ERC721A, HookInstaller, Ownable, Multicallable, IERC7572,
                               VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // /// @notice Returns the name of the NFT Collection.
-    // function name() public view override returns (string memory) {
-    //     return name_;
-    // }
-
-    // /// @notice Returns the symbol of the NFT Collection.
-    // function symbol() public view override returns (string memory) {
-    //     return symbol_;
-    // }
-
     /**
      *  @notice Returns the contract URI of the contract.
      *  @return uri The contract URI of the contract.
@@ -158,11 +139,6 @@ contract ERC721Core is ERC721A, HookInstaller, Ownable, Multicallable, IERC7572,
     function contractURI() external view override returns (string memory) {
         return contractURI_;
     }
-
-    // /// @notice Returns the total supply of the NFT collection.
-    // function totalSupply() public view virtual returns (uint256) {
-    //     return totalSupply_;
-    // }
 
     /**
      *  @notice Returns the token metadata of an NFT.
@@ -229,16 +205,8 @@ contract ERC721Core is ERC721A, HookInstaller, Ownable, Multicallable, IERC7572,
      *  @param _encodedBeforeMintArgs ABI encoded arguments to pass to the beforeMint hook.
      */
     function mint(address _to, uint256 _quantity, bytes memory _encodedBeforeMintArgs) external payable {
-        (uint256 startTokenId, uint256 quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
-        for (uint256 i = 0; i < quantityToMint; i++) {
-            uint256 id = startTokenId + i;
-            if (id > 0) {
-                _mintSpot(_to, id);
-            } else {
-                _mint(_to, 1);
-            }
-        }
-        // totalSupply_ += quantityToMint;
+        (, uint256 quantityToMint) = _beforeMint(_to, _quantity, _encodedBeforeMintArgs);
+        _mint(_to, quantityToMint);
     }
 
     /**
@@ -250,8 +218,6 @@ contract ERC721Core is ERC721A, HookInstaller, Ownable, Multicallable, IERC7572,
     function burn(uint256 _tokenId, bytes memory _encodedBeforeBurnArgs) external {
         _beforeBurn(ownerOf(_tokenId), _tokenId, _encodedBeforeBurnArgs);
         _burn(_tokenId, true);
-        // _burn(msg.sender, _tokenId);
-        // totalSupply_--;
     }
 
     /**
@@ -290,11 +256,6 @@ contract ERC721Core is ERC721A, HookInstaller, Ownable, Multicallable, IERC7572,
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @dev Returns the maximum token ID (inclusive) for sequential mints.
-    function _sequentialUpTo() internal view override returns (uint256) {
-        return 0;
-    }
 
     /// @dev Returns whether the caller can update hooks.
     function _canUpdateHooks(address _caller) internal view override returns (bool) {
