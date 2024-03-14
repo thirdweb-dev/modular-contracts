@@ -3,18 +3,20 @@ pragma solidity ^0.8.0;
 
 import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {ERC721} from "@solady/tokens/ERC721.sol";
+import {IERC721A, ERC721A, ERC721AQueryable} from "erc721a/extensions/ERC721AQueryable.sol";
 
 import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
 import {IERC721Hook} from "../../interface/hook/IERC721Hook.sol";
+import {IERC7572} from "../../interface/eip/IERC7572.sol";
+
 import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
 
 contract ERC721Core is
-    ERC721,
+    ERC721AQueryable,
     HookInstaller,
     Ownable,
     Multicallable,
@@ -49,17 +51,8 @@ contract ERC721Core is
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The name of the NFT collection.
-    string private name_;
-
-    /// @notice The symbol of the NFT collection.
-    string private symbol_;
-
     /// @notice The contract metadata URI of the contract.
     string private contractURI_;
-
-    /// @notice The total supply of the NFT collection.
-    uint256 private totalSupply_;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -101,10 +94,10 @@ contract ERC721Core is
         address _owner,
         OnInitializeParams memory _onInitializeCall,
         InstallHookParams[] memory _hooksToInstall
-    ) payable {
+    ) payable ERC721A(_name, _symbol) {
         // Set contract metadata
-        name_ = _name;
-        symbol_ = _symbol;
+        // name_ = _name;
+        // symbol_ = _symbol;
         _setupContractURI(_contractURI);
 
         // Set contract owner
@@ -153,16 +146,6 @@ contract ERC721Core is
                               VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns the name of the NFT Collection.
-    function name() public view override returns (string memory) {
-        return name_;
-    }
-
-    /// @notice Returns the symbol of the NFT Collection.
-    function symbol() public view override returns (string memory) {
-        return symbol_;
-    }
-
     /**
      *  @notice Returns the contract URI of the contract.
      *  @return uri The contract URI of the contract.
@@ -171,18 +154,13 @@ contract ERC721Core is
         return contractURI_;
     }
 
-    /// @notice Returns the total supply of the NFT collection.
-    function totalSupply() public view virtual returns (uint256) {
-        return totalSupply_;
-    }
-
     /**
      *  @notice Returns the token metadata of an NFT.
      *  @dev Always returns metadata queried from the metadata source.
      *  @param _id The token ID of the NFT.
      *  @return metadata The URI to fetch metadata from.
      */
-    function tokenURI(uint256 _id) public view override returns (string memory) {
+    function tokenURI(uint256 _id) public view override(ERC721A, IERC721A) returns (string memory) {
         return _getTokenURI(_id);
     }
 
@@ -201,7 +179,7 @@ contract ERC721Core is
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param _interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 _interfaceId) public pure override returns (bool) {
+    function supportsInterface(bytes4 _interfaceId) public pure override(IERC721A, ERC721A) returns (bool) {
         return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
             || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
@@ -239,11 +217,8 @@ contract ERC721Core is
      *  @param _mintRequest The request to mint tokens.
      */
     function mint(MintRequest calldata _mintRequest) external payable {
-        (uint256 startTokenId, uint256 quantityToMint) = _beforeMint(_mintRequest);
-        for (uint256 i = 0; i < quantityToMint; i++) {
-            _mint(_mintRequest.minter, startTokenId + i);
-        }
-        totalSupply_ += quantityToMint;
+        (, uint256 quantityToMint) = _beforeMint(_mintRequest);
+        _mint(_mintRequest.minter, quantityToMint);
     }
 
     /**
@@ -253,8 +228,7 @@ contract ERC721Core is
      */
     function burn(BurnRequest calldata _burnRequest) external {
         _beforeBurn(_burnRequest);
-        _burn(msg.sender, _burnRequest.tokenId);
-        totalSupply_--;
+        _burn(_burnRequest.tokenId, true);
     }
 
     /**
@@ -264,7 +238,7 @@ contract ERC721Core is
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(address _from, address _to, uint256 _id) public payable override {
+    function transferFrom(address _from, address _to, uint256 _id) public payable override(ERC721A, IERC721A) {
         _beforeTransfer(_from, _to, _id);
         super.transferFrom(_from, _to, _id);
     }
@@ -275,7 +249,7 @@ contract ERC721Core is
      *  @param _spender The address to approve
      *  @param _id The token ID of the NFT
      */
-    function approve(address _spender, uint256 _id) public payable override {
+    function approve(address _spender, uint256 _id) public payable override(ERC721A, IERC721A) {
         _beforeApprove(msg.sender, _spender, _id, true);
         super.approve(_spender, _id);
     }
@@ -285,7 +259,7 @@ contract ERC721Core is
      *  @param _operator The address to approve or revoke approval from
      *  @param _approved Whether the operator is approved
      */
-    function setApprovalForAll(address _operator, bool _approved) public override {
+    function setApprovalForAll(address _operator, bool _approved) public override(ERC721A, IERC721A) {
         _beforeApprove(msg.sender, _operator, type(uint256).max, _approved);
         super.setApprovalForAll(_operator, _approved);
     }
