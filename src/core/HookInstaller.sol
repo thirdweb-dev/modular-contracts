@@ -66,6 +66,15 @@ abstract contract HookInstaller is IHookInstaller {
         return hookImplementationMap_[_flag];
     }
 
+    /**
+     *  @notice Returns the call destination of a hook fallback function.
+     *  @param _selector The selector of the function.
+     *  @return target The address of the call destination.
+     */
+    function getHookFallbackFunctionTarget(bytes4 _selector) external view returns (address) {
+        return hookFallbackFunctionMap_[_selector];
+    }
+
     /*//////////////////////////////////////////////////////////////
                         FALLBACK FUNCTION
     //////////////////////////////////////////////////////////////*/
