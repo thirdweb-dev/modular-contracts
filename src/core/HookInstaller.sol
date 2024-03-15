@@ -2,12 +2,14 @@
 pragma solidity ^0.8.0;
 
 import {LibBitmap} from "@solady/utils/LibBitmap.sol";
+import {LibBit} from "@solady/utils/LibBit.sol";
 
 import {IHook} from "../interface/hook/IHook.sol";
 import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
 
 abstract contract HookInstaller is IHookInstaller {
     using LibBitmap for LibBitmap.Bitmap;
+    using LibBit for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -198,7 +200,7 @@ abstract contract HookInstaller is IHookInstaller {
 
         // Validate the hook is compatible with the hook installer.
         uint256 flag = 2 ** _maxHookFlag();
-        if (hooksToInstall > flag) {
+        if (flag < _highestBitToZero(hooksToInstall)) {
             revert HookInstallerIncompatibleHook();
         }
 
@@ -270,5 +272,11 @@ abstract contract HookInstaller is IHookInstaller {
                 revert(0x1c, 0x04)
             }
         }
+    }
+
+    function _highestBitToZero(uint256 _value) public pure returns (uint256) {
+        if (_value == 0) return 0; // Handle edge case where value is 0
+        uint256 index = _value.fls(); // Find the index of the MSB
+        return (1 << index); // Shift 1 left by the index of the MSB
     }
 }
