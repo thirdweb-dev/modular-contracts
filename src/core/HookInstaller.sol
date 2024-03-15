@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {LibBitmap} from "@solady/utils/LibBitmap.sol";
 import {LibBit} from "@solady/utils/LibBit.sol";
 
 import {IHook} from "../interface/hook/IHook.sol";
 import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
 
 abstract contract HookInstaller is IHookInstaller {
-    using LibBitmap for LibBitmap.Bitmap;
     using LibBit for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -17,9 +15,6 @@ abstract contract HookInstaller is IHookInstaller {
 
     /// @notice Bits representing all hooks installed.
     uint256 private installedHooks_;
-
-    /// @notice Whether a given hook is installed in the contract.
-    LibBitmap.Bitmap private hookImplementations_;
 
     /// @notice Mapping from hook bits representation => implementation of the hook.
     mapping(uint256 => address) private hookImplementationMap_;
@@ -128,35 +123,30 @@ abstract contract HookInstaller is IHookInstaller {
 
     /**
      *  @notice Uninstalls a hook in the contract.
-     *  @dev Reverts if the hook is not installed already.
-     *  @param _hook The hook to uninstall.
+     *  @dev Unlike `installHook`, we do not accept a hook contract address as a parameter since it is possible
+     *       that the hook contract returns different hook functions compared to when it was installed. This could
+     *       lead to a mismatch. Instead, we use the bit representation of the hooks to uninstall.
+     *  @param _hooksToUninstall The bit representation of the hooks to uninstall.
      */
-    function uninstallHook(IHook _hook) external {
+    function uninstallHook(uint256 _hooksToUninstall) external {
         // Validate the caller's permissions.
         if (!_canUpdateHooks(msg.sender)) {
             revert HookInstallerNotAuthorized();
         }
 
-        // Validate hook address.
-        if (address(_hook) == address(0)) {
-            revert HookInstallerZeroAddress();
+        // Validate the hook is compatible with the hook installer.
+        uint256 flag = 2 ** _maxHookFlag();
+        if (flag < _highestBitToZero(_hooksToUninstall)) {
+            revert HookInstallerIncompatibleHook();
         }
-        if (!hookImplementations_.get(uint160(address(_hook)))) {
-            revert HookInstallerHookNotInstalled();
-        }
-
-        // Get the flags of all the hook functions for which to remove the hook contract
-        // as their implementation.
-        uint256 hooksToUninstall = _hook.getHooks();
 
         // 1. For each hook function i.e. flag <= 2 ** _maxHookFlag(): If the installed hook contract
         //    implements the hook function, delete it as the implementation of the hook function.
         //
         // 2. Update the tracked installed hooks of the contract.
         uint256 currentActivehooks = installedHooks_;
-        uint256 flag = 2 ** _maxHookFlag();
         while (flag > 1) {
-            if (hooksToUninstall & flag > 0) {
+            if (_hooksToUninstall & flag > 0) {
                 currentActivehooks &= ~flag;
                 delete hookImplementationMap_[flag];
             }
@@ -164,14 +154,7 @@ abstract contract HookInstaller is IHookInstaller {
         }
         installedHooks_ = currentActivehooks;
 
-        // Get all the hook fallback functions and delete the hook contract
-        // as their call destination.
-        bytes4[] memory selectors = _hook.getHookFallbackFunctions();
-        for (uint256 i = 0; i < selectors.length; i++) {
-            delete hookFallbackFunctionMap_[selectors[i]];
-        }
-
-        emit HooksUninstalled(address(_hook), hooksToUninstall);
+        emit HooksUninstalled(_hooksToUninstall);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -187,12 +170,6 @@ abstract contract HookInstaller is IHookInstaller {
         if (address(_params.hook) == address(0)) {
             revert HookInstallerZeroAddress();
         }
-        if (hookImplementations_.get(uint160(address(_params.hook)))) {
-            revert HookInstallerHookAlreadyInstalled();
-        }
-
-        // Store hook as installed.
-        hookImplementations_.set(uint160(address(_params.hook)));
 
         // Get flags of all the hook functions for which to set the hook contract
         // as their implementation.

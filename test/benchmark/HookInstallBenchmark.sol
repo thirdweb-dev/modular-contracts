@@ -84,7 +84,7 @@ contract HookInstallBenchmarkTest is Test {
         MockCore0 core = core0Preinstalled;
         vm.resumeGasMetering();
 
-        core.uninstallHook(hookToUninstall);
+        core.uninstallHook(0);
     }
 
     function test_installHook256() public {
@@ -101,6 +101,6 @@ contract HookInstallBenchmarkTest is Test {
         MockCore256 core = core256Preinstalled;
         vm.resumeGasMetering();
 
-        core.uninstallHook(hookToUninstall);
+        core.uninstallHook(255);
     }
 }

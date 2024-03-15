@@ -87,6 +87,24 @@ contract ERC721CoreBenchmarkTest is Test {
 
     IERC721Hook.MintRequest public mintRequest;
 
+    /// @notice Bits representing the before mint hook.
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+
+    /// @notice Bits representing the before transfer hook.
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+
+    /// @notice Bits representing the before burn hook.
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+
+    /// @notice Bits representing the before approve hook.
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+
+    /// @notice Bits representing the token URI hook.
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
+
+    /// @notice Bits representing the royalty hook.
+    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 6;
+
     function setUp() public {
         // Setup up to enabling minting on ERC-721 contract.
 
@@ -440,7 +458,7 @@ contract ERC721CoreBenchmarkTest is Test {
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.uninstallHook(IHook(extensionProxyAddress));
+        extensionConsumer.uninstallHook(BEFORE_MINT_FLAG);
 
         vm.prank(platformUser);
 
@@ -463,7 +481,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.uninstallHook(mockHook);
+        extensionConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
     }
 
     function test_uninstallFiveHooks() public {
@@ -474,7 +492,7 @@ contract ERC721CoreBenchmarkTest is Test {
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.uninstallHook(IHook(extensionProxyAddress));
+        extensionConsumer.uninstallHook(BEFORE_MINT_FLAG);
 
         vm.prank(platformUser);
         extensionConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
@@ -483,6 +501,8 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.uninstallHook(mockHook);
+        extensionConsumer.uninstallHook(
+            BEFORE_MINT_FLAG | BEFORE_TRANSFER_FLAG | BEFORE_BURN_FLAG | BEFORE_APPROVE_FLAG
+        );
     }
 }
