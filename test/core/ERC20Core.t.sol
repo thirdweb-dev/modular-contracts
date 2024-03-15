@@ -9,9 +9,11 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
+import {HookInstaller} from "src/core/HookInstaller.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC20Hook} from "src/interface/hook/IERC20Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
+import {MockTokenURIHookImpl} from "../mocks/MockHookImpl.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
     bytes32 constant PERMIT_TYPEHASH =
@@ -78,6 +80,17 @@ contract ERC20CoreTest is Test, TestPlus {
 
         vm.label(address(token), "ERC20Core");
         vm.label(admin, "Admin");
+    }
+
+    function testIncompatibleHookInstall() public {
+        vm.startPrank(admin);
+        address mockHook = address(new MockTokenURIHookImpl());
+
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerIncompatibleHook.selector));
+        token.installHook(
+            IHookInstaller.InstallHookParams({hook: IHook(mockHook), initCallValue: 0, initCalldata: bytes("")})
+        );
+        vm.stopPrank();
     }
 
     function testMetadata() public {

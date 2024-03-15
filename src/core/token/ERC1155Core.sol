@@ -307,7 +307,7 @@ contract ERC1155Core is
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return uint8(BEFORE_BATCH_TRANSFER_FLAG);
+        return 7; // BeforeBatchTransfer
     }
 
     /// @dev Sets contract URI

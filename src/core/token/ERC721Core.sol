@@ -268,7 +268,7 @@ contract ERC721Core is
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return uint8(ON_ROYALTY_INFO_FLAG);
+        return 6; // OnRoyaltyInfo
     }
 
     /// @dev Sets contract URI

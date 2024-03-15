@@ -44,6 +44,9 @@ abstract contract HookInstaller is IHookInstaller {
     /// @notice Emitted on attempt to call an uninstalled hook.
     error HookInstallerHookNotInstalled();
 
+    /// @notice Emitted on installing a hook that is incompatible with the hook installer.
+    error HookInstallerIncompatibleHook();
+
     /// @notice Emitted when installing or uninstalling the zero address as a hook.
     error HookInstallerZeroAddress();
 
@@ -193,12 +196,17 @@ abstract contract HookInstaller is IHookInstaller {
         // as their implementation.
         uint256 hooksToInstall = _params.hook.getHooks();
 
+        // Validate the hook is compatible with the hook installer.
+        uint256 flag = 2 ** _maxHookFlag();
+        if (hooksToInstall > flag) {
+            revert HookInstallerIncompatibleHook();
+        }
+
         // 1. For each hook function i.e. flag <= 2 ** _maxHookFlag(): If the installed hook contract
         //    implements the hook function, set it as the implementation of the hook function.
         //
         // 2. Update the tracked installed hooks of the contract.
         uint256 currentActivehooks = installedHooks_;
-        uint256 flag = 2 ** _maxHookFlag();
         while (flag > 1) {
             if (hooksToInstall & flag > 0) {
                 if (currentActivehooks & flag > 0) {
