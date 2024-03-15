@@ -9,20 +9,10 @@ import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
 import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
 
-contract ERC20Core is
-    ERC20,
-    HookInstaller,
-    Ownable,
-    Multicallable,
-    IERC7572,
-    IERC20HookInstaller,
-    IMintRequest,
-    IBurnRequest
-{
+contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookInstaller, IMintRequest, IBurnRequest {
     /*//////////////////////////////////////////////////////////////
                                   CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -72,6 +62,13 @@ contract ERC20Core is
     error ERC20CoreMintDisabled();
 
     /*//////////////////////////////////////////////////////////////
+                               EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when the contract URI is updated.
+    event ContractURIUpdated();
+
+    /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
@@ -109,34 +106,18 @@ contract ERC20Core is
             if (constructorValue < _onInitializeCall.value) revert ERC20CoreInsufficientValueInConstructor();
             constructorValue -= _onInitializeCall.value;
 
-            (bool successOnInitialize, bytes memory returndataOnInitialize) =
+            (bool success, bytes memory returndata) =
                 _onInitializeCall.target.call{value: _onInitializeCall.value}(_onInitializeCall.data);
 
-            if (!successOnInitialize) _revert(returndataOnInitialize, ERC20CoreOnInitializeCallFailed.selector);
+            if (!success) _revert(returndata, ERC20CoreOnInitializeCallFailed.selector);
         }
 
         // Install and initialize hooks
-        bool successHookInstall;
-        bytes memory returndataHookInstall;
-
         for (uint256 i = 0; i < _hooksToInstall.length; i++) {
             if (constructorValue < _hooksToInstall[i].initCallValue) revert ERC20CoreInsufficientValueInConstructor();
-            constructorValue -= _onInitializeCall.value;
+            constructorValue -= _hooksToInstall[i].initCallValue;
 
-            if (address(_hooksToInstall[i].hook) == address(0)) {
-                revert HookInstallerInvalidHook();
-            }
-
-            _installHook(_hooksToInstall[i].hook);
-            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
-
-            if (_hooksToInstall[i].initCalldata.length > 0) {
-                (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
-                    value: _hooksToInstall[i].initCallValue
-                }(_hooksToInstall[i].initCalldata);
-
-                if (!successHookInstall) _revert(returndataHookInstall, ERC20CoreHookInitializeCallFailed.selector);
-            }
+            _installHook(_hooksToInstall[i]);
         }
     }
 
@@ -158,7 +139,7 @@ contract ERC20Core is
      *  @notice Returns the contract URI of the contract.
      *  @return uri The contract URI of the contract.
      */
-    function contractURI() external view override returns (string memory) {
+    function contractURI() external view returns (string memory) {
         return contractURI_;
     }
 
@@ -265,7 +246,7 @@ contract ERC20Core is
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return uint8(BEFORE_APPROVE_FLAG);
+        return 4; // BeforeApprove
     }
 
     /// @dev Sets contract URI

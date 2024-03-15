@@ -18,6 +18,20 @@ contract MockOneHookImpl is ERC721Hook {
     }
 }
 
+contract MockTokenURIHookImpl is ERC721Hook {
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC721Hook_init(_upgradeAdmin);
+    }
+
+    function getHooks() external pure returns (uint256 hooksImplemented) {
+        hooksImplemented = ON_TOKEN_URI_FLAG();
+    }
+
+    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
+        return new bytes4[](0);
+    }
+}
+
 contract MockFourHookImpl is ERC721Hook {
     function initialize(address _upgradeAdmin) public initializer {
         __ERC721Hook_init(_upgradeAdmin);

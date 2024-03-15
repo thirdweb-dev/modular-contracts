@@ -17,7 +17,6 @@ import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {ERC721Hook, AllowlistMintHookERC721} from "src/hook/mint/AllowlistMintHookERC721.sol";
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
 import {RoyaltyHook} from "src/hook/royalty/RoyaltyHook.sol";
-import {IERC721} from "src/interface/eip/IERC721.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
@@ -87,6 +86,24 @@ contract ERC721CoreBenchmarkTest is Test {
     uint256 public availableSupply = 100;
 
     IERC721Hook.MintRequest public mintRequest;
+
+    /// @notice Bits representing the before mint hook.
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+
+    /// @notice Bits representing the before transfer hook.
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+
+    /// @notice Bits representing the before burn hook.
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+
+    /// @notice Bits representing the before approve hook.
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+
+    /// @notice Bits representing the token URI hook.
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
+
+    /// @notice Bits representing the royalty hook.
+    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 6;
 
     function setUp() public {
         // Setup up to enabling minting on ERC-721 contract.
@@ -441,7 +458,7 @@ contract ERC721CoreBenchmarkTest is Test {
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.uninstallHook(IHook(extensionProxyAddress));
+        extensionConsumer.uninstallHook(BEFORE_MINT_FLAG);
 
         vm.prank(platformUser);
 
@@ -464,7 +481,7 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.uninstallHook(mockHook);
+        extensionConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
     }
 
     function test_uninstallFiveHooks() public {
@@ -475,7 +492,7 @@ contract ERC721CoreBenchmarkTest is Test {
         ERC721Core extensionConsumer = erc721;
 
         vm.prank(platformUser);
-        extensionConsumer.uninstallHook(IHook(extensionProxyAddress));
+        extensionConsumer.uninstallHook(BEFORE_MINT_FLAG);
 
         vm.prank(platformUser);
         extensionConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
@@ -484,6 +501,8 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        extensionConsumer.uninstallHook(mockHook);
+        extensionConsumer.uninstallHook(
+            BEFORE_MINT_FLAG | BEFORE_TRANSFER_FLAG | BEFORE_BURN_FLAG | BEFORE_APPROVE_FLAG
+        );
     }
 }

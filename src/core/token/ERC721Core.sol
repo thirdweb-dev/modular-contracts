@@ -7,10 +7,8 @@ import {IERC721A, ERC721A, ERC721AQueryable} from "erc721a/extensions/ERC721AQue
 
 import {HookInstaller} from "../HookInstaller.sol";
 
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
 import {IERC721Hook} from "../../interface/hook/IERC721Hook.sol";
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
 
 import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
@@ -20,7 +18,6 @@ contract ERC721Core is
     HookInstaller,
     Ownable,
     Multicallable,
-    IERC7572,
     IERC721HookInstaller,
     IMintRequest,
     IBurnRequest
@@ -74,6 +71,13 @@ contract ERC721Core is
     error ERC721CoreMintDisabled();
 
     /*//////////////////////////////////////////////////////////////
+                               EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when the contract URI is updated.
+    event ContractURIUpdated();
+
+    /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
@@ -106,39 +110,23 @@ contract ERC721Core is
         // Track native token value sent to the constructor
         uint256 constructorValue = msg.value;
 
-        // Initialize the core NFT collection
+        // Initialize the core NFT Collection
         if (_onInitializeCall.target != address(0)) {
             if (constructorValue < _onInitializeCall.value) revert ERC721CoreInsufficientValueInConstructor();
             constructorValue -= _onInitializeCall.value;
 
-            (bool successOnInitialize, bytes memory returndataOnInitialize) =
+            (bool success, bytes memory returndata) =
                 _onInitializeCall.target.call{value: _onInitializeCall.value}(_onInitializeCall.data);
 
-            if (!successOnInitialize) _revert(returndataOnInitialize, ERC721CoreOnInitializeCallFailed.selector);
+            if (!success) _revert(returndata, ERC721CoreOnInitializeCallFailed.selector);
         }
 
         // Install and initialize hooks
-        bool successHookInstall;
-        bytes memory returndataHookInstall;
-
         for (uint256 i = 0; i < _hooksToInstall.length; i++) {
             if (constructorValue < _hooksToInstall[i].initCallValue) revert ERC721CoreInsufficientValueInConstructor();
-            constructorValue -= _onInitializeCall.value;
+            constructorValue -= _hooksToInstall[i].initCallValue;
 
-            if (address(_hooksToInstall[i].hook) == address(0)) {
-                revert HookInstallerInvalidHook();
-            }
-
-            _installHook(_hooksToInstall[i].hook);
-            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
-
-            if (_hooksToInstall[i].initCalldata.length > 0) {
-                (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
-                    value: _hooksToInstall[i].initCallValue
-                }(_hooksToInstall[i].initCalldata);
-
-                if (!successHookInstall) _revert(returndataHookInstall, ERC721CoreHookInitializeCallFailed.selector);
-            }
+            _installHook(_hooksToInstall[i]);
         }
     }
 
@@ -150,7 +138,7 @@ contract ERC721Core is
      *  @notice Returns the contract URI of the contract.
      *  @return uri The contract URI of the contract.
      */
-    function contractURI() external view override returns (string memory) {
+    function contractURI() external view returns (string memory) {
         return contractURI_;
     }
 
@@ -280,7 +268,7 @@ contract ERC721Core is
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return uint8(ON_ROYALTY_INFO_FLAG);
+        return 6; // OnRoyaltyInfo
     }
 
     /// @dev Sets contract URI

@@ -13,7 +13,6 @@ import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {AllowlistMintHookERC1155} from "src/hook/mint/AllowlistMintHookERC1155.sol";
 import {LazyMintHook} from "src/hook/metadata/LazyMintHook.sol";
-import {IERC1155} from "src/interface/eip/IERC1155.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC1155Hook} from "src/interface/hook/IERC1155Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
@@ -79,6 +78,27 @@ contract ERC1155CoreBenchmarkTest is Test {
     uint256 public availableSupply = 100;
 
     IERC1155Hook.MintRequest public mintRequest;
+
+    /// @notice Bits representing the before mint hook.
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+
+    /// @notice Bits representing the before transfer hook.
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+
+    /// @notice Bits representing the before burn hook.
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+
+    /// @notice Bits representing the before approve hook.
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+
+    /// @notice Bits representing the token URI hook.
+    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 5;
+
+    /// @notice Bits representing the royalty hook.
+    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 6;
+
+    /// @notice Bits representing the before transfer hook.
+    uint256 public constant BEFORE_BATCH_TRANSFER_FLAG = 2 ** 7;
 
     function setUp() public {
         // Setup up to enabling minting on ERC-1155 contract.
@@ -368,7 +388,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(IHook(hookProxyAddress));
+        hookConsumer.uninstallHook(BEFORE_MINT_FLAG);
 
         vm.prank(platformUser);
 
@@ -390,7 +410,7 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(mockHook);
+        hookConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
     }
 
     function test_uninstallFiveHooks() public {
@@ -400,7 +420,7 @@ contract ERC1155CoreBenchmarkTest is Test {
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(IHook(hookProxyAddress));
+        hookConsumer.uninstallHook(BEFORE_MINT_FLAG);
 
         vm.prank(platformUser);
         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, bytes("")));
@@ -409,6 +429,6 @@ contract ERC1155CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(mockHook);
+        hookConsumer.uninstallHook(BEFORE_MINT_FLAG | BEFORE_TRANSFER_FLAG | BEFORE_BURN_FLAG | BEFORE_APPROVE_FLAG);
     }
 }

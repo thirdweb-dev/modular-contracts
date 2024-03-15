@@ -9,7 +9,6 @@ import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
 import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {IERC1155} from "src/interface/eip/IERC1155.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC1155Hook} from "src/interface/hook/IERC1155Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";

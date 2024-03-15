@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {LibBitmap} from "@solady/utils/LibBitmap.sol";
+import {LibBit} from "@solady/utils/LibBit.sol";
 
 import {IHook} from "../interface/hook/IHook.sol";
 import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
 
 abstract contract HookInstaller is IHookInstaller {
-    using LibBitmap for LibBitmap.Bitmap;
+    using LibBit for uint256;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -15,9 +15,6 @@ abstract contract HookInstaller is IHookInstaller {
 
     /// @notice Bits representing all hooks installed.
     uint256 private installedHooks_;
-
-    /// @notice Whether a given hook is installed in the contract.
-    LibBitmap.Bitmap private hookImplementations_;
 
     /// @notice Mapping from hook bits representation => implementation of the hook.
     mapping(uint256 => address) private hookImplementationMap_;
@@ -35,8 +32,8 @@ abstract contract HookInstaller is IHookInstaller {
     /// @notice Emitted on failure to perform a call to a hook contract.
     error HookInstallerHookCallFailed();
 
-    /// @notice Emitted on attempt to call a non-existent hook.
-    error HookInstallerInvalidHook();
+    /// @notice Emitted when the caller attempts to write to a hook contract without permission.
+    error HookInstallerUnauthorizedWrite();
 
     /// @notice Emitted when the caller attempts to install a hook that is already installed.
     error HookInstallerHookAlreadyInstalled();
@@ -44,11 +41,17 @@ abstract contract HookInstaller is IHookInstaller {
     /// @notice Emitted on attempt to call an uninstalled hook.
     error HookInstallerHookNotInstalled();
 
-    /// @notice Emitted on attempt to write to hooks without permission.
-    error HookInstallerUnauthorizedWrite();
+    /// @notice Emitted on installing a hook that is incompatible with the hook installer.
+    error HookInstallerIncompatibleHook();
+
+    /// @notice Emitted when installing or uninstalling the zero address as a hook.
+    error HookInstallerZeroAddress();
 
     /// @notice Emitted on attempt to initialize a hook with invalid msg.value.
     error HookInstallerInvalidMsgValue();
+
+    /// @notice Emitted when the caller attempts to call a non-existent hook fallback function.
+    error HookInstallerFallbackFunctionDoesNotExist();
 
     /// @notice Emitted on attempt to overwrite an in-use hook fallback function.
     error HookInstallerHookFallbackFunctionUsed(bytes4 functionSelector);
@@ -80,9 +83,13 @@ abstract contract HookInstaller is IHookInstaller {
     //////////////////////////////////////////////////////////////*/
 
     fallback() external payable {
+        if (!_canWriteToHooks(msg.sender)) {
+            revert HookInstallerUnauthorizedWrite();
+        }
+
         address target = hookFallbackFunctionMap_[msg.sig];
         if (target == address(0)) {
-            revert HookInstallerHookNotInstalled();
+            revert HookInstallerFallbackFunctionDoesNotExist();
         }
 
         (bool success, bytes memory returndata) = target.call{value: msg.value}(msg.data);
@@ -103,19 +110,106 @@ abstract contract HookInstaller is IHookInstaller {
      *  @param _params The parameters for installing a hook and initializing it with some data.
      */
     function installHook(InstallHookParams memory _params) external payable {
+        // Validate the caller's permissions.
         if (!_canUpdateHooks(msg.sender)) {
             revert HookInstallerNotAuthorized();
         }
-        if (address(_params.hook) == address(0)) {
-            revert HookInstallerInvalidHook();
-        }
+        // Validate init calldata and value
         if (_params.initCallValue != msg.value) {
             revert HookInstallerInvalidMsgValue();
         }
+        _installHook(_params);
+    }
 
-        _installHook(_params.hook);
-        _registerHookFallbackFunctions(_params.hook);
+    /**
+     *  @notice Uninstalls a hook in the contract.
+     *  @dev Unlike `installHook`, we do not accept a hook contract address as a parameter since it is possible
+     *       that the hook contract returns different hook functions compared to when it was installed. This could
+     *       lead to a mismatch. Instead, we use the bit representation of the hooks to uninstall.
+     *  @param _hooksToUninstall The bit representation of the hooks to uninstall.
+     */
+    function uninstallHook(uint256 _hooksToUninstall) external {
+        // Validate the caller's permissions.
+        if (!_canUpdateHooks(msg.sender)) {
+            revert HookInstallerNotAuthorized();
+        }
 
+        // Validate the hook is compatible with the hook installer.
+        uint256 flag = 2 ** _maxHookFlag();
+        if (flag < _highestBitToZero(_hooksToUninstall)) {
+            revert HookInstallerIncompatibleHook();
+        }
+
+        // 1. For each hook function i.e. flag <= 2 ** _maxHookFlag(): If the installed hook contract
+        //    implements the hook function, delete it as the implementation of the hook function.
+        //
+        // 2. Update the tracked installed hooks of the contract.
+        uint256 currentActivehooks = installedHooks_;
+        while (flag > 1) {
+            if (_hooksToUninstall & flag > 0) {
+                currentActivehooks &= ~flag;
+                delete hookImplementationMap_[flag];
+            }
+            flag >>= 1;
+        }
+        installedHooks_ = currentActivehooks;
+
+        emit HooksUninstalled(_hooksToUninstall);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @dev Installs a hook in the contract. We extract this logic in an internal function to allow
+     *       re-use inside a contract constructor / initializer to isntall hooks during contract creation.
+     */
+    function _installHook(InstallHookParams memory _params) internal {
+        // Validate hook address.
+        if (address(_params.hook) == address(0)) {
+            revert HookInstallerZeroAddress();
+        }
+
+        // Get flags of all the hook functions for which to set the hook contract
+        // as their implementation.
+        uint256 hooksToInstall = _params.hook.getHooks();
+
+        // Validate the hook is compatible with the hook installer.
+        uint256 flag = 2 ** _maxHookFlag();
+        if (flag < _highestBitToZero(hooksToInstall)) {
+            revert HookInstallerIncompatibleHook();
+        }
+
+        // 1. For each hook function i.e. flag <= 2 ** _maxHookFlag(): If the installed hook contract
+        //    implements the hook function, set it as the implementation of the hook function.
+        //
+        // 2. Update the tracked installed hooks of the contract.
+        uint256 currentActivehooks = installedHooks_;
+        while (flag > 1) {
+            if (hooksToInstall & flag > 0) {
+                if (currentActivehooks & flag > 0) {
+                    revert HookInstallerHookAlreadyInstalled();
+                }
+                currentActivehooks |= flag;
+                hookImplementationMap_[flag] = address(_params.hook);
+            }
+            flag >>= 1;
+        }
+        installedHooks_ = currentActivehooks;
+
+        // Get all the hook fallback functions and map them to the hook contract
+        // as their call destination.
+        bytes4[] memory selectors = _params.hook.getHookFallbackFunctions();
+        for (uint256 i = 0; i < selectors.length; i++) {
+            if (hookFallbackFunctionMap_[selectors[i]] != address(0)) {
+                revert HookInstallerHookFallbackFunctionUsed(selectors[i]);
+            }
+
+            hookFallbackFunctionMap_[selectors[i]] = address(_params.hook);
+        }
+
+        // Finally, initialize the hook with the given calldata and value.
         if (_params.initCalldata.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
             (bool success, bytes memory returndata) =
@@ -124,115 +218,19 @@ abstract contract HookInstaller is IHookInstaller {
                 _revert(returndata, HookInstallerHookCallFailed.selector);
             }
         }
-    }
 
-    /**
-     *  @notice Uninstalls a hook in the contract.
-     *  @dev Reverts if the hook is not installed already.
-     *  @param _hook The hook to uninstall.
-     */
-    function uninstallHook(IHook _hook) external {
-        if (!_canUpdateHooks(msg.sender)) {
-            revert HookInstallerNotAuthorized();
-        }
-        if (address(_hook) == address(0)) {
-            revert HookInstallerInvalidHook();
-        }
-        _uninstallHook(_hook);
-        _unregisterHookFallbackFunctions(_hook);
+        emit HooksInstalled(address(_params.hook), hooksToInstall);
     }
-
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns whether the caller can update hooks.
     function _canUpdateHooks(address _caller) internal view virtual returns (bool);
 
-    /// @dev Returns whether the caller can write to hooks.
+    /// @dev Returns whether the caller can write to hook contracts via the fallback function.
     function _canWriteToHooks(address _caller) internal view virtual returns (bool);
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure virtual returns (uint8) {
         return 0;
-    }
-
-    /// @dev Register the fallback functions of a hook.
-    function _registerHookFallbackFunctions(IHook _hook) internal {
-        bytes4[] memory hookFallbackFunctions = _hook.getHookFallbackFunctions();
-        for (uint256 i = 0; i < hookFallbackFunctions.length; i++) {
-            if (hookFallbackFunctionMap_[hookFallbackFunctions[i]] != address(0)) {
-                revert HookInstallerHookFallbackFunctionUsed(hookFallbackFunctions[i]);
-            }
-
-            hookFallbackFunctionMap_[hookFallbackFunctions[i]] = address(_hook);
-        }
-    }
-
-    /// @dev Unregister the fallback functions of a hook.
-    function _unregisterHookFallbackFunctions(IHook _hook) internal {
-        bytes4[] memory hookFallbackFunctions = _hook.getHookFallbackFunctions();
-        for (uint256 i = 0; i < hookFallbackFunctions.length; i++) {
-            delete hookFallbackFunctionMap_[hookFallbackFunctions[i]];
-        }
-    }
-
-    /// @dev Installs a hook in the contract.
-    function _installHook(IHook _hook) internal {
-        uint256 hooksToInstall = _hook.getHooks();
-
-        _updateHooks(hooksToInstall, address(_hook), _addhook);
-        hookImplementations_.set(uint160(address(_hook)));
-
-        emit HooksInstalled(address(_hook), hooksToInstall);
-    }
-
-    /// @dev Uninstalls a hook in the contract.
-    function _uninstallHook(IHook _hook) internal {
-        if (!hookImplementations_.get(uint160(address(_hook)))) {
-            revert HookInstallerHookNotInstalled();
-        }
-
-        uint256 hooksToUninstall = _hook.getHooks();
-
-        _updateHooks(hooksToUninstall, address(0), _removehook);
-        hookImplementations_.unset(uint160(address(_hook)));
-
-        emit HooksUninstalled(address(_hook), hooksToUninstall);
-    }
-
-    /// @dev Adds a hook to the given integer represented hooks.
-    function _addhook(uint256 _flag, uint256 _currenthooks) internal pure returns (uint256) {
-        if (_currenthooks & _flag > 0) {
-            revert HookInstallerHookAlreadyInstalled();
-        }
-        return _currenthooks | _flag;
-    }
-
-    /// @dev Removes a hook from the given integer represented hooks.
-    function _removehook(uint256 _flag, uint256 _currenthooks) internal pure returns (uint256) {
-        return _currenthooks & ~_flag;
-    }
-
-    /// @dev Updates the current active hooks of the contract.
-    function _updateHooks(
-        uint256 _hooksToUpdate,
-        address _implementation,
-        function(uint256, uint256) internal pure returns (uint256) _addOrRemovehook
-    ) internal {
-        uint256 currentActivehooks = installedHooks_;
-
-        uint256 flag = 2 ** _maxHookFlag();
-        while (flag > 1) {
-            if (_hooksToUpdate & flag > 0) {
-                currentActivehooks = _addOrRemovehook(flag, currentActivehooks);
-                hookImplementationMap_[flag] = _implementation;
-            }
-
-            flag >>= 1;
-        }
-
-        installedHooks_ = currentActivehooks;
     }
 
     /// @dev Reverts with the given return data / error message.
@@ -251,5 +249,11 @@ abstract contract HookInstaller is IHookInstaller {
                 revert(0x1c, 0x04)
             }
         }
+    }
+
+    function _highestBitToZero(uint256 _value) public pure returns (uint256) {
+        if (_value == 0) return 0; // Handle edge case where value is 0
+        uint256 index = _value.fls(); // Find the index of the MSB
+        return (1 << index); // Shift 1 left by the index of the MSB
     }
 }

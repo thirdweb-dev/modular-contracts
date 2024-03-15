@@ -12,7 +12,6 @@ import {MockOneHookImpl20, MockFourHookImpl20} from "test/mocks/MockHookImpl.sol
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {AllowlistMintHookERC20} from "src/hook/mint/AllowlistMintHookERC20.sol";
-import {IERC20} from "src/interface/eip/IERC20.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC20Hook} from "src/interface/hook/IERC20Hook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
@@ -75,6 +74,18 @@ contract ERC20CoreBenchmarkTest is Test {
     uint256 public availableSupply = 100 ether;
 
     IERC20Hook.MintRequest public mintRequest;
+
+    /// @notice Bits representing the before mint hook.
+    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+
+    /// @notice Bits representing the before transfer hook.
+    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+
+    /// @notice Bits representing the before burn hook.
+    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+
+    /// @notice Bits representing the before approve hook.
+    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
 
     function setUp() public {
         // Setup up to enabling minting on ERC-20 contract.
@@ -347,7 +358,7 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(IHook(hookProxyAddress));
+        hookConsumer.uninstallHook(BEFORE_MINT_FLAG);
 
         vm.prank(platformUser);
 
@@ -369,7 +380,7 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(mockHook);
+        hookConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
     }
 
     function test_uninstallFiveHooks() public {
@@ -379,7 +390,7 @@ contract ERC20CoreBenchmarkTest is Test {
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(IHook(hookProxyAddress));
+        hookConsumer.uninstallHook(BEFORE_MINT_FLAG);
 
         vm.prank(platformUser);
         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
@@ -388,6 +399,6 @@ contract ERC20CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(mockHook);
+        hookConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
     }
 }

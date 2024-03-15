@@ -9,7 +9,6 @@ import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC1155HookInstaller} from "../../interface/hook/IERC1155HookInstaller.sol";
 import {IERC1155Hook} from "../../interface/hook/IERC1155Hook.sol";
-import {IERC7572} from "../../interface/eip/IERC7572.sol";
 import {IMintRequest} from "../../interface/common/IMintRequest.sol";
 import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
 
@@ -18,7 +17,6 @@ contract ERC1155Core is
     HookInstaller,
     Ownable,
     Multicallable,
-    IERC7572,
     IERC1155HookInstaller,
     IMintRequest,
     IBurnRequest
@@ -83,6 +81,13 @@ contract ERC1155Core is
     /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
     error ERC1155CoreMintDisabled();
 
+    /*//////////////////////////////////////////////////////////////
+                               EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when the contract URI is updated.
+    event ContractURIUpdated();
+
     /**
      *  @notice Initializes the ERC1155 NFT collection.
      *
@@ -117,34 +122,18 @@ contract ERC1155Core is
             if (constructorValue < _onInitializeCall.value) revert ERC1155CoreInsufficientValueInConstructor();
             constructorValue -= _onInitializeCall.value;
 
-            (bool successOnInitialize, bytes memory returndataOnInitialize) =
+            (bool success, bytes memory returndata) =
                 _onInitializeCall.target.call{value: _onInitializeCall.value}(_onInitializeCall.data);
 
-            if (!successOnInitialize) _revert(returndataOnInitialize, ERC1155CoreOnInitializeCallFailed.selector);
+            if (!success) _revert(returndata, ERC1155CoreOnInitializeCallFailed.selector);
         }
 
         // Install and initialize hooks
-        bool successHookInstall;
-        bytes memory returndataHookInstall;
-
         for (uint256 i = 0; i < _hooksToInstall.length; i++) {
             if (constructorValue < _hooksToInstall[i].initCallValue) revert ERC1155CoreInsufficientValueInConstructor();
-            constructorValue -= _onInitializeCall.value;
+            constructorValue -= _hooksToInstall[i].initCallValue;
 
-            if (address(_hooksToInstall[i].hook) == address(0)) {
-                revert HookInstallerInvalidHook();
-            }
-
-            _installHook(_hooksToInstall[i].hook);
-            _registerHookFallbackFunctions(_hooksToInstall[i].hook);
-
-            if (_hooksToInstall[i].initCalldata.length > 0) {
-                (successHookInstall, returndataHookInstall) = address(_hooksToInstall[i].hook).call{
-                    value: _hooksToInstall[i].initCallValue
-                }(_hooksToInstall[i].initCalldata);
-
-                if (!successHookInstall) _revert(returndataHookInstall, ERC1155CoreHookInitializeCallFailed.selector);
-            }
+            _installHook(_hooksToInstall[i]);
         }
     }
 
@@ -166,7 +155,7 @@ contract ERC1155Core is
      *  @notice Returns the contract URI of the contract.
      *  @return uri The contract URI of the contract.
      */
-    function contractURI() external view override returns (string memory) {
+    function contractURI() external view returns (string memory) {
         return contractURI_;
     }
 
@@ -318,7 +307,7 @@ contract ERC1155Core is
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return uint8(BEFORE_BATCH_TRANSFER_FLAG);
+        return 7; // BeforeBatchTransfer
     }
 
     /// @dev Sets contract URI
