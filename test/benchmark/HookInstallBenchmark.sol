@@ -6,12 +6,9 @@ import {IHookInstaller, HookInstaller} from "src/core/HookInstaller.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 
 contract MockHook is IHook {
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = 0;
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = 0;
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 }
 

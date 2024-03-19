@@ -43,19 +43,23 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
                                VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all hook functions implemented by this hook contract.
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = ON_ROYALTY_INFO_FLAG();
-    }
-
-    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        bytes4[] memory selectors = new bytes4[](4);
-        selectors[0] = this.getRoyaltyInfoForToken.selector;
-        selectors[1] = this.getDefaultRoyaltyInfo.selector;
-        selectors[2] = this.setDefaultRoyaltyInfo.selector;
-        selectors[3] = this.setRoyaltyInfoForToken.selector;
-        return selectors;
+    /**
+     *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
+     *          callable via core contract fallback function.
+     */
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = ON_ROYALTY_INFO_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](4);
+        hookInfo.hookFallbackFunctions[0] = HookFallbackFunction({
+            functionSelector: this.getRoyaltyInfoForToken.selector,
+            callType: CallType.STATICCALL
+        });
+        hookInfo.hookFallbackFunctions[1] =
+            HookFallbackFunction({functionSelector: this.getDefaultRoyaltyInfo.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[2] =
+            HookFallbackFunction({functionSelector: this.setDefaultRoyaltyInfo.selector, callType: CallType.CALL});
+        hookInfo.hookFallbackFunctions[3] =
+            HookFallbackFunction({functionSelector: this.setRoyaltyInfoForToken.selector, callType: CallType.CALL});
     }
 
     /**
