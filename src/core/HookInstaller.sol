@@ -93,17 +93,11 @@ abstract contract HookInstaller is IHookInstaller {
         }
 
         if (callInfo.callType == CallType.CALL) {
-            (bool success, bytes memory returndata) = callInfo.target.call{value: msg.value}(msg.data);
-            if (!success) {
-                _revert(returndata, HookInstallerHookCallFailed.selector);
-            }
+            _callAndReturn(callInfo.target, msg.value);
         } else if (callInfo.callType == CallType.DELEGATE_CALL) {
-            _delegate(callInfo.target);
+            _delegateAndReturn(callInfo.target);
         } else if (callInfo.callType == CallType.STATICCALL) {
-            (bool success, bytes memory returndata) = callInfo.target.staticcall(msg.data);
-            if (!success) {
-                _revert(returndata, HookInstallerHookCallFailed.selector);
-            }
+            _staticcallAndReturn(callInfo.target);
         }
     }
 
@@ -265,7 +259,7 @@ abstract contract HookInstaller is IHookInstaller {
     }
 
     /// @dev delegateCalls an `implementation` smart contract.
-    function _delegate(address implementation) internal virtual {
+    function _delegateAndReturn(address implementation) internal virtual {
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
             // block because it will not return to Solidity code. We overwrite the
@@ -281,6 +275,50 @@ abstract contract HookInstaller is IHookInstaller {
 
             switch result
             // delegatecall returns 0 on error.
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
+    }
+
+    /// @dev calls an `implementation` smart contract and returns data.
+    function _staticcallAndReturn(address implementation) internal virtual {
+        assembly {
+            // Copy msg.data. We take full control of memory in this inline assembly
+            // block because it will not return to Solidity code. We overwrite the
+            // Solidity scratch pad at memory position 0.
+            calldatacopy(0, 0, calldatasize())
+
+            // Staticcall the implementation.
+            // out and outsize are 0 because we don't know the size yet.
+            let result := staticcall(gas(), implementation, 0, calldatasize(), 0, 0)
+
+            // Copy the returned data.
+            returndatacopy(0, 0, returndatasize())
+
+            switch result
+            // staticcall returns 0 on error.
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
+    }
+
+    /// @dev calls an `implementation` smart contract and returns data.
+    function _callAndReturn(address implementation, uint256 _value) internal virtual {
+        assembly {
+            // Copy msg.data. We take full control of memory in this inline assembly
+            // block because it will not return to Solidity code. We overwrite the
+            // Solidity scratch pad at memory position 0.
+            calldatacopy(0, 0, calldatasize())
+
+            // Staticcall the implementation.
+            // out and outsize are 0 because we don't know the size yet.
+            let result := call(gas(), implementation, _value, 0, calldatasize(), 0, 0)
+
+            // Copy the returned data.
+            returndatacopy(0, 0, returndatasize())
+
+            switch result
+            // staticcall returns 0 on error.
             case 0 { revert(0, returndatasize()) }
             default { return(0, returndatasize()) }
         }
