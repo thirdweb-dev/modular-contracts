@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {IHook} from "./IHook.sol";
+import {IHookInfo} from "./IHookInfo.sol";
 
-interface IHookInstaller {
+interface IHookInstaller is IHookInfo {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -34,6 +35,16 @@ interface IHookInstaller {
         bytes data;
     }
 
+    /**
+     *  @notice Parameters for a hook contract call to make inside the fallback function.
+     *  @param target The address of the contract to call.
+     *  @param callType The type of call to make.
+     */
+    struct HookFallbackFunctionCall {
+        address target;
+        CallType callType;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -58,9 +69,9 @@ interface IHookInstaller {
     /**
      *  @notice Returns the call destination of a hook fallback function.
      *  @param _selector The selector of the function.
-     *  @return target The address of the call destination.
+     *  @return target The fallback function call info including the target address, function selector, and call type.
      */
-    function getHookFallbackFunctionTarget(bytes4 _selector) external view returns (address target);
+    function getHookFallbackFunctionCall(bytes4 _selector) external view returns (HookFallbackFunctionCall memory);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS

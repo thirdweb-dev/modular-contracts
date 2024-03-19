@@ -9,12 +9,9 @@ contract MockOneHookImpl is ERC721Hook {
         __ERC721Hook_init(_upgradeAdmin);
     }
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_TRANSFER_FLAG();
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_TRANSFER_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 }
 
@@ -23,12 +20,9 @@ contract MockTokenURIHookImpl is ERC721Hook {
         __ERC721Hook_init(_upgradeAdmin);
     }
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = ON_TOKEN_URI_FLAG();
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = ON_TOKEN_URI_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 }
 
@@ -37,35 +31,26 @@ contract MockFourHookImpl is ERC721Hook {
         __ERC721Hook_init(_upgradeAdmin);
     }
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG() | BEFORE_TRANSFER_FLAG() | BEFORE_BURN_FLAG() | BEFORE_APPROVE_FLAG();
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_FLAG() | BEFORE_TRANSFER_FLAG() | BEFORE_BURN_FLAG() | BEFORE_APPROVE_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 }
 
 contract MockOneHookImpl20 is ERC20Hook {
     constructor() {}
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_TRANSFER_FLAG();
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_TRANSFER_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 }
 
 contract MockFourHookImpl20 is ERC20Hook {
     constructor() {}
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG() | BEFORE_TRANSFER_FLAG() | BEFORE_BURN_FLAG() | BEFORE_APPROVE_FLAG();
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_FLAG() | BEFORE_TRANSFER_FLAG() | BEFORE_BURN_FLAG() | BEFORE_APPROVE_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 }

@@ -70,18 +70,21 @@ contract AllowlistMintHookERC20 is IFeeConfig, ERC20Hook, Multicallable {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all hook functions implemented by this hook contract.
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
-    }
-
-    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
-    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
-        _funcs = new bytes4[](4);
-        _funcs[0] = this.getFeeConfig.selector;
-        _funcs[1] = this.getClaimCondition.selector;
-        _funcs[2] = this.setClaimCondition.selector;
-        _funcs[3] = this.setDefaultFeeConfig.selector;
+    /**
+     *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
+     *          callable via core contract fallback function.
+     */
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](4);
+        hookInfo.hookFallbackFunctions[0] =
+            HookFallbackFunction({functionSelector: this.getFeeConfig.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[1] =
+            HookFallbackFunction({functionSelector: this.getClaimCondition.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[2] =
+            HookFallbackFunction({functionSelector: this.setClaimCondition.selector, callType: CallType.CALL});
+        hookInfo.hookFallbackFunctions[3] =
+            HookFallbackFunction({functionSelector: this.setDefaultFeeConfig.selector, callType: CallType.CALL});
     }
 
     /// @notice Returns the fee config for a token.

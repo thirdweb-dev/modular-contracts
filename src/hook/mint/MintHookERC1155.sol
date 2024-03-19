@@ -96,23 +96,35 @@ contract MintHookERC1155 is IFeeConfig, IMintRequest, IClaimCondition, EIP712, E
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all hook functions implemented by this hook contract.
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
-    }
-
-    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
-    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
-        _funcs = new bytes4[](9);
-        _funcs[0] = this.verifyClaim.selector;
-        _funcs[1] = this.verifyPermissionedClaim.selector;
-        _funcs[2] = this.getSupplyClaimedByWallet.selector;
-        _funcs[3] = this.setDefaultFeeConfig.selector;
-        _funcs[4] = this.getDefaultFeeConfig.selector;
-        _funcs[5] = this.getClaimCondition.selector;
-        _funcs[6] = this.setClaimCondition.selector;
-        _funcs[7] = this.getFeeConfigForToken.selector;
-        _funcs[8] = this.setFeeConfigForToken.selector;
+    /**
+     *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
+     *          callable via core contract fallback function.
+     */
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](9);
+        hookInfo.hookFallbackFunctions[0] =
+            HookFallbackFunction({functionSelector: this.verifyClaim.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[1] = HookFallbackFunction({
+            functionSelector: this.verifyPermissionedClaim.selector,
+            callType: CallType.STATICCALL
+        });
+        hookInfo.hookFallbackFunctions[2] = HookFallbackFunction({
+            functionSelector: this.getSupplyClaimedByWallet.selector,
+            callType: CallType.STATICCALL
+        });
+        hookInfo.hookFallbackFunctions[3] =
+            HookFallbackFunction({functionSelector: this.setDefaultFeeConfig.selector, callType: CallType.CALL});
+        hookInfo.hookFallbackFunctions[4] =
+            HookFallbackFunction({functionSelector: this.getDefaultFeeConfig.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[5] =
+            HookFallbackFunction({functionSelector: this.getClaimCondition.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[6] =
+            HookFallbackFunction({functionSelector: this.setClaimCondition.selector, callType: CallType.CALL});
+        hookInfo.hookFallbackFunctions[7] =
+            HookFallbackFunction({functionSelector: this.getFeeConfigForToken.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[8] =
+            HookFallbackFunction({functionSelector: this.setFeeConfigForToken.selector, callType: CallType.CALL});
     }
 
     /// @notice Returns the claim condition for a given token.

@@ -73,22 +73,29 @@ contract AllowlistMintHookERC721 is IFeeConfig, ERC721Hook, Multicallable {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all hook functions implemented by this hook contract.
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
-    }
-
-    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
-    function getHookFallbackFunctions() external view virtual override returns (bytes4[] memory _funcs) {
-        _funcs = new bytes4[](8);
-        _funcs[0] = this.setFeeConfigForToken.selector;
-        _funcs[1] = this.getDefaultFeeConfig.selector;
-        _funcs[2] = this.getClaimCondition.selector;
-        _funcs[3] = this.setClaimCondition.selector;
-        _funcs[4] = this.setNextIdToMint.selector;
-        _funcs[5] = this.getNextTokenIdToMint.selector;
-        _funcs[6] = this.getFeeConfigForToken.selector;
-        _funcs[7] = this.setDefaultFeeConfig.selector;
+    /**
+     *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
+     *          callable via core contract fallback function.
+     */
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](8);
+        hookInfo.hookFallbackFunctions[0] =
+            HookFallbackFunction({functionSelector: this.setFeeConfigForToken.selector, callType: CallType.CALL});
+        hookInfo.hookFallbackFunctions[1] =
+            HookFallbackFunction({functionSelector: this.getDefaultFeeConfig.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[2] =
+            HookFallbackFunction({functionSelector: this.getClaimCondition.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[3] =
+            HookFallbackFunction({functionSelector: this.setClaimCondition.selector, callType: CallType.CALL});
+        hookInfo.hookFallbackFunctions[4] =
+            HookFallbackFunction({functionSelector: this.setNextIdToMint.selector, callType: CallType.CALL});
+        hookInfo.hookFallbackFunctions[5] =
+            HookFallbackFunction({functionSelector: this.getNextTokenIdToMint.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[6] =
+            HookFallbackFunction({functionSelector: this.getFeeConfigForToken.selector, callType: CallType.STATICCALL});
+        hookInfo.hookFallbackFunctions[7] =
+            HookFallbackFunction({functionSelector: this.setDefaultFeeConfig.selector, callType: CallType.CALL});
     }
 
     /// @notice Returns the next token ID to mint for a given token.

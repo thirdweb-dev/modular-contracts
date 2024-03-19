@@ -143,7 +143,9 @@ contract AllowlistMintHookERC20Test is Test {
         emit ClaimConditionUpdate(address(erc20Core), condition);
         address(erc20Core).call(abi.encodeWithSelector(AllowlistMintHookERC20.setClaimCondition.selector, condition));
 
-        AllowlistMintHookERC20.ClaimCondition memory conditionStored = MintHook.getClaimCondition(address(erc20Core));
+        // AllowlistMintHookERC20.ClaimCondition memory conditionStored = MintHook.getClaimCondition(address(erc20Core));
+        AllowlistMintHookERC20.ClaimCondition memory conditionStored =
+            AllowlistMintHookERC20(address(erc20Core)).getClaimCondition(address(erc20Core));
 
         assertEq(conditionStored.price, condition.price);
         assertEq(conditionStored.availableSupply, condition.availableSupply);

@@ -19,8 +19,7 @@ abstract contract HookInstaller is IHookInstaller {
     /// @notice Mapping from hook bits representation => implementation of the hook.
     mapping(uint256 => address) private hookImplementationMap_;
 
-    /// @notice Mapping from bytes4 function selector => hook contract.
-    mapping(bytes4 => address) private hookFallbackFunctionMap_;
+    mapping(bytes4 => HookFallbackFunctionCall) private hookFallbackFunctionCallMap_;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -72,10 +71,10 @@ abstract contract HookInstaller is IHookInstaller {
     /**
      *  @notice Returns the call destination of a hook fallback function.
      *  @param _selector The selector of the function.
-     *  @return target The address of the call destination.
+     *  @return target The fallback function call info including the target address, function selector, and call type.
      */
-    function getHookFallbackFunctionTarget(bytes4 _selector) external view returns (address) {
-        return hookFallbackFunctionMap_[_selector];
+    function getHookFallbackFunctionCall(bytes4 _selector) external view returns (HookFallbackFunctionCall memory) {
+        return hookFallbackFunctionCallMap_[_selector];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -83,18 +82,22 @@ abstract contract HookInstaller is IHookInstaller {
     //////////////////////////////////////////////////////////////*/
 
     fallback() external payable {
-        if (!_canWriteToHooks(msg.sender)) {
-            revert HookInstallerUnauthorizedWrite();
-        }
+        HookFallbackFunctionCall memory callInfo = hookFallbackFunctionCallMap_[msg.sig];
 
-        address target = hookFallbackFunctionMap_[msg.sig];
-        if (target == address(0)) {
+        if (callInfo.target == address(0)) {
             revert HookInstallerFallbackFunctionDoesNotExist();
         }
 
-        (bool success, bytes memory returndata) = target.call{value: msg.value}(msg.data);
-        if (!success) {
-            _revert(returndata, HookInstallerHookCallFailed.selector);
+        if (callInfo.callType != CallType.STATICCALL && !_canWriteToHooks(msg.sender)) {
+            revert HookInstallerUnauthorizedWrite();
+        }
+
+        if (callInfo.callType == CallType.CALL) {
+            _callAndReturn(callInfo.target, msg.value);
+        } else if (callInfo.callType == CallType.DELEGATE_CALL) {
+            _delegateAndReturn(callInfo.target);
+        } else if (callInfo.callType == CallType.STATICCALL) {
+            _staticcallAndReturn(callInfo.target);
         }
     }
 
@@ -173,7 +176,9 @@ abstract contract HookInstaller is IHookInstaller {
 
         // Get flags of all the hook functions for which to set the hook contract
         // as their implementation.
-        uint256 hooksToInstall = _params.hook.getHooks();
+        HookInfo memory hookInfo = _params.hook.getHookInfo();
+
+        uint256 hooksToInstall = hookInfo.hookFlags;
 
         // Validate the hook is compatible with the hook installer.
         uint256 flag = 2 ** _maxHookFlag();
@@ -200,13 +205,15 @@ abstract contract HookInstaller is IHookInstaller {
 
         // Get all the hook fallback functions and map them to the hook contract
         // as their call destination.
-        bytes4[] memory selectors = _params.hook.getHookFallbackFunctions();
-        for (uint256 i = 0; i < selectors.length; i++) {
-            if (hookFallbackFunctionMap_[selectors[i]] != address(0)) {
-                revert HookInstallerHookFallbackFunctionUsed(selectors[i]);
+        HookFallbackFunction[] memory fallbackFunctions = hookInfo.hookFallbackFunctions;
+        for (uint256 i = 0; i < fallbackFunctions.length; i++) {
+            bytes4 selector = fallbackFunctions[i].functionSelector;
+            if (hookFallbackFunctionCallMap_[selector].target != address(0)) {
+                revert HookInstallerHookFallbackFunctionUsed(selector);
             }
 
-            hookFallbackFunctionMap_[selectors[i]] = address(_params.hook);
+            hookFallbackFunctionCallMap_[selector] =
+                HookFallbackFunctionCall({target: address(_params.hook), callType: fallbackFunctions[i].callType});
         }
 
         // Finally, initialize the hook with the given calldata and value.
@@ -248,6 +255,72 @@ abstract contract HookInstaller is IHookInstaller {
                 mstore(0x00, _errorSignature)
                 revert(0x1c, 0x04)
             }
+        }
+    }
+
+    /// @dev delegateCalls an `implementation` smart contract.
+    function _delegateAndReturn(address implementation) internal virtual {
+        assembly {
+            // Copy msg.data. We take full control of memory in this inline assembly
+            // block because it will not return to Solidity code. We overwrite the
+            // Solidity scratch pad at memory position 0.
+            calldatacopy(0, 0, calldatasize())
+
+            // Call the implementation.
+            // out and outsize are 0 because we don't know the size yet.
+            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
+
+            // Copy the returned data.
+            returndatacopy(0, 0, returndatasize())
+
+            switch result
+            // delegatecall returns 0 on error.
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
+    }
+
+    /// @dev calls an `implementation` smart contract and returns data.
+    function _staticcallAndReturn(address implementation) internal virtual {
+        assembly {
+            // Copy msg.data. We take full control of memory in this inline assembly
+            // block because it will not return to Solidity code. We overwrite the
+            // Solidity scratch pad at memory position 0.
+            calldatacopy(0, 0, calldatasize())
+
+            // Staticcall the implementation.
+            // out and outsize are 0 because we don't know the size yet.
+            let result := staticcall(gas(), implementation, 0, calldatasize(), 0, 0)
+
+            // Copy the returned data.
+            returndatacopy(0, 0, returndatasize())
+
+            switch result
+            // staticcall returns 0 on error.
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
+    }
+
+    /// @dev calls an `implementation` smart contract and returns data.
+    function _callAndReturn(address implementation, uint256 _value) internal virtual {
+        assembly {
+            // Copy msg.data. We take full control of memory in this inline assembly
+            // block because it will not return to Solidity code. We overwrite the
+            // Solidity scratch pad at memory position 0.
+            calldatacopy(0, 0, calldatasize())
+
+            // Staticcall the implementation.
+            // out and outsize are 0 because we don't know the size yet.
+            let result := call(gas(), implementation, _value, 0, calldatasize(), 0, 0)
+
+            // Copy the returned data.
+            returndatacopy(0, 0, returndatasize())
+
+            switch result
+            // staticcall returns 0 on error.
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
         }
     }
 

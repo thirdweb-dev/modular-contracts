@@ -8,12 +8,9 @@ import "src/hook/ERC1155Hook.sol";
 contract EmptyHookERC20 is ERC20Hook {
     function initialize() public initializer {}
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 
     function beforeMint(MintRequest calldata _mintRequest)
@@ -32,12 +29,9 @@ contract EmptyHookERC721 is ERC721Hook {
 
     function initialize() public initializer {}
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 
     error EmptyHookNotToken();
@@ -66,12 +60,9 @@ contract EmptyHookERC1155 is ERC1155Hook {
 
     function initialize() public initializer {}
 
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = BEFORE_MINT_FLAG();
-    }
-
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        return new bytes4[](0);
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 
     function beforeMint(MintRequest calldata _mintRequest)

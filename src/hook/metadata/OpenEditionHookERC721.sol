@@ -34,16 +34,15 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook, Multicallable {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all hook functions implemented by this hook contract.
-    function getHooks() external pure returns (uint256 hooksImplemented) {
-        hooksImplemented = ON_TOKEN_URI_FLAG();
-    }
-
-    /// @notice Returns all hook contract functions to register as callable via core contract fallback function.
-    function getHookFallbackFunctions() external view returns (bytes4[] memory) {
-        bytes4[] memory selectors = new bytes4[](1);
-        selectors[0] = this.setSharedMetadata.selector;
-        return selectors;
+    /**
+     *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
+     *          callable via core contract fallback function.
+     */
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = ON_TOKEN_URI_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](1);
+        hookInfo.hookFallbackFunctions[0] =
+            HookFallbackFunction({functionSelector: this.setSharedMetadata.selector, callType: CallType.CALL});
     }
 
     /**
