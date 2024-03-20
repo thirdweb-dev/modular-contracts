@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {IERC721A, ERC721A, ERC721AQueryable} from "erc721a/extensions/ERC721AQueryable.sol";
+import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
 import {HookInstaller} from "../HookInstaller.sol";
 
