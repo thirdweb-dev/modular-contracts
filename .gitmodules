@@ -10,3 +10,6 @@
 [submodule "hooks/lib/forge-std"]
 	path = hooks/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "hooks/lib/contracts-next"]
+	path = hooks/lib/contracts-next
+	url = https://github.com/thirdweb-dev/contracts-next
