@@ -116,6 +116,7 @@ contract MockHookERC1155 is BeforeMintHookERC1155, IHook {
         external
         payable
         virtual
+        override
         returns (bytes memory)
     {
         address token = msg.sender;
@@ -139,6 +140,7 @@ contract BuggyMockHookERC1155 is BeforeMintHookERC1155, IHook {
         external
         payable
         virtual
+        override
         returns (bytes memory)
     {
         address token = msg.sender;
@@ -168,7 +170,7 @@ contract MockOneHookImpl is BeforeMintHookERC20, IHook {
     }
 }
 
-contract MockFourHookImpl is BeforeMintHookERC20, BeforeMintHookERC721, BeforeMintHookERC1155, MockOnTokenURIHook {
+contract MockFourHookImpl is IHook, BeforeMintHookERC20, BeforeMintHookERC721, BeforeMintHookERC1155, OnTokenURIHook {
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {
         hookInfo.hookFlags =
             BEFORE_MINT_ERC20_FLAG | BEFORE_MINT_ERC20_FLAG | BEFORE_MINT_ERC1155_FLAG | ON_TOKEN_URI_FLAG;

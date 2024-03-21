@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-abstract contract BeforeBurnHookERC1155 {
+contract BeforeBurnHookERC1155 {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -29,6 +29,7 @@ abstract contract BeforeBurnHookERC1155 {
      */
     function beforeBurnERC1155(address _operator, uint256 _id, uint256 _value, bytes memory _data)
         external
+        payable
         virtual
         returns (bytes memory result)
     {

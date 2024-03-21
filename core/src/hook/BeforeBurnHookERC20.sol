@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-abstract contract BeforeBurnHookERC20 {
+contract BeforeBurnHookERC20 {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -28,6 +28,7 @@ abstract contract BeforeBurnHookERC20 {
      */
     function beforeBurnERC20(address _from, uint256 _amount, bytes memory _data)
         external
+        payable
         virtual
         returns (bytes memory result)
     {
