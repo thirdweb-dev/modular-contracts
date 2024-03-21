@@ -14,6 +14,7 @@ interface IERC721HookInstaller is IHookInstaller {
         address beforeTransfer;
         address beforeBurn;
         address beforeApprove;
+        address beforeApproveForAll;
         address tokenURI;
         address royaltyInfo;
     }

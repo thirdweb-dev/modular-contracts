@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: Apache 2.0
+pragma solidity ^0.8.0;
+
+abstract contract BeforeBurnHookERC721 {
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Bits representing the beforeBurnERC721 hook.
+    uint256 public constant BEFORE_BURN_ERC721_FLAG = 2 ** 6;
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error BeforeBurnHookERC721NotImplemented();
+
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @notice The beforeBurnERC721 hook that is called by a core token before burning a token.
+     *  @param _operator The address that is burning tokens.
+     *  @param _tokenId The token ID being burned.
+     *  @param _data The encoded arguments for the beforeBurn hook.
+     *  @return result Abi encoded bytes result of the hook.
+     */
+    function beforeBurnERC721(address _operator, uint256 _tokenId, bytes memory _data)
+        external
+        virtual
+        returns (bytes memory result)
+    {
+        revert BeforeBurnHookERC721NotImplemented();
+    }
+}

@@ -8,26 +8,27 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
-import {IERC20Hook} from "../../interface/hook/IERC20Hook.sol";
-import {IMintRequest} from "../../interface/common/IMintRequest.sol";
-import {IBurnRequest} from "../../interface/common/IBurnRequest.sol";
+import {BeforeMintHookERC20} from "../../hook/BeforeMintHookERC20.sol";
+import {BeforeApproveHookERC20} from "../../hook/BeforeApproveHookERC20.sol";
+import {BeforeTransferHookERC20} from "../../hook/BeforeTransferHookERC20.sol";
+import {BeforeBurnHookERC20} from "../../hook/BeforeBurnHookERC20.sol";
 
-contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookInstaller, IMintRequest, IBurnRequest {
+contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookInstaller {
     /*//////////////////////////////////////////////////////////////
                                   CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+    /// @notice Bits representing the beforeApproveERC20 hook.
+    uint256 public constant BEFORE_APPROVE_ERC20_FLAG = 2 ** 2;
 
-    /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+    /// @notice Bits representing the beforeBurnERC20 hook.
+    uint256 public constant BEFORE_BURN_ERC20_FLAG = 2 ** 5;
 
-    /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+    /// @notice Bits representing the beforeMintERC20 hook.
+    uint256 public constant BEFORE_MINT_ERC20_FLAG = 2 ** 8;
 
-    /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+    /// @notice Bits representing the beforeTransferERC20 hook.
+    uint256 public constant BEFORE_TRANSFER_ERC20_FLAG = 2 ** 11;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -146,10 +147,10 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
     /// @notice Returns all of the contract's hooks and their implementations.
     function getAllHooks() external view returns (ERC20Hooks memory hooks) {
         hooks = ERC20Hooks({
-            beforeMint: getHookImplementation(BEFORE_MINT_FLAG),
-            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_FLAG),
-            beforeBurn: getHookImplementation(BEFORE_BURN_FLAG),
-            beforeApprove: getHookImplementation(BEFORE_APPROVE_FLAG)
+            beforeMint: getHookImplementation(BEFORE_MINT_ERC20_FLAG),
+            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_ERC20_FLAG),
+            beforeBurn: getHookImplementation(BEFORE_BURN_ERC20_FLAG),
+            beforeApprove: getHookImplementation(BEFORE_APPROVE_ERC20_FLAG)
         });
     }
 
@@ -169,21 +170,24 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
     /**
      *  @notice Mints tokens. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
-     *  @param _mintRequest The token mint request details.
+     *  @param _to The address to mint the tokens to.
+     *  @param _amount The amount of tokens to mint.
+     *  @param _data ABI encoded data to pass to the beforeMintERC20 hook.
      */
-    function mint(MintRequest calldata _mintRequest) external payable {
-        uint256 quantityToMint = _beforeMint(_mintRequest);
-        _mint(_mintRequest.minter, quantityToMint);
+    function mint(address _to, uint256 _amount, bytes calldata _data) external payable {
+        _beforeMint(_to, _amount, _data);
+        _mint(_to, _amount);
     }
 
     /**
      *  @notice Burns tokens.
      *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
-     *  @param _burnRequest The token burn request details.
+     *  @param _amount The amount of tokens to burn.
+     *  @param _data ABI encoded arguments to pass to the beforeBurnERC20 hook.
      */
-    function burn(BurnRequest calldata _burnRequest) external {
-        _beforeBurn(_burnRequest);
-        _burn(msg.sender, _burnRequest.quantity);
+    function burn(uint256 _amount, bytes calldata _data) external {
+        _beforeBurn(msg.sender, _amount, _data);
+        _burn(msg.sender, _amount);
     }
 
     /**
@@ -260,49 +264,53 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(MintRequest calldata _mintRequest) internal virtual returns (uint256 quantityToMint) {
-        address hook = getHookImplementation(BEFORE_MINT_FLAG);
+    function _beforeMint(address _to, uint256 _amount, bytes calldata _data) internal virtual {
+        address hook = getHookImplementation(BEFORE_MINT_ERC20_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) =
-                hook.call{value: msg.value}(abi.encodeWithSelector(IERC20Hook.beforeMint.selector, _mintRequest));
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(BeforeMintHookERC20.beforeMintERC20.selector, _to, _amount, _data)
+            );
 
             if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
-            quantityToMint = abi.decode(returndata, (uint256));
         } else {
+            // Revert if beforeMint hook is not installed to disable un-permissioned minting.
             revert ERC20CoreMintDisabled();
         }
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _amount) internal virtual {
-        address hook = getHookImplementation(BEFORE_TRANSFER_FLAG);
+        address hook = getHookImplementation(BEFORE_TRANSFER_ERC20_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) =
-                hook.call(abi.encodeWithSelector(IERC20Hook.beforeTransfer.selector, _from, _to, _amount));
+            (bool success, bytes memory returndata) = hook.call(
+                abi.encodeWithSelector(BeforeTransferHookERC20.beforeTransferERC20.selector, _from, _to, _amount)
+            );
             if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
         }
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(BurnRequest calldata _burnRequest) internal virtual {
-        address hook = getHookImplementation(BEFORE_BURN_FLAG);
+    function _beforeBurn(address _from, uint256 _amount, bytes calldata _data) internal virtual {
+        address hook = getHookImplementation(BEFORE_BURN_ERC20_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) =
-                hook.call{value: msg.value}(abi.encodeWithSelector(IERC20Hook.beforeBurn.selector, _burnRequest));
+            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+                abi.encodeWithSelector(BeforeBurnHookERC20.beforeBurnERC20.selector, _from, _amount, _data)
+            );
             if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
         }
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApprove(address _from, address _to, uint256 _amount) internal virtual {
-        address hook = getHookImplementation(BEFORE_APPROVE_FLAG);
+        address hook = getHookImplementation(BEFORE_APPROVE_ERC20_FLAG);
 
         if (hook != address(0)) {
-            (bool success, bytes memory returndata) =
-                hook.call(abi.encodeWithSelector(IERC20Hook.beforeApprove.selector, _from, _to, _amount));
+            (bool success, bytes memory returndata) = hook.call(
+                abi.encodeWithSelector(BeforeApproveHookERC20.beforeApproveERC20.selector, _from, _to, _amount)
+            );
             if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
         }
     }

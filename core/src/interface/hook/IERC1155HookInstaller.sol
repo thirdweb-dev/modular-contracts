@@ -14,7 +14,7 @@ interface IERC1155HookInstaller is IHookInstaller {
         address beforeTransfer;
         address beforeBatchTransfer;
         address beforeBurn;
-        address beforeApprove;
+        address beforeApproveForAll;
         address uri;
         address royaltyInfo;
     }
