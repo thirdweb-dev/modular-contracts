@@ -1,15 +1,24 @@
-[submodule "lib/forge-std"]
-	path = lib/forge-std
+[submodule "core/lib/forge-std"]
+	path = core/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/murky"]
-	path = lib/murky
-	url = https://github.com/dmfxyz/murky
-[submodule "lib/dynamic-contracts"]
-	path = lib/dynamic-contracts
-	url = https://github.com/thirdweb-dev/dynamic-contracts
-[submodule "lib/solady"]
-	path = lib/solady
+[submodule "core/lib/solady"]
+	path = core/lib/solady
 	url = https://github.com/vectorized/solady
-[submodule "lib/erc721a"]
-	path = lib/erc721a
+[submodule "core/lib/erc721a"]
+	path = core/lib/erc721a
+	url = https://github.com/chiru-labs/erc721a
+[submodule "hooks/lib/forge-std"]
+	path = hooks/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "hooks/lib/contracts-next"]
+	path = hooks/lib/contracts-next
+	url = https://github.com/thirdweb-dev/contracts-next
+[submodule "hooks/lib/solady"]
+	path = hooks/lib/solady
+	url = https://github.com/vectorized/solady
+[submodule "hooks/lib/murky"]
+	path = hooks/lib/murky
+	url = https://github.com/dmfxyz/murky
+[submodule "hooks/lib/erc721a"]
+	path = hooks/lib/erc721a
 	url = https://github.com/chiru-labs/erc721a
