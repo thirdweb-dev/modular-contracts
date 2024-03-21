@@ -93,47 +93,108 @@ You can find testnet deployments of this hooks design setup, and JS scripts to i
 | Transfer token            | 59_587 [tx](https://sepolia.etherscan.io/tx/0x252311fc0ada4873d8fcc036ec7145b1dfb76bef7d974aae15111623cf4e889b)  | 76_102 [tx](https://sepolia.etherscan.io/tx/0xd5dd3f3f33e6755fd07617795a382e7e34005771a6374dacbfb686c6b4d981cc)  | 71_362 [tx](https://sepolia.etherscan.io/tx/0x4f3d79e1b5582ebab5ff6e1f343d640b2e47ded458223de4e1cf248f1c72776d)  | 69_042 [tx](https://sepolia.etherscan.io/tx/0xb3eb80ea9cf88d3a731490f6c9fd8c3f9d8b8283e5b376e4aaf001fb46e84ae2)  |
 | Setup token metadata      | 60_217 [tx](https://sepolia.etherscan.io/tx/0xfe99caf84e543f1b73055da7ef23f8071d3b8d893c838c12b9b3567f0a4cdcb8)  | 47_528 [tx](https://sepolia.etherscan.io/tx/0x6526f514b47d60785eb3951046dc1e30b175d2aa74aa2693932ea68ed2054d4d)  | 54_612 [tx](https://sepolia.etherscan.io/tx/0xd959c6dfc531994bca58df41c30952a04a6f1ab7e86b3ab3457ed4f4d5bd1846)  | 29_789 [tx](https://sepolia.etherscan.io/tx/0x1d3e653ab587f3203abdcb233ca3502f5a99b2ba38c62b9097b4d9cecac39016)  |
 
-# Design Overview
+# Design Overview: Hooks architecture
 
-Developers deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-721 Core contract.
+The _Hooks architecture_ contains two types of smart contracts:
 
-- This contract is initializable, and meant to be used with proxy contracts.
-- Implements the token standard (and the respective token metadata standard).
-- Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/common/Permission.sol) contract.
-- Implements the [`HookInstaller`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/hook/HookInstaller.sol) interface.
+1. **Core contract**
 
-Core contracts are deliberately written as non-upgradeable foundations that contain minimal code with fixed behaviour. These contracts are meant to be extended by developers using hooks.
+   A minimal, non-upgradeable smart contract that contains functions and state/storage that are core to the contract’s identity.
 
-## Hooks and Modularity
+2. **_Hook_ contract**
 
-![mint tokens via hooks](https://ipfs.io/ipfs/QmXfN8GFsJNEgkwa9F44kRWFFnahPbyPb8yV2L9LmFomnj/contracts-next-mint-tokens.png)
+   A stateful, upgradeable or non-upgradeable smart contract meant to be _installed_ into a core contract. It contains fixed number of pre-defined hook functions that are called during the execution of a core contract’s functions.
 
-Hooks are an external call made to a contract that implements the [`IHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/hook/IHook.sol) interface.
+![Hooks-architecture-overview](https://prod-files-secure.s3.us-west-2.amazonaws.com/f6d1ff84-8c0e-4bcb-8dd6-edab3b3c175b/d3a33636-7931-402b-8066-fa2bd37842c8/Untitled.png)
 
-The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
+The goal of this _Hooks architecture_ is making upgradeability **_safer_**, **_more predictable and less likely to go wrong_** by giving developers:
 
-For example, there is a fixed, defined set of 6 ERC-721 hooks:
+- An API that contains a comprehensive, but fixed number of pre-defined points in a smart contract where developers can introduce customizations.
+- Separation of state and logic that’s core to their contract, from state and logic that is ancillary i.e. providing assistance in updating the core state of the contract. (Core vs. Hook)
 
-- **BeforeMint**: called before a token is minted in the ERC721Core.mint call.
-- **BeforeTransfer**: called before a token is transferred in the ERC721.transferFrom call.
-- **BeforeBurn**: called before a token is burned in the ERC721.burn call.
-- **BeforeApprove**: called before the ERC721.approve and ERC721.setApprovalForAll call.
-- **Token URI**: called when the ERC721Metadata.tokenURI function is called.
-- **Royalty**: called when the ERC2981.royaltyInfo function is called.
+Core contracts are always non-upgradeable. However, considering a core contract and its _hooks_ together as one system — the _Hooks architecture_ allows for 3 different kinds of upgradeability setups:
 
-Developers can install hooks into their core contracts, and uninstall hooks at any time. On installation, a hook contract tells the hook consumer which hook functions it implements -- the hook consumer maps all these hook functions to the mentioned hook contract as their implemention.
+- **Non-upgradeable**: Developer contracts are not upgradeable.
+- **Self-managed upgradeable:** Only the developer is authorized to upgrade their (hook) contracts.
+- **Managed upgradeable:** Developer authorizes a third party to upgrade their (hook) contracts.
 
-## Upgradeability
+## Token contracts in the Hooks architecture
 
-![beacon upgrade](https://ipfs.io/ipfs/QmS1zU629FoDZM1X3oRmMZyxi7ThW2UiFybK7mkpZ2DzBS/contracts-next-beacon-upgrade.png)
+We write one core contract implementation for each token type (ERC-20, ERC-721, ERC-1155). Developers deploy a token core contract for themselves and _install_ hooks into it.
 
-thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/hooks](https://github.com/thirdweb-dev/contracts-next/tree/main/src/hook)).
+All 3 token core contracts implement:
 
-These hook contracts are designed to be used by developers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make beacon upgrades to developer contracts using these hooks.
+- The token standard itself. ([ERC-20](https://eips.ethereum.org/EIPS/eip-20) + [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612) Permit / [ERC-721](https://eips.ethereum.org/EIPS/eip-721) / [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155)).
+- `[HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/hook/IHookInstaller.sol)` interface for installing hooks.
+- A token standard specific `getAllHooks()` view function interface (e.g. [IERC20HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/hook/IERC20HookInstaller.sol))
+- [EIP-173](https://eips.ethereum.org/EIPS/eip-173) Contract ownership standard
+- [EIP-7572](https://eips.ethereum.org/EIPS/eip-7572) Contract-level metadata via `contractURI()` standard
+- Multicall interface
+- External mint() and burn() functions.
 
-At any point, developers can opt to use any custom, non-thirdweb hooks along with their core contract. Without the involvement on delegateCall based upgradeability, writing hooks should be accessible for more developers, and we expect to form a vibrant hooks ecosystem.
+The token core contracts use the [solady implementations](https://github.com/Vectorized/solady) of the token standards, ownable and multicall contracts.
 
-That said, opting out of using hooks where thirdweb has upgrade authority also means that thirdweb will not be able to perform beacon upgrades to those hooks in the event of a security incident.
+### Available hooks for token contracts
+
+| Hook functions | ERC-20 | ERC-721 | ERC-1155 |
+| -------------- | ------ | ------- | -------- |
+|                |        |         |          |
+
+| beforeApprove
+
+Approve | ✅
+
+called before a token is approved in the ERC20Core.approve call. | ✅
+
+called before a token is approved in the ERC721Core.approve and ERC721.setApprovalForAll calls. | ✅
+
+called before a token is approved in the ERC1155.setApprovalForAll call. |
+| beforeBurn
+
+Burn | ✅
+
+called before a token is burned in the ERC20.burn call. | ✅
+
+called before a token is burned in the ERC721.burn call. | ✅
+
+called before a token is burned in the ERC1155.burn call. |
+| beforeMint
+
+Minting | ✅
+
+called before a token is minted in the ERC20Core.mint call. | ✅
+
+called before a token is minted in the ERC721Core.mint call. | ✅
+
+called before a token is minted in the ERC1155Core.mint call. |
+| beforeTransfer
+
+Transfer | ✅
+
+called before a token is transferred in the ERC20.transferFrom call. | ✅
+
+called before a token is transferred in the ERC721.transferFrom and ERC721.safeTransferFrom calls. | ✅
+
+called before a token is transferred in the ERC1155.transferFrom and ERC1155.safeTransferFrom calls. |
+| beforeBatchTransfer
+
+Batch Transfer | ❌ | ❌ | ✅
+
+called once before a batch transfer of tokens in the ERC1155.safeBatchTransferredFrom call. |
+| onRoyaltyInfo
+
+Royalty | ❌ | ✅
+
+Called to retrieve royalty info on EIP2981.royaltyInfo call | ✅
+
+Called to retrieve royalty info on EIP2981.royaltyInfo call |
+| onTokenURI
+
+TokenURI | ❌ | ✅
+
+Called to retrieve the metadata for a token on an ERC721Metadata.tokenURI call | ✅
+
+Called to retrieve the metadata URI for a token on a ERC1155Metadata.uri call |
 
 ## Feedback
 
