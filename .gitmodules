@@ -13,3 +13,6 @@
 [submodule "hooks/lib/contracts-next"]
 	path = hooks/lib/contracts-next
 	url = https://github.com/thirdweb-dev/contracts-next
+[submodule "hooks/lib/solady"]
+	path = hooks/lib/solady
+	url = https://github.com/vectorized/solady
