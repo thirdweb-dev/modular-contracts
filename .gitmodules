@@ -1,12 +1,12 @@
-[submodule "lib/forge-std"]
-	path = lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/solady"]
-	path = lib/solady
-	url = https://github.com/vectorized/solady
-[submodule "lib/erc721a"]
-	path = lib/erc721a
-	url = https://github.com/chiru-labs/erc721a
 [submodule "core/lib/forge-std"]
 	path = core/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "core/lib/solady"]
+	path = core/lib/solady
+	url = https://github.com/vectorized/solady
+[submodule "core/lib/erc721a"]
+	path = core/lib/erc721a
+	url = https://github.com/chiru-labs/erc721a
+[submodule "hooks/lib/forge-std"]
+	path = hooks/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
