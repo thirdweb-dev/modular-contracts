@@ -125,8 +125,8 @@ We write one core contract implementation for each token type (ERC-20, ERC-721, 
 All 3 token core contracts implement:
 
 - The token standard itself. ([ERC-20](https://eips.ethereum.org/EIPS/eip-20) + [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612) Permit / [ERC-721](https://eips.ethereum.org/EIPS/eip-721) / [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155)).
-- `[HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/hook/IHookInstaller.sol)` interface for installing hooks.
-- A token standard specific `getAllHooks()` view function interface (e.g. [IERC20HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/hook/IERC20HookInstaller.sol))
+- [HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/core/src/interface/hook/IHookInstaller.sol) interface for installing hooks.
+- A token standard specific `getAllHooks()` view function interface (e.g. [IERC20HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/core/src/interface/hook/IERC20HookInstaller.sol))
 - [EIP-173](https://eips.ethereum.org/EIPS/eip-173) Contract ownership standard
 - [EIP-7572](https://eips.ethereum.org/EIPS/eip-7572) Contract-level metadata via `contractURI()` standard
 - Multicall interface
@@ -136,65 +136,15 @@ The token core contracts use the [solady implementations](https://github.com/Vec
 
 ### Available hooks for token contracts
 
-| Hook functions | ERC-20 | ERC-721 | ERC-1155 |
-| -------------- | ------ | ------- | -------- |
-|                |        |         |          |
-
-| beforeApprove
-
-Approve | ✅
-
-called before a token is approved in the ERC20Core.approve call. | ✅
-
-called before a token is approved in the ERC721Core.approve and ERC721.setApprovalForAll calls. | ✅
-
-called before a token is approved in the ERC1155.setApprovalForAll call. |
-| beforeBurn
-
-Burn | ✅
-
-called before a token is burned in the ERC20.burn call. | ✅
-
-called before a token is burned in the ERC721.burn call. | ✅
-
-called before a token is burned in the ERC1155.burn call. |
-| beforeMint
-
-Minting | ✅
-
-called before a token is minted in the ERC20Core.mint call. | ✅
-
-called before a token is minted in the ERC721Core.mint call. | ✅
-
-called before a token is minted in the ERC1155Core.mint call. |
-| beforeTransfer
-
-Transfer | ✅
-
-called before a token is transferred in the ERC20.transferFrom call. | ✅
-
-called before a token is transferred in the ERC721.transferFrom and ERC721.safeTransferFrom calls. | ✅
-
-called before a token is transferred in the ERC1155.transferFrom and ERC1155.safeTransferFrom calls. |
-| beforeBatchTransfer
-
-Batch Transfer | ❌ | ❌ | ✅
-
-called once before a batch transfer of tokens in the ERC1155.safeBatchTransferredFrom call. |
-| onRoyaltyInfo
-
-Royalty | ❌ | ✅
-
-Called to retrieve royalty info on EIP2981.royaltyInfo call | ✅
-
-Called to retrieve royalty info on EIP2981.royaltyInfo call |
-| onTokenURI
-
-TokenURI | ❌ | ✅
-
-Called to retrieve the metadata for a token on an ERC721Metadata.tokenURI call | ✅
-
-Called to retrieve the metadata URI for a token on a ERC1155Metadata.uri call |
+| **Hook Functions**                   | ERC-20                                                                  | ERC-721                                                                                               | ERC-1155                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| beforeApprove (Approve)              | ✅ called before a token is approved in the ERC20Core.approve call.     | ✅ called before a token is approved in the ERC721Core.approve and ERC721.setApprovalForAll calls.    | ✅ called before a token is approved in the ERC1155.setApprovalForAll call.                             |
+| beforeBurn (Burn)                    | ✅ called before a token is burned in the ERC20.burn call.              | ✅ called before a token is burned in the ERC721.burn call.                                           | ✅ called before a token is burned in the ERC1155.burn call.                                            |
+| beforeMint (Minting)                 | ✅ called before a token is minted in the ERC20Core.mint                | ✅ called before a token is minted in the ERC721Core.mint                                             | ✅ called before a token is minted in the ERC1155Core.mint                                              |
+| beforeTransfer (Transfer)            | ✅ called before a token is transferred in the ERC20.transferFrom call. | ✅ called before a token is transferred in the ERC721.transferFrom and ERC721.safeTransferFrom calls. | ✅ called before a token is transferred in the ERC1155.transferFrom and ERC1155.safeTransferFrom calls. |
+| beforeBatchTransfer (Batch Transfer) | ❌                                                                      | ❌                                                                                                    | ✅ called once before a batch transfer of tokens in the ERC1155.safeBatchTransferredFrom call.          |
+| onRoyaltyInfo (EIP-2981 Royalty)     | ❌                                                                      | ✅ Called to retrieve royalty info on EIP2981.royaltyInfo call                                        | ✅ Called to retrieve royalty info on EIP2981.royaltyInfo call                                          |
+| onTokenURI (Token Metadata)          | ❌                                                                      | ✅ Called to retrieve the metadata for a token on an ERC721Metadata.tokenURI call                     | ✅ Called to retrieve the metadata URI for a token on a ERC1155Metadata.uri call                        |
 
 ## Feedback
 
