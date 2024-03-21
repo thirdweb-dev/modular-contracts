@@ -105,7 +105,7 @@ The _Hooks architecture_ contains two types of smart contracts:
 
    A stateful, upgradeable or non-upgradeable smart contract meant to be _installed_ into a core contract. It contains fixed number of pre-defined hook functions that are called during the execution of a core contract’s functions.
 
-![Hooks-architecture-overview](https://prod-files-secure.s3.us-west-2.amazonaws.com/f6d1ff84-8c0e-4bcb-8dd6-edab3b3c175b/d3a33636-7931-402b-8066-fa2bd37842c8/Untitled.png)
+![Hooks-architecture-overview](https://github.com/thirdweb-dev/contracts-next/blob/main/assets/hooks-banner.png?raw=true)
 
 The goal of this _Hooks architecture_ is making upgradeability **_safer_**, **_more predictable and less likely to go wrong_** by giving developers:
 
