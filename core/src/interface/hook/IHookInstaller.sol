@@ -39,10 +39,12 @@ interface IHookInstaller is IHookInfo {
      *  @notice Parameters for a hook contract call to make inside the fallback function.
      *  @param target The address of the contract to call.
      *  @param callType The type of call to make.
+     *  @param permissioned Whether the call requires permission on the core contract.
      */
     struct HookFallbackFunctionCall {
         address target;
         CallType callType;
+        bool permissioned;
     }
 
     /*//////////////////////////////////////////////////////////////

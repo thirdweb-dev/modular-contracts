@@ -19,7 +19,7 @@ contract MockCore0 is HookInstaller {
     }
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address /* _caller */ ) internal pure override returns (bool) {
+    function _isAuthorizedToCallHookFallbackFunction(address /* _caller */ ) internal pure override returns (bool) {
         return true;
     }
 
@@ -36,7 +36,7 @@ contract MockCore256 is HookInstaller {
     }
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address /* _caller */ ) internal pure override returns (bool) {
+    function _isAuthorizedToCallHookFallbackFunction(address /* _caller */ ) internal pure override returns (bool) {
         return true;
     }
 

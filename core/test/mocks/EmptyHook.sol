@@ -5,6 +5,23 @@ import "src/hook/ERC20Hook.sol";
 import "src/hook/ERC721Hook.sol";
 import "src/hook/ERC1155Hook.sol";
 
+contract HookWithPermissionedFallback is ERC20Hook {
+    function initialize(address _upgradeAdmin) public initializer {
+        __ERC20Hook_init(_upgradeAdmin);
+    }
+
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_TRANSFER_FLAG();
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](1);
+        hookInfo.hookFallbackFunctions[0] =
+            HookFallbackFunction(this.permissionedFunction.selector, CallType.CALL, true);
+    }
+
+    function permissionedFunction() external pure virtual returns (uint256) {
+        return 1;
+    }
+}
+
 contract EmptyHookERC20 is ERC20Hook {
     function initialize(address _upgradeAdmin) public initializer {
         __ERC20Hook_init(_upgradeAdmin);
