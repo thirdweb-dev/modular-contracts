@@ -2,18 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "src/hook/ERC721Hook.sol";
-import "src/hook/ERC20Hook.sol";
-
-contract MockOneHookImpl is ERC721Hook {
-    function initialize(address _upgradeAdmin) public initializer {
-        __ERC721Hook_init(_upgradeAdmin);
-    }
-
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = BEFORE_TRANSFER_FLAG();
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
-    }
-}
 
 contract MockTokenURIHookImpl is ERC721Hook {
     function initialize(address _upgradeAdmin) public initializer {
@@ -26,18 +14,7 @@ contract MockTokenURIHookImpl is ERC721Hook {
     }
 }
 
-contract MockFourHookImpl is ERC721Hook {
-    function initialize(address _upgradeAdmin) public initializer {
-        __ERC721Hook_init(_upgradeAdmin);
-    }
-
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = BEFORE_MINT_FLAG() | BEFORE_TRANSFER_FLAG() | BEFORE_BURN_FLAG() | BEFORE_APPROVE_FLAG();
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
-    }
-}
-
-contract MockOneHookImpl20 is ERC20Hook {
+contract MockOneHookImpl is ERC721Hook {
     constructor() {}
 
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {
@@ -46,7 +23,7 @@ contract MockOneHookImpl20 is ERC20Hook {
     }
 }
 
-contract MockFourHookImpl20 is ERC20Hook {
+contract MockFourHookImpl is ERC721Hook {
     constructor() {}
 
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {

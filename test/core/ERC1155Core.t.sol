@@ -5,9 +5,10 @@ import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
 import {EmptyHookERC1155} from "../mocks/EmptyHook.sol";
 
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
-import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC1155Hook} from "src/interface/hook/IERC1155Hook.sol";
@@ -130,8 +131,6 @@ contract ERC1155CoreTest is Test, TestPlus {
 
     address public admin = address(0x123);
 
-    CloneFactory public cloneFactory;
-
     address public hookProxyAddress;
 
     ERC1155Core public token;
@@ -144,8 +143,11 @@ contract ERC1155CoreTest is Test, TestPlus {
     mapping(uint256 => uint256) public supply;
 
     function setUp() public {
-        cloneFactory = new CloneFactory();
-        hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC1155()), "", bytes32("salt"));
+        bytes memory hookInitData = abi.encodeWithSelector(
+            EmptyHookERC1155.initialize.selector,
+            address(0x123) // upgradeAdmin
+        );
+        hookProxyAddress = address(new EIP1967Proxy(address(new EmptyHookERC1155()), hookInitData));
 
         vm.startPrank(admin);
 

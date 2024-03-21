@@ -3,12 +3,14 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
+
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+
 import {EmptyHookERC721} from "../mocks/EmptyHook.sol";
 
 import {ERC721} from "@solady/tokens/ERC721.sol";
-import {IERC721A} from "erc721a/IERC721A.sol";
+import {IERC721A} from "@erc721a/IERC721A.sol";
 
-import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
@@ -64,8 +66,6 @@ contract ERC721CoreTest is Test, TestPlus {
 
     address public admin = address(0x123);
 
-    CloneFactory public cloneFactory;
-
     address public hookProxyAddress;
 
     ERC721Core public token;
@@ -74,8 +74,11 @@ contract ERC721CoreTest is Test, TestPlus {
     IERC721Hook.BurnRequest public burnRequest;
 
     function setUp() public {
-        cloneFactory = new CloneFactory();
-        hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC721()), "", bytes32("salt"));
+        bytes memory hookInitData = abi.encodeWithSelector(
+            EmptyHookERC721.initialize.selector,
+            address(0x123) // upgradeAdmin
+        );
+        hookProxyAddress = address(new EIP1967Proxy(address(new EmptyHookERC721()), hookInitData));
 
         vm.startPrank(admin);
 

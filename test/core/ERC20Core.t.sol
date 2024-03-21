@@ -5,9 +5,10 @@ import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
 import {EmptyHookERC20} from "../mocks/EmptyHook.sol";
 
+import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
-import {CloneFactory} from "src/infra/CloneFactory.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {HookInstaller} from "src/core/HookInstaller.sol";
 import {IHook} from "src/interface/hook/IHook.sol";
@@ -45,9 +46,6 @@ contract ERC20CoreTest is Test, TestPlus {
     // Participants
     address public admin = address(0x123);
 
-    // Test util
-    CloneFactory public cloneFactory;
-
     // Target test contracts
     address public hookProxyAddress;
 
@@ -57,8 +55,11 @@ contract ERC20CoreTest is Test, TestPlus {
     IERC20Hook.BurnRequest public burnRequest;
 
     function setUp() public {
-        cloneFactory = new CloneFactory();
-        hookProxyAddress = cloneFactory.deployDeterministicERC1967(address(new EmptyHookERC20()), "", bytes32("salt"));
+        bytes memory hookInitData = abi.encodeWithSelector(
+            EmptyHookERC20.initialize.selector,
+            address(0x123) // upgradeAdmin
+        );
+        hookProxyAddress = address(new EIP1967Proxy(address(new EmptyHookERC20()), hookInitData));
 
         vm.startPrank(admin);
 
