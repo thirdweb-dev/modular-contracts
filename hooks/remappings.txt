@@ -2,3 +2,5 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 @solady/=lib/solady/src/
 @core-contracts/=lib/contracts-next/core/src/
+@murky/=lib/murky/src/
+@erc721a/=lib/erc721a/contracts/
