@@ -19,11 +19,31 @@ git clone https://github.com/thirdweb-dev/contracts-next.git
 
 Install dependencies:
 
+If you are in the root directory of the project, run:
+
 ```bash
+# Install dependecies for core contracts
+forge install --root ./core
+
+# Install dependecies for hooks contracts
+forge install --root ./hooks
+```
+
+If you are in `/core`:
+
+```bash
+# Install dependecies for core contracts
 forge install
 ```
 
-Run benchmark comparison tests:
+If you are in `/hooks`:
+
+```bash
+# Install dependecies for hooks contracts
+forge install
+```
+
+From within `/contracts`, run benchmark comparison tests:
 
 ```bash
 # create a wallet for the benchmark (make sure there's enough gas funds)
@@ -33,13 +53,7 @@ cast wallet import testnet -i
 forge script script/benchmark-ext/erc721/BenchmarkERC721.s.sol --rpc-url "https://sepolia.rpc.thirdweb.com" --account testnet [--broadcast]
 ```
 
-Run formatter:
-
-```bash
-forge fmt src test script
-```
-
-Run gas snapshot:
+From within `/contracts`, run gas snapshot:
 
 ```bash
 forge snapshot --isolate --mp 'test/benchmark/*'
