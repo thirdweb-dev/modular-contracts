@@ -301,7 +301,7 @@ contract ERC1155Core is
     }
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address _caller) internal view override returns (bool) {
+    function _isAuthorizedToCallHookFallbackFunction(address _caller) internal view override returns (bool) {
         return _caller == owner();
     }
 

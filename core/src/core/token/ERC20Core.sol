@@ -240,7 +240,7 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
     }
 
     /// @dev Returns whether the caller can write to hooks.
-    function _canWriteToHooks(address _caller) internal view override returns (bool) {
+    function _isAuthorizedToCallHookFallbackFunction(address _caller) internal view override returns (bool) {
         return _caller == owner();
     }
 

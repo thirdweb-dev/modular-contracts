@@ -17,6 +17,7 @@ interface IHookInfo {
     struct HookFallbackFunction {
         bytes4 functionSelector;
         CallType callType;
+        bool permissioned;
     }
 
     /**

@@ -32,7 +32,7 @@ abstract contract HookInstaller is IHookInstaller {
     error HookInstallerHookCallFailed();
 
     /// @notice Emitted when the caller attempts to write to a hook contract without permission.
-    error HookInstallerUnauthorizedWrite();
+    error HookInstallerUnauthorizedCall();
 
     /// @notice Emitted when the caller attempts to install a hook that is already installed.
     error HookInstallerHookAlreadyInstalled();
@@ -88,8 +88,8 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerFallbackFunctionDoesNotExist();
         }
 
-        if (callInfo.callType != CallType.STATICCALL && !_canWriteToHooks(msg.sender)) {
-            revert HookInstallerUnauthorizedWrite();
+        if (callInfo.permissioned && !_isAuthorizedToCallHookFallbackFunction(msg.sender)) {
+            revert HookInstallerUnauthorizedCall();
         }
 
         if (callInfo.callType == CallType.CALL) {
@@ -212,8 +212,11 @@ abstract contract HookInstaller is IHookInstaller {
                 revert HookInstallerHookFallbackFunctionUsed(selector);
             }
 
-            hookFallbackFunctionCallMap_[selector] =
-                HookFallbackFunctionCall({target: address(_params.hook), callType: fallbackFunctions[i].callType});
+            hookFallbackFunctionCallMap_[selector] = HookFallbackFunctionCall({
+                target: address(_params.hook),
+                callType: fallbackFunctions[i].callType,
+                permissioned: fallbackFunctions[i].permissioned
+            });
         }
 
         // Finally, initialize the hook with the given calldata and value.
@@ -233,7 +236,7 @@ abstract contract HookInstaller is IHookInstaller {
     function _canUpdateHooks(address _caller) internal view virtual returns (bool);
 
     /// @dev Returns whether the caller can write to hook contracts via the fallback function.
-    function _canWriteToHooks(address _caller) internal view virtual returns (bool);
+    function _isAuthorizedToCallHookFallbackFunction(address _caller) internal view virtual returns (bool);
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure virtual returns (uint8) {

@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
-import {EmptyHookERC20} from "../mocks/EmptyHook.sol";
+import {EmptyHookERC20, HookWithPermissionedFallback} from "../mocks/EmptyHook.sol";
 
 import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
 
@@ -81,6 +81,27 @@ contract ERC20CoreTest is Test, TestPlus {
 
         vm.label(address(token), "ERC20Core");
         vm.label(admin, "Admin");
+    }
+
+    function testPermissionedFallbackFunctionCall() public {
+        vm.startPrank(admin);
+        address permissionedCallHook = address(new HookWithPermissionedFallback());
+
+        token.installHook(
+            IHookInstaller.InstallHookParams({
+                hook: IHook(permissionedCallHook),
+                initCallValue: 0,
+                initCalldata: bytes("")
+            })
+        );
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedCall.selector));
+        HookWithPermissionedFallback(address(token)).permissionedFunction();
+
+        vm.prank(admin);
+        uint256 result = HookWithPermissionedFallback(address(token)).permissionedFunction();
+        assertEq(result, 1);
     }
 
     function testIncompatibleHookInstall() public {
