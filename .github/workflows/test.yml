@@ -41,5 +41,5 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          cd core && forge test -vvv cd ../hooks && forge test -vvv
+          cd core && forge test -vvv && cd ../hooks && forge test -vvv
         id: test

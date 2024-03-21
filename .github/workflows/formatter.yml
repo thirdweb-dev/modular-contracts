@@ -35,5 +35,5 @@ jobs:
 
       - name: Formatter
         run: |
-          cd core && forge fmt --check test src script cd ../hooks forge fmt --check test src script
+          cd core && forge fmt --check test src script && cd ../hooks && forge fmt --check test src script
         id: formatter
