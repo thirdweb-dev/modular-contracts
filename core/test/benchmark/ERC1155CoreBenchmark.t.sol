@@ -7,12 +7,13 @@ import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/hook/IHook.sol";
 import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
+import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
 
 import {MockHookERC1155, MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHook.sol";
 
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
-contract ERC1155CoreBenchmarkTest is Test {
+contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -25,18 +26,6 @@ contract ERC1155CoreBenchmarkTest is Test {
     // Target test contracts
     ERC1155Core public erc1155;
     address public hookProxyAddress;
-
-    /// @notice Bits representing the beforeApproveERC20 hook.
-    uint256 public constant BEFORE_APPROVE_ERC20_FLAG = 2 ** 2;
-
-    /// @notice Bits representing the beforeBurnERC20 hook.
-    uint256 public constant BEFORE_BURN_ERC20_FLAG = 2 ** 5;
-
-    /// @notice Bits representing the beforeMintERC20 hook.
-    uint256 public constant BEFORE_MINT_ERC20_FLAG = 2 ** 8;
-
-    /// @notice Bits representing the beforeTransferERC20 hook.
-    uint256 public constant BEFORE_TRANSFER_ERC20_FLAG = 2 ** 11;
 
     function setUp() public {
         // Setup: minting on ERC-1155 contract.

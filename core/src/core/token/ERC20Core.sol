@@ -5,6 +5,7 @@ import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
+import {HookFlagsDirectory} from "../../hook/HookFlagsDirectory.sol";
 import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
@@ -13,23 +14,7 @@ import {BeforeApproveHookERC20} from "../../hook/BeforeApproveHookERC20.sol";
 import {BeforeTransferHookERC20} from "../../hook/BeforeTransferHookERC20.sol";
 import {BeforeBurnHookERC20} from "../../hook/BeforeBurnHookERC20.sol";
 
-contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookInstaller {
-    /*//////////////////////////////////////////////////////////////
-                                  CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Bits representing the beforeApproveERC20 hook.
-    uint256 public constant BEFORE_APPROVE_ERC20_FLAG = 2 ** 2;
-
-    /// @notice Bits representing the beforeBurnERC20 hook.
-    uint256 public constant BEFORE_BURN_ERC20_FLAG = 2 ** 5;
-
-    /// @notice Bits representing the beforeMintERC20 hook.
-    uint256 public constant BEFORE_MINT_ERC20_FLAG = 2 ** 8;
-
-    /// @notice Bits representing the beforeTransferERC20 hook.
-    uint256 public constant BEFORE_TRANSFER_ERC20_FLAG = 2 ** 11;
-
+contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookInstaller, HookFlagsDirectory {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/

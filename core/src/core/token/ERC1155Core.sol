@@ -5,6 +5,7 @@ import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
+import {HookFlagsDirectory} from "../../hook/HookFlagsDirectory.sol";
 import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC1155HookInstaller} from "../../interface/hook/IERC1155HookInstaller.sol";
@@ -16,32 +17,7 @@ import {BeforeApproveForAllHook} from "../../hook/BeforeApproveForAllHook.sol";
 import {OnTokenURIHook} from "../../hook/OnTokenURIHook.sol";
 import {OnRoyaltyInfoHook} from "../../hook/OnRoyaltyInfoHook.sol";
 
-contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155HookInstaller {
-    /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Bits representing the beforeApproveForAll hook.
-    uint256 public constant BEFORE_APPROVE_FOR_ALL_FLAG = 2 ** 1;
-
-    /// @notice Bits representing the beforeBatchTransferERC1155 hook.
-    uint256 public constant BEFORE_BATCH_TRANSFER_ERC1155_FLAG = 2 ** 4;
-
-    /// @notice Bits representing the beforeBurnERC1155 hook.
-    uint256 public constant BEFORE_BURN_ERC1155_FLAG = 2 ** 7;
-
-    /// @notice Bits representing the beforeMintERC1155 hook.
-    uint256 public constant BEFORE_MINT_ERC1155_FLAG = 2 ** 10;
-
-    /// @notice Bits representing the beforeTransferERC1155 hook.
-    uint256 public constant BEFORE_TRANSFER_ERC1155_FLAG = 2 ** 13;
-
-    /// @notice Bits representing the royalty hook.
-    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 14;
-
-    /// @notice Bits representing the onTokenURI hook.
-    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 15;
-
+contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155HookInstaller, HookFlagsDirectory {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/

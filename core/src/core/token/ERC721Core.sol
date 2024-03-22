@@ -5,6 +5,7 @@ import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
+import {HookFlagsDirectory} from "../../hook/HookFlagsDirectory.sol";
 import {HookInstaller} from "../HookInstaller.sol";
 
 import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
@@ -16,32 +17,14 @@ import {BeforeApproveForAllHook} from "../../hook/BeforeApproveForAllHook.sol";
 import {OnTokenURIHook} from "../../hook/OnTokenURIHook.sol";
 import {OnRoyaltyInfoHook} from "../../hook/OnRoyaltyInfoHook.sol";
 
-contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, IERC721HookInstaller {
-    /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Bits representing the beforeApproveForAll hook.
-    uint256 public constant BEFORE_APPROVE_FOR_ALL_FLAG = 2 ** 1;
-
-    /// @notice Bits representing the beforeApproveERC721 hook.
-    uint256 public constant BEFORE_APPROVE_ERC721_FLAG = 2 ** 3;
-
-    /// @notice Bits representing the beforeBurnERC721 hook.
-    uint256 public constant BEFORE_BURN_ERC721_FLAG = 2 ** 6;
-
-    /// @notice Bits representing the beforeMintERC721 hook.
-    uint256 public constant BEFORE_MINT_ERC721_FLAG = 2 ** 9;
-
-    /// @notice Bits representing the beforeTransferERC721 hook.
-    uint256 public constant BEFORE_TRANSFER_ERC721_FLAG = 2 ** 12;
-
-    /// @notice Bits representing the royalty hook.
-    uint256 public constant ON_ROYALTY_INFO_FLAG = 2 ** 14;
-
-    /// @notice Bits representing the token URI hook.
-    uint256 public constant ON_TOKEN_URI_FLAG = 2 ** 15;
-
+contract ERC721Core is
+    ERC721AQueryable,
+    HookInstaller,
+    Ownable,
+    Multicallable,
+    IERC721HookInstaller,
+    HookFlagsDirectory
+{
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IHook} from "src/interface/hook/IHook.sol";
+import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
 
 import {BeforeMintHookERC20} from "src/hook/BeforeMintHookERC20.sol";
 import {BeforeTransferHookERC20} from "src/hook/BeforeTransferHookERC20.sol";
@@ -15,7 +16,7 @@ import {OnTokenURIHook} from "src/hook/OnTokenURIHook.sol";
 import "@solady/utils/Initializable.sol";
 import "@solady/utils/UUPSUpgradeable.sol";
 
-contract MockHookWithPermissionedFallback is IHook, Initializable, UUPSUpgradeable {
+contract MockHookWithPermissionedFallback is IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -42,7 +43,7 @@ contract MockHookWithPermissionedFallback is IHook, Initializable, UUPSUpgradeab
     }
 }
 
-contract MockHookERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable {
+contract MockHookERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -72,7 +73,7 @@ contract MockHookERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgrade
     }
 }
 
-contract BuggyMockHookERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable {
+contract BuggyMockHookERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -105,7 +106,7 @@ contract BuggyMockHookERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUp
     }
 }
 
-contract MockHookERC721 is BeforeMintHookERC721, IHook, Initializable, UUPSUpgradeable {
+contract MockHookERC721 is BeforeMintHookERC721, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -144,7 +145,7 @@ contract MockHookERC721 is BeforeMintHookERC721, IHook, Initializable, UUPSUpgra
     }
 }
 
-contract BuggyMockHookERC721 is BeforeMintHookERC721, IHook, Initializable, UUPSUpgradeable {
+contract BuggyMockHookERC721 is BeforeMintHookERC721, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -185,7 +186,7 @@ contract BuggyMockHookERC721 is BeforeMintHookERC721, IHook, Initializable, UUPS
     }
 }
 
-contract MockHookERC1155 is BeforeMintHookERC1155, IHook, Initializable, UUPSUpgradeable {
+contract MockHookERC1155 is BeforeMintHookERC1155, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -223,7 +224,7 @@ contract MockHookERC1155 is BeforeMintHookERC1155, IHook, Initializable, UUPSUpg
     }
 }
 
-contract BuggyMockHookERC1155 is BeforeMintHookERC1155, IHook, Initializable, UUPSUpgradeable {
+contract BuggyMockHookERC1155 is BeforeMintHookERC1155, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -263,7 +264,7 @@ contract BuggyMockHookERC1155 is BeforeMintHookERC1155, IHook, Initializable, UU
     }
 }
 
-contract MockOnTokenURIHook is OnTokenURIHook, IHook, Initializable, UUPSUpgradeable {
+contract MockOnTokenURIHook is OnTokenURIHook, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -288,7 +289,7 @@ contract MockOnTokenURIHook is OnTokenURIHook, IHook, Initializable, UUPSUpgrade
     }
 }
 
-contract MockOneHookImpl is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable {
+contract MockOneHookImpl is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -316,7 +317,8 @@ contract MockFourHookImpl is
     BeforeBurnHookERC20,
     BeforeApproveHookERC20,
     Initializable,
-    UUPSUpgradeable
+    UUPSUpgradeable,
+    HookFlagsDirectory
 {
     address public upgradeAdmin;
 

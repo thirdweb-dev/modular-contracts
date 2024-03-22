@@ -2,10 +2,6 @@
 pragma solidity ^0.8.0;
 
 contract BeforeTransferHookERC721 {
-    /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
     /// @notice Bits representing the beforeTransferERC721 hook.
     uint256 public constant BEFORE_TRANSFER_ERC721_FLAG = 2 ** 12;
 
