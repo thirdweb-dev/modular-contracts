@@ -311,7 +311,7 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return 7; // BeforeBatchTransfer
+        return 15; // BeforeBatchTransfer
     }
 
     /// @dev Sets contract URI

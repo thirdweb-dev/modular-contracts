@@ -1,269 +1,256 @@
-// // SPDX-License-Identifier: UNLICENSED
-// pragma solidity ^0.8.0;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.0;
 
-// import {Test} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-// import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-// import {IHook} from "src/interface/hook/IHook.sol";
-// import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
-// import {IMintRequest} from "src/interface/common/IMintRequest.sol";
+import {IHook} from "src/interface/hook/IHook.sol";
+import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
 
-// import {EmptyHookERC20} from "test/mocks/EmptyHook.sol";
-// import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
+import {MockHookERC20, MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHook.sol";
 
-// import {ERC20Core} from "src/core/token/ERC20Core.sol";
-// import {IERC20Hook} from "src/interface/hook/IERC20Hook.sol";
+import {ERC20Core} from "src/core/token/ERC20Core.sol";
 
-// contract ERC20CoreBenchmarkTest is Test {
-//     /*//////////////////////////////////////////////////////////////
-//                                 SETUP
-//     //////////////////////////////////////////////////////////////*/
+contract ERC20CoreBenchmarkTest is Test {
+    /*//////////////////////////////////////////////////////////////
+                                SETUP
+    //////////////////////////////////////////////////////////////*/
 
-//     // Participants
-//     address public platformAdmin = address(0x123);
-//     address public platformUser = address(0x456);
-//     address public claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
+    // Participants
+    address public platformAdmin = address(0x123);
+    address public platformUser = address(0x456);
+    address public claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
 
-//     // Target test contracts
-//     ERC20Core public erc20;
-//     address public hookProxyAddress;
+    // Target test contracts
+    ERC20Core public erc20;
+    address public hookProxyAddress;
 
-//     IERC20Hook.MintRequest public mintRequest;
+    /// @notice Bits representing the beforeApproveERC20 hook.
+    uint256 public constant BEFORE_APPROVE_ERC20_FLAG = 2 ** 2;
 
-//     /// @notice Bits representing the before mint hook.
-//     uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
+    /// @notice Bits representing the beforeBurnERC20 hook.
+    uint256 public constant BEFORE_BURN_ERC20_FLAG = 2 ** 5;
 
-//     /// @notice Bits representing the before transfer hook.
-//     uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
+    /// @notice Bits representing the beforeMintERC20 hook.
+    uint256 public constant BEFORE_MINT_ERC20_FLAG = 2 ** 8;
 
-//     /// @notice Bits representing the before burn hook.
-//     uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
+    /// @notice Bits representing the beforeTransferERC20 hook.
+    uint256 public constant BEFORE_TRANSFER_ERC20_FLAG = 2 ** 11;
 
-//     /// @notice Bits representing the before approve hook.
-//     uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
+    function setUp() public {
+        // Setup: minting on ERC-20 contract.
 
-//     function setUp() public {
-//         // Setup: minting on ERC-20 contract.
+        // Platform contracts: gas incurred by platform.
+        vm.startPrank(platformAdmin);
 
-//         // Platform contracts: gas incurred by platform.
-//         vm.startPrank(platformAdmin);
+        hookProxyAddress = address(
+            new EIP1967Proxy(
+                address(new MockHookERC20()),
+                abi.encodeWithSelector(
+                    MockHookERC20.initialize.selector,
+                    platformAdmin // upgradeAdmin
+                )
+            )
+        );
 
-//         hookProxyAddress = address(
-//             new EIP1967Proxy(
-//                 address(new EmptyHookERC20()),
-//                 abi.encodeWithSelector(
-//                     EmptyHookERC20.initialize.selector,
-//                     platformAdmin // upgradeAdmin
-//                 )
-//             )
-//         );
+        vm.stopPrank();
 
-//         vm.stopPrank();
+        // Developer contract: gas incurred by developer.
+        vm.startPrank(platformUser);
 
-//         // Developer contract: gas incurred by developer.
-//         vm.startPrank(platformUser);
+        ERC20Core.OnInitializeParams memory onInitializeCall;
+        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
 
-//         ERC20Core.OnInitializeParams memory onInitializeCall;
-//         ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
+        erc20 = new ERC20Core(
+            "Test ERC20",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
 
-//         erc20 = new ERC20Core(
-//             "Test ERC20",
-//             "TST",
-//             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-//             platformUser, // core contract owner
-//             onInitializeCall,
-//             hooksToInstallOnInit
-//         );
+        // Developer installs `MockHookERC20` hook
+        erc20.installHook(IHookInstaller.InstallHookParams(IHook(hookProxyAddress), 0, bytes("")));
 
-//         // Developer installs `EmptyHookERC20` hook
-//         erc20.installHook(IHookInstaller.InstallHookParams(IHook(hookProxyAddress), 0, bytes("")));
+        vm.stopPrank();
 
-//         vm.stopPrank();
+        vm.label(address(erc20), "ERC20Core");
+        vm.label(hookProxyAddress, "MockHookERC20");
+        vm.label(platformAdmin, "Admin");
+        vm.label(platformUser, "Developer");
+        vm.label(claimer, "Claimer");
+    }
 
-//         vm.label(address(erc20), "ERC20Core");
-//         vm.label(hookProxyAddress, "EmptyHookERC20");
-//         vm.label(platformAdmin, "Admin");
-//         vm.label(platformUser, "Developer");
-//         vm.label(claimer, "Claimer");
-//     }
+    /*//////////////////////////////////////////////////////////////
+                        DEPLOY END-USER CONTRACT
+    //////////////////////////////////////////////////////////////*/
 
-//     /*//////////////////////////////////////////////////////////////
-//                         DEPLOY END-USER CONTRACT
-//     //////////////////////////////////////////////////////////////*/
+    function test_deployEndUserContract() public {
+        // Deploy a minimal proxy to the ERC20Core implementation contract.
 
-//     function test_deployEndUserContract() public {
-//         // Deploy a minimal proxy to the ERC20Core implementation contract.
+        vm.pauseGasMetering();
 
-//         vm.pauseGasMetering();
+        ERC20Core.OnInitializeParams memory onInitializeCall;
+        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
 
-//         ERC20Core.OnInitializeParams memory onInitializeCall;
-//         ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
+        vm.resumeGasMetering();
 
-//         vm.resumeGasMetering();
+        ERC20Core core = new ERC20Core(
+            "Test ERC20",
+            "TST",
+            "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
+            platformUser, // core contract owner
+            onInitializeCall,
+            hooksToInstallOnInit
+        );
+    }
 
-//         ERC20Core core = new ERC20Core(
-//             "Test ERC20",
-//             "TST",
-//             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-//             platformUser, // core contract owner
-//             onInitializeCall,
-//             hooksToInstallOnInit
-//         );
-//     }
+    /*//////////////////////////////////////////////////////////////
+                        MINT 1 TOKEN AND 10 TOKENS
+    //////////////////////////////////////////////////////////////*/
 
-//     /*//////////////////////////////////////////////////////////////
-//                         MINT 1 TOKEN AND 10 TOKENS
-//     //////////////////////////////////////////////////////////////*/
+    function test_mintOneToken() public {
+        vm.pauseGasMetering();
 
-//     function test_mintOneToken() public {
-//         vm.pauseGasMetering();
+        // Check pre-mint state
+        address claimerAddress = claimer;
+        uint256 quantity = 1 ether;
+        ERC20Core core = erc20;
 
-//         // Check pre-mint state
-//         mintRequest.token = address(erc20);
-//         mintRequest.minter = claimer;
-//         mintRequest.quantity = 1 ether;
+        vm.prank(claimer);
 
-//         IERC20Hook.MintRequest memory req = mintRequest;
-//         ERC20Core core = erc20;
+        vm.resumeGasMetering();
 
-//         vm.prank(claimer);
+        // Claim token
+        core.mint(claimerAddress, quantity, "");
+    }
 
-//         vm.resumeGasMetering();
+    function test_mintTenTokens() public {
+        vm.pauseGasMetering();
 
-//         // Claim token
-//         core.mint(req);
-//     }
+        // Check pre-mint state
+        address claimerAddress = claimer;
+        uint256 quantity = 10 ether;
+        ERC20Core core = erc20;
 
-//     function test_mintTenTokens() public {
-//         vm.pauseGasMetering();
+        vm.prank(claimer);
 
-//         // Check pre-mint state
-//         mintRequest.token = address(erc20);
-//         mintRequest.minter = claimer;
-//         mintRequest.quantity = 10 ether;
+        vm.resumeGasMetering();
 
-//         IERC20Hook.MintRequest memory req = mintRequest;
-//         ERC20Core core = erc20;
+        // Claim token
+        core.mint(claimerAddress, quantity, "");
+    }
 
-//         vm.prank(claimer);
+    /*//////////////////////////////////////////////////////////////
+                            TRANSFER 1 TOKEN
+    //////////////////////////////////////////////////////////////*/
 
-//         vm.resumeGasMetering();
+    function test_transferOneToken() public {
+        vm.pauseGasMetering();
 
-//         // Claim token
-//         core.mint(req);
-//     }
+        // Check pre-mint state
+        address claimerAddress = claimer;
+        uint256 quantity = 10 ether;
+        ERC20Core core = erc20;
+        core.mint(claimerAddress, quantity, "");
 
-//     /*//////////////////////////////////////////////////////////////
-//                             TRANSFER 1 TOKEN
-//     //////////////////////////////////////////////////////////////*/
+        address to = address(0x121212);
+        vm.prank(claimer);
 
-//     function test_transferOneToken() public {
-//         vm.pauseGasMetering();
+        vm.resumeGasMetering();
 
-//         // Check pre-mint state
-//         mintRequest.token = address(erc20);
-//         mintRequest.minter = claimer;
-//         mintRequest.quantity = 10 ether;
+        // Transfer token
+        core.transfer(to, 1);
+    }
 
-//         IERC20Hook.MintRequest memory req = mintRequest;
-//         ERC20Core core = erc20;
+    /*//////////////////////////////////////////////////////////////
+                        PERFORM A BEACON UPGRADE
+    //////////////////////////////////////////////////////////////*/
 
-//         core.mint(req);
+    function test_beaconUpgrade() public {
+        vm.pauseGasMetering();
 
-//         address to = address(0x121212);
-//         vm.prank(mintRequest.minter);
+        address newImpl = address(new MockHookERC20());
+        address proxyAdmin = platformAdmin;
+        MockHookERC20 proxy = MockHookERC20(payable(hookProxyAddress));
 
-//         vm.resumeGasMetering();
+        vm.prank(proxyAdmin);
 
-//         // Transfer token
-//         core.transfer(to, 1);
-//     }
+        vm.resumeGasMetering();
 
-//     /*//////////////////////////////////////////////////////////////
-//                         PERFORM A BEACON UPGRADE
-//     //////////////////////////////////////////////////////////////*/
+        // Perform upgrade
+        proxy.upgradeToAndCall(address(newImpl), bytes(""));
+    }
 
-//     function test_beaconUpgrade() public {
-//         vm.pauseGasMetering();
+    /*//////////////////////////////////////////////////////////////
+            ADD NEW FUNCTIONALITY AND UPDATE FUNCTIONALITY
+    //////////////////////////////////////////////////////////////*/
 
-//         address newImpl = address(new EmptyHookERC20());
-//         address proxyAdmin = platformAdmin;
-//         EmptyHookERC20 proxy = EmptyHookERC20(payable(hookProxyAddress));
+    function test_installOneHook() public {
+        vm.pauseGasMetering();
 
-//         vm.prank(proxyAdmin);
+        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        ERC20Core hookConsumer = erc20;
 
-//         vm.resumeGasMetering();
+        vm.prank(platformUser);
+        erc20.uninstallHook(BEFORE_MINT_ERC20_FLAG);
 
-//         // Perform upgrade
-//         proxy.upgradeToAndCall(address(newImpl), bytes(""));
-//     }
+        vm.prank(platformUser);
 
-//     /*//////////////////////////////////////////////////////////////
-//             ADD NEW FUNCTIONALITY AND UPDATE FUNCTIONALITY
-//     //////////////////////////////////////////////////////////////*/
+        vm.resumeGasMetering();
 
-//     function test_installOneHook() public {
-//         vm.pauseGasMetering();
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
+    }
 
-//         IHook mockHook = IHook(address(new MockOneHookImpl()));
-//         ERC20Core hookConsumer = erc20;
+    function test_installFoueHooks() public {
+        vm.pauseGasMetering();
 
-//         vm.prank(platformUser);
+        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        ERC20Core hookConsumer = erc20;
 
-//         vm.resumeGasMetering();
+        vm.prank(platformUser);
+        erc20.uninstallHook(BEFORE_MINT_ERC20_FLAG);
 
-//         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
-//     }
+        vm.prank(platformUser);
 
-//     function test_installfiveHooks() public {
-//         vm.pauseGasMetering();
+        vm.resumeGasMetering();
 
-//         IHook mockHook = IHook(address(new MockFourHookImpl()));
-//         ERC20Core hookConsumer = erc20;
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
+    }
 
-//         vm.prank(platformUser);
-//         hookConsumer.uninstallHook(BEFORE_MINT_FLAG);
+    function test_uninstallOneHook() public {
+        vm.pauseGasMetering();
 
-//         vm.prank(platformUser);
+        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        ERC20Core hookConsumer = erc20;
 
-//         vm.resumeGasMetering();
+        vm.prank(platformUser);
 
-//         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
-//     }
+        vm.resumeGasMetering();
 
-//     function test_uninstallOneHook() public {
-//         vm.pauseGasMetering();
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC20_FLAG);
+    }
 
-//         IHook mockHook = IHook(address(new MockOneHookImpl()));
-//         ERC20Core hookConsumer = erc20;
+    function test_uninstallFourHooks() public {
+        vm.pauseGasMetering();
 
-//         vm.prank(platformUser);
-//         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
+        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        ERC20Core hookConsumer = erc20;
 
-//         vm.prank(platformUser);
+        vm.prank(platformUser);
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC20_FLAG);
 
-//         vm.resumeGasMetering();
+        vm.prank(platformUser);
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
 
-//         hookConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
-//     }
+        vm.prank(platformUser);
 
-//     function test_uninstallFiveHooks() public {
-//         vm.pauseGasMetering();
+        vm.resumeGasMetering();
 
-//         IHook mockHook = IHook(address(new MockFourHookImpl()));
-//         ERC20Core hookConsumer = erc20;
-
-//         vm.prank(platformUser);
-//         hookConsumer.uninstallHook(BEFORE_MINT_FLAG);
-
-//         vm.prank(platformUser);
-//         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
-
-//         vm.prank(platformUser);
-
-//         vm.resumeGasMetering();
-
-//         hookConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
-//     }
-// }
+        hookConsumer.uninstallHook(
+            BEFORE_MINT_ERC20_FLAG | BEFORE_TRANSFER_ERC20_FLAG | BEFORE_BURN_ERC20_FLAG | BEFORE_APPROVE_ERC20_FLAG
+        );
+    }
+}

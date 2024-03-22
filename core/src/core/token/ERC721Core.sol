@@ -270,7 +270,7 @@ contract ERC721Core is ERC721AQueryable, HookInstaller, Ownable, Multicallable, 
 
     /// @dev Should return the max flag that represents a hook.
     function _maxHookFlag() internal pure override returns (uint8) {
-        return 6; // OnRoyaltyInfo
+        return 15; // OnRoyaltyInfo
     }
 
     /// @dev Sets contract URI
