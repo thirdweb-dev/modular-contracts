@@ -285,9 +285,10 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
         return _caller == owner();
     }
 
-    /// @dev Should return the max flag that represents a hook.
-    function _maxHookFlag() internal pure override returns (uint8) {
-        return 15; // BeforeBatchTransfer
+    /// @dev Should return the supported hook flags.
+    function _supportedHookFlags() internal view virtual override returns (uint256) {
+        return BEFORE_MINT_ERC1155_FLAG | BEFORE_TRANSFER_ERC1155_FLAG | BEFORE_BATCH_TRANSFER_ERC1155_FLAG
+            | BEFORE_BURN_ERC1155_FLAG | BEFORE_APPROVE_FOR_ALL_FLAG | ON_TOKEN_URI_FLAG | ON_ROYALTY_INFO_FLAG;
     }
 
     /// @dev Sets contract URI

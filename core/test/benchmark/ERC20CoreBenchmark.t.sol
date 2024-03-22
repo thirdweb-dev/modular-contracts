@@ -9,7 +9,7 @@ import {IHook} from "src/interface/IHook.sol";
 import {IHookInstaller} from "src/interface/IHookInstaller.sol";
 import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
 
-import {MockHookERC20, MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHook.sol";
+import {MockHookERC20, MockOneHookImplERC20, MockFourHookImplERC20} from "test/mocks/MockHook.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 
@@ -180,7 +180,7 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        IHook mockHook = IHook(address(new MockOneHookImplERC20()));
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
@@ -193,10 +193,10 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
     }
 
-    function test_installFoueHooks() public {
+    function test_installFourHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        IHook mockHook = IHook(address(new MockFourHookImplERC20()));
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
@@ -212,7 +212,7 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        IHook mockHook = IHook(address(new MockOneHookImplERC20()));
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
@@ -225,7 +225,7 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_uninstallFourHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        IHook mockHook = IHook(address(new MockFourHookImplERC20()));
         ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);

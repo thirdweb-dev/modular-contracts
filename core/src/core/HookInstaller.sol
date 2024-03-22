@@ -41,7 +41,7 @@ abstract contract HookInstaller is IHookInstaller {
     error HookInstallerHookNotInstalled();
 
     /// @notice Emitted on installing a hook that is incompatible with the hook installer.
-    error HookInstallerIncompatibleHook();
+    error HookInstallerIncompatibleHooks();
 
     /// @notice Emitted when installing or uninstalling the zero address as a hook.
     error HookInstallerZeroAddress();
@@ -137,27 +137,25 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerNotAuthorized();
         }
 
-        // Validate the hook is compatible with the hook installer.
-        uint256 flag = 2 ** _maxHookFlag();
-        if (flag < _highestBitToZero(_hooksToUninstall)) {
-            revert HookInstallerIncompatibleHook();
+        emit HooksUninstalled(_hooksToUninstall);
+
+        uint256 currentActivehooks = installedHooks_;
+
+        // Validate: all the hooks to uninstall are already installed.
+        if (_hooksToUninstall & ~currentActivehooks > 0) {
+            revert HookInstallerHookNotInstalled();
         }
 
-        // 1. For each hook function i.e. flag <= 2 ** _maxHookFlag(): If the installed hook contract
-        //    implements the hook function, delete it as the implementation of the hook function.
-        //
+        // 1. For each hook function, delete hook contract as the implementation of the hook function.
         // 2. Update the tracked installed hooks of the contract.
-        uint256 currentActivehooks = installedHooks_;
-        while (flag > 1) {
-            if (_hooksToUninstall & flag > 0) {
-                currentActivehooks &= ~flag;
-                delete hookImplementationMap_[flag];
-            }
-            flag >>= 1;
+        while (_hooksToUninstall > 0) {
+            uint256 hookFlag = _highestBitToZero(_hooksToUninstall);
+            currentActivehooks &= ~hookFlag;
+            delete hookImplementationMap_[hookFlag];
+
+            _hooksToUninstall -= hookFlag;
         }
         installedHooks_ = currentActivehooks;
-
-        emit HooksUninstalled(_hooksToUninstall);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -174,32 +172,31 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerZeroAddress();
         }
 
-        // Get flags of all the hook functions for which to set the hook contract
-        // as their implementation.
+        // Get all hook functions and fallback functions implemented by the hook contract.
         HookInfo memory hookInfo = _params.hook.getHookInfo();
 
-        uint256 hooksToInstall = hookInfo.hookFlags;
-
         // Validate the hook is compatible with the hook installer.
-        uint256 flag = 2 ** _maxHookFlag();
-        if (flag < _highestBitToZero(hooksToInstall)) {
-            revert HookInstallerIncompatibleHook();
+        uint256 hooksToInstall = hookInfo.hookFlags;
+        uint256 currentActivehooks = installedHooks_;
+        uint256 supportedHookFlags = _supportedHookFlags();
+
+        // Validate: any of the hooks to install is not already installed.
+        if (hooksToInstall & currentActivehooks > 0) {
+            revert HookInstallerHookAlreadyInstalled();
+        }
+        // Validate: all of the hooks to install are supported hooks.
+        if (hooksToInstall & ~supportedHookFlags > 0) {
+            revert HookInstallerIncompatibleHooks();
         }
 
-        // 1. For each hook function i.e. flag <= 2 ** _maxHookFlag(): If the installed hook contract
-        //    implements the hook function, set it as the implementation of the hook function.
-        //
+        // 1. For each hook function, set the hook contract as the implementation of the hook function.
         // 2. Update the tracked installed hooks of the contract.
-        uint256 currentActivehooks = installedHooks_;
-        while (flag > 1) {
-            if (hooksToInstall & flag > 0) {
-                if (currentActivehooks & flag > 0) {
-                    revert HookInstallerHookAlreadyInstalled();
-                }
-                currentActivehooks |= flag;
-                hookImplementationMap_[flag] = address(_params.hook);
-            }
-            flag >>= 1;
+        while (hooksToInstall > 0) {
+            uint256 hookFlag = _highestBitToZero(hooksToInstall);
+            currentActivehooks |= hookFlag;
+            hookImplementationMap_[hookFlag] = address(_params.hook);
+
+            hooksToInstall -= hookFlag;
         }
         installedHooks_ = currentActivehooks;
 
@@ -238,10 +235,8 @@ abstract contract HookInstaller is IHookInstaller {
     /// @dev Returns whether the caller can write to hook contracts via the fallback function.
     function _isAuthorizedToCallHookFallbackFunction(address _caller) internal view virtual returns (bool);
 
-    /// @dev Should return the max flag that represents a hook.
-    function _maxHookFlag() internal pure virtual returns (uint8) {
-        return 0;
-    }
+    /// @dev Should return the supported hook flags.
+    function _supportedHookFlags() internal view virtual returns (uint256);
 
     /// @dev Reverts with the given return data / error message.
     function _revert(bytes memory _returndata, bytes4 _errorSignature) internal pure {

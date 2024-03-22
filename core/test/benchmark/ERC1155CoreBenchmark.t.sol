@@ -9,7 +9,7 @@ import {IHook} from "src/interface/IHook.sol";
 import {IHookInstaller} from "src/interface/IHookInstaller.sol";
 import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
 
-import {MockHookERC1155, MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHook.sol";
+import {MockHookERC1155, MockOneHookImplERC1155, MockFourHookImplERC1155} from "test/mocks/MockHook.sol";
 
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
@@ -190,11 +190,11 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        IHook mockHook = IHook(address(new MockOneHookImplERC1155()));
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        erc1155.uninstallHook(BEFORE_MINT_ERC20_FLAG);
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC1155_FLAG);
 
         vm.prank(platformUser);
 
@@ -203,14 +203,14 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
     }
 
-    function test_installFoueHooks() public {
+    function test_installFourHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        IHook mockHook = IHook(address(new MockFourHookImplERC1155()));
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        erc1155.uninstallHook(BEFORE_MINT_ERC20_FLAG);
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC1155_FLAG);
 
         vm.prank(platformUser);
 
@@ -222,24 +222,24 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        IHook mockHook = IHook(address(new MockOneHookImplERC1155()));
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(BEFORE_MINT_ERC20_FLAG);
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC1155_FLAG);
     }
 
     function test_uninstallFourHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        IHook mockHook = IHook(address(new MockFourHookImplERC1155()));
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(BEFORE_MINT_ERC20_FLAG);
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC1155_FLAG);
 
         vm.prank(platformUser);
         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
@@ -249,7 +249,8 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
         vm.resumeGasMetering();
 
         hookConsumer.uninstallHook(
-            BEFORE_MINT_ERC20_FLAG | BEFORE_TRANSFER_ERC20_FLAG | BEFORE_BURN_ERC20_FLAG | BEFORE_APPROVE_ERC20_FLAG
+            BEFORE_MINT_ERC1155_FLAG | BEFORE_TRANSFER_ERC1155_FLAG | BEFORE_BURN_ERC1155_FLAG
+                | BEFORE_APPROVE_FOR_ALL_FLAG
         );
     }
 }

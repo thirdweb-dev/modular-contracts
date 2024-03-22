@@ -289,7 +289,49 @@ contract MockOnTokenURIHook is OnTokenURIHook, IHook, Initializable, UUPSUpgrade
     }
 }
 
-contract MockOneHookImpl is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
+contract MockOneHookImplERC1155 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_ERC1155_FLAG;
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
+    }
+}
+
+contract MockOneHookImplERC721 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_ERC721_FLAG;
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
+    }
+}
+
+contract MockOneHookImplERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -310,7 +352,7 @@ contract MockOneHookImpl is BeforeMintHookERC20, IHook, Initializable, UUPSUpgra
     }
 }
 
-contract MockFourHookImpl is
+contract MockFourHookImplERC20 is
     IHook,
     BeforeMintHookERC20,
     BeforeTransferHookERC20,
@@ -337,6 +379,68 @@ contract MockFourHookImpl is
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {
         hookInfo.hookFlags =
             BEFORE_MINT_ERC20_FLAG | BEFORE_TRANSFER_ERC20_FLAG | BEFORE_APPROVE_ERC20_FLAG | BEFORE_BURN_ERC20_FLAG;
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
+    }
+}
+
+contract MockFourHookImplERC721 is
+    IHook,
+    BeforeMintHookERC20,
+    BeforeTransferHookERC20,
+    BeforeBurnHookERC20,
+    BeforeApproveHookERC20,
+    Initializable,
+    UUPSUpgradeable,
+    HookFlagsDirectory
+{
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags =
+            BEFORE_MINT_ERC721_FLAG | BEFORE_TRANSFER_ERC721_FLAG | BEFORE_APPROVE_ERC721_FLAG | BEFORE_BURN_ERC721_FLAG;
+        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
+    }
+}
+
+contract MockFourHookImplERC1155 is
+    IHook,
+    BeforeMintHookERC20,
+    BeforeTransferHookERC20,
+    BeforeBurnHookERC20,
+    BeforeApproveHookERC20,
+    Initializable,
+    UUPSUpgradeable,
+    HookFlagsDirectory
+{
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
+        hookInfo.hookFlags = BEFORE_MINT_ERC1155_FLAG | BEFORE_TRANSFER_ERC1155_FLAG | BEFORE_APPROVE_FOR_ALL_FLAG
+            | BEFORE_BURN_ERC1155_FLAG;
         hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 }

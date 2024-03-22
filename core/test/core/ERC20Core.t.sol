@@ -102,7 +102,7 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.startPrank(admin);
         address mockHook = address(new MockOnTokenURIHook());
 
-        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerIncompatibleHook.selector));
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerIncompatibleHooks.selector));
         token.installHook(
             IHookInstaller.InstallHookParams({hook: IHook(mockHook), initCallValue: 0, initCalldata: bytes("")})
         );

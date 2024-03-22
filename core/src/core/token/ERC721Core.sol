@@ -251,9 +251,10 @@ contract ERC721Core is
         return _caller == owner();
     }
 
-    /// @dev Should return the max flag that represents a hook.
-    function _maxHookFlag() internal pure override returns (uint8) {
-        return 15; // OnRoyaltyInfo
+    /// @dev Should return the supported hook flags.
+    function _supportedHookFlags() internal view virtual override returns (uint256) {
+        return BEFORE_MINT_ERC721_FLAG | BEFORE_TRANSFER_ERC721_FLAG | BEFORE_BURN_ERC721_FLAG
+            | BEFORE_APPROVE_ERC721_FLAG | BEFORE_APPROVE_FOR_ALL_FLAG | ON_TOKEN_URI_FLAG | ON_ROYALTY_INFO_FLAG;
     }
 
     /// @dev Sets contract URI
