@@ -11,7 +11,7 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {HookInstaller, IHookInstaller} from "src/core/HookInstaller.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
+import {IHook} from "src/interface/IHook.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
     bytes32 constant PERMIT_TYPEHASH =

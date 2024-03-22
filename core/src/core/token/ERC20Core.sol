@@ -8,7 +8,7 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 import {HookFlagsDirectory} from "../../hook/HookFlagsDirectory.sol";
 import {HookInstaller} from "../HookInstaller.sol";
 
-import {IERC20HookInstaller} from "../../interface/hook/IERC20HookInstaller.sol";
+import {IERC20HookInstaller} from "../../interface/IERC20HookInstaller.sol";
 import {BeforeMintHookERC20} from "../../hook/BeforeMintHookERC20.sol";
 import {BeforeApproveHookERC20} from "../../hook/BeforeApproveHookERC20.sol";
 import {BeforeTransferHookERC20} from "../../hook/BeforeTransferHookERC20.sol";

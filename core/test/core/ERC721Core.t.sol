@@ -11,7 +11,7 @@ import {ERC721} from "@solady/tokens/ERC721.sol";
 
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {HookInstaller, IHookInstaller} from "src/core/HookInstaller.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
+import {IHook} from "src/interface/IHook.sol";
 import {IERC721A} from "@erc721a/IERC721A.sol";
 
 abstract contract ERC721TokenReceiver {

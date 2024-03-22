@@ -8,7 +8,7 @@ import {ERC1155} from "@solady/tokens/ERC1155.sol";
 import {HookFlagsDirectory} from "../../hook/HookFlagsDirectory.sol";
 import {HookInstaller} from "../HookInstaller.sol";
 
-import {IERC1155HookInstaller} from "../../interface/hook/IERC1155HookInstaller.sol";
+import {IERC1155HookInstaller} from "../../interface/IERC1155HookInstaller.sol";
 import {BeforeMintHookERC1155} from "../../hook/BeforeMintHookERC1155.sol";
 import {BeforeTransferHookERC1155} from "../../hook/BeforeTransferHookERC1155.sol";
 import {BeforeBatchTransferHookERC1155} from "../../hook/BeforeBatchTransferHookERC1155.sol";

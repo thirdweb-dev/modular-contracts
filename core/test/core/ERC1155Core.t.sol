@@ -11,7 +11,7 @@ import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {HookInstaller, IHookInstaller} from "src/core/HookInstaller.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
+import {IHook} from "src/interface/IHook.sol";
 
 abstract contract ERC1155TokenReceiver {
     function onERC1155Received(address, address, uint256, uint256, bytes calldata) external virtual returns (bytes4) {

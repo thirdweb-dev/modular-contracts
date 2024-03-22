@@ -8,7 +8,7 @@ import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQu
 import {HookFlagsDirectory} from "../../hook/HookFlagsDirectory.sol";
 import {HookInstaller} from "../HookInstaller.sol";
 
-import {IERC721HookInstaller} from "../../interface/hook/IERC721HookInstaller.sol";
+import {IERC721HookInstaller} from "../../interface/IERC721HookInstaller.sol";
 import {BeforeMintHookERC721} from "../../hook/BeforeMintHookERC721.sol";
 import {BeforeTransferHookERC721} from "../../hook/BeforeTransferHookERC721.sol";
 import {BeforeBurnHookERC721} from "../../hook/BeforeBurnHookERC721.sol";

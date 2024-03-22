@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {IHookInstaller, HookInstaller} from "src/core/HookInstaller.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
+import {IHook} from "src/interface/IHook.sol";
 
 contract MockHook is IHook {
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {

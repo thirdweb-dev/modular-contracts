@@ -5,8 +5,8 @@ import {Test} from "forge-std/Test.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-import {IHook} from "src/interface/hook/IHook.sol";
-import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
+import {IHook} from "src/interface/IHook.sol";
+import {IHookInstaller} from "src/interface/IHookInstaller.sol";
 import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
 
 import {MockHookERC721, MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHook.sol";

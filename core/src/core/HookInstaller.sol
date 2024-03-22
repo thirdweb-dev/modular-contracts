@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import {LibBit} from "@solady/utils/LibBit.sol";
 
-import {IHook} from "../interface/hook/IHook.sol";
-import {IHookInstaller} from "../interface/hook/IHookInstaller.sol";
+import {IHook} from "../interface/IHook.sol";
+import {IHookInstaller} from "../interface/IHookInstaller.sol";
 
 abstract contract HookInstaller is IHookInstaller {
     using LibBit for uint256;

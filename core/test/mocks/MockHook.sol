@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {IHook} from "src/interface/hook/IHook.sol";
+import {IHook} from "src/interface/IHook.sol";
 import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
 
 import {BeforeMintHookERC20} from "src/hook/BeforeMintHookERC20.sol";
