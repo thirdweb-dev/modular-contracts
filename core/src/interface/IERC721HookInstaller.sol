@@ -3,19 +3,19 @@ pragma solidity ^0.8.0;
 
 import {IHookInstaller} from "./IHookInstaller.sol";
 
-interface IERC1155HookInstaller is IHookInstaller {
+interface IERC721HookInstaller is IHookInstaller {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The implementations of the token hooks.
-    struct ERC1155Hooks {
+    struct ERC721Hooks {
         address beforeMint;
         address beforeTransfer;
-        address beforeBatchTransfer;
         address beforeBurn;
         address beforeApprove;
-        address uri;
+        address beforeApproveForAll;
+        address tokenURI;
         address royaltyInfo;
     }
 
@@ -24,5 +24,5 @@ interface IERC1155HookInstaller is IHookInstaller {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all of the contract's hooks and their implementations.
-    function getAllHooks() external view returns (ERC1155Hooks memory hooks);
+    function getAllHooks() external view returns (ERC721Hooks memory hooks);
 }

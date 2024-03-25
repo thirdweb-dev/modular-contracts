@@ -125,8 +125,8 @@ We write one core contract implementation for each token type (ERC-20, ERC-721, 
 All 3 token core contracts implement:
 
 - The token standard itself. ([ERC-20](https://eips.ethereum.org/EIPS/eip-20) + [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612) Permit / [ERC-721](https://eips.ethereum.org/EIPS/eip-721) / [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155)).
-- [HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/core/src/interface/hook/IHookInstaller.sol) interface for installing hooks.
-- A token standard specific `getAllHooks()` view function interface (e.g. [IERC20HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/core/src/interface/hook/IERC20HookInstaller.sol))
+- [HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/core/src/interface/IHookInstaller.sol) interface for installing hooks.
+- A token standard specific `getAllHooks()` view function interface (e.g. [IERC20HookInstaller](https://github.com/thirdweb-dev/contracts-next/blob/main/src/core/src/interface/IERC20HookInstaller.sol))
 - [EIP-173](https://eips.ethereum.org/EIPS/eip-173) Contract ownership standard
 - [EIP-7572](https://eips.ethereum.org/EIPS/eip-7572) Contract-level metadata via `contractURI()` standard
 - Multicall interface

@@ -3,19 +3,17 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 
-import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-import {IHook} from "src/interface/hook/IHook.sol";
-import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
-import {IMintRequest} from "src/interface/common/IMintRequest.sol";
+import {IHook} from "src/interface/IHook.sol";
+import {IHookInstaller} from "src/interface/IHookInstaller.sol";
+import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
 
-import {EmptyHookERC721} from "test/mocks/EmptyHook.sol";
-import {MockOneHookImpl, MockFourHookImpl} from "test/mocks/MockHookImpl.sol";
+import {MockHookERC721, MockOneHookImplERC721, MockFourHookImplERC721} from "test/mocks/MockHook.sol";
 
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {IERC721Hook} from "src/interface/hook/IERC721Hook.sol";
 
-contract ERC721CoreBenchmarkTest is Test {
+contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -29,20 +27,6 @@ contract ERC721CoreBenchmarkTest is Test {
     ERC721Core public erc721;
     address public hookProxyAddress;
 
-    IERC721Hook.MintRequest public mintRequest;
-
-    /// @notice Bits representing the before mint hook.
-    uint256 public constant BEFORE_MINT_FLAG = 2 ** 1;
-
-    /// @notice Bits representing the before transfer hook.
-    uint256 public constant BEFORE_TRANSFER_FLAG = 2 ** 2;
-
-    /// @notice Bits representing the before burn hook.
-    uint256 public constant BEFORE_BURN_FLAG = 2 ** 3;
-
-    /// @notice Bits representing the before approve hook.
-    uint256 public constant BEFORE_APPROVE_FLAG = 2 ** 4;
-
     function setUp() public {
         // Setup: minting on ERC-721 contract.
 
@@ -51,9 +35,9 @@ contract ERC721CoreBenchmarkTest is Test {
 
         hookProxyAddress = address(
             new EIP1967Proxy(
-                address(new EmptyHookERC721()),
+                address(new MockHookERC721()),
                 abi.encodeWithSelector(
-                    EmptyHookERC721.initialize.selector,
+                    MockHookERC721.initialize.selector,
                     platformAdmin // upgradeAdmin
                 )
             )
@@ -76,13 +60,13 @@ contract ERC721CoreBenchmarkTest is Test {
             hooksToInstallOnInit
         );
 
-        // Developer installs `EmptyHookERC721` hook
+        // Developer installs `MockHookERC721` hook
         erc721.installHook(IHookInstaller.InstallHookParams(IHook(hookProxyAddress), 0, bytes("")));
 
         vm.stopPrank();
 
         vm.label(address(erc721), "ERC721Core");
-        vm.label(hookProxyAddress, "EmptyHookERC721");
+        vm.label(hookProxyAddress, "MockHookERC721");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
@@ -120,11 +104,9 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         // Check pre-mint state
-        mintRequest.token = address(erc721);
-        mintRequest.minter = claimer;
-        mintRequest.quantity = 1;
 
-        IERC721Hook.MintRequest memory req = mintRequest;
+        address claimerAddress = claimer;
+        uint256 quantity = 1;
         ERC721Core core = erc721;
 
         vm.prank(claimer);
@@ -132,18 +114,16 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        core.mint(req);
+        core.mint(claimerAddress, quantity, "");
     }
 
     function test_mintTenTokens() public {
         vm.pauseGasMetering();
 
         // Check pre-mint state
-        mintRequest.token = address(erc721);
-        mintRequest.minter = claimer;
-        mintRequest.quantity = 10;
 
-        IERC721Hook.MintRequest memory req = mintRequest;
+        address claimerAddress = claimer;
+        uint256 quantity = 10;
         ERC721Core core = erc721;
 
         vm.prank(claimer);
@@ -151,7 +131,7 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.resumeGasMetering();
 
         // Claim token
-        core.mint(req);
+        core.mint(claimerAddress, quantity, "");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -162,22 +142,20 @@ contract ERC721CoreBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         // Check pre-mint state
-        mintRequest.token = address(erc721);
-        mintRequest.minter = claimer;
-        mintRequest.quantity = 10;
 
-        IERC721Hook.MintRequest memory req = mintRequest;
+        address claimerAddress = claimer;
+        uint256 quantity = 10;
         ERC721Core core = erc721;
 
-        core.mint(req);
+        core.mint(claimerAddress, quantity, "");
 
         address to = address(0x121212);
-        vm.prank(mintRequest.minter);
+        vm.prank(claimerAddress);
 
         vm.resumeGasMetering();
 
         // Transfer token
-        core.transferFrom(mintRequest.minter, to, 0);
+        core.transferFrom(claimerAddress, to, 0);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -187,9 +165,9 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        address newImpl = address(new EmptyHookERC721());
+        address newImpl = address(new MockHookERC721());
         address proxyAdmin = platformAdmin;
-        EmptyHookERC721 proxy = EmptyHookERC721(payable(hookProxyAddress));
+        MockHookERC721 proxy = MockHookERC721(payable(hookProxyAddress));
 
         vm.prank(proxyAdmin);
 
@@ -206,8 +184,11 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        IHook mockHook = IHook(address(new MockOneHookImplERC721()));
         ERC721Core hookConsumer = erc721;
+
+        vm.prank(platformUser);
+        erc721.uninstallHook(BEFORE_MINT_ERC721_FLAG);
 
         vm.prank(platformUser);
 
@@ -219,11 +200,11 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_installfiveHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        IHook mockHook = IHook(address(new MockFourHookImplERC721()));
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(BEFORE_MINT_FLAG);
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC721_FLAG);
 
         vm.prank(platformUser);
 
@@ -235,27 +216,24 @@ contract ERC721CoreBenchmarkTest is Test {
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImpl()));
+        IHook mockHook = IHook(address(new MockOneHookImplERC721()));
         ERC721Core hookConsumer = erc721;
-
-        vm.prank(platformUser);
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC721_FLAG);
     }
 
     function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImpl()));
+        IHook mockHook = IHook(address(new MockFourHookImplERC721()));
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(BEFORE_MINT_FLAG);
+        hookConsumer.uninstallHook(BEFORE_MINT_ERC721_FLAG);
 
         vm.prank(platformUser);
         hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
@@ -264,6 +242,8 @@ contract ERC721CoreBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(BEFORE_TRANSFER_FLAG);
+        hookConsumer.uninstallHook(
+            BEFORE_MINT_ERC721_FLAG | BEFORE_TRANSFER_ERC721_FLAG | BEFORE_BURN_ERC721_FLAG | BEFORE_APPROVE_ERC721_FLAG
+        );
     }
 }

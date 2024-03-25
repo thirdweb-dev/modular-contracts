@@ -3,18 +3,15 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
-import {EmptyHookERC20, HookWithPermissionedFallback} from "../mocks/EmptyHook.sol";
+import {MockHookERC20, MockOnTokenURIHook, MockHookWithPermissionedFallback} from "../mocks/MockHook.sol";
 
-import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {HookInstaller} from "src/core/HookInstaller.sol";
-import {IHook} from "src/interface/hook/IHook.sol";
-import {IERC20Hook} from "src/interface/hook/IERC20Hook.sol";
-import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
-import {MockTokenURIHookImpl} from "../mocks/MockHookImpl.sol";
+import {HookInstaller, IHookInstaller} from "src/core/HookInstaller.sol";
+import {IHook} from "src/interface/IHook.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
     bytes32 constant PERMIT_TYPEHASH =
@@ -51,15 +48,12 @@ contract ERC20CoreTest is Test, TestPlus {
 
     ERC20Core public token;
 
-    IERC20Hook.MintRequest public mintRequest;
-    IERC20Hook.BurnRequest public burnRequest;
-
     function setUp() public {
         bytes memory hookInitData = abi.encodeWithSelector(
-            EmptyHookERC20.initialize.selector,
+            MockHookERC20.initialize.selector,
             address(0x123) // upgradeAdmin
         );
-        hookProxyAddress = address(new EIP1967Proxy(address(new EmptyHookERC20()), hookInitData));
+        hookProxyAddress = address(new EIP1967Proxy(address(new MockHookERC20()), hookInitData));
 
         vm.startPrank(admin);
 
@@ -85,7 +79,7 @@ contract ERC20CoreTest is Test, TestPlus {
 
     function testPermissionedFallbackFunctionCall() public {
         vm.startPrank(admin);
-        address permissionedCallHook = address(new HookWithPermissionedFallback());
+        address permissionedCallHook = address(new MockHookWithPermissionedFallback());
 
         token.installHook(
             IHookInstaller.InstallHookParams({
@@ -97,18 +91,18 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.stopPrank();
 
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedCall.selector));
-        HookWithPermissionedFallback(address(token)).permissionedFunction();
+        MockHookWithPermissionedFallback(address(token)).permissionedFunction();
 
         vm.prank(admin);
-        uint256 result = HookWithPermissionedFallback(address(token)).permissionedFunction();
+        uint256 result = MockHookWithPermissionedFallback(address(token)).permissionedFunction();
         assertEq(result, 1);
     }
 
     function testIncompatibleHookInstall() public {
         vm.startPrank(admin);
-        address mockHook = address(new MockTokenURIHookImpl());
+        address mockHook = address(new MockOnTokenURIHook());
 
-        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerIncompatibleHook.selector));
+        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerIncompatibleHooks.selector));
         token.installHook(
             IHookInstaller.InstallHookParams({hook: IHook(mockHook), initCallValue: 0, initCalldata: bytes("")})
         );
@@ -122,30 +116,30 @@ contract ERC20CoreTest is Test, TestPlus {
     }
 
     function testMint() public {
-        mintRequest.minter = address(0xBEEF);
-        mintRequest.quantity = 1e18;
+        address minter = address(0xBEEF);
+        uint256 quantity = 1e18;
 
         vm.expectEmit(true, true, true, true);
         emit Transfer(address(0), address(0xBEEF), 1e18);
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         assertEq(token.totalSupply(), 1e18);
         assertEq(token.balanceOf(address(0xBEEF)), 1e18);
     }
 
     function testBurn() public {
-        mintRequest.minter = address(0xBEEF);
-        mintRequest.quantity = 1e18;
+        address minter = address(0xBEEF);
+        uint256 quantity = 1e18;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
-        burnRequest.owner = address(0xBEEF);
-        burnRequest.quantity = 0.9e18;
+        address burner = address(0xBEEF);
+        uint256 burnQuantity = 0.9e18;
 
         vm.startPrank(address(0xBEEF));
         vm.expectEmit(true, true, true, true);
         emit Transfer(address(0xBEEF), address(0), 0.9e18);
-        token.burn(burnRequest);
+        token.burn(burnQuantity, "");
         vm.stopPrank();
 
         assertEq(token.totalSupply(), 1e18 - 0.9e18);
@@ -161,10 +155,10 @@ contract ERC20CoreTest is Test, TestPlus {
     }
 
     function testTransfer() public {
-        mintRequest.minter = address(this);
-        mintRequest.quantity = 1e18;
+        address minter = address(this);
+        uint256 quantity = 1e18;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         vm.expectEmit(true, true, true, true);
         emit Transfer(address(this), address(0xBEEF), 1e18);
@@ -177,10 +171,10 @@ contract ERC20CoreTest is Test, TestPlus {
 
     function testTransferFrom() public {
         address from = address(0xABCD);
-        mintRequest.minter = from;
-        mintRequest.quantity = 1e18;
+        address minter = from;
+        uint256 quantity = 1e18;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         vm.prank(from);
         token.approve(address(this), 1e18);
@@ -198,10 +192,10 @@ contract ERC20CoreTest is Test, TestPlus {
 
     function testInfiniteApproveTransferFrom() public {
         address from = address(0xABCD);
-        mintRequest.minter = from;
-        mintRequest.quantity = 1e18;
+        address minter = from;
+        uint256 quantity = 1e18;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         vm.prank(from);
         token.approve(address(this), type(uint256).max);
@@ -228,20 +222,20 @@ contract ERC20CoreTest is Test, TestPlus {
     }
 
     function testTransferInsufficientBalanceReverts() public {
-        mintRequest.minter = address(this);
-        mintRequest.quantity = 0.9e18;
+        address minter = address(this);
+        uint256 quantity = 0.9e18;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
         vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
         token.transfer(address(0xBEEF), 1e18);
     }
 
     function testTransferFromInsufficientAllowanceReverts() public {
         address from = address(0xABCD);
-        mintRequest.minter = from;
-        mintRequest.quantity = 1e18;
+        address minter = from;
+        uint256 quantity = 1e18;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         vm.prank(from);
         token.approve(address(this), 0.9e18);
@@ -252,10 +246,10 @@ contract ERC20CoreTest is Test, TestPlus {
 
     function testTransferFromInsufficientBalanceReverts() public {
         address from = address(0xABCD);
-        mintRequest.minter = from;
-        mintRequest.quantity = 0.9e18;
+        address minter = from;
+        uint256 quantity = 0.9e18;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         vm.prank(from);
         token.approve(address(this), 1e18);
@@ -265,13 +259,13 @@ contract ERC20CoreTest is Test, TestPlus {
     }
 
     function testMint(address to, uint256 amount) public {
-        mintRequest.minter = to;
-        mintRequest.quantity = amount;
+        address minter = to;
+        uint256 quantity = amount;
 
         vm.assume(to != address(0));
         vm.expectEmit(true, true, true, true);
         emit Transfer(address(0), to, amount);
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         assertEq(token.totalSupply(), amount);
         assertEq(token.balanceOf(to), amount);
@@ -281,18 +275,18 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.assume(from != address(0));
         burnAmount = _bound(burnAmount, 0, mintAmount);
 
-        mintRequest.minter = from;
-        mintRequest.quantity = mintAmount;
+        address minter = from;
+        uint256 quantity = mintAmount;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
-        burnRequest.owner = from;
-        burnRequest.quantity = burnAmount;
+        address burner = from;
+        uint256 burnQuantity = burnAmount;
 
         vm.startPrank(from);
         vm.expectEmit(true, true, true, true);
         emit Transfer(from, address(0), burnAmount);
-        token.burn(burnRequest);
+        token.burn(burnQuantity, "");
         vm.stopPrank();
 
         assertEq(token.totalSupply(), mintAmount - burnAmount);
@@ -307,11 +301,11 @@ contract ERC20CoreTest is Test, TestPlus {
     }
 
     function testTransfer(address to, uint256 amount) public {
-        mintRequest.minter = address(this);
-        mintRequest.quantity = amount;
+        address minter = address(this);
+        uint256 quantity = amount;
 
         vm.assume(to != address(0));
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         vm.expectEmit(true, true, true, true);
         emit Transfer(address(this), to, amount);
@@ -330,10 +324,10 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.assume(spender != address(0) && from != address(0) && to != address(0));
         amount = _bound(amount, 0, approval);
 
-        mintRequest.minter = from;
-        mintRequest.quantity = amount;
+        address minter = from;
+        uint256 quantity = amount;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
         assertEq(token.balanceOf(from), amount);
 
         vm.prank(from);
@@ -381,17 +375,17 @@ contract ERC20CoreTest is Test, TestPlus {
         if (mintAmount == type(uint256).max) mintAmount--;
         burnAmount = _bound(burnAmount, mintAmount + 1, type(uint256).max);
 
-        mintRequest.minter = to;
-        mintRequest.quantity = mintAmount;
+        address minter = to;
+        uint256 quantity = mintAmount;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
-        burnRequest.owner = to;
-        burnRequest.quantity = burnAmount;
+        address burner = to;
+        uint256 burnQuantity = burnAmount;
 
         vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
         vm.prank(to);
-        token.burn(burnRequest);
+        token.burn(burnQuantity, "");
     }
 
     function testTransferInsufficientBalanceReverts(address to, uint256 mintAmount, uint256 sendAmount) public {
@@ -399,10 +393,10 @@ contract ERC20CoreTest is Test, TestPlus {
         if (mintAmount == type(uint256).max) mintAmount--;
         sendAmount = _bound(sendAmount, mintAmount + 1, type(uint256).max);
 
-        mintRequest.minter = address(this);
-        mintRequest.quantity = mintAmount;
+        address minter = address(this);
+        uint256 quantity = mintAmount;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
         vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
         token.transfer(to, sendAmount);
     }
@@ -414,10 +408,10 @@ contract ERC20CoreTest is Test, TestPlus {
 
         address from = address(0xABCD);
 
-        mintRequest.minter = from;
-        mintRequest.quantity = amount;
+        address minter = from;
+        uint256 quantity = amount;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         vm.prank(from);
         token.approve(address(this), approval);
@@ -433,10 +427,10 @@ contract ERC20CoreTest is Test, TestPlus {
 
         address from = address(0xABCD);
 
-        mintRequest.minter = from;
-        mintRequest.quantity = mintAmount;
+        address minter = from;
+        uint256 quantity = mintAmount;
 
-        token.mint(mintRequest);
+        token.mint(minter, quantity, "");
 
         vm.prank(from);
         token.approve(address(this), sendAmount);

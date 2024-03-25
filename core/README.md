@@ -94,7 +94,7 @@ Core contracts are deliberately written as non-upgradeable foundations that cont
 
 ![mint tokens via hooks](https://ipfs.io/ipfs/QmXfN8GFsJNEgkwa9F44kRWFFnahPbyPb8yV2L9LmFomnj/contracts-next-mint-tokens.png)
 
-Hooks are an external call made to a contract that implements the [`IHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/hook/IHook.sol) interface.
+Hooks are an external call made to a contract that implements the [`IHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/IHook.sol) interface.
 
 The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
 

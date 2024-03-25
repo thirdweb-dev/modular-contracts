@@ -3,30 +3,25 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 
-import {EIP1967Proxy} from "src/infra/EIP1967Proxy.sol";
+import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-import {IHook} from "src/interface/hook/IHook.sol";
-import {IHookInstaller} from "src/interface/hook/IHookInstaller.sol";
-import {IMintRequest} from "src/interface/common/IMintRequest.sol";
+import {IHook} from "src/interface/IHook.sol";
+import {IHookInstaller} from "src/interface/IHookInstaller.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
-import {ERC20Hook} from "src/hook/ERC20Hook.sol";
-import {ERC721Hook} from "src/hook/ERC721Hook.sol";
-import {ERC1155Hook} from "src/hook/ERC1155Hook.sol";
-
 import {
-    EmptyHookERC20,
-    BuggyEmptyHookERC20,
-    EmptyHookERC721,
-    BuggyEmptyHookERC721,
-    EmptyHookERC1155,
-    BuggyEmptyHookERC1155
-} from "test/mocks/EmptyHook.sol";
+    MockHookERC20,
+    BuggyMockHookERC20,
+    MockHookERC721,
+    BuggyMockHookERC721,
+    MockHookERC1155,
+    BuggyMockHookERC1155
+} from "test/mocks/MockHook.sol";
 
-contract HookUpgradesTest is Test, IMintRequest {
+contract HookUpgradesTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -45,29 +40,27 @@ contract HookUpgradesTest is Test, IMintRequest {
     address public hookERC721Proxy;
     address public hookERC1155Proxy;
 
-    BuggyEmptyHookERC20 public buggyHookERC20Impl;
-    BuggyEmptyHookERC721 public buggyHookERC721Impl;
-    BuggyEmptyHookERC1155 public buggyHookERC1155Impl;
+    BuggyMockHookERC20 public buggyHookERC20Impl;
+    BuggyMockHookERC721 public buggyHookERC721Impl;
+    BuggyMockHookERC1155 public buggyHookERC1155Impl;
 
-    EmptyHookERC20 public hookERC20Impl;
-    EmptyHookERC721 public hookERC721Impl;
-    EmptyHookERC1155 public hookERC1155Impl;
-
-    MintRequest public mintRequest;
+    MockHookERC20 public hookERC20Impl;
+    MockHookERC721 public hookERC721Impl;
+    MockHookERC1155 public hookERC1155Impl;
 
     function setUp() public {
         // Platform deploys hook implementations
-        buggyHookERC20Impl = new BuggyEmptyHookERC20();
-        buggyHookERC721Impl = new BuggyEmptyHookERC721();
-        buggyHookERC1155Impl = new BuggyEmptyHookERC1155();
+        buggyHookERC20Impl = new BuggyMockHookERC20();
+        buggyHookERC721Impl = new BuggyMockHookERC721();
+        buggyHookERC1155Impl = new BuggyMockHookERC1155();
 
-        hookERC20Impl = new EmptyHookERC20();
-        hookERC721Impl = new EmptyHookERC721();
-        hookERC1155Impl = new EmptyHookERC1155();
+        hookERC20Impl = new MockHookERC20();
+        hookERC721Impl = new MockHookERC721();
+        hookERC1155Impl = new MockHookERC1155();
 
         // Platform deploys proxy pointing to hooks. Starts out with using buggy hooks.
         bytes memory hookInitData = abi.encodeWithSelector(
-            EmptyHookERC20.initialize.selector,
+            MockHookERC20.initialize.selector,
             platformAdmin // upgradeAdmin
         );
         hookERC20Proxy = address(new EIP1967Proxy(address(buggyHookERC20Impl), hookInitData));
@@ -122,9 +115,9 @@ contract HookUpgradesTest is Test, IMintRequest {
         vm.label(address(buggyHookERC721Impl), "BuggyMintHookERC721");
         vm.label(address(buggyHookERC1155Impl), "BuggyMintHookERC1155");
 
-        vm.label(address(hookERC20Impl), "EmptyHookERC20");
-        vm.label(address(hookERC721Impl), "EmptyHookERC721");
-        vm.label(address(hookERC1155Impl), "EmptyHookERC1155");
+        vm.label(address(hookERC20Impl), "MockHookERC20");
+        vm.label(address(hookERC721Impl), "MockHookERC721");
+        vm.label(address(hookERC1155Impl), "MockHookERC1155");
 
         // Developer installs hooks.
         vm.startPrank(developer);
@@ -144,31 +137,28 @@ contract HookUpgradesTest is Test, IMintRequest {
         assertEq(erc20Core.getAllHooks().beforeMint, hookERC20Proxy);
 
         // End user specifies 1 ether token to claim
-        mintRequest.minter = endUser;
-        mintRequest.quantity = 1 ether;
-        mintRequest.token = address(erc20Core);
-
         assertEq(erc20Core.balanceOf(endUser), 0);
 
         vm.prank(endUser);
-        erc20Core.mint(mintRequest);
+        vm.expectRevert();
+        erc20Core.mint(endUser, 1 ether, "");
 
         // BUG: zero tokens minted in all cases!
         assertEq(erc20Core.balanceOf(endUser), 0);
 
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(ERC20Hook.ERC20UnauthorizedUpgrade.selector));
-        EmptyHookERC20(hookERC20Proxy).upgradeToAndCall(address(hookERC20Impl), bytes(""));
+        vm.expectRevert(abi.encodeWithSelector(MockHookERC20.UnauthorizedUpgrade.selector));
+        MockHookERC20(hookERC20Proxy).upgradeToAndCall(address(hookERC20Impl), bytes(""));
 
         vm.prank(platformAdmin);
-        EmptyHookERC20(hookERC20Proxy).upgradeToAndCall(address(hookERC20Impl), bytes(""));
+        MockHookERC20(hookERC20Proxy).upgradeToAndCall(address(hookERC20Impl), bytes(""));
 
         // Claim token again; this time contract mints specified quantity.
         assertEq(erc20Core.balanceOf(endUser), 0);
 
         vm.prank(endUser);
-        erc20Core.mint(mintRequest);
+        erc20Core.mint(endUser, 1 ether, "");
 
         assertEq(erc20Core.balanceOf(endUser), 1 ether);
     }
@@ -177,17 +167,13 @@ contract HookUpgradesTest is Test, IMintRequest {
         assertEq(erc721Core.getAllHooks().beforeMint, hookERC721Proxy);
 
         // End user specifies 1 token to claim
-        mintRequest.minter = endUser;
-        mintRequest.quantity = 1;
-        mintRequest.token = address(erc721Core);
-
         assertEq(erc721Core.balanceOf(endUser), 0);
         vm.expectRevert();
         erc721Core.ownerOf(0);
 
         vm.prank(endUser);
         vm.expectRevert();
-        erc721Core.mint(mintRequest);
+        erc721Core.mint(endUser, 1, "");
 
         // BUG: zero tokens minted in all cases!
         assertEq(erc721Core.balanceOf(endUser), 0);
@@ -196,17 +182,17 @@ contract HookUpgradesTest is Test, IMintRequest {
 
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(ERC721Hook.ERC721UnauthorizedUpgrade.selector));
-        EmptyHookERC721(hookERC721Proxy).upgradeToAndCall(address(hookERC721Impl), bytes(""));
+        vm.expectRevert(abi.encodeWithSelector(MockHookERC20.UnauthorizedUpgrade.selector));
+        MockHookERC721(hookERC721Proxy).upgradeToAndCall(address(hookERC721Impl), bytes(""));
 
         vm.prank(platformAdmin);
-        EmptyHookERC721(hookERC721Proxy).upgradeToAndCall(address(hookERC721Impl), bytes(""));
+        MockHookERC721(hookERC721Proxy).upgradeToAndCall(address(hookERC721Impl), bytes(""));
 
         // Claim token again; this time contract mints specified quantity.
         assertEq(erc721Core.balanceOf(endUser), 0);
 
         vm.prank(endUser);
-        erc721Core.mint(mintRequest);
+        erc721Core.mint(endUser, 1, "");
 
         assertEq(erc721Core.balanceOf(endUser), 1);
         assertEq(erc721Core.ownerOf(0), endUser);
@@ -216,33 +202,29 @@ contract HookUpgradesTest is Test, IMintRequest {
         assertEq(erc1155Core.getAllHooks().beforeMint, hookERC1155Proxy);
 
         // End user specifies 1 token to claim
-        mintRequest.minter = endUser;
-        mintRequest.quantity = 1;
-        mintRequest.token = address(erc1155Core);
-        mintRequest.tokenId = 0;
-
-        assertEq(erc1155Core.balanceOf(endUser, mintRequest.tokenId), 0);
+        assertEq(erc1155Core.balanceOf(endUser, 0), 0);
 
         vm.prank(endUser);
-        erc1155Core.mint(mintRequest);
+        vm.expectRevert();
+        erc1155Core.mint(endUser, 0, 1, "");
 
         // BUG: zero tokens minted in all cases!
-        assertEq(erc1155Core.balanceOf(endUser, mintRequest.tokenId), 0);
+        assertEq(erc1155Core.balanceOf(endUser, 0), 0);
 
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(ERC1155Hook.ERC1155UnauthorizedUpgrade.selector));
-        EmptyHookERC1155(hookERC1155Proxy).upgradeToAndCall(address(hookERC1155Impl), bytes(""));
+        vm.expectRevert(abi.encodeWithSelector(MockHookERC20.UnauthorizedUpgrade.selector));
+        MockHookERC1155(hookERC1155Proxy).upgradeToAndCall(address(hookERC1155Impl), bytes(""));
 
         vm.prank(platformAdmin);
-        EmptyHookERC1155(hookERC1155Proxy).upgradeToAndCall(address(hookERC1155Impl), bytes(""));
+        MockHookERC1155(hookERC1155Proxy).upgradeToAndCall(address(hookERC1155Impl), bytes(""));
 
         // Claim token again; this time contract mints specified quantity.
-        assertEq(erc1155Core.balanceOf(endUser, mintRequest.tokenId), 0);
+        assertEq(erc1155Core.balanceOf(endUser, 0), 0);
 
         vm.prank(endUser);
-        erc1155Core.mint(mintRequest);
+        erc1155Core.mint(endUser, 0, 1, "");
 
-        assertEq(erc1155Core.balanceOf(endUser, mintRequest.tokenId), 1);
+        assertEq(erc1155Core.balanceOf(endUser, 0), 1);
     }
 }
