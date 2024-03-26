@@ -22,3 +22,6 @@
 [submodule "hooks/lib/erc721a"]
 	path = hooks/lib/erc721a
 	url = https://github.com/chiru-labs/erc721a
+[submodule "uni-hook/lib/forge-std"]
+	path = uni-hook/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
