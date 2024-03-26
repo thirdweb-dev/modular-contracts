@@ -25,3 +25,6 @@
 [submodule "uni-hook/lib/forge-std"]
 	path = uni-hook/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "uni-hook/lib/contracts-next"]
+	path = uni-hook/lib/contracts-next
+	url = https://github.com/thirdweb-dev/contracts-next
