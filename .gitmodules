@@ -28,3 +28,6 @@
 [submodule "uni-hook/lib/contracts-next"]
 	path = uni-hook/lib/contracts-next
 	url = https://github.com/thirdweb-dev/contracts-next
+[submodule "uni-hook/lib/solady"]
+	path = uni-hook/lib/solady
+	url = https://github.com/vectorized/solady
