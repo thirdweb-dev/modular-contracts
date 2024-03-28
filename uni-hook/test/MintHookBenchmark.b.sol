@@ -135,6 +135,57 @@ contract MintHookBenchmarkTest is Test {
         return sig;
     }
 
+    function _signMintRequestERC721(MintHook.SignatureMintRequestERC721 memory _req, uint256 _privateKey)
+        internal
+        view
+        returns (bytes memory)
+    {
+        bytes memory encodedRequest = abi.encode(
+            TYPEHASH_SIGNATURE_MINT_ERC721,
+            _req.token,
+            _req.startTimestamp,
+            _req.endTimestamp,
+            _req.recipient,
+            _req.quantity,
+            _req.currency,
+            _req.pricePerUnit,
+            _req.uid
+        );
+        bytes32 structHash = keccak256(encodedRequest);
+        bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", hookDomainSeparator, structHash));
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_privateKey, typedDataHash);
+        bytes memory sig = abi.encodePacked(r, s, v);
+
+        return sig;
+    }
+
+    function _signMintRequestERC1155(MintHook.SignatureMintRequestERC1155 memory _req, uint256 _privateKey)
+        internal
+        view
+        returns (bytes memory)
+    {
+        bytes memory encodedRequest = abi.encode(
+            TYPEHASH_SIGNATURE_MINT_ERC1155,
+            _req.tokenId,
+            _req.token,
+            _req.startTimestamp,
+            _req.endTimestamp,
+            _req.recipient,
+            _req.quantity,
+            _req.currency,
+            _req.pricePerUnit,
+            _req.uid
+        );
+        bytes32 structHash = keccak256(encodedRequest);
+        bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", hookDomainSeparator, structHash));
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_privateKey, typedDataHash);
+        bytes memory sig = abi.encodePacked(r, s, v);
+
+        return sig;
+    }
+
     function testBenchmarkSignatureMintERC20() public {
         vm.pauseGasMetering();
 
@@ -158,8 +209,180 @@ contract MintHookBenchmarkTest is Test {
         uint256 quantity = request.quantity;
         ERC20Core core = erc20Core;
 
+        vm.deal(address(this), 1 ether);
+
         vm.resumeGasMetering();
 
-        core.mint(to, quantity, data);
+        core.mint{value: 1 ether}(to, quantity, data);
+    }
+
+    function testBenchmarkSignatureMintERC721() public {
+        vm.pauseGasMetering();
+
+        MintHook.SignatureMintRequestERC721 memory request = MintHook.SignatureMintRequestERC721({
+            token: address(erc721Core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            recipient: allowlistedClaimer,
+            quantity: 1,
+            currency: address(NATIVE_TOKEN),
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("UID")
+        });
+        bytes memory signature = _signMintRequestERC721(request, adminPrivateKey);
+        MintHook.SignatureMintParamsERC721 memory params =
+            MintHook.SignatureMintParamsERC721({request: request, signature: signature});
+
+        bytes memory data = abi.encode(MintHook.MintMethod.SIGNATURE_MINT, params);
+
+        address to = request.recipient;
+        uint256 quantity = request.quantity;
+        ERC721Core core = erc721Core;
+
+        vm.deal(address(this), 0.1 ether);
+
+        vm.resumeGasMetering();
+
+        core.mint{value: 0.1 ether}(to, quantity, data);
+    }
+
+    function testBenchmarkSignatureMintERC1155() public {
+        vm.pauseGasMetering();
+
+        uint256 tokenId = 0;
+
+        MintHook.SignatureMintRequestERC1155 memory request = MintHook.SignatureMintRequestERC1155({
+            tokenId: tokenId,
+            token: address(erc1155Core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            recipient: allowlistedClaimer,
+            quantity: 1,
+            currency: address(NATIVE_TOKEN),
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("UID")
+        });
+        bytes memory signature = _signMintRequestERC1155(request, adminPrivateKey);
+        MintHook.SignatureMintParamsERC1155 memory params =
+            MintHook.SignatureMintParamsERC1155({request: request, signature: signature});
+
+        bytes memory data = abi.encode(MintHook.MintMethod.SIGNATURE_MINT, params);
+
+        address to = request.recipient;
+        uint256 quantity = request.quantity;
+        ERC1155Core core = erc1155Core;
+
+        vm.deal(address(this), 0.1 ether);
+
+        vm.resumeGasMetering();
+
+        core.mint{value: 0.1 ether}(to, tokenId, quantity, data);
+    }
+
+    function testBenchmarkClaimERC20() public {
+        vm.pauseGasMetering();
+
+        MintHook.ClaimPhase memory phase = MintHook.ClaimPhase({
+            availableSupply: 100 ether,
+            allowlistMerkleRoot: allowlistRoot,
+            pricePerUnit: 0.1 ether,
+            currency: address(NATIVE_TOKEN),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100)
+        });
+
+        vm.prank(admin);
+        MintHook(address(erc20Core)).setClaimPhaseERC20(phase);
+
+        address to = allowlistedClaimer;
+        uint256 quantity = 10 ether;
+        bytes memory data = abi.encode(
+            MintHook.MintMethod.ALLOWLIST_MINT,
+            MintHook.ClaimParams({
+                allowlistProof: allowlistProof,
+                expectedCurrency: address(NATIVE_TOKEN),
+                expectedPricePerUnit: 0.1 ether
+            })
+        );
+
+        ERC20Core core = erc20Core;
+
+        vm.deal(address(this), 1 ether);
+
+        vm.resumeGasMetering();
+
+        core.mint{value: 1 ether}(to, quantity, data);
+    }
+
+    function testBenchmarkClaimERC721() public {
+        vm.pauseGasMetering();
+
+        MintHook.ClaimPhase memory phase = MintHook.ClaimPhase({
+            availableSupply: 100,
+            allowlistMerkleRoot: allowlistRoot,
+            pricePerUnit: 0.1 ether,
+            currency: address(NATIVE_TOKEN),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100)
+        });
+
+        vm.prank(admin);
+        MintHook(address(erc721Core)).setClaimPhaseERC721(phase);
+
+        address to = allowlistedClaimer;
+        uint256 quantity = 1;
+        bytes memory data = abi.encode(
+            MintHook.MintMethod.ALLOWLIST_MINT,
+            MintHook.ClaimParams({
+                allowlistProof: allowlistProof,
+                expectedCurrency: address(NATIVE_TOKEN),
+                expectedPricePerUnit: 0.1 ether
+            })
+        );
+
+        ERC721Core core = erc721Core;
+
+        vm.deal(address(this), 1 ether);
+
+        vm.resumeGasMetering();
+
+        core.mint{value: 0.1 ether}(to, quantity, data);
+    }
+
+    function testBenchmarkClaimERC1155() public {
+        vm.pauseGasMetering();
+
+        uint256 tokenId = 0;
+
+        MintHook.ClaimPhase memory phase = MintHook.ClaimPhase({
+            availableSupply: 100,
+            allowlistMerkleRoot: allowlistRoot,
+            pricePerUnit: 0.1 ether,
+            currency: address(NATIVE_TOKEN),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100)
+        });
+
+        vm.prank(admin);
+        MintHook(address(erc1155Core)).setClaimPhaseERC1155(tokenId, phase);
+
+        address to = allowlistedClaimer;
+        uint256 quantity = 1;
+        bytes memory data = abi.encode(
+            MintHook.MintMethod.ALLOWLIST_MINT,
+            MintHook.ClaimParams({
+                allowlistProof: allowlistProof,
+                expectedCurrency: address(NATIVE_TOKEN),
+                expectedPricePerUnit: 0.1 ether
+            })
+        );
+
+        ERC1155Core core = erc1155Core;
+
+        vm.deal(address(this), 1 ether);
+
+        vm.resumeGasMetering();
+
+        core.mint{value: 0.1 ether}(to, tokenId, quantity, data);
     }
 }
