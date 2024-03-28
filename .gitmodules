@@ -31,3 +31,9 @@
 [submodule "uni-hook/lib/solady"]
 	path = uni-hook/lib/solady
 	url = https://github.com/vectorized/solady
+[submodule "uni-hook/lib/erc721a"]
+	path = uni-hook/lib/erc721a
+	url = https://github.com/chiru-labs/erc721a
+[submodule "uni-hook/lib/murky"]
+	path = uni-hook/lib/murky
+	url = https://github.com/dmfxyz/murky
