@@ -40,8 +40,8 @@ abstract contract HookInstaller is IHookInstaller {
     /// @notice Emitted on attempt to call an uninstalled hook.
     error HookInstallerHookNotInstalled();
 
-    /// @notice Emitted on installing a hook that is incompatible with the hook installer.
-    error HookInstallerIncompatibleHooks();
+    /// @notice Emitted when no supported hooks are found in the hook contract.
+    error HookInstallerNoSupportedHooks();
 
     /// @notice Emitted when installing or uninstalling the zero address as a hook.
     error HookInstallerZeroAddress();
@@ -177,28 +177,36 @@ abstract contract HookInstaller is IHookInstaller {
 
         // Validate the hook is compatible with the hook installer.
         uint256 hooksToInstall = hookInfo.hookFlags;
+
         uint256 currentActivehooks = installedHooks_;
+        uint256 newCurrentActivehooks = currentActivehooks;
+
         uint256 supportedHookFlags = _supportedHookFlags();
 
         // Validate: any of the hooks to install is not already installed.
         if (hooksToInstall & currentActivehooks > 0) {
             revert HookInstallerHookAlreadyInstalled();
         }
-        // Validate: all of the hooks to install are supported hooks.
-        if (hooksToInstall & ~supportedHookFlags > 0) {
-            revert HookInstallerIncompatibleHooks();
-        }
 
         // 1. For each hook function, set the hook contract as the implementation of the hook function.
         // 2. Update the tracked installed hooks of the contract.
         while (hooksToInstall > 0) {
             uint256 hookFlag = _highestBitToZero(hooksToInstall);
-            currentActivehooks |= hookFlag;
+            if (hookFlag & ~supportedHookFlags > 0) {
+                hooksToInstall -= hookFlag;
+                continue;
+            }
+
+            newCurrentActivehooks |= hookFlag;
             hookImplementationMap_[hookFlag] = address(_params.hook);
 
             hooksToInstall -= hookFlag;
         }
-        installedHooks_ = currentActivehooks;
+
+        if (currentActivehooks == newCurrentActivehooks) {
+            revert HookInstallerNoSupportedHooks();
+        }
+        installedHooks_ = newCurrentActivehooks;
 
         // Get all the hook fallback functions and map them to the hook contract
         // as their call destination.
