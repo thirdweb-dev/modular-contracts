@@ -32,7 +32,7 @@ contract MockHookWithPermissionedFallback is IHook, Initializable, UUPSUpgradeab
     }
 
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = 0;
+        hookInfo.hookFlags = BEFORE_APPROVE_ERC20_FLAG | BEFORE_APPROVE_ERC721_FLAG | BEFORE_APPROVE_FOR_ALL_FLAG;
         hookInfo.hookFallbackFunctions = new HookFallbackFunction[](1);
         hookInfo.hookFallbackFunctions[0] =
             HookFallbackFunction(this.permissionedFunction.selector, CallType.CALL, true);
