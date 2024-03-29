@@ -2,5 +2,6 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 @solady/=lib/solady/src/
 @erc721a/=lib/erc721a/contracts/
+@erc721a-upgradeable/=lib/ERC721A-upgradeable/contracts/
 
 

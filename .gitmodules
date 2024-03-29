@@ -22,3 +22,6 @@
 [submodule "hooks/lib/erc721a"]
 	path = hooks/lib/erc721a
 	url = https://github.com/chiru-labs/erc721a
+[submodule "core/lib/ERC721A-Upgradeable"]
+	path = core/lib/ERC721A-Upgradeable
+	url = https://github.com/chiru-labs/ERC721A-Upgradeable
