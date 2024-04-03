@@ -237,31 +237,19 @@ contract MintHook is
                             ENCODE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function encodeClaimParams(ClaimParams memory _params) external pure returns (bytes memory) {
+    function allowlistMint(ClaimParams memory _params) external pure returns (bytes memory) {
         return abi.encode(_params);
     }
 
-    function encodeSignatureMintERC20Params(SignatureMintParamsERC20 memory _params)
-        external
-        pure
-        returns (bytes memory)
-    {
+    function signatureMintERC20(SignatureMintParamsERC20 memory _params) external pure returns (bytes memory) {
         return abi.encode(_params);
     }
 
-    function encodeSignatureMintERC721Params(SignatureMintParamsERC721 memory _params)
-        external
-        pure
-        returns (bytes memory)
-    {
+    function signatureMintERC721(SignatureMintParamsERC721 memory _params) external pure returns (bytes memory) {
         return abi.encode(_params);
     }
 
-    function encodeSignatureMintERC1155Params(SignatureMintParamsERC1155 memory _params)
-        external
-        pure
-        returns (bytes memory)
-    {
+    function signatureMintERC1155(SignatureMintParamsERC1155 memory _params) external pure returns (bytes memory) {
         return abi.encode(_params);
     }
 
