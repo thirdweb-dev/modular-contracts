@@ -52,11 +52,6 @@ contract MintHook is
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
 
-    enum MintMethod {
-        SIGNATURE_MINT,
-        ALLOWLIST_MINT
-    }
-
     struct ClaimPhase {
         uint256 availableSupply;
         bytes32 allowlistMerkleRoot;
@@ -131,7 +126,7 @@ contract MintHook is
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error MintHookInvalidMintMethod();
+    error MintHookUnrecognizedParams();
     error MintHookIncorrectNativeTokenSent();
     error MintHookRequestExpired();
     error MintHookRequestUidReused();
@@ -188,18 +183,14 @@ contract MintHook is
         override
         returns (bytes memory)
     {
-        // Get minting method.
-        MintMethod method = abi.decode(_data, (MintMethod));
-
-        // Mint tokens based on the method.
-        if (method == MintMethod.SIGNATURE_MINT) {
-            (, SignatureMintParamsERC20 memory params) = abi.decode(_data, (MintMethod, SignatureMintParamsERC20));
-            _mintWithSignatureERC20(_to, _quantity, params.request, params.signature);
-        } else if (method == MintMethod.ALLOWLIST_MINT) {
-            (, ClaimParams memory params) = abi.decode(_data, (MintMethod, ClaimParams));
-            _allowlistedMintERC20(_to, _quantity, params);
-        } else {
-            revert MintHookInvalidMintMethod();
+        try this.decodeSignatureMintERC20Params(_data) returns (SignatureMintParamsERC20 memory _signatureMintParams) {
+            _mintWithSignatureERC20(_to, _quantity, _signatureMintParams.request, _signatureMintParams.signature);
+        } catch {
+            try this.decodeClaimParams(_data) returns (ClaimParams memory _claimParams) {
+                _allowlistedMintERC20(_to, _quantity, _claimParams);
+            } catch {
+                revert MintHookUnrecognizedParams();
+            }
         }
     }
 
@@ -210,18 +201,15 @@ contract MintHook is
         override
         returns (bytes memory)
     {
-        // Get minting method.
-        MintMethod method = abi.decode(_data, (MintMethod));
-
-        // Mint tokens based on the method.
-        if (method == MintMethod.SIGNATURE_MINT) {
-            (, SignatureMintParamsERC721 memory params) = abi.decode(_data, (MintMethod, SignatureMintParamsERC721));
-            _mintWithSignatureERC721(_to, _quantity, params.request, params.signature);
-        } else if (method == MintMethod.ALLOWLIST_MINT) {
-            (, ClaimParams memory params) = abi.decode(_data, (MintMethod, ClaimParams));
-            _allowlistedMintERC721(_to, _quantity, params);
-        } else {
-            revert MintHookInvalidMintMethod();
+        try this.decodeSignatureMintERC721Params(_data) returns (SignatureMintParamsERC721 memory _signatureMintParams)
+        {
+            _mintWithSignatureERC721(_to, _quantity, _signatureMintParams.request, _signatureMintParams.signature);
+        } catch {
+            try this.decodeClaimParams(_data) returns (ClaimParams memory _claimParams) {
+                _allowlistedMintERC721(_to, _quantity, _claimParams);
+            } catch {
+                revert MintHookUnrecognizedParams();
+            }
         }
     }
 
@@ -232,18 +220,16 @@ contract MintHook is
         override
         returns (bytes memory)
     {
-        // Get minting method.
-        MintMethod method = abi.decode(_data, (MintMethod));
-
-        // Mint tokens based on the method.
-        if (method == MintMethod.SIGNATURE_MINT) {
-            (, SignatureMintParamsERC1155 memory params) = abi.decode(_data, (MintMethod, SignatureMintParamsERC1155));
-            _mintWithSignatureERC1155(_to, _quantity, _id, params.request, params.signature);
-        } else if (method == MintMethod.ALLOWLIST_MINT) {
-            (, ClaimParams memory params) = abi.decode(_data, (MintMethod, ClaimParams));
-            _allowlistedMintERC1155(_to, _id, _quantity, params);
-        } else {
-            revert MintHookInvalidMintMethod();
+        try this.decodeSignatureMintERC1155Params(_data) returns (
+            SignatureMintParamsERC1155 memory _signatureMintParams
+        ) {
+            _mintWithSignatureERC1155(_to, _quantity, _id, _signatureMintParams.request, _signatureMintParams.signature);
+        } catch {
+            try this.decodeClaimParams(_data) returns (ClaimParams memory _claimParams) {
+                _allowlistedMintERC1155(_to, _id, _quantity, _claimParams);
+            } catch {
+                revert MintHookUnrecognizedParams();
+            }
         }
     }
 
@@ -252,7 +238,7 @@ contract MintHook is
     //////////////////////////////////////////////////////////////*/
 
     function encodeClaimParams(ClaimParams memory _params) external pure returns (bytes memory) {
-        return abi.encode(MintMethod.ALLOWLIST_MINT, _params);
+        return abi.encode(_params);
     }
 
     function encodeSignatureMintERC20Params(SignatureMintParamsERC20 memory _params)
@@ -260,7 +246,7 @@ contract MintHook is
         pure
         returns (bytes memory)
     {
-        return abi.encode(MintMethod.SIGNATURE_MINT, _params);
+        return abi.encode(_params);
     }
 
     function encodeSignatureMintERC721Params(SignatureMintParamsERC721 memory _params)
@@ -268,7 +254,7 @@ contract MintHook is
         pure
         returns (bytes memory)
     {
-        return abi.encode(MintMethod.SIGNATURE_MINT, _params);
+        return abi.encode(_params);
     }
 
     function encodeSignatureMintERC1155Params(SignatureMintParamsERC1155 memory _params)
@@ -276,7 +262,39 @@ contract MintHook is
         pure
         returns (bytes memory)
     {
-        return abi.encode(MintMethod.SIGNATURE_MINT, _params);
+        return abi.encode(_params);
+    }
+
+    function decodeClaimParams(bytes memory _data) external pure returns (ClaimParams memory) {
+        ClaimParams memory _params = abi.decode(_data, (ClaimParams));
+        return _params;
+    }
+
+    function decodeSignatureMintERC20Params(bytes memory _data)
+        external
+        pure
+        returns (SignatureMintParamsERC20 memory)
+    {
+        SignatureMintParamsERC20 memory _params = abi.decode(_data, (SignatureMintParamsERC20));
+        return _params;
+    }
+
+    function decodeSignatureMintERC721Params(bytes memory _data)
+        external
+        pure
+        returns (SignatureMintParamsERC721 memory)
+    {
+        SignatureMintParamsERC721 memory _params = abi.decode(_data, (SignatureMintParamsERC721));
+        return _params;
+    }
+
+    function decodeSignatureMintERC1155Params(bytes memory _data)
+        external
+        pure
+        returns (SignatureMintParamsERC1155 memory)
+    {
+        SignatureMintParamsERC1155 memory _params = abi.decode(_data, (SignatureMintParamsERC1155));
+        return _params;
     }
 
     /*//////////////////////////////////////////////////////////////

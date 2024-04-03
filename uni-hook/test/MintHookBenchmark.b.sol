@@ -202,8 +202,7 @@ contract MintHookBenchmarkTest is Test {
         bytes memory signature = _signMintRequestERC20(request, adminPrivateKey);
         MintHook.SignatureMintParamsERC20 memory params =
             MintHook.SignatureMintParamsERC20({request: request, signature: signature});
-
-        bytes memory data = abi.encode(MintHook.MintMethod.SIGNATURE_MINT, params);
+        bytes memory data = abi.encode(params);
 
         address to = request.recipient;
         uint256 quantity = request.quantity;
@@ -233,7 +232,7 @@ contract MintHookBenchmarkTest is Test {
         MintHook.SignatureMintParamsERC721 memory params =
             MintHook.SignatureMintParamsERC721({request: request, signature: signature});
 
-        bytes memory data = abi.encode(MintHook.MintMethod.SIGNATURE_MINT, params);
+        bytes memory data = abi.encode(params);
 
         address to = request.recipient;
         uint256 quantity = request.quantity;
@@ -266,7 +265,7 @@ contract MintHookBenchmarkTest is Test {
         MintHook.SignatureMintParamsERC1155 memory params =
             MintHook.SignatureMintParamsERC1155({request: request, signature: signature});
 
-        bytes memory data = abi.encode(MintHook.MintMethod.SIGNATURE_MINT, params);
+        bytes memory data = abi.encode(params);
 
         address to = request.recipient;
         uint256 quantity = request.quantity;
@@ -297,7 +296,6 @@ contract MintHookBenchmarkTest is Test {
         address to = allowlistedClaimer;
         uint256 quantity = 10 ether;
         bytes memory data = abi.encode(
-            MintHook.MintMethod.ALLOWLIST_MINT,
             MintHook.ClaimParams({
                 allowlistProof: allowlistProof,
                 expectedCurrency: address(NATIVE_TOKEN),
@@ -332,7 +330,6 @@ contract MintHookBenchmarkTest is Test {
         address to = allowlistedClaimer;
         uint256 quantity = 1;
         bytes memory data = abi.encode(
-            MintHook.MintMethod.ALLOWLIST_MINT,
             MintHook.ClaimParams({
                 allowlistProof: allowlistProof,
                 expectedCurrency: address(NATIVE_TOKEN),
@@ -369,7 +366,6 @@ contract MintHookBenchmarkTest is Test {
         address to = allowlistedClaimer;
         uint256 quantity = 1;
         bytes memory data = abi.encode(
-            MintHook.MintMethod.ALLOWLIST_MINT,
             MintHook.ClaimParams({
                 allowlistProof: allowlistProof,
                 expectedCurrency: address(NATIVE_TOKEN),
