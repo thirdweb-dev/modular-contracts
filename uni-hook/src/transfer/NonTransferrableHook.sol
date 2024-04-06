@@ -31,12 +31,21 @@ library NonTransferableHookStorage {
 
 contract NonTransferableHook is
     IHook,
-    HookFlagsDirectory,
     BeforeTransferHookERC20,
     BeforeTransferHookERC721,
     BeforeTransferHookERC1155,
     BeforeBatchTransferHookERC1155
 {
+    /*//////////////////////////////////////////////////////////////
+    CONSTANTS: (TODO: replace with inheriting HooksFlagDirectory)
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Bits representing the beforeTransferERC20 hook.
+    uint256 public constant BEFORE_TRANSFER_ERC20_FLAG = 2 ** 11;
+
+    /// @notice Bits representing the beforeTransferERC1155 hook.
+    uint256 public constant BEFORE_TRANSFER_ERC1155_FLAG = 2 ** 13;
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
