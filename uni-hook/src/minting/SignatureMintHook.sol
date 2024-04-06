@@ -12,7 +12,6 @@ import {Ownable} from "@solady/auth/Ownable.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 library SignatureMintHookStorage {
