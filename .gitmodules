@@ -16,24 +16,9 @@
 [submodule "hooks/lib/solady"]
 	path = hooks/lib/solady
 	url = https://github.com/vectorized/solady
-[submodule "hooks/lib/murky"]
-	path = hooks/lib/murky
-	url = https://github.com/dmfxyz/murky
 [submodule "hooks/lib/erc721a"]
 	path = hooks/lib/erc721a
 	url = https://github.com/chiru-labs/erc721a
-[submodule "uni-hook/lib/forge-std"]
-	path = uni-hook/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "uni-hook/lib/contracts-next"]
-	path = uni-hook/lib/contracts-next
-	url = https://github.com/thirdweb-dev/contracts-next
-[submodule "uni-hook/lib/solady"]
-	path = uni-hook/lib/solady
-	url = https://github.com/vectorized/solady
-[submodule "uni-hook/lib/erc721a"]
-	path = uni-hook/lib/erc721a
-	url = https://github.com/chiru-labs/erc721a
-[submodule "uni-hook/lib/murky"]
-	path = uni-hook/lib/murky
+[submodule "hooks/lib/murky"]
+	path = hooks/lib/murky
 	url = https://github.com/dmfxyz/murky

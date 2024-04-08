@@ -1,6 +1,0 @@
-ds-test/=lib/forge-std/lib/ds-test/src/
-forge-std/=lib/forge-std/src/
-@core-contracts/=lib/contracts-next/core/src/
-@erc721a/=lib/erc721a/contracts/
-@solady/=lib/solady/src/
-@murky/=lib/murky/src/
