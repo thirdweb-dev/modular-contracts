@@ -1,34 +1,61 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import {IHook} from "@core-contracts/interface/IHook.sol";
+
+import {NFTMetadataRenderer} from "../lib/NFTMetadataRenderer.sol";
+
+import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
+import {OnTokenURIHook} from "@core-contracts/hook/OnTokenURIHook.sol";
+
+import {LibString} from "@solady/utils/LibString.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {ERC721Hook} from "@core-contracts/hook/ERC721Hook.sol";
 
-import {NFTMetadataRenderer} from "../../lib/NFTMetadataRenderer.sol";
-import {SharedMetadataStorage} from "../../storage/SharedMetadataStorage.sol";
-import {ISharedMetadata} from "../../interface/ISharedMetadata.sol";
+library SharedMetadataStorage {
+    /// @custom:storage-location erc7201:shared.metadata.storage
+    /// @dev keccak256(abi.encode(uint256(keccak256("shared.metadata.storage")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 public constant SHARED_METADATA_STORAGE_POSITION =
+        0xfdee411af9bf3577111bd01929620c54823736ad38c2fe7a6b62d3e2d7ac0f00;
 
-contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook, Multicallable {
+    struct Data {
+        /// @notice Token metadata information
+        mapping(address => OpenEditionMetadataHook.SharedMetadataInfo) sharedMetadata;
+    }
+
+    function data() internal pure returns (Data storage data_) {
+        bytes32 position = SHARED_METADATA_STORAGE_POSITION;
+        assembly {
+            data_.slot := position
+        }
+    }
+}
+
+contract OpenEditionMetadataHook is IHook, OnTokenURIHook, HookFlagsDirectory, Multicallable {
+    /*//////////////////////////////////////////////////////////////
+                                STRUCTS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @notice Structure for metadata shared across all tokens
+     *
+     *  @param name Shared name of NFT in metadata
+     *  @param description Shared description of NFT in metadata
+     *  @param imageURI Shared URI of image to render for NFTs
+     *  @param animationURI Shared URI of animation to render for NFTs
+     */
+    struct SharedMetadataInfo {
+        string name;
+        string description;
+        string imageURI;
+        string animationURI;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    event SharedMetadataUpdated(address token, string name, string description, string imageURI, string animationURI);
     event BatchMetadataUpdate(address indexed token, uint256 _fromTokenId, uint256 _toTokenId);
-
-    /*//////////////////////////////////////////////////////////////
-                               ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when caller is not token core admin.
-    error OpenEditionHookNotAuthorized();
-
-    /*//////////////////////////////////////////////////////////////
-                                INITIALIZE
-    //////////////////////////////////////////////////////////////*/
-
-    function initialize(address _upgradeAdmin) public initializer {
-        __ERC721Hook_init(_upgradeAdmin);
-    }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -39,10 +66,9 @@ contract OpenEditionHookERC721 is ISharedMetadata, ERC721Hook, Multicallable {
      *          callable via core contract fallback function.
      */
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = ON_TOKEN_URI_FLAG();
+        hookInfo.hookFlags = ON_TOKEN_URI_FLAG;
         hookInfo.hookFallbackFunctions = new HookFallbackFunction[](1);
-        hookInfo.hookFallbackFunctions[0] =
-            HookFallbackFunction({functionSelector: this.setSharedMetadata.selector, callType: CallType.CALL});
+        hookInfo.hookFallbackFunctions[0] = HookFallbackFunction(this.setSharedMetadata.selector, CallType.CALL, true);
     }
 
     /**

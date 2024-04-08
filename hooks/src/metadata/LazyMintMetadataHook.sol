@@ -1,14 +1,38 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import {IHook} from "@core-contracts/interface/IHook.sol";
+
+import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
+import {OnTokenURIHook} from "@core-contracts/hook/OnTokenURIHook.sol";
+
 import {LibString} from "@solady/utils/LibString.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import {ERC721Hook} from "@core-contracts/hook/ERC721Hook.sol";
+library LazyMintStorage {
+    /// @custom:storage-location erc7201:lazymint.storage
+    /// @dev keccak256(abi.encode(uint256(keccak256("lazymint.storage")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 public constant LAZY_MINT_STORAGE_POSITION =
+        0x8911971c3aad928c9cac140eac0269f3210708ac8d69db5b5f5c70209d935800;
 
-import {LazyMintStorage} from "../../storage/LazyMintStorage.sol";
+    struct Data {
+        /// @notice Mapping from token => batch IDs
+        mapping(address => uint256[]) batchIds;
+        /// @notice Mapping from token => the next token ID to lazy mint.
+        mapping(address => uint256) nextTokenIdToLazyMint;
+        /// @notice Mapping from token => batchId => baseURI
+        mapping(address => mapping(uint256 => string)) baseURI;
+    }
 
-contract LazyMintHook is ERC721Hook, Multicallable {
+    function data() internal pure returns (Data storage data_) {
+        bytes32 position = LAZY_MINT_STORAGE_POSITION;
+        assembly {
+            data_.slot := position
+        }
+    }
+}
+
+contract LazyMintMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Multicallable {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -37,14 +61,6 @@ contract LazyMintHook is ERC721Hook, Multicallable {
     error LazyMintHookInvalidTokenId();
 
     /*//////////////////////////////////////////////////////////////
-                                INITIALIZE
-    //////////////////////////////////////////////////////////////*/
-
-    function initialize(address _upgradeAdmin) public initializer {
-        __ERC721Hook_init(_upgradeAdmin);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -53,14 +69,13 @@ contract LazyMintHook is ERC721Hook, Multicallable {
      *          callable via core contract fallback function.
      */
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = ON_TOKEN_URI_FLAG();
+        hookInfo.hookFlags = ON_TOKEN_URI_FLAG;
         hookInfo.hookFallbackFunctions = new HookFallbackFunction[](3);
         hookInfo.hookFallbackFunctions[0] =
-            HookFallbackFunction({functionSelector: this.getBaseURICount.selector, callType: CallType.STATICCALL});
+            HookFallbackFunction(this.getBaseURICount.selector, CallType.STATICCALL, false);
         hookInfo.hookFallbackFunctions[1] =
-            HookFallbackFunction({functionSelector: this.getBatchIdAtIndex.selector, callType: CallType.STATICCALL});
-        hookInfo.hookFallbackFunctions[2] =
-            HookFallbackFunction({functionSelector: this.lazyMint.selector, callType: CallType.CALL});
+            HookFallbackFunction(this.getBatchIdAtIndex.selector, CallType.STATICCALL, false);
+        hookInfo.hookFallbackFunctions[2] = HookFallbackFunction(this.lazyMint.selector, CallType.CALL, true);
     }
 
     /**
@@ -68,7 +83,7 @@ contract LazyMintHook is ERC721Hook, Multicallable {
      *  @param _token The token address.
      */
     function getBaseURICount(address _token) public view returns (uint256) {
-        return LazyMintStorage.data().batchIds[_token].length;
+        return _lazyMintStorage().batchIds[_token].length;
     }
 
     /**
@@ -84,15 +99,6 @@ contract LazyMintHook is ERC721Hook, Multicallable {
     }
 
     /**
-     *  @notice Returns the URI to fetch token metadata from.
-     *  @dev Meant to be called by the core token contract.
-     *  @param _id The token ID of the NFT.
-     */
-    function onUri(uint256 _id) external view returns (string memory) {
-        return onTokenURI(_id);
-    }
-
-    /**
      *  @notice Returns the ID for the batch of tokens at the given index.
      *  @param _token The token address.
      *  @param _index The index of the batch.
@@ -101,7 +107,7 @@ contract LazyMintHook is ERC721Hook, Multicallable {
         if (_index >= getBaseURICount(_token)) {
             revert LazyMintHookInvalidIndex();
         }
-        return LazyMintStorage.data().batchIds[_token][_index];
+        return _lazyMintStorage().batchIds[_token][_index];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -125,10 +131,9 @@ contract LazyMintHook is ERC721Hook, Multicallable {
             revert LazyMintHookZeroAmount();
         }
 
-        LazyMintStorage.Data storage data = LazyMintStorage.data();
-
-        uint256 startId = data.nextTokenIdToLazyMint[token];
-        (data.nextTokenIdToLazyMint[token], batchId) = _batchMintMetadata(token, startId, _amount, _baseURIForTokens);
+        uint256 startId = _lazyMintStorage().nextTokenIdToLazyMint[token];
+        (_lazyMintStorage().nextTokenIdToLazyMint[token], batchId) =
+            _batchMintMetadata(token, startId, _amount, _baseURIForTokens);
 
         emit TokensLazyMinted(token, startId, startId + _amount - 1, _baseURIForTokens, _data);
 
@@ -149,25 +154,25 @@ contract LazyMintHook is ERC721Hook, Multicallable {
         batchId = _startId + _amountToMint;
         nextTokenIdToMint = batchId;
 
-        LazyMintStorage.Data storage data = LazyMintStorage.data();
-
-        data.batchIds[_token].push(batchId);
-        data.baseURI[_token][batchId] = _baseURIForTokens;
+        _lazyMintStorage().batchIds[_token].push(batchId);
+        _lazyMintStorage().baseURI[_token][batchId] = _baseURIForTokens;
     }
 
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
     function _getBaseURI(address _token, uint256 _tokenId) internal view returns (string memory) {
         uint256 numOfTokenBatches = getBaseURICount(_token);
 
-        LazyMintStorage.Data storage data = LazyMintStorage.data();
-
-        uint256[] memory indices = data.batchIds[_token];
+        uint256[] memory indices = _lazyMintStorage().batchIds[_token];
 
         for (uint256 i = 0; i < numOfTokenBatches; i += 1) {
             if (_tokenId < indices[i]) {
-                return data.baseURI[_token][indices[i]];
+                return _lazyMintStorage().baseURI[_token][indices[i]];
             }
         }
         revert LazyMintHookInvalidTokenId();
+    }
+
+    function _lazyMintStorage() internal pure returns (LazyMintStorage.Data storage) {
+        return LazyMintStorage.data();
     }
 }
