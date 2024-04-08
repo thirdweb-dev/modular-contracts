@@ -55,7 +55,7 @@ interface IHookInstaller is IHookInfo {
     event HooksInstalled(address indexed implementation, uint256 hooks);
 
     /// @notice Emitted when a hook is uninstalled.
-    event HooksUninstalled(uint256 hooks);
+    event HooksUninstalled(address indexed implementation, uint256 hooks);
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
