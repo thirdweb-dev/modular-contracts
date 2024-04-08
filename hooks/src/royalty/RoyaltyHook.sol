@@ -96,8 +96,13 @@ contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoHook, Multicalla
         returns (address receiver, uint256 royaltyAmount)
     {
         address token = msg.sender;
-        (address recipient, uint256 bps) = getRoyaltyInfoForToken(token, _tokenId);
-        receiver = recipient;
+
+        (address overrideRecipient, uint16 overrideBps) = getRoyaltyInfoForToken(token, _tokenId);
+        (address defaultRecipient, uint16 defaultBps) = getDefaultRoyaltyInfo(token);
+
+        receiver = overrideRecipient == address(0) ? defaultRecipient : overrideRecipient;
+
+        uint16 bps = overrideBps == 0 ? defaultBps : overrideBps;
         royaltyAmount = (_salePrice * bps) / 10_000;
     }
 
@@ -110,13 +115,9 @@ contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoHook, Multicalla
      */
     function getRoyaltyInfoForToken(address _token, uint256 _tokenId) public view returns (address, uint16) {
         RoyaltyHookStorage.Data storage data = RoyaltyHookStorage.data();
-
         RoyaltyInfo memory royaltyForToken = data.royaltyInfoForToken[_token][_tokenId];
-        RoyaltyInfo memory defaultRoyaltyInfo = data.defaultRoyaltyInfo[_token];
 
-        return royaltyForToken.recipient == address(0)
-            ? (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps))
-            : (royaltyForToken.recipient, uint16(royaltyForToken.bps));
+        return (royaltyForToken.recipient, uint16(royaltyForToken.bps));
     }
 
     /**
@@ -125,7 +126,7 @@ contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoHook, Multicalla
      *  @return recipient The royalty recipient address.
      *  @return bps The basis points of the sale price that is taken as royalty.
      */
-    function getDefaultRoyaltyInfo(address _token) external view returns (address, uint16) {
+    function getDefaultRoyaltyInfo(address _token) public view returns (address, uint16) {
         RoyaltyInfo memory defaultRoyaltyInfo = RoyaltyHookStorage.data().defaultRoyaltyInfo[_token];
         return (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps));
     }
