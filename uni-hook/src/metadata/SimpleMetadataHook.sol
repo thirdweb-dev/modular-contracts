@@ -61,15 +61,6 @@ contract SimpleMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Multic
         return SimpleMetadataStorage.data().uris[msg.sender][_id];
     }
 
-    /**
-     *  @notice Returns the URI to fetch token metadata from.
-     *  @dev Meant to be called by the core token contract.
-     *  @param _id The token ID of the NFT.
-     */
-    function onUri(uint256 _id) external view returns (string memory) {
-        return onTokenURI(_id);
-    }
-
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
