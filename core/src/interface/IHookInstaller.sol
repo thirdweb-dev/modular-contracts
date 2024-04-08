@@ -13,12 +13,12 @@ interface IHookInstaller is IHookInfo {
      *  @notice Parameters for installing a hook.
      *
      *  @param hook The hook to install.
-     *  @param initCallValue The value to send with the initialization call.
+     *  @param initValue The value to send with the initialization call.
      *  @param initCalldata The calldata to send with the initialization call.
      */
     struct InstallHookParams {
-        IHook hook;
-        uint256 initCallValue;
+        address hook;
+        uint256 initValue;
         bytes initCalldata;
     }
 
