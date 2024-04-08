@@ -61,7 +61,7 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
         );
 
         // Developer installs `MockHookERC721` hook
-        erc721.installHook(IHookInstaller.InstallHookParams(IHook(hookProxyAddress), 0, bytes("")));
+        erc721.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
 
         vm.stopPrank();
 
@@ -188,13 +188,13 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
-        erc721.uninstallHook(BEFORE_MINT_ERC721_FLAG);
+        hookConsumer.uninstallHook(hookProxyAddress);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
     }
 
     function test_installfiveHooks() public {
@@ -204,13 +204,13 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(BEFORE_MINT_ERC721_FLAG);
+        hookConsumer.uninstallHook(hookProxyAddress);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
     }
 
     function test_uninstallOneHook() public {
@@ -223,7 +223,7 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(BEFORE_MINT_ERC721_FLAG);
+        hookConsumer.uninstallHook(address(mockHook));
     }
 
     function test_uninstallFiveHooks() public {
@@ -233,17 +233,15 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(BEFORE_MINT_ERC721_FLAG);
+        hookConsumer.uninstallHook(hookProxyAddress);
 
         vm.prank(platformUser);
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(mockHook, 0, ""));
+        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(
-            BEFORE_MINT_ERC721_FLAG | BEFORE_TRANSFER_ERC721_FLAG | BEFORE_BURN_ERC721_FLAG | BEFORE_APPROVE_ERC721_FLAG
-        );
+        hookConsumer.uninstallHook(address(mockHook));
     }
 }

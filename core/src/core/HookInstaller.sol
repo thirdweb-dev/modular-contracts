@@ -118,7 +118,7 @@ abstract contract HookInstaller is IHookInstaller {
             revert HookInstallerNotAuthorized();
         }
         // Validate init calldata and value
-        if (_params.initCallValue != msg.value) {
+        if (_params.initValue != msg.value) {
             revert HookInstallerInvalidMsgValue();
         }
         _installHook(_params);
@@ -126,36 +126,45 @@ abstract contract HookInstaller is IHookInstaller {
 
     /**
      *  @notice Uninstalls a hook in the contract.
-     *  @dev Unlike `installHook`, we do not accept a hook contract address as a parameter since it is possible
-     *       that the hook contract returns different hook functions compared to when it was installed. This could
-     *       lead to a mismatch. Instead, we use the bit representation of the hooks to uninstall.
-     *  @param _hooksToUninstall The bit representation of the hooks to uninstall.
+     *  @param _hook The contract whose implemented hooks are to be uninstalled.
      */
-    function uninstallHook(uint256 _hooksToUninstall) external {
+    function uninstallHook(address _hook) external {
         // Validate the caller's permissions.
         if (!_canUpdateHooks(msg.sender)) {
             revert HookInstallerNotAuthorized();
         }
 
-        emit HooksUninstalled(_hooksToUninstall);
+        // Get all hook functions and fallback functions implemented by the hook contract.
+        HookInfo memory hookInfo = IHook(_hook).getHookInfo();
+
+        uint256 hooksToUninstall = hookInfo.hookFlags;
+        emit HooksUninstalled(_hook, hooksToUninstall);
 
         uint256 currentActivehooks = installedHooks_;
 
         // Validate: all the hooks to uninstall are already installed.
-        if (_hooksToUninstall & ~currentActivehooks > 0) {
+        if (hooksToUninstall & ~currentActivehooks > 0) {
             revert HookInstallerHookNotInstalled();
         }
 
         // 1. For each hook function, delete hook contract as the implementation of the hook function.
         // 2. Update the tracked installed hooks of the contract.
-        while (_hooksToUninstall > 0) {
-            uint256 hookFlag = _highestBitToZero(_hooksToUninstall);
+        while (hooksToUninstall > 0) {
+            uint256 hookFlag = _highestBitToZero(hooksToUninstall);
             currentActivehooks &= ~hookFlag;
             delete hookImplementationMap_[hookFlag];
 
-            _hooksToUninstall -= hookFlag;
+            hooksToUninstall -= hookFlag;
         }
         installedHooks_ = currentActivehooks;
+
+        // Get all the hook fallback functions and map them to the hook contract
+        // as their call destination.
+        HookFallbackFunction[] memory fallbackFunctions = hookInfo.hookFallbackFunctions;
+        for (uint256 i = 0; i < fallbackFunctions.length; i++) {
+            bytes4 selector = fallbackFunctions[i].functionSelector;
+            delete hookFallbackFunctionCallMap_[selector];
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -173,7 +182,7 @@ abstract contract HookInstaller is IHookInstaller {
         }
 
         // Get all hook functions and fallback functions implemented by the hook contract.
-        HookInfo memory hookInfo = _params.hook.getHookInfo();
+        HookInfo memory hookInfo = IHook(_params.hook).getHookInfo();
 
         // Validate the hook is compatible with the hook installer.
         uint256 hooksToInstall = hookInfo.hookFlags;
@@ -228,7 +237,7 @@ abstract contract HookInstaller is IHookInstaller {
         if (_params.initCalldata.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
             (bool success, bytes memory returndata) =
-                address(_params.hook).call{value: _params.initCallValue}(_params.initCalldata);
+                address(_params.hook).call{value: _params.initValue}(_params.initCalldata);
             if (!success) {
                 _revert(returndata, HookInstallerHookCallFailed.selector);
             }
