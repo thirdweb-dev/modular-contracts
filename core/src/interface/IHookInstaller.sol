@@ -88,10 +88,7 @@ interface IHookInstaller is IHookInfo {
 
     /**
      *  @notice Uninstalls a hook in the contract.
-     *  @dev Unlike `installHook`, we do not accept a hook contract address as a parameter since it is possible
-     *       that the hook contract returns different hook functions compared to when it was installed. This could
-     *       lead to a mismatch. Instead, we use the bit representation of the hooks to uninstall.
-     *  @param hooksToUninstall The bit representation of the hooks to uninstall.
+     *  @param _hook The contract whose implemented hooks are to be uninstalled.
      */
-    function uninstallHook(uint256 hooksToUninstall) external;
+    function uninstallHook(address _hook) external;
 }
