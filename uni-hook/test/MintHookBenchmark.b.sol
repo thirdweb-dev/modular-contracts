@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Test} from "forge-std/Test.sol";
 import {Merkle} from "@murky/Merkle.sol";
 
-import {MintHook} from "src/MintHook.sol";
+import {MintHook} from "src/minting/MintHook.sol";
 
 import {IHook} from "@core-contracts/interface/IHook.sol";
 import {IHookInstaller} from "@core-contracts/interface/IHookInstaller.sol";
