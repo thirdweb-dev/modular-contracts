@@ -61,7 +61,7 @@ contract ERC20CoreTest is Test, TestPlus {
         IHookInstaller.InstallHookParams[] memory hooksToInstallOnInit = new ERC20Core.InstallHookParams[](1);
 
         hooksToInstallOnInit[0] =
-            IHookInstaller.InstallHookParams({hook: IHook(hookProxyAddress), initCallValue: 0, initCalldata: bytes("")});
+            IHookInstaller.InstallHookParams({hook: hookProxyAddress, initValue: 0, initCalldata: bytes("")});
 
         token = new ERC20Core(
             "Token",
@@ -82,11 +82,7 @@ contract ERC20CoreTest is Test, TestPlus {
         address permissionedCallHook = address(new MockHookWithPermissionedFallback());
 
         token.installHook(
-            IHookInstaller.InstallHookParams({
-                hook: IHook(permissionedCallHook),
-                initCallValue: 0,
-                initCalldata: bytes("")
-            })
+            IHookInstaller.InstallHookParams({hook: permissionedCallHook, initValue: 0, initCalldata: bytes("")})
         );
         vm.stopPrank();
 
@@ -103,9 +99,7 @@ contract ERC20CoreTest is Test, TestPlus {
         address mockHook = address(new MockOnTokenURIHook());
 
         vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerNoSupportedHooks.selector));
-        token.installHook(
-            IHookInstaller.InstallHookParams({hook: IHook(mockHook), initCallValue: 0, initCalldata: bytes("")})
-        );
+        token.installHook(IHookInstaller.InstallHookParams({hook: mockHook, initValue: 0, initCalldata: bytes("")}));
         vm.stopPrank();
     }
 

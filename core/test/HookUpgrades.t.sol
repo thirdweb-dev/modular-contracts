@@ -122,9 +122,9 @@ contract HookUpgradesTest is Test {
         // Developer installs hooks.
         vm.startPrank(developer);
 
-        erc20Core.installHook(IHookInstaller.InstallHookParams(IHook(hookERC20Proxy), 0, bytes("")));
-        erc721Core.installHook(IHookInstaller.InstallHookParams(IHook(hookERC721Proxy), 0, bytes("")));
-        erc1155Core.installHook(IHookInstaller.InstallHookParams(IHook(hookERC1155Proxy), 0, bytes("")));
+        erc20Core.installHook(IHookInstaller.InstallHookParams(hookERC20Proxy, 0, bytes("")));
+        erc721Core.installHook(IHookInstaller.InstallHookParams(hookERC721Proxy, 0, bytes("")));
+        erc1155Core.installHook(IHookInstaller.InstallHookParams(hookERC1155Proxy, 0, bytes("")));
 
         vm.stopPrank();
     }

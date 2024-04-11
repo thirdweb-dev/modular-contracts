@@ -1,16 +1,44 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-/// @author thirdweb
+import {IHook} from "@core-contracts/interface/IHook.sol";
+
+import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
+import {OnRoyaltyInfoHook} from "@core-contracts/hook/OnRoyaltyInfoHook.sol";
 
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {ERC1155Hook} from "@core-contracts/hook/ERC1155Hook.sol";
 
-import {IRoyaltyInfo} from "../../interface/IRoyaltyInfo.sol";
+library RoyaltyHookStorage {
+    /// @custom:storage-location erc7201:royalty.hook.storage
+    /// @dev keccak256(abi.encode(uint256(keccak256("royalty.hook.storage")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 public constant ROYALTY_HOOK_STORAGE_POSITION =
+        0x7ee93e57dcce937c8a9b57c763d236ae026d58f90462880b3a87d31ffacf4800;
 
-import {RoyaltyHookStorage} from "../../storage/RoyaltyHookStorage.sol";
+    struct Data {
+        /// @notice Mapping from token => default royalty info.
+        mapping(address => RoyaltyHook.RoyaltyInfo) defaultRoyaltyInfo;
+        /// @notice Mapping from token => tokenId => royalty info.
+        mapping(address => mapping(uint256 => RoyaltyHook.RoyaltyInfo)) royaltyInfoForToken;
+    }
 
-contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
+    function data() internal pure returns (Data storage data_) {
+        bytes32 position = ROYALTY_HOOK_STORAGE_POSITION;
+        assembly {
+            data_.slot := position
+        }
+    }
+}
+
+contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoHook, Multicallable {
+    /*//////////////////////////////////////////////////////////////
+                                STRUCTS
+    //////////////////////////////////////////////////////////////*/
+
+    struct RoyaltyInfo {
+        address recipient;
+        uint256 bps;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -32,14 +60,6 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
     error RoyaltyHookExceedsMaxBps();
 
     /*//////////////////////////////////////////////////////////////
-                                INITIALIZE
-    //////////////////////////////////////////////////////////////*/
-
-    function initialize(address _upgradeAdmin) public initializer {
-        __ERC1155Hook_init(_upgradeAdmin);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -48,18 +68,16 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
      *          callable via core contract fallback function.
      */
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = ON_ROYALTY_INFO_FLAG();
+        hookInfo.hookFlags = ON_ROYALTY_INFO_FLAG;
         hookInfo.hookFallbackFunctions = new HookFallbackFunction[](4);
-        hookInfo.hookFallbackFunctions[0] = HookFallbackFunction({
-            functionSelector: this.getRoyaltyInfoForToken.selector,
-            callType: CallType.STATICCALL
-        });
+        hookInfo.hookFallbackFunctions[0] =
+            HookFallbackFunction(this.getRoyaltyInfoForToken.selector, CallType.STATICCALL, false);
         hookInfo.hookFallbackFunctions[1] =
-            HookFallbackFunction({functionSelector: this.getDefaultRoyaltyInfo.selector, callType: CallType.STATICCALL});
+            HookFallbackFunction(this.getDefaultRoyaltyInfo.selector, CallType.STATICCALL, false);
         hookInfo.hookFallbackFunctions[2] =
-            HookFallbackFunction({functionSelector: this.setDefaultRoyaltyInfo.selector, callType: CallType.CALL});
+            HookFallbackFunction(this.setDefaultRoyaltyInfo.selector, CallType.CALL, true);
         hookInfo.hookFallbackFunctions[3] =
-            HookFallbackFunction({functionSelector: this.setRoyaltyInfoForToken.selector, callType: CallType.CALL});
+            HookFallbackFunction(this.setRoyaltyInfoForToken.selector, CallType.CALL, true);
     }
 
     /**
@@ -78,8 +96,13 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
         returns (address receiver, uint256 royaltyAmount)
     {
         address token = msg.sender;
-        (address recipient, uint256 bps) = getRoyaltyInfoForToken(token, _tokenId);
-        receiver = recipient;
+
+        (address overrideRecipient, uint16 overrideBps) = getRoyaltyInfoForToken(token, _tokenId);
+        (address defaultRecipient, uint16 defaultBps) = getDefaultRoyaltyInfo(token);
+
+        receiver = overrideRecipient == address(0) ? defaultRecipient : overrideRecipient;
+
+        uint16 bps = overrideBps == 0 ? defaultBps : overrideBps;
         royaltyAmount = (_salePrice * bps) / 10_000;
     }
 
@@ -92,13 +115,9 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
      */
     function getRoyaltyInfoForToken(address _token, uint256 _tokenId) public view returns (address, uint16) {
         RoyaltyHookStorage.Data storage data = RoyaltyHookStorage.data();
-
         RoyaltyInfo memory royaltyForToken = data.royaltyInfoForToken[_token][_tokenId];
-        RoyaltyInfo memory defaultRoyaltyInfo = data.defaultRoyaltyInfo[_token];
 
-        return royaltyForToken.recipient == address(0)
-            ? (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps))
-            : (royaltyForToken.recipient, uint16(royaltyForToken.bps));
+        return (royaltyForToken.recipient, uint16(royaltyForToken.bps));
     }
 
     /**
@@ -107,7 +126,7 @@ contract RoyaltyHook is IRoyaltyInfo, ERC1155Hook, Multicallable {
      *  @return recipient The royalty recipient address.
      *  @return bps The basis points of the sale price that is taken as royalty.
      */
-    function getDefaultRoyaltyInfo(address _token) external view returns (address, uint16) {
+    function getDefaultRoyaltyInfo(address _token) public view returns (address, uint16) {
         RoyaltyInfo memory defaultRoyaltyInfo = RoyaltyHookStorage.data().defaultRoyaltyInfo[_token];
         return (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps));
     }

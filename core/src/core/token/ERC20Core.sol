@@ -100,8 +100,8 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
 
         // Install and initialize hooks
         for (uint256 i = 0; i < _hooksToInstall.length; i++) {
-            if (constructorValue < _hooksToInstall[i].initCallValue) revert ERC20CoreInsufficientValueInConstructor();
-            constructorValue -= _hooksToInstall[i].initCallValue;
+            if (constructorValue < _hooksToInstall[i].initValue) revert ERC20CoreInsufficientValueInConstructor();
+            constructorValue -= _hooksToInstall[i].initValue;
 
             _installHook(_hooksToInstall[i]);
         }

@@ -13,12 +13,12 @@ interface IHookInstaller is IHookInfo {
      *  @notice Parameters for installing a hook.
      *
      *  @param hook The hook to install.
-     *  @param initCallValue The value to send with the initialization call.
+     *  @param initValue The value to send with the initialization call.
      *  @param initCalldata The calldata to send with the initialization call.
      */
     struct InstallHookParams {
-        IHook hook;
-        uint256 initCallValue;
+        address hook;
+        uint256 initValue;
         bytes initCalldata;
     }
 
@@ -55,7 +55,7 @@ interface IHookInstaller is IHookInfo {
     event HooksInstalled(address indexed implementation, uint256 hooks);
 
     /// @notice Emitted when a hook is uninstalled.
-    event HooksUninstalled(uint256 hooks);
+    event HooksUninstalled(address indexed implementation, uint256 hooks);
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -88,10 +88,7 @@ interface IHookInstaller is IHookInfo {
 
     /**
      *  @notice Uninstalls a hook in the contract.
-     *  @dev Unlike `installHook`, we do not accept a hook contract address as a parameter since it is possible
-     *       that the hook contract returns different hook functions compared to when it was installed. This could
-     *       lead to a mismatch. Instead, we use the bit representation of the hooks to uninstall.
-     *  @param hooksToUninstall The bit representation of the hooks to uninstall.
+     *  @param _hook The contract whose implemented hooks are to be uninstalled.
      */
-    function uninstallHook(uint256 hooksToUninstall) external;
+    function uninstallHook(address _hook) external;
 }

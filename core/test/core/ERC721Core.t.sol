@@ -88,7 +88,7 @@ contract ERC721CoreTest is Test, TestPlus {
             onInitializeCall,
             hooksToInstallOnInit
         );
-        token.installHook(IHookInstaller.InstallHookParams(IHook(hookProxyAddress), 0, bytes("")));
+        token.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
 
         vm.stopPrank();
 
