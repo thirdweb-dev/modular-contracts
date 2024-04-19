@@ -21,9 +21,14 @@ interface IExtensionTypes {
         bool permissioned;
     }
 
+    struct CallbackFunction {
+        bytes4 functionSelector;
+        string functionSignature;
+    }
+
     /// @notice All extension functions and supported callback functions of an extension contract.
     struct ExtensionConfig {
-        uint256 callbackFunctionsBitmask;
+        CallbackFunction[] supportedCallbackFunctions;
         ExtensionFunction[] extensionABI;
     }
 }
