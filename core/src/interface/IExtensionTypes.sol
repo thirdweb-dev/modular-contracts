@@ -15,8 +15,8 @@ interface IExtensionTypes {
 
     /// @dev Struct for an extension function. Installing an extension in a core adds its extension functions to the core's ABI.
     struct ExtensionFunction {
-        bytes4 fnSelector;
-        string fnSignature;
+        bytes4 functionSelector;
+        string functionSignature;
         CallType callType;
         bool permissioned;
     }
