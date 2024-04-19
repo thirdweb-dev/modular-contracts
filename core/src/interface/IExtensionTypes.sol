@@ -22,7 +22,7 @@ interface IExtensionTypes {
 
     /// @notice All extension functions and supported callback functions of an extension contract.
     struct ExtensionConfig {
-        bytes4[] supportedCallbackFunctions;
+        bytes4[] callbackFunctions;
         ExtensionFunction[] extensionABI;
     }
 }

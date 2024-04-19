@@ -29,6 +29,7 @@ abstract contract CoreContract is ICoreContract {
 
     error UnauthorizedInstall();
     error UnauthorizedExtensionCall();
+    error ExtensionUnsupportedCallbackFunction();
     error ExtensionInitializationFailed();
     error ExtensionAlreadyInstalled();
     error ExtensionNotInstalled();
@@ -69,6 +70,8 @@ abstract contract CoreContract is ICoreContract {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function getSupportedCallbackFunctions() public pure virtual returns (bytes4[] memory);
+
     function getInstalledExtensions()
         external
         view
@@ -84,6 +87,19 @@ abstract contract CoreContract is ICoreContract {
                 config: IExtensionContract(implementation).getExtensionConfig()
             });
         }
+    }
+
+    function getCallbackFunctionImplementation(bytes4 _selector) public view virtual returns (address) {
+        return callbackFunctionImplementation_[_selector];
+    }
+
+    function getExtensionFunctionData(bytes4 _selector)
+        public
+        view
+        virtual
+        returns (InstalledExtensionFunction memory)
+    {
+        return extensionFunctionData_[_selector];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -135,19 +151,6 @@ abstract contract CoreContract is ICoreContract {
     function _isAuthorizedToInstallExtensions(address _target) internal view virtual returns (bool);
     function _isAuthorizedToCallExtensionFunctions(address _target) internal view virtual returns (bool);
 
-    function _getCallbackFunctionImplementation(bytes4 _selector) internal view virtual returns (address) {
-        return callbackFunctionImplementation_[_selector];
-    }
-
-    function _getExtensionFunctionData(bytes4 _selector)
-        internal
-        view
-        virtual
-        returns (InstalledExtensionFunction memory)
-    {
-        return extensionFunctionData_[_selector];
-    }
-
     function _installExtension(address _extension) internal virtual {
         // Check: extension not already installed.
         if (extensionInstalled_[_extension]) {
@@ -158,6 +161,32 @@ abstract contract CoreContract is ICoreContract {
 
         // Get extension config.
         ExtensionConfig memory config = IExtensionContract(_extension).getExtensionConfig();
+
+        // Store callback function data. Only install supported callback functions
+        uint256 totalCallbacks = config.callbackFunctions.length;
+        bytes4[] memory supportedCallbacks = getSupportedCallbackFunctions();
+
+        for (uint256 i = 0; i < totalCallbacks; i++) {
+            bytes4 callbackFunction = config.callbackFunctions[i];
+
+            // Check: callback function data not already stored.
+            if (callbackFunctionImplementation_[callbackFunction] != address(0)) {
+                revert CallbackFunctionAlreadyInstalled();
+            }
+
+            bool supported = false;
+            for (uint256 j = 0; j < supportedCallbacks.length; j++) {
+                if (callbackFunction == supportedCallbacks[j]) {
+                    supported = true;
+                    break;
+                }
+            }
+            if (!supported) {
+                revert ExtensionUnsupportedCallbackFunction();
+            }
+
+            callbackFunctionImplementation_[callbackFunction] = _extension;
+        }
 
         // Store extension function data.
         uint256 totalFunctions = config.extensionABI.length;
@@ -170,19 +199,6 @@ abstract contract CoreContract is ICoreContract {
             }
 
             extensionFunctionData_[data.selector] = InstalledExtensionFunction({implementation: _extension, data: data});
-        }
-
-        // Store callback function data.
-        uint256 totalCallbacks = config.supportedCallbackFunctions.length;
-        for (uint256 i = 0; i < totalCallbacks; i++) {
-            bytes4 callbackFunction = config.supportedCallbackFunctions[i];
-
-            // Check: callback function data not already stored.
-            if (callbackFunctionImplementation_[callbackFunction] != address(0)) {
-                revert CallbackFunctionAlreadyInstalled();
-            }
-
-            callbackFunctionImplementation_[callbackFunction] = _extension;
         }
     }
 
@@ -204,9 +220,9 @@ abstract contract CoreContract is ICoreContract {
         }
 
         // Remove callback function data.
-        uint256 totalCallbacks = config.supportedCallbackFunctions.length;
+        uint256 totalCallbacks = config.callbackFunctions.length;
         for (uint256 i = 0; i < totalCallbacks; i++) {
-            bytes4 callbackFunction = config.supportedCallbackFunctions[i];
+            bytes4 callbackFunction = config.callbackFunctions[i];
             delete callbackFunctionImplementation_[callbackFunction];
         }
     }
