@@ -8,24 +8,16 @@ interface ICoreContract is IExtensionTypes {
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
-    struct CallbackFunction {
-        uint256 bitflag;
-        string functionSignature;
-        address implementation;
-    }
-
     struct InstalledExtension {
         address implementation;
-        ExtensionFunction[] extensionABI;
-        uint256 implementedCallbackFunctionsBitmask;
+        ExtensionConfig config;
     }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getSupportedCallbackFunctionsBitmask() external view returns (uint256);
-    function getSupportedCallbackFunctions() external view returns (CallbackFunction[] memory);
+    function getSupportedCallbackFunctions() external view returns (bytes4[] memory);
     function getInstalledExtensions() external view returns (InstalledExtension[] memory);
 
     /*//////////////////////////////////////////////////////////////
