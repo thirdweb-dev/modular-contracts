@@ -17,7 +17,7 @@ interface ICoreContract is IExtensionTypes {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getSupportedCallbackFunctions() external view returns (bytes4[] memory);
+    function getSupportedCallbackFunctions() external pure returns (bytes4[] memory);
     function getInstalledExtensions() external view returns (InstalledExtension[] memory);
 
     /*//////////////////////////////////////////////////////////////
