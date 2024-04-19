@@ -9,13 +9,13 @@ interface ICoreContract is IExtensionTypes {
     //////////////////////////////////////////////////////////////*/
 
     struct CallbackFunction {
-        uint256 callbackFunctionBitflag;
-        string callbackFunctionSignature;
-        address extensionContractImplementation;
+        uint256 bitflag;
+        string functionSignature;
+        address implementation;
     }
 
     struct InstalledExtension {
-        address extensionContract;
+        address implementation;
         ExtensionFunction[] extensionABI;
         uint256 implementedCallbackFunctionsBitmask;
     }
