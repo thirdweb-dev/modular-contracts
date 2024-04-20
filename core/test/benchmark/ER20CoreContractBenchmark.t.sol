@@ -5,15 +5,18 @@ import {Test} from "forge-std/Test.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-import {IHook} from "src/interface/IHook.sol";
-import {IHookInstaller} from "src/interface/IHookInstaller.sol";
-import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
+import {IExtensionContract} from "src/interface/IExtensionContract.sol";
+import {CoreContract, ICoreContract} from "src/core/CoreContract.sol";
 
-import {MockHookERC20, MockOneHookImplERC20, MockFourHookImplERC20} from "test/mocks/MockHook.sol";
+import {
+    MockExtensionERC20,
+    MockExtensionWithOneCallbackERC20,
+    MockExtensionWithFourCallbacksERC20
+} from "test/mocks/MockExtension.sol";
 
-import {ERC20Core} from "src/core/token/ERC20Core.sol";
+import {ERC20CoreContract} from "src/core/token/ERC20CoreContract.sol";
 
-contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
+contract ERC20CoreContractBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -24,7 +27,7 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
     address public claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
 
     // Target test contracts
-    ERC20Core public erc20;
+    ERC20CoreContract public erc20;
     address public hookProxyAddress;
 
     function setUp() public {
@@ -35,9 +38,9 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
 
         hookProxyAddress = address(
             new EIP1967Proxy(
-                address(new MockHookERC20()),
+                address(new MockExtensionERC20()),
                 abi.encodeWithSelector(
-                    MockHookERC20.initialize.selector,
+                    MockExtensionERC20.initialize.selector,
                     platformAdmin // upgradeAdmin
                 )
             )
@@ -48,22 +51,22 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        ERC20Core.OnInitializeParams memory onInitializeCall;
-        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
+        address[] memory extensionsToInstall = new address[](0);
 
-        erc20 = new ERC20Core(
-            "Test ERC20",
-            "TST",
+        erc20 = new ERC20CoreContract(
+            "Token",
+            "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            platformUser, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            platformUser, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
 
         vm.stopPrank();
 
-        vm.label(address(erc20), "ERC20Core");
-        vm.label(hookProxyAddress, "MockHookERC20");
+        vm.label(address(erc20), "ERC20CoreContract");
+        vm.label(hookProxyAddress, "MockExtensionERC20");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
@@ -74,22 +77,23 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
     //////////////////////////////////////////////////////////////*/
 
     function test_deployEndUserContract() public {
-        // Deploy a minimal proxy to the ERC20Core implementation contract.
+        // Deploy a minimal proxy to the ERC20CoreContract implementation contract.
 
         vm.pauseGasMetering();
 
-        ERC20Core.OnInitializeParams memory onInitializeCall;
-        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
+        address[] memory extensionsToInstall = new address[](1);
+        extensionsToInstall[0] = hookProxyAddress;
 
         vm.resumeGasMetering();
 
-        ERC20Core core = new ERC20Core(
-            "Test ERC20",
-            "TST",
+        ERC20CoreContract core = new ERC20CoreContract(
+            "Token",
+            "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            platformUser, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            platformUser, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
     }
 
@@ -101,12 +105,12 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
         vm.pauseGasMetering();
 
         vm.prank(platformUser);
-        erc20.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
+        erc20.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
         address claimerAddress = claimer;
         uint256 quantity = 1 ether;
-        ERC20Core core = erc20;
+        ERC20CoreContract core = erc20;
 
         vm.prank(claimer);
 
@@ -120,12 +124,12 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
         vm.pauseGasMetering();
 
         vm.prank(platformUser);
-        erc20.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
+        erc20.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
         address claimerAddress = claimer;
         uint256 quantity = 10 ether;
-        ERC20Core core = erc20;
+        ERC20CoreContract core = erc20;
 
         vm.prank(claimer);
 
@@ -143,12 +147,12 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
         vm.pauseGasMetering();
 
         vm.prank(platformUser);
-        erc20.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
+        erc20.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
         address claimerAddress = claimer;
         uint256 quantity = 10 ether;
-        ERC20Core core = erc20;
+        ERC20CoreContract core = erc20;
         core.mint(claimerAddress, quantity, "");
 
         address to = address(0x121212);
@@ -167,9 +171,9 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        address newImpl = address(new MockHookERC20());
+        address newImpl = address(new MockExtensionERC20());
         address proxyAdmin = platformAdmin;
-        MockHookERC20 proxy = MockHookERC20(payable(hookProxyAddress));
+        MockExtensionERC20 proxy = MockExtensionERC20(payable(hookProxyAddress));
 
         vm.prank(proxyAdmin);
 
@@ -186,57 +190,57 @@ contract ERC20CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImplERC20()));
-        ERC20Core hookConsumer = erc20;
+        address mockHook = address(new MockExtensionWithOneCallbackERC20());
+        ERC20CoreContract hookConsumer = erc20;
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(mockHook, 0, "");
     }
 
     function test_installFourHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImplERC20()));
-        ERC20Core hookConsumer = erc20;
+        address mockHook = address(new MockExtensionWithFourCallbacksERC20());
+        ERC20CoreContract hookConsumer = erc20;
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(mockHook, 0, "");
     }
 
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        ERC20Core hookConsumer = erc20;
+        ERC20CoreContract hookConsumer = erc20;
 
         vm.prank(platformUser);
-        erc20.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
+        hookConsumer.installExtension(hookProxyAddress, 0, "");
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(hookProxyAddress);
+        hookConsumer.uninstallExtension(hookProxyAddress, 0, "");
     }
 
     function test_uninstallFourHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImplERC20()));
-        ERC20Core hookConsumer = erc20;
+        address mockHook = address(new MockExtensionWithFourCallbacksERC20());
+        ERC20CoreContract hookConsumer = erc20;
 
         vm.prank(platformUser);
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(mockHook, 0, "");
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(address(mockHook));
+        hookConsumer.uninstallExtension(mockHook, 0, "");
     }
 }

@@ -2,7 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {BeforeMintHookERC20} from "src/hook/BeforeMintHookERC20.sol";
+import {BeforeTransferHookERC20} from "src/hook/BeforeTransferHookERC20.sol";
+import {BeforeBurnHookERC20} from "src/hook/BeforeBurnHookERC20.sol";
+import {BeforeApproveHookERC20} from "src/hook/BeforeApproveHookERC20.sol";
 import {OnTokenURIHook} from "src/hook/OnTokenURIHook.sol";
+
 import {IExtensionContract} from "src/interface/IExtensionContract.sol";
 
 import "@solady/utils/Initializable.sol";
@@ -91,5 +95,67 @@ contract MockExtensionWithPermissionedFallback is IExtensionContract, Initializa
 
     function permissionedFunction() external pure virtual returns (uint256) {
         return 1;
+    }
+}
+
+contract MockExtensionWithOneCallbackERC20 is
+    BeforeMintHookERC20,
+    IExtensionContract,
+    Initializable,
+    UUPSUpgradeable
+{
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
+        bytes4[] memory callbackFunctions = new bytes4[](1);
+        callbackFunctions[0] = this.beforeMintERC20.selector;
+        ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
+        return ExtensionConfig(callbackFunctions, extensionABI);
+    }
+}
+
+contract MockExtensionWithFourCallbacksERC20 is
+    IExtensionContract,
+    BeforeMintHookERC20,
+    BeforeTransferHookERC20,
+    BeforeBurnHookERC20,
+    BeforeApproveHookERC20,
+    Initializable,
+    UUPSUpgradeable
+{
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
+        bytes4[] memory callbackFunctions = new bytes4[](4);
+        callbackFunctions[0] = this.beforeMintERC20.selector;
+        callbackFunctions[1] = this.beforeTransferERC20.selector;
+        callbackFunctions[2] = this.beforeBurnERC20.selector;
+        callbackFunctions[3] = this.beforeApproveERC20.selector;
+        ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
+        return ExtensionConfig(callbackFunctions, extensionABI);
     }
 }
