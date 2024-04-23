@@ -79,6 +79,7 @@ abstract contract CoreContract is ICoreContract {
         returns (InstalledExtension[] memory _installedExtensions)
     {
         uint256 totalInstalled = extensionImplementation_.length;
+        _installedExtensions = new InstalledExtension[](totalInstalled);
 
         for (uint256 i = 0; i < totalInstalled; i++) {
             address implementation = extensionImplementation_[i];
