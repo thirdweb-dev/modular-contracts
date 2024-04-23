@@ -14,9 +14,9 @@ import {
     MockExtensionWithFourCallbacksERC20
 } from "test/mocks/MockExtension.sol";
 
-import {ERC20CoreContract} from "src/core/token/ERC20CoreContract.sol";
+import {ERC20Core} from "src/core/token/ERC20Core.sol";
 
-contract ERC20CoreContractBenchmarkTest is Test {
+contract ERC20CoreBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -27,7 +27,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
     address public claimer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
 
     // Target test contracts
-    ERC20CoreContract public erc20;
+    ERC20Core public erc20;
     address public hookProxyAddress;
 
     function setUp() public {
@@ -53,7 +53,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
 
         address[] memory extensionsToInstall = new address[](0);
 
-        erc20 = new ERC20CoreContract(
+        erc20 = new ERC20Core(
             "Token",
             "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
@@ -65,7 +65,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
 
         vm.stopPrank();
 
-        vm.label(address(erc20), "ERC20CoreContract");
+        vm.label(address(erc20), "ERC20Core");
         vm.label(hookProxyAddress, "MockExtensionERC20");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
@@ -77,7 +77,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_deployEndUserContract() public {
-        // Deploy a minimal proxy to the ERC20CoreContract implementation contract.
+        // Deploy a minimal proxy to the ERC20Core implementation contract.
 
         vm.pauseGasMetering();
 
@@ -86,7 +86,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
 
         vm.resumeGasMetering();
 
-        ERC20CoreContract core = new ERC20CoreContract(
+        ERC20Core core = new ERC20Core(
             "Token",
             "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
@@ -110,7 +110,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
         // Check pre-mint state
         address claimerAddress = claimer;
         uint256 quantity = 1 ether;
-        ERC20CoreContract core = erc20;
+        ERC20Core core = erc20;
 
         vm.prank(claimer);
 
@@ -129,7 +129,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
         // Check pre-mint state
         address claimerAddress = claimer;
         uint256 quantity = 10 ether;
-        ERC20CoreContract core = erc20;
+        ERC20Core core = erc20;
 
         vm.prank(claimer);
 
@@ -152,7 +152,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
         // Check pre-mint state
         address claimerAddress = claimer;
         uint256 quantity = 10 ether;
-        ERC20CoreContract core = erc20;
+        ERC20Core core = erc20;
         core.mint(claimerAddress, quantity, "");
 
         address to = address(0x121212);
@@ -191,7 +191,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         address mockHook = address(new MockExtensionWithOneCallbackERC20());
-        ERC20CoreContract hookConsumer = erc20;
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
 
@@ -204,7 +204,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         address mockHook = address(new MockExtensionWithFourCallbacksERC20());
-        ERC20CoreContract hookConsumer = erc20;
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
 
@@ -216,7 +216,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        ERC20CoreContract hookConsumer = erc20;
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
         hookConsumer.installExtension(hookProxyAddress, 0, "");
@@ -232,7 +232,7 @@ contract ERC20CoreContractBenchmarkTest is Test {
         vm.pauseGasMetering();
 
         address mockHook = address(new MockExtensionWithFourCallbacksERC20());
-        ERC20CoreContract hookConsumer = erc20;
+        ERC20Core hookConsumer = erc20;
 
         vm.prank(platformUser);
         hookConsumer.installExtension(mockHook, 0, "");
