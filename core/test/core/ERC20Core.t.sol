@@ -3,14 +3,18 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
-import {MockHookERC20, MockOnTokenURIHook, MockHookWithPermissionedFallback} from "../mocks/MockHook.sol";
+import {
+    MockExtensionERC20,
+    MockExtensionWithOnTokenURICallback,
+    MockExtensionWithPermissionedFallback
+} from "../mocks/MockExtension.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {HookInstaller, IHookInstaller} from "src/core/HookInstaller.sol";
+import {CoreContract, ICoreContract} from "src/core/CoreContract.sol";
 import {IHook} from "src/interface/IHook.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
@@ -50,26 +54,24 @@ contract ERC20CoreTest is Test, TestPlus {
 
     function setUp() public {
         bytes memory hookInitData = abi.encodeWithSelector(
-            MockHookERC20.initialize.selector,
+            MockExtensionERC20.initialize.selector,
             address(0x123) // upgradeAdmin
         );
-        hookProxyAddress = address(new EIP1967Proxy(address(new MockHookERC20()), hookInitData));
+        hookProxyAddress = address(new EIP1967Proxy(address(new MockExtensionERC20()), hookInitData));
 
         vm.startPrank(admin);
 
-        IHookInstaller.OnInitializeParams memory onInitializeCall;
-        IHookInstaller.InstallHookParams[] memory hooksToInstallOnInit = new ERC20Core.InstallHookParams[](1);
-
-        hooksToInstallOnInit[0] =
-            IHookInstaller.InstallHookParams({hook: hookProxyAddress, initValue: 0, initCalldata: bytes("")});
+        address[] memory extensionsToInstall = new address[](1);
+        extensionsToInstall[0] = hookProxyAddress;
 
         token = new ERC20Core(
             "Token",
             "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            admin, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            admin, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
         vm.stopPrank();
 
@@ -79,27 +81,25 @@ contract ERC20CoreTest is Test, TestPlus {
 
     function testPermissionedFallbackFunctionCall() public {
         vm.startPrank(admin);
-        address permissionedCallHook = address(new MockHookWithPermissionedFallback());
+        address permissionedCallHook = address(new MockExtensionWithPermissionedFallback());
 
-        token.installHook(
-            IHookInstaller.InstallHookParams({hook: permissionedCallHook, initValue: 0, initCalldata: bytes("")})
-        );
+        token.installExtension(permissionedCallHook, 0, "");
         vm.stopPrank();
 
-        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerUnauthorizedCall.selector));
-        MockHookWithPermissionedFallback(address(token)).permissionedFunction();
+        vm.expectRevert(abi.encodeWithSelector(CoreContract.UnauthorizedExtensionCall.selector));
+        MockExtensionWithPermissionedFallback(address(token)).permissionedFunction();
 
         vm.prank(admin);
-        uint256 result = MockHookWithPermissionedFallback(address(token)).permissionedFunction();
+        uint256 result = MockExtensionWithPermissionedFallback(address(token)).permissionedFunction();
         assertEq(result, 1);
     }
 
     function testIncompatibleHookInstall() public {
         vm.startPrank(admin);
-        address mockHook = address(new MockOnTokenURIHook());
+        address mockHook = address(new MockExtensionWithOnTokenURICallback());
 
-        vm.expectRevert(abi.encodeWithSelector(HookInstaller.HookInstallerNoSupportedHooks.selector));
-        token.installHook(IHookInstaller.InstallHookParams({hook: mockHook, initValue: 0, initCalldata: bytes("")}));
+        vm.expectRevert(abi.encodeWithSelector(CoreContract.ExtensionUnsupportedCallbackFunction.selector));
+        token.installExtension(address(mockHook), 0, "");
         vm.stopPrank();
     }
 

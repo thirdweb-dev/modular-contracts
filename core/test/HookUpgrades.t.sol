@@ -7,19 +7,14 @@ import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
 import {IHook} from "src/interface/IHook.sol";
 import {IHookInstaller} from "src/interface/IHookInstaller.sol";
+import {ICoreContract} from "src/interface/ICoreContract.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
-import {
-    MockHookERC20,
-    BuggyMockHookERC20,
-    MockHookERC721,
-    BuggyMockHookERC721,
-    MockHookERC1155,
-    BuggyMockHookERC1155
-} from "test/mocks/MockHook.sol";
+import {MockHookERC721, BuggyMockHookERC721, MockHookERC1155, BuggyMockHookERC1155} from "test/mocks/MockHook.sol";
+import {MockExtensionERC20, BuggyMockExtensionERC20} from "test/mocks/MockExtension.sol";
 
 contract HookUpgradesTest is Test {
     /*//////////////////////////////////////////////////////////////
@@ -36,48 +31,49 @@ contract HookUpgradesTest is Test {
     ERC721Core public erc721Core;
     ERC1155Core public erc1155Core;
 
-    address public hookERC20Proxy;
+    address public extensionERC20Proxy;
     address public hookERC721Proxy;
     address public hookERC1155Proxy;
 
-    BuggyMockHookERC20 public buggyHookERC20Impl;
+    BuggyMockExtensionERC20 public buggyExtensionERC20Impl;
     BuggyMockHookERC721 public buggyHookERC721Impl;
     BuggyMockHookERC1155 public buggyHookERC1155Impl;
 
-    MockHookERC20 public hookERC20Impl;
+    MockExtensionERC20 public extensionERC20Impl;
     MockHookERC721 public hookERC721Impl;
     MockHookERC1155 public hookERC1155Impl;
 
     function setUp() public {
         // Platform deploys hook implementations
-        buggyHookERC20Impl = new BuggyMockHookERC20();
+        buggyExtensionERC20Impl = new BuggyMockExtensionERC20();
         buggyHookERC721Impl = new BuggyMockHookERC721();
         buggyHookERC1155Impl = new BuggyMockHookERC1155();
 
-        hookERC20Impl = new MockHookERC20();
+        extensionERC20Impl = new MockExtensionERC20();
         hookERC721Impl = new MockHookERC721();
         hookERC1155Impl = new MockHookERC1155();
 
         // Platform deploys proxy pointing to hooks. Starts out with using buggy hooks.
         bytes memory hookInitData = abi.encodeWithSelector(
-            MockHookERC20.initialize.selector,
+            MockExtensionERC20.initialize.selector,
             platformAdmin // upgradeAdmin
         );
-        hookERC20Proxy = address(new EIP1967Proxy(address(buggyHookERC20Impl), hookInitData));
+        extensionERC20Proxy = address(new EIP1967Proxy(address(buggyExtensionERC20Impl), hookInitData));
         hookERC721Proxy = address(new EIP1967Proxy(address(buggyHookERC721Impl), hookInitData));
         hookERC1155Proxy = address(new EIP1967Proxy(address(buggyHookERC1155Impl), hookInitData));
 
         // Deploy core contracts
-        ERC20Core.OnInitializeParams memory onInitializeCall;
-        ERC20Core.InstallHookParams[] memory hooksToInstallOnInit;
+        ERC721Core.OnInitializeParams memory onInitializeCall;
+        ERC721Core.InstallHookParams[] memory hooksToInstallOnInit;
 
         erc20Core = new ERC20Core(
             "Test ERC20",
             "TST",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
             developer, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            new address[](0),
+            address(0),
+            bytes("")
         );
         erc721Core = new ERC721Core(
             "Test ERC721",
@@ -107,22 +103,22 @@ contract HookUpgradesTest is Test {
         vm.label(address(erc721Core), "ERC721Core");
         vm.label(address(erc1155Core), "ERC1155Core");
 
-        vm.label(hookERC20Proxy, "ProxyMintHookERC20");
+        vm.label(extensionERC20Proxy, "ProxyMintHookERC20");
         vm.label(hookERC721Proxy, "ProxyMintHookERC721");
         vm.label(hookERC1155Proxy, "ProxyMintHookERC1155");
 
-        vm.label(address(buggyHookERC20Impl), "BuggyMintHookERC20");
+        vm.label(address(buggyExtensionERC20Impl), "BuggyMintHookERC20");
         vm.label(address(buggyHookERC721Impl), "BuggyMintHookERC721");
         vm.label(address(buggyHookERC1155Impl), "BuggyMintHookERC1155");
 
-        vm.label(address(hookERC20Impl), "MockHookERC20");
+        vm.label(address(extensionERC20Impl), "MockExtensionERC20");
         vm.label(address(hookERC721Impl), "MockHookERC721");
         vm.label(address(hookERC1155Impl), "MockHookERC1155");
 
         // Developer installs hooks.
         vm.startPrank(developer);
 
-        erc20Core.installHook(IHookInstaller.InstallHookParams(hookERC20Proxy, 0, bytes("")));
+        erc20Core.installExtension(address(extensionERC20Proxy), 0, "");
         erc721Core.installHook(IHookInstaller.InstallHookParams(hookERC721Proxy, 0, bytes("")));
         erc1155Core.installHook(IHookInstaller.InstallHookParams(hookERC1155Proxy, 0, bytes("")));
 
@@ -134,7 +130,9 @@ contract HookUpgradesTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_upgrade_erc20Core() public {
-        assertEq(erc20Core.getAllHooks().beforeMint, hookERC20Proxy);
+        ICoreContract.InstalledExtension[] memory installedExtensions = erc20Core.getInstalledExtensions();
+        assertEq(installedExtensions.length, 1);
+        assertEq(installedExtensions[0].implementation, extensionERC20Proxy);
 
         // End user specifies 1 ether token to claim
         assertEq(erc20Core.balanceOf(endUser), 0);
@@ -148,11 +146,11 @@ contract HookUpgradesTest is Test {
 
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(MockHookERC20.UnauthorizedUpgrade.selector));
-        MockHookERC20(hookERC20Proxy).upgradeToAndCall(address(hookERC20Impl), bytes(""));
+        vm.expectRevert(abi.encodeWithSelector(MockExtensionERC20.UnauthorizedUpgrade.selector));
+        MockExtensionERC20(extensionERC20Proxy).upgradeToAndCall(address(extensionERC20Impl), bytes(""));
 
         vm.prank(platformAdmin);
-        MockHookERC20(hookERC20Proxy).upgradeToAndCall(address(hookERC20Impl), bytes(""));
+        MockExtensionERC20(extensionERC20Proxy).upgradeToAndCall(address(extensionERC20Impl), bytes(""));
 
         // Claim token again; this time contract mints specified quantity.
         assertEq(erc20Core.balanceOf(endUser), 0);
@@ -182,7 +180,7 @@ contract HookUpgradesTest is Test {
 
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(MockHookERC20.UnauthorizedUpgrade.selector));
+        vm.expectRevert(abi.encodeWithSelector(MockExtensionERC20.UnauthorizedUpgrade.selector));
         MockHookERC721(hookERC721Proxy).upgradeToAndCall(address(hookERC721Impl), bytes(""));
 
         vm.prank(platformAdmin);
@@ -213,7 +211,7 @@ contract HookUpgradesTest is Test {
 
         // Platform upgrades hook implementation to fix this bug.
         vm.prank(address(0x324254));
-        vm.expectRevert(abi.encodeWithSelector(MockHookERC20.UnauthorizedUpgrade.selector));
+        vm.expectRevert(abi.encodeWithSelector(MockExtensionERC20.UnauthorizedUpgrade.selector));
         MockHookERC1155(hookERC1155Proxy).upgradeToAndCall(address(hookERC1155Impl), bytes(""));
 
         vm.prank(platformAdmin);

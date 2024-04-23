@@ -27,11 +27,9 @@ contract MockExtensionERC20 is BeforeMintHookERC20, IExtensionContract, Initiali
         }
     }
 
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
-        bytes4[] memory callbackFunctions = new bytes4[](1);
-        callbackFunctions[0] = this.beforeMintERC20.selector;
-        ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
-        return ExtensionConfig(callbackFunctions, extensionABI);
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](1);
+        config.callbackFunctions[0] = this.beforeMintERC20.selector;
     }
 
     function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
@@ -157,5 +155,38 @@ contract MockExtensionWithFourCallbacksERC20 is
         callbackFunctions[3] = this.beforeApproveERC20.selector;
         ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
         return ExtensionConfig(callbackFunctions, extensionABI);
+    }
+}
+
+contract BuggyMockExtensionERC20 is BeforeMintHookERC20, IExtensionContract, Initializable, UUPSUpgradeable {
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](1);
+        config.callbackFunctions[0] = this.beforeMintERC20.selector;
+    }
+
+    error BuggyMinting();
+
+    function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
+        external
+        payable
+        override
+        returns (bytes memory)
+    {
+        address token = msg.sender;
+        revert BuggyMinting();
     }
 }

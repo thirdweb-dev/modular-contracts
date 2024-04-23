@@ -5,16 +5,14 @@ import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
-import {HookFlagsDirectory} from "../../hook/HookFlagsDirectory.sol";
-import {HookInstaller} from "../HookInstaller.sol";
+import {CoreContract} from "../CoreContract.sol";
 
-import {IERC20HookInstaller} from "../../interface/IERC20HookInstaller.sol";
 import {BeforeMintHookERC20} from "../../hook/BeforeMintHookERC20.sol";
 import {BeforeApproveHookERC20} from "../../hook/BeforeApproveHookERC20.sol";
 import {BeforeTransferHookERC20} from "../../hook/BeforeTransferHookERC20.sol";
 import {BeforeBurnHookERC20} from "../../hook/BeforeBurnHookERC20.sol";
 
-contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookInstaller, HookFlagsDirectory {
+contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -33,16 +31,10 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when the on initialize call fails.
-    error ERC20CoreOnInitializeCallFailed();
-
-    /// @notice Emitted when a hook initialization call fails.
-    error ERC20CoreHookInitializeCallFailed();
+    error ERC20CoreInitCallFailed();
 
     /// @notice Emitted when a hook call fails.
-    error ERC20CoreHookCallFailed();
-
-    /// @notice Emitted when insufficient value is sent in the constructor.
-    error ERC20CoreInsufficientValueInConstructor();
+    error ERC20CoreCallbackFailed();
 
     /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
     error ERC20CoreMintDisabled();
@@ -58,23 +50,14 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     *  @notice Initializes the ERC20 token.
-     *
-     *  @param _name The name of the token.
-     *  @param _symbol The symbol of the token.
-     *  @param _contractURI The contract URI of the token.
-     *  @param _owner The owner of the contract.
-     *  @param _onInitializeCall Any external call to make on contract initialization.
-     *  @param _hooksToInstall Any hooks to install and initialize on contract initialization.
-     */
     constructor(
         string memory _name,
         string memory _symbol,
         string memory _contractURI,
         address _owner,
-        OnInitializeParams memory _onInitializeCall,
-        InstallHookParams[] memory _hooksToInstall
+        address[] memory _extensionsToInstall,
+        address _initCallTarget,
+        bytes memory _initCalldata
     ) payable {
         // Set contract metadata
         name_ = _name;
@@ -84,26 +67,15 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
         // Set contract owner
         _setOwner(_owner);
 
-        // Track native token value sent to the constructor
-        uint256 constructorValue = msg.value;
-
-        // Initialize the core token
-        if (_onInitializeCall.target != address(0)) {
-            if (constructorValue < _onInitializeCall.value) revert ERC20CoreInsufficientValueInConstructor();
-            constructorValue -= _onInitializeCall.value;
-
-            (bool success, bytes memory returndata) =
-                _onInitializeCall.target.call{value: _onInitializeCall.value}(_onInitializeCall.data);
-
-            if (!success) _revert(returndata, ERC20CoreOnInitializeCallFailed.selector);
+        // External call upon core core contract initialization.
+        if (_initCallTarget != address(0) && _initCalldata.length > 0) {
+            (bool success, bytes memory returndata) = _initCallTarget.call{value: msg.value}(_initCalldata);
+            if (!success) _revert(returndata, ERC20CoreInitCallFailed.selector);
         }
 
         // Install and initialize hooks
-        for (uint256 i = 0; i < _hooksToInstall.length; i++) {
-            if (constructorValue < _hooksToInstall[i].initValue) revert ERC20CoreInsufficientValueInConstructor();
-            constructorValue -= _hooksToInstall[i].initValue;
-
-            _installHook(_hooksToInstall[i]);
+        for (uint256 i = 0; i < _extensionsToInstall.length; i++) {
+            _installExtension(_extensionsToInstall[i]);
         }
     }
 
@@ -129,14 +101,18 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
         return contractURI_;
     }
 
-    /// @notice Returns all of the contract's hooks and their implementations.
-    function getAllHooks() external view returns (ERC20Hooks memory hooks) {
-        hooks = ERC20Hooks({
-            beforeMint: getHookImplementation(BEFORE_MINT_ERC20_FLAG),
-            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_ERC20_FLAG),
-            beforeBurn: getHookImplementation(BEFORE_BURN_ERC20_FLAG),
-            beforeApprove: getHookImplementation(BEFORE_APPROVE_ERC20_FLAG)
-        });
+    function getSupportedCallbackFunctions()
+        public
+        pure
+        override
+        returns (bytes4[] memory supportedCallbackFunctions)
+    {
+        supportedCallbackFunctions = new bytes4[](4);
+
+        supportedCallbackFunctions[0] = BeforeMintHookERC20.beforeMintERC20.selector;
+        supportedCallbackFunctions[1] = BeforeTransferHookERC20.beforeTransferERC20.selector;
+        supportedCallbackFunctions[2] = BeforeBurnHookERC20.beforeBurnERC20.selector;
+        supportedCallbackFunctions[3] = BeforeApproveHookERC20.beforeApproveERC20.selector;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -223,19 +199,12 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Returns whether the caller can update hooks.
-    function _canUpdateHooks(address _caller) internal view override returns (bool) {
-        return _caller == owner();
+    function _isAuthorizedToInstallExtensions(address _target) internal view override returns (bool) {
+        return _target == owner();
     }
 
-    /// @dev Returns whether the caller can write to hooks.
-    function _isAuthorizedToCallHookFallbackFunction(address _caller) internal view override returns (bool) {
-        return _caller == owner();
-    }
-
-    /// @dev Should return the supported hook flags.
-    function _supportedHookFlags() internal view virtual override returns (uint256) {
-        return BEFORE_MINT_ERC20_FLAG | BEFORE_TRANSFER_ERC20_FLAG | BEFORE_BURN_ERC20_FLAG | BEFORE_APPROVE_ERC20_FLAG;
+    function _isAuthorizedToCallExtensionFunctions(address _target) internal view override returns (bool) {
+        return _target == owner();
     }
 
     /// @dev Sets contract URI
@@ -245,19 +214,19 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
     }
 
     /*//////////////////////////////////////////////////////////////
-                          HOOKS INTERNAL FUNCTIONS
+                          CALLBACK INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _amount, bytes calldata _data) internal virtual {
-        address hook = getHookImplementation(BEFORE_MINT_ERC20_FLAG);
+        address extension = getCallbackFunctionImplementation(BeforeMintHookERC20.beforeMintERC20.selector);
 
-        if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+        if (extension != address(0)) {
+            (bool success, bytes memory returndata) = extension.call{value: msg.value}(
                 abi.encodeWithSelector(BeforeMintHookERC20.beforeMintERC20.selector, _to, _amount, _data)
             );
 
-            if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
         } else {
             // Revert if beforeMint hook is not installed to disable un-permissioned minting.
             revert ERC20CoreMintDisabled();
@@ -266,37 +235,37 @@ contract ERC20Core is ERC20, HookInstaller, Ownable, Multicallable, IERC20HookIn
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _amount) internal virtual {
-        address hook = getHookImplementation(BEFORE_TRANSFER_ERC20_FLAG);
+        address extension = getCallbackFunctionImplementation(BeforeTransferHookERC20.beforeTransferERC20.selector);
 
-        if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call(
+        if (extension != address(0)) {
+            (bool success, bytes memory returndata) = extension.call(
                 abi.encodeWithSelector(BeforeTransferHookERC20.beforeTransferERC20.selector, _from, _to, _amount)
             );
-            if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
         }
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address _from, uint256 _amount, bytes calldata _data) internal virtual {
-        address hook = getHookImplementation(BEFORE_BURN_ERC20_FLAG);
+        address extension = getCallbackFunctionImplementation(BeforeBurnHookERC20.beforeBurnERC20.selector);
 
-        if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call{value: msg.value}(
+        if (extension != address(0)) {
+            (bool success, bytes memory returndata) = extension.call{value: msg.value}(
                 abi.encodeWithSelector(BeforeBurnHookERC20.beforeBurnERC20.selector, _from, _amount, _data)
             );
-            if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
         }
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApprove(address _from, address _to, uint256 _amount) internal virtual {
-        address hook = getHookImplementation(BEFORE_APPROVE_ERC20_FLAG);
+        address extension = getCallbackFunctionImplementation(BeforeApproveHookERC20.beforeApproveERC20.selector);
 
-        if (hook != address(0)) {
-            (bool success, bytes memory returndata) = hook.call(
+        if (extension != address(0)) {
+            (bool success, bytes memory returndata) = extension.call(
                 abi.encodeWithSelector(BeforeApproveHookERC20.beforeApproveERC20.selector, _from, _to, _amount)
             );
-            if (!success) _revert(returndata, ERC20CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
         }
     }
 }
