@@ -5,15 +5,16 @@ import {Test} from "forge-std/Test.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-import {IHook} from "src/interface/IHook.sol";
-import {IHookInstaller} from "src/interface/IHookInstaller.sol";
-import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
-
-import {MockHookERC721, MockOneHookImplERC721, MockFourHookImplERC721} from "test/mocks/MockHook.sol";
+import {CoreContract, ICoreContract} from "src/core/CoreContract.sol";
+import {
+    MockExtensionERC721,
+    MockExtensionWithOneCallbackERC721,
+    MockExtensionWithFourCallbacksERC721
+} from "test/mocks/MockExtension.sol";
 
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 
-contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
+contract ERC721CoreBenchmarkTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -35,9 +36,9 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
 
         hookProxyAddress = address(
             new EIP1967Proxy(
-                address(new MockHookERC721()),
+                address(new MockExtensionERC721()),
                 abi.encodeWithSelector(
-                    MockHookERC721.initialize.selector,
+                    MockExtensionERC721.initialize.selector,
                     platformAdmin // upgradeAdmin
                 )
             )
@@ -48,25 +49,22 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        ERC721Core.OnInitializeParams memory onInitializeCall;
-        ERC721Core.InstallHookParams[] memory hooksToInstallOnInit;
+        address[] memory extensionsToInstall = new address[](0);
 
         erc721 = new ERC721Core(
-            "Test ERC721",
-            "TST",
+            "Token",
+            "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            platformUser, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            platformUser, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
-
-        // Developer installs `MockHookERC721` hook
-        erc721.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
 
         vm.stopPrank();
 
         vm.label(address(erc721), "ERC721Core");
-        vm.label(hookProxyAddress, "MockHookERC721");
+        vm.label(hookProxyAddress, "MockExtensionERC721");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
@@ -81,18 +79,19 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
 
         vm.pauseGasMetering();
 
-        ERC721Core.OnInitializeParams memory onInitializeCall;
-        ERC721Core.InstallHookParams[] memory hooksToInstallOnInit;
+        address[] memory extensionsToInstall = new address[](1);
+        extensionsToInstall[0] = hookProxyAddress;
 
         vm.resumeGasMetering();
 
         ERC721Core core = new ERC721Core(
-            "Test ERC721",
-            "TST",
+            "Token",
+            "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            platformUser, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            platformUser, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
     }
 
@@ -102,6 +101,9 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
 
     function test_mintOneToken() public {
         vm.pauseGasMetering();
+
+        vm.prank(platformUser);
+        erc721.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
 
@@ -119,6 +121,9 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
 
     function test_mintTenTokens() public {
         vm.pauseGasMetering();
+
+        vm.prank(platformUser);
+        erc721.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
 
@@ -140,6 +145,9 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
 
     function test_transferOneToken() public {
         vm.pauseGasMetering();
+
+        vm.prank(platformUser);
+        erc721.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
 
@@ -165,9 +173,9 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        address newImpl = address(new MockHookERC721());
+        address newImpl = address(new MockExtensionERC721());
         address proxyAdmin = platformAdmin;
-        MockHookERC721 proxy = MockHookERC721(payable(hookProxyAddress));
+        MockExtensionERC721 proxy = MockExtensionERC721(payable(hookProxyAddress));
 
         vm.prank(proxyAdmin);
 
@@ -184,64 +192,58 @@ contract ERC721CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImplERC721()));
+        address mockHook = address(new MockExtensionWithOneCallbackERC721());
         ERC721Core hookConsumer = erc721;
-
-        vm.prank(platformUser);
-        hookConsumer.uninstallHook(hookProxyAddress);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(address(mockHook), 0, "");
     }
 
     function test_installfiveHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImplERC721()));
+        address mockHook = address(new MockExtensionWithFourCallbacksERC721());
         ERC721Core hookConsumer = erc721;
-
-        vm.prank(platformUser);
-        hookConsumer.uninstallHook(hookProxyAddress);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(address(mockHook), 0, "");
     }
 
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImplERC721()));
+        address mockHook = address(new MockExtensionWithOneCallbackERC721());
         ERC721Core hookConsumer = erc721;
+
+        vm.prank(platformUser);
+        hookConsumer.installExtension(address(mockHook), 0, "");
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(address(mockHook));
+        hookConsumer.uninstallExtension(address(mockHook), 0, "");
     }
 
     function test_uninstallFiveHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImplERC721()));
+        address mockHook = address(new MockExtensionWithFourCallbacksERC721());
         ERC721Core hookConsumer = erc721;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(hookProxyAddress);
-
-        vm.prank(platformUser);
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(address(mockHook), 0, "");
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(address(mockHook));
+        hookConsumer.uninstallExtension(address(mockHook), 0, "");
     }
 }

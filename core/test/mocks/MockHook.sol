@@ -106,86 +106,6 @@ contract BuggyMockHookERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUp
     }
 }
 
-contract MockHookERC721 is BeforeMintHookERC721, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
-    address public upgradeAdmin;
-
-    function initialize(address _upgradeAdmin) public initializer {
-        upgradeAdmin = _upgradeAdmin;
-    }
-
-    error UnauthorizedUpgrade();
-
-    function _authorizeUpgrade(address) internal view override {
-        if (msg.sender != upgradeAdmin) {
-            revert UnauthorizedUpgrade();
-        }
-    }
-
-    mapping(address => uint256) nextTokenIdToMint;
-
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = BEFORE_MINT_ERC721_FLAG;
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
-    }
-
-    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
-        external
-        payable
-        override
-        returns (bytes memory)
-    {
-        address token = msg.sender;
-
-        uint256 tokenIdToMint = nextTokenIdToMint[token];
-        nextTokenIdToMint[token] += _quantity;
-
-        uint256 quantityToMint = _quantity;
-
-        return abi.encode(tokenIdToMint, quantityToMint);
-    }
-}
-
-contract BuggyMockHookERC721 is BeforeMintHookERC721, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
-    address public upgradeAdmin;
-
-    function initialize(address _upgradeAdmin) public initializer {
-        upgradeAdmin = _upgradeAdmin;
-    }
-
-    error UnauthorizedUpgrade();
-
-    function _authorizeUpgrade(address) internal view override {
-        if (msg.sender != upgradeAdmin) {
-            revert UnauthorizedUpgrade();
-        }
-    }
-
-    mapping(address => uint256) nextTokenIdToMint;
-
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = BEFORE_MINT_ERC721_FLAG;
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
-    }
-
-    error BuggyMinting();
-
-    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
-        external
-        payable
-        override
-        returns (bytes memory)
-    {
-        address token = msg.sender;
-
-        uint256 tokenIdToMint = nextTokenIdToMint[token];
-        nextTokenIdToMint[token] += _quantity;
-
-        uint256 quantityToMint = _quantity;
-
-        revert BuggyMinting();
-    }
-}
-
 contract MockHookERC1155 is BeforeMintHookERC1155, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
@@ -310,27 +230,6 @@ contract MockOneHookImplERC1155 is BeforeMintHookERC20, IHook, Initializable, UU
     }
 }
 
-contract MockOneHookImplERC721 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
-    address public upgradeAdmin;
-
-    function initialize(address _upgradeAdmin) public initializer {
-        upgradeAdmin = _upgradeAdmin;
-    }
-
-    error UnauthorizedUpgrade();
-
-    function _authorizeUpgrade(address) internal view override {
-        if (msg.sender != upgradeAdmin) {
-            revert UnauthorizedUpgrade();
-        }
-    }
-
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = BEFORE_MINT_ERC721_FLAG;
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
-    }
-}
-
 contract MockOneHookImplERC20 is BeforeMintHookERC20, IHook, Initializable, UUPSUpgradeable, HookFlagsDirectory {
     address public upgradeAdmin;
 
@@ -379,37 +278,6 @@ contract MockFourHookImplERC20 is
     function getHookInfo() external pure returns (HookInfo memory hookInfo) {
         hookInfo.hookFlags =
             BEFORE_MINT_ERC20_FLAG | BEFORE_TRANSFER_ERC20_FLAG | BEFORE_APPROVE_ERC20_FLAG | BEFORE_BURN_ERC20_FLAG;
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
-    }
-}
-
-contract MockFourHookImplERC721 is
-    IHook,
-    BeforeMintHookERC20,
-    BeforeTransferHookERC20,
-    BeforeBurnHookERC20,
-    BeforeApproveHookERC20,
-    Initializable,
-    UUPSUpgradeable,
-    HookFlagsDirectory
-{
-    address public upgradeAdmin;
-
-    function initialize(address _upgradeAdmin) public initializer {
-        upgradeAdmin = _upgradeAdmin;
-    }
-
-    error UnauthorizedUpgrade();
-
-    function _authorizeUpgrade(address) internal view override {
-        if (msg.sender != upgradeAdmin) {
-            revert UnauthorizedUpgrade();
-        }
-    }
-
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags =
-            BEFORE_MINT_ERC721_FLAG | BEFORE_TRANSFER_ERC721_FLAG | BEFORE_APPROVE_ERC721_FLAG | BEFORE_BURN_ERC721_FLAG;
         hookInfo.hookFallbackFunctions = new HookFallbackFunction[](0);
     }
 }
