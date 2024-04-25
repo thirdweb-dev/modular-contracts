@@ -5,9 +5,6 @@ import {Test} from "forge-std/Test.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-import {IHook} from "src/interface/IHook.sol";
-import {IHookInstaller} from "src/interface/IHookInstaller.sol";
-
 import {
     MockExtensionERC1155,
     MockExtensionWithOneCallbackERC1155,
