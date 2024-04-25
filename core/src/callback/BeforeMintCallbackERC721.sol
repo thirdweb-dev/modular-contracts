@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-contract BeforeBurnHookERC721 {
+contract BeforeMintCallbackERC721 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error BeforeBurnHookERC721NotImplemented();
+    error BeforeMintCallbackERC721NotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice The beforeBurnERC721 hook that is called by a core token before burning a token.
-     *  @param _operator The address that is burning tokens.
-     *  @param _tokenId The token ID being burned.
-     *  @param _data The encoded arguments for the beforeBurn hook.
+     *  @notice The beforeMintERC721 hook that is called by a core token before minting tokens.
+     *  @param _to The address that is minting tokens.
+     *  @param _quantity The quantity of tokens to mint.
+     *  @param _data Optional extra data passed to the hook.
      *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeBurnERC721(address _operator, uint256 _tokenId, bytes memory _data)
+    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
         returns (bytes memory result)
     {
-        revert BeforeBurnHookERC721NotImplemented();
+        revert BeforeMintCallbackERC721NotImplemented();
     }
 }

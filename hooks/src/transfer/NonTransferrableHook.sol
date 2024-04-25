@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import {IHook} from "@core-contracts/interface/IHook.sol";
 
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {BeforeTransferHookERC20} from "@core-contracts/hook/BeforeTransferHookERC20.sol";
-import {BeforeTransferHookERC721} from "@core-contracts/hook/BeforeTransferHookERC721.sol";
-import {BeforeTransferHookERC1155} from "@core-contracts/hook/BeforeTransferHookERC1155.sol";
-import {BeforeBatchTransferHookERC1155} from "@core-contracts/hook/BeforeBatchTransferHookERC1155.sol";
+import {HookFlagsDirectory} from "@core-contracts/callback/HookFlagsDirectory.sol";
+import {BeforeTransferCallbackERC20} from "@core-contracts/callback/BeforeTransferCallbackERC20.sol";
+import {BeforeTransferCallbackERC721} from "@core-contracts/callback/BeforeTransferCallbackERC721.sol";
+import {BeforeTransferCallbackERC1155} from "@core-contracts/callback/BeforeTransferCallbackERC1155.sol";
+import {BeforeBatchTransferCallbackERC1155} from "@core-contracts/callback/BeforeBatchTransferCallbackERC1155.sol";
 
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
@@ -31,10 +31,10 @@ library NonTransferableHookStorage {
 
 contract NonTransferableHook is
     IHook,
-    BeforeTransferHookERC20,
-    BeforeTransferHookERC721,
-    BeforeTransferHookERC1155,
-    BeforeBatchTransferHookERC1155
+    BeforeTransferCallbackERC20,
+    BeforeTransferCallbackERC721,
+    BeforeTransferCallbackERC1155,
+    BeforeBatchTransferCallbackERC1155
 {
     /*//////////////////////////////////////////////////////////////
     CONSTANTS: (TODO: replace with inheriting HooksFlagDirectory)

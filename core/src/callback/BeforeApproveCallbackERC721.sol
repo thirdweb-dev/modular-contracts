@@ -1,28 +1,30 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-contract BeforeApproveForAllHook {
+contract BeforeApproveCallbackERC721 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error BeforeApproveForAllHookNotImplemented();
+    error BeforeApproveCallbackERC721NotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice The beforeApproveForAll hook that is called by a core token before approving an operator to transfer all tokens.
+     *  @notice The beforeApproveERC721 hook that is called by a core token before approving a token.
      *  @param _from The address that is approving tokens.
      *  @param _to The address that is being approved.
-     *  @param _approved Whether to grant or revoke approval.
+     *  @param _tokenId The token ID being approved.
+     *  @param _approve The approval status to set.
+     *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeApproveForAll(address _from, address _to, bool _approved)
+    function beforeApproveERC721(address _from, address _to, uint256 _tokenId, bool _approve)
         external
         virtual
         returns (bytes memory result)
     {
-        revert BeforeApproveForAllHookNotImplemented();
+        revert BeforeApproveCallbackERC721NotImplemented();
     }
 }

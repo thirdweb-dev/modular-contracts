@@ -1,29 +1,30 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-contract BeforeApproveHookERC20 {
+contract BeforeMintCallbackERC20 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error BeforeApproveHookERC20NotImplemented();
+    error BeforeMintCallbackERC20NotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice The beforeApproveERC20 hook that is called by a core token before approving tokens.
-     *  @param _from The address that is approving tokens.
-     *  @param _to The address that is being approved.
-     *  @param _amount The amount of tokens being approved.
+     *  @notice The beforeMintERC20 hook that is called by a core token before minting tokens.
+     *  @param _to The address to mint tokens to.
+     *  @param _amount The amount of tokens to mint.
+     *  @param _data Optional extra data passed to the hook.
      *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeApproveERC20(address _from, address _to, uint256 _amount)
+    function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
         external
+        payable
         virtual
         returns (bytes memory result)
     {
-        revert BeforeApproveHookERC20NotImplemented();
+        revert BeforeMintCallbackERC20NotImplemented();
     }
 }

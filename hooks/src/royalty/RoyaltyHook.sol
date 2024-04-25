@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IHook} from "@core-contracts/interface/IHook.sol";
 
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {OnRoyaltyInfoHook} from "@core-contracts/hook/OnRoyaltyInfoHook.sol";
+import {HookFlagsDirectory} from "@core-contracts/callback/HookFlagsDirectory.sol";
+import {OnRoyaltyInfoCallback} from "@core-contracts/callback/OnRoyaltyInfoCallback.sol";
 
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
@@ -29,7 +29,7 @@ library RoyaltyHookStorage {
     }
 }
 
-contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoHook, Multicallable {
+contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoCallback, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/

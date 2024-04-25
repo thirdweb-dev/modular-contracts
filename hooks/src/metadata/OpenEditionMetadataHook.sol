@@ -5,8 +5,8 @@ import {IHook} from "@core-contracts/interface/IHook.sol";
 
 import {NFTMetadataRenderer} from "../lib/NFTMetadataRenderer.sol";
 
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {OnTokenURIHook} from "@core-contracts/hook/OnTokenURIHook.sol";
+import {HookFlagsDirectory} from "@core-contracts/callback/HookFlagsDirectory.sol";
+import {OnTokenURICallback} from "@core-contracts/callback/OnTokenURICallback.sol";
 
 import {LibString} from "@solady/utils/LibString.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
@@ -30,7 +30,7 @@ library SharedMetadataStorage {
     }
 }
 
-contract OpenEditionMetadataHook is IHook, OnTokenURIHook, HookFlagsDirectory, Multicallable {
+contract OpenEditionMetadataHook is IHook, OnTokenURICallback, HookFlagsDirectory, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/

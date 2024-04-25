@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-contract OnRoyaltyInfoHook {
+contract OnRoyaltyInfoCallback {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error OnRoyaltyInfoHookNotImplemented();
+    error OnRoyaltyInfoCallbackNotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -26,6 +26,6 @@ contract OnRoyaltyInfoHook {
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        revert OnRoyaltyInfoHookNotImplemented();
+        revert OnRoyaltyInfoCallbackNotImplemented();
     }
 }

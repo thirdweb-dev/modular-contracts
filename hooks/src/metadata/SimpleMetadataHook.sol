@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IHook} from "@core-contracts/interface/IHook.sol";
 
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {OnTokenURIHook} from "@core-contracts/hook/OnTokenURIHook.sol";
+import {HookFlagsDirectory} from "@core-contracts/callback/HookFlagsDirectory.sol";
+import {OnTokenURICallback} from "@core-contracts/callback/OnTokenURICallback.sol";
 
 import {LibString} from "@solady/utils/LibString.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
@@ -28,7 +28,7 @@ library SimpleMetadataStorage {
     }
 }
 
-contract SimpleMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Multicallable {
+contract SimpleMetadataHook is IHook, HookFlagsDirectory, OnTokenURICallback, Multicallable {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////

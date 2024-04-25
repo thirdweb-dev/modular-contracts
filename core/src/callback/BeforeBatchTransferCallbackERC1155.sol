@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-contract BeforeBatchTransferHookERC1155 {
+contract BeforeBatchTransferCallbackERC1155 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error BeforeBatchTransferHookERC1155NotImplemented();
+    error BeforeBatchTransferCallbackERC1155NotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -25,6 +25,6 @@ contract BeforeBatchTransferHookERC1155 {
         virtual
         returns (bytes memory result)
     {
-        revert BeforeBatchTransferHookERC1155NotImplemented();
+        revert BeforeBatchTransferCallbackERC1155NotImplemented();
     }
 }

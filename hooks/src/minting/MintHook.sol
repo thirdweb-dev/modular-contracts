@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IHook} from "@core-contracts/interface/IHook.sol";
 
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {BeforeMintHookERC20} from "@core-contracts/hook/BeforeMintHookERC20.sol";
-import {BeforeMintHookERC721} from "@core-contracts/hook/BeforeMintHookERC721.sol";
-import {BeforeMintHookERC1155} from "@core-contracts/hook/BeforeMintHookERC1155.sol";
+import {HookFlagsDirectory} from "@core-contracts/callback/HookFlagsDirectory.sol";
+import {BeforeMintCallbackERC20} from "@core-contracts/callback/BeforeMintCallbackERC20.sol";
+import {BeforeMintCallbackERC721} from "@core-contracts/callback/BeforeMintCallbackERC721.sol";
+import {BeforeMintCallbackERC1155} from "@core-contracts/callback/BeforeMintCallbackERC1155.sol";
 
 import {Ownable} from "@solady/auth/Ownable.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
@@ -40,9 +40,9 @@ library MintHookStorage {
 contract MintHook is
     IHook,
     HookFlagsDirectory,
-    BeforeMintHookERC20,
-    BeforeMintHookERC721,
-    BeforeMintHookERC1155,
+    BeforeMintCallbackERC20,
+    BeforeMintCallbackERC721,
+    BeforeMintCallbackERC1155,
     EIP712,
     Multicallable
 {

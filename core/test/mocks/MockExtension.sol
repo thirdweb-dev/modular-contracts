@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {BeforeMintHookERC20} from "src/hook/BeforeMintHookERC20.sol";
-import {BeforeMintHookERC721} from "src/hook/BeforeMintHookERC721.sol";
-import {BeforeMintHookERC1155} from "src/hook/BeforeMintHookERC1155.sol";
+import {BeforeMintCallbackERC20} from "src/callback/BeforeMintCallbackERC20.sol";
+import {BeforeMintCallbackERC721} from "src/callback/BeforeMintCallbackERC721.sol";
+import {BeforeMintCallbackERC1155} from "src/callback/BeforeMintCallbackERC1155.sol";
 
-import {BeforeTransferHookERC20} from "src/hook/BeforeTransferHookERC20.sol";
-import {BeforeTransferHookERC721} from "src/hook/BeforeTransferHookERC721.sol";
-import {BeforeTransferHookERC1155} from "src/hook/BeforeTransferHookERC1155.sol";
+import {BeforeTransferCallbackERC20} from "src/callback/BeforeTransferCallbackERC20.sol";
+import {BeforeTransferCallbackERC721} from "src/callback/BeforeTransferCallbackERC721.sol";
+import {BeforeTransferCallbackERC1155} from "src/callback/BeforeTransferCallbackERC1155.sol";
 
-import {BeforeBurnHookERC20} from "src/hook/BeforeBurnHookERC20.sol";
-import {BeforeBurnHookERC721} from "src/hook/BeforeBurnHookERC721.sol";
-import {BeforeBurnHookERC1155} from "src/hook/BeforeBurnHookERC1155.sol";
+import {BeforeBurnCallbackERC20} from "src/callback/BeforeBurnCallbackERC20.sol";
+import {BeforeBurnCallbackERC721} from "src/callback/BeforeBurnCallbackERC721.sol";
+import {BeforeBurnCallbackERC1155} from "src/callback/BeforeBurnCallbackERC1155.sol";
 
-import {BeforeApproveHookERC20} from "src/hook/BeforeApproveHookERC20.sol";
-import {BeforeApproveHookERC721} from "src/hook/BeforeApproveHookERC721.sol";
-import {BeforeApproveForAllHook} from "src/hook/BeforeApproveForAllHook.sol";
+import {BeforeApproveCallbackERC20} from "src/callback/BeforeApproveCallbackERC20.sol";
+import {BeforeApproveCallbackERC721} from "src/callback/BeforeApproveCallbackERC721.sol";
+import {BeforeApproveForAllCallback} from "src/callback/BeforeApproveForAllCallback.sol";
 
-import {OnTokenURIHook} from "src/hook/OnTokenURIHook.sol";
+import {OnTokenURICallback} from "src/callback/OnTokenURICallback.sol";
 
 import {IExtensionContract} from "src/interface/IExtensionContract.sol";
 
 import "@solady/utils/Initializable.sol";
 import "@solady/utils/UUPSUpgradeable.sol";
 
-contract MockExtensionERC20 is BeforeMintHookERC20, IExtensionContract, Initializable, UUPSUpgradeable {
+contract MockExtensionERC20 is BeforeMintCallbackERC20, IExtensionContract, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -54,7 +54,12 @@ contract MockExtensionERC20 is BeforeMintHookERC20, IExtensionContract, Initiali
     }
 }
 
-contract MockExtensionWithOnTokenURICallback is OnTokenURIHook, IExtensionContract, Initializable, UUPSUpgradeable {
+contract MockExtensionWithOnTokenURICallback is
+    OnTokenURICallback,
+    IExtensionContract,
+    Initializable,
+    UUPSUpgradeable
+{
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -109,7 +114,7 @@ contract MockExtensionWithPermissionedFallback is IExtensionContract, Initializa
 }
 
 contract MockExtensionWithOneCallbackERC20 is
-    BeforeMintHookERC20,
+    BeforeMintCallbackERC20,
     IExtensionContract,
     Initializable,
     UUPSUpgradeable
@@ -138,10 +143,10 @@ contract MockExtensionWithOneCallbackERC20 is
 
 contract MockExtensionWithFourCallbacksERC20 is
     IExtensionContract,
-    BeforeMintHookERC20,
-    BeforeTransferHookERC20,
-    BeforeBurnHookERC20,
-    BeforeApproveHookERC20,
+    BeforeMintCallbackERC20,
+    BeforeTransferCallbackERC20,
+    BeforeBurnCallbackERC20,
+    BeforeApproveCallbackERC20,
     Initializable,
     UUPSUpgradeable
 {
@@ -170,7 +175,7 @@ contract MockExtensionWithFourCallbacksERC20 is
     }
 }
 
-contract BuggyMockExtensionERC20 is BeforeMintHookERC20, IExtensionContract, Initializable, UUPSUpgradeable {
+contract BuggyMockExtensionERC20 is BeforeMintCallbackERC20, IExtensionContract, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -203,7 +208,7 @@ contract BuggyMockExtensionERC20 is BeforeMintHookERC20, IExtensionContract, Ini
     }
 }
 
-contract MockExtensionERC721 is BeforeMintHookERC721, IExtensionContract, Initializable, UUPSUpgradeable {
+contract MockExtensionERC721 is BeforeMintCallbackERC721, IExtensionContract, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -242,7 +247,7 @@ contract MockExtensionERC721 is BeforeMintHookERC721, IExtensionContract, Initia
     }
 }
 
-contract BuggyMockExtensionERC721 is BeforeMintHookERC721, IExtensionContract, Initializable, UUPSUpgradeable {
+contract BuggyMockExtensionERC721 is BeforeMintCallbackERC721, IExtensionContract, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -284,7 +289,7 @@ contract BuggyMockExtensionERC721 is BeforeMintHookERC721, IExtensionContract, I
 }
 
 contract MockExtensionWithOneCallbackERC721 is
-    BeforeMintHookERC721,
+    BeforeMintCallbackERC721,
     IExtensionContract,
     Initializable,
     UUPSUpgradeable
@@ -311,10 +316,10 @@ contract MockExtensionWithOneCallbackERC721 is
 
 contract MockExtensionWithFourCallbacksERC721 is
     IExtensionContract,
-    BeforeMintHookERC721,
-    BeforeTransferHookERC721,
-    BeforeBurnHookERC721,
-    BeforeApproveHookERC721,
+    BeforeMintCallbackERC721,
+    BeforeTransferCallbackERC721,
+    BeforeBurnCallbackERC721,
+    BeforeApproveCallbackERC721,
     Initializable,
     UUPSUpgradeable
 {
@@ -341,7 +346,7 @@ contract MockExtensionWithFourCallbacksERC721 is
     }
 }
 
-contract MockExtensionERC1155 is BeforeMintHookERC1155, IExtensionContract, Initializable, UUPSUpgradeable {
+contract MockExtensionERC1155 is BeforeMintCallbackERC1155, IExtensionContract, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -379,7 +384,7 @@ contract MockExtensionERC1155 is BeforeMintHookERC1155, IExtensionContract, Init
     }
 }
 
-contract BuggyMockExtensionERC1155 is BeforeMintHookERC1155, IExtensionContract, Initializable, UUPSUpgradeable {
+contract BuggyMockExtensionERC1155 is BeforeMintCallbackERC1155, IExtensionContract, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -420,7 +425,7 @@ contract BuggyMockExtensionERC1155 is BeforeMintHookERC1155, IExtensionContract,
 }
 
 contract MockExtensionWithOneCallbackERC1155 is
-    BeforeMintHookERC1155,
+    BeforeMintCallbackERC1155,
     IExtensionContract,
     Initializable,
     UUPSUpgradeable
@@ -447,10 +452,10 @@ contract MockExtensionWithOneCallbackERC1155 is
 
 contract MockExtensionWithFourCallbacksERC1155 is
     IExtensionContract,
-    BeforeMintHookERC1155,
-    BeforeTransferHookERC1155,
-    BeforeBurnHookERC1155,
-    BeforeApproveForAllHook,
+    BeforeMintCallbackERC1155,
+    BeforeTransferCallbackERC1155,
+    BeforeBurnCallbackERC1155,
+    BeforeApproveForAllCallback,
     Initializable,
     UUPSUpgradeable
 {

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-contract OnTokenURIHook {
+contract OnTokenURICallback {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error OnTokenURIHookNotImplemented();
+    error OnTokenURICallbackNotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -19,6 +19,6 @@ contract OnTokenURIHook {
      *  @return metadata The URI to fetch token metadata from.
      */
     function onTokenURI(uint256 _tokenId) external view virtual returns (string memory metadata) {
-        revert OnTokenURIHookNotImplemented();
+        revert OnTokenURICallbackNotImplemented();
     }
 }

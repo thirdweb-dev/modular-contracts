@@ -1,29 +1,31 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-contract BeforeTransferHookERC721 {
+contract BeforeMintCallbackERC1155 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error BeforeTransferHookERC721NotImplemented();
+    error BeforeMintCallbackERC1155NotImplemented();
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @notice The beforeTransferERC721 hook that is called by a core token before transferring a token.
-     *  @param _from The address that is transferring tokens.
-     *  @param _to The address that is receiving tokens.
-     *  @param _tokenId The token ID being transferred.
+     *  @notice The beforeMintERC1155 hook that is called by a core token before minting tokens.
+     *  @param _to The address that is minting tokens.
+     *  @param _id The token ID being minted.
+     *  @param _quantity The quantity of tokens to mint.
+     *  @param _data Optional extra data passed to the hook.
      *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeTransferERC721(address _from, address _to, uint256 _tokenId)
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
         external
+        payable
         virtual
         returns (bytes memory result)
     {
-        revert BeforeTransferHookERC721NotImplemented();
+        revert BeforeMintCallbackERC1155NotImplemented();
     }
 }

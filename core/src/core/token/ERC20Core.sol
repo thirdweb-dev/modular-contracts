@@ -7,10 +7,10 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 
 import {CoreContract} from "../CoreContract.sol";
 
-import {BeforeMintHookERC20} from "../../hook/BeforeMintHookERC20.sol";
-import {BeforeApproveHookERC20} from "../../hook/BeforeApproveHookERC20.sol";
-import {BeforeTransferHookERC20} from "../../hook/BeforeTransferHookERC20.sol";
-import {BeforeBurnHookERC20} from "../../hook/BeforeBurnHookERC20.sol";
+import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
+import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
+import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
+import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
 
 contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
@@ -109,10 +109,10 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     {
         supportedCallbackFunctions = new bytes4[](4);
 
-        supportedCallbackFunctions[0] = BeforeMintHookERC20.beforeMintERC20.selector;
-        supportedCallbackFunctions[1] = BeforeTransferHookERC20.beforeTransferERC20.selector;
-        supportedCallbackFunctions[2] = BeforeBurnHookERC20.beforeBurnERC20.selector;
-        supportedCallbackFunctions[3] = BeforeApproveHookERC20.beforeApproveERC20.selector;
+        supportedCallbackFunctions[0] = BeforeMintCallbackERC20.beforeMintERC20.selector;
+        supportedCallbackFunctions[1] = BeforeTransferCallbackERC20.beforeTransferERC20.selector;
+        supportedCallbackFunctions[2] = BeforeBurnCallbackERC20.beforeBurnERC20.selector;
+        supportedCallbackFunctions[3] = BeforeApproveCallbackERC20.beforeApproveERC20.selector;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -219,11 +219,11 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _amount, bytes calldata _data) internal virtual {
-        address extension = getCallbackFunctionImplementation(BeforeMintHookERC20.beforeMintERC20.selector);
+        address extension = getCallbackFunctionImplementation(BeforeMintCallbackERC20.beforeMintERC20.selector);
 
         if (extension != address(0)) {
             (bool success, bytes memory returndata) = extension.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeMintHookERC20.beforeMintERC20.selector, _to, _amount, _data)
+                abi.encodeWithSelector(BeforeMintCallbackERC20.beforeMintERC20.selector, _to, _amount, _data)
             );
 
             if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
@@ -235,11 +235,11 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _amount) internal virtual {
-        address extension = getCallbackFunctionImplementation(BeforeTransferHookERC20.beforeTransferERC20.selector);
+        address extension = getCallbackFunctionImplementation(BeforeTransferCallbackERC20.beforeTransferERC20.selector);
 
         if (extension != address(0)) {
             (bool success, bytes memory returndata) = extension.call(
-                abi.encodeWithSelector(BeforeTransferHookERC20.beforeTransferERC20.selector, _from, _to, _amount)
+                abi.encodeWithSelector(BeforeTransferCallbackERC20.beforeTransferERC20.selector, _from, _to, _amount)
             );
             if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
         }
@@ -247,11 +247,11 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address _from, uint256 _amount, bytes calldata _data) internal virtual {
-        address extension = getCallbackFunctionImplementation(BeforeBurnHookERC20.beforeBurnERC20.selector);
+        address extension = getCallbackFunctionImplementation(BeforeBurnCallbackERC20.beforeBurnERC20.selector);
 
         if (extension != address(0)) {
             (bool success, bytes memory returndata) = extension.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeBurnHookERC20.beforeBurnERC20.selector, _from, _amount, _data)
+                abi.encodeWithSelector(BeforeBurnCallbackERC20.beforeBurnERC20.selector, _from, _amount, _data)
             );
             if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
         }
@@ -259,11 +259,11 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApprove(address _from, address _to, uint256 _amount) internal virtual {
-        address extension = getCallbackFunctionImplementation(BeforeApproveHookERC20.beforeApproveERC20.selector);
+        address extension = getCallbackFunctionImplementation(BeforeApproveCallbackERC20.beforeApproveERC20.selector);
 
         if (extension != address(0)) {
             (bool success, bytes memory returndata) = extension.call(
-                abi.encodeWithSelector(BeforeApproveHookERC20.beforeApproveERC20.selector, _from, _to, _amount)
+                abi.encodeWithSelector(BeforeApproveCallbackERC20.beforeApproveERC20.selector, _from, _to, _amount)
             );
             if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
         }

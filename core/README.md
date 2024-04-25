@@ -86,7 +86,7 @@ Developers deploy non-upgradeable minimal clones of token core contracts e.g. th
 - This contract is initializable, and meant to be used with proxy contracts.
 - Implements the token standard (and the respective token metadata standard).
 - Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/common/Permission.sol) contract.
-- Implements the [`HookInstaller`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/hook/HookInstaller.sol) interface.
+- Implements the [`HookInstaller`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/callback/HookInstaller.sol) interface.
 
 Core contracts are deliberately written as non-upgradeable foundations that contain minimal code with fixed behaviour. These contracts are meant to be extended by developers using hooks.
 
