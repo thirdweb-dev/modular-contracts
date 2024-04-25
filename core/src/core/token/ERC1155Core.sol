@@ -5,10 +5,8 @@ import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
-import {HookFlagsDirectory} from "../../hook/HookFlagsDirectory.sol";
-import {HookInstaller} from "../HookInstaller.sol";
+import {CoreContract} from "../CoreContract.sol";
 
-import {IERC1155HookInstaller} from "../../interface/IERC1155HookInstaller.sol";
 import {BeforeMintHookERC1155} from "../../hook/BeforeMintHookERC1155.sol";
 import {BeforeTransferHookERC1155} from "../../hook/BeforeTransferHookERC1155.sol";
 import {BeforeBatchTransferHookERC1155} from "../../hook/BeforeBatchTransferHookERC1155.sol";
@@ -17,7 +15,7 @@ import {BeforeApproveForAllHook} from "../../hook/BeforeApproveForAllHook.sol";
 import {OnTokenURIHook} from "../../hook/OnTokenURIHook.sol";
 import {OnRoyaltyInfoHook} from "../../hook/OnRoyaltyInfoHook.sol";
 
-contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155HookInstaller, HookFlagsDirectory {
+contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -39,16 +37,10 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when the on initialize call fails.
-    error ERC1155CoreOnInitializeCallFailed();
-
-    /// @notice Emitted when a hook initialization call fails.
-    error ERC1155CoreHookInitializeCallFailed();
+    error ERC1155CoreInitCallFailed();
 
     /// @notice Emitted when a hook call fails.
-    error ERC1155CoreHookCallFailed();
-
-    /// @notice Emitted when insufficient value is sent in the constructor.
-    error ERC1155CoreInsufficientValueInConstructor();
+    error ERC1155CoreCallbackFailed();
 
     /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
     error ERC1155CoreMintDisabled();
@@ -60,23 +52,14 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
     /// @notice Emitted when the contract URI is updated.
     event ContractURIUpdated();
 
-    /**
-     *  @notice Initializes the ERC1155 NFT collection.
-     *
-     *  @param _name The name of the NFT collection.
-     *  @param _symbol The symbol of the NFT collection.
-     *  @param _contractURI The contract URI of the NFT collection.
-     *  @param _owner The owner of the contract.
-     *  @param _onInitializeCall Any external call to make on contract initialization.
-     *  @param _hooksToInstall Any hooks to install and initialize on contract initialization.
-     */
     constructor(
         string memory _name,
         string memory _symbol,
         string memory _contractURI,
         address _owner,
-        OnInitializeParams memory _onInitializeCall,
-        InstallHookParams[] memory _hooksToInstall
+        address[] memory _extensionsToInstall,
+        address _initCallTarget,
+        bytes memory _initCalldata
     ) payable {
         // Set contract metadata
         name_ = _name;
@@ -86,26 +69,15 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
         // Set contract owner
         _setOwner(_owner);
 
-        // Track native token value sent to the constructor
-        uint256 constructorValue = msg.value;
-
-        // Initialize the core NFT collection
-        if (_onInitializeCall.target != address(0)) {
-            if (constructorValue < _onInitializeCall.value) revert ERC1155CoreInsufficientValueInConstructor();
-            constructorValue -= _onInitializeCall.value;
-
-            (bool success, bytes memory returndata) =
-                _onInitializeCall.target.call{value: _onInitializeCall.value}(_onInitializeCall.data);
-
-            if (!success) _revert(returndata, ERC1155CoreOnInitializeCallFailed.selector);
+        // External call upon core core contract initialization.
+        if (_initCallTarget != address(0) && _initCalldata.length > 0) {
+            (bool success, bytes memory returndata) = _initCallTarget.call{value: msg.value}(_initCalldata);
+            if (!success) _revert(returndata, ERC1155CoreInitCallFailed.selector);
         }
 
         // Install and initialize hooks
-        for (uint256 i = 0; i < _hooksToInstall.length; i++) {
-            if (constructorValue < _hooksToInstall[i].initValue) revert ERC1155CoreInsufficientValueInConstructor();
-            constructorValue -= _hooksToInstall[i].initValue;
-
-            _installHook(_hooksToInstall[i]);
+        for (uint256 i = 0; i < _extensionsToInstall.length; i++) {
+            _installExtension(_extensionsToInstall[i]);
         }
     }
 
@@ -171,17 +143,19 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
             || _interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
-    /// @notice Returns all of the contract's hooks and their implementations.
-    function getAllHooks() external view returns (ERC1155Hooks memory hooks) {
-        hooks = ERC1155Hooks({
-            beforeMint: getHookImplementation(BEFORE_MINT_ERC1155_FLAG),
-            beforeTransfer: getHookImplementation(BEFORE_TRANSFER_ERC1155_FLAG),
-            beforeBatchTransfer: getHookImplementation(BEFORE_BATCH_TRANSFER_ERC1155_FLAG),
-            beforeBurn: getHookImplementation(BEFORE_BURN_ERC1155_FLAG),
-            beforeApproveForAll: getHookImplementation(BEFORE_APPROVE_FOR_ALL_FLAG),
-            uri: getHookImplementation(ON_TOKEN_URI_FLAG),
-            royaltyInfo: getHookImplementation(ON_ROYALTY_INFO_FLAG)
-        });
+    function getSupportedCallbackFunctions()
+        public
+        pure
+        override
+        returns (bytes4[] memory supportedCallbackFunctions)
+    {
+        supportedCallbackFunctions = new bytes4[](6);
+        supportedCallbackFunctions[0] = BeforeMintHookERC1155.beforeMintERC1155.selector;
+        supportedCallbackFunctions[1] = BeforeTransferHookERC1155.beforeTransferERC1155.selector;
+        supportedCallbackFunctions[2] = BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector;
+        supportedCallbackFunctions[3] = BeforeBurnHookERC1155.beforeBurnERC1155.selector;
+        supportedCallbackFunctions[4] = BeforeApproveForAllHook.beforeApproveForAll.selector;
+        supportedCallbackFunctions[5] = OnTokenURIHook.onTokenURI.selector;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -275,20 +249,12 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Returns whether the given caller can update hooks.
-    function _canUpdateHooks(address _caller) internal view override returns (bool) {
-        return _caller == owner();
+    function _isAuthorizedToInstallExtensions(address _target) internal view override returns (bool) {
+        return _target == owner();
     }
 
-    /// @dev Returns whether the caller can write to hooks.
-    function _isAuthorizedToCallHookFallbackFunction(address _caller) internal view override returns (bool) {
-        return _caller == owner();
-    }
-
-    /// @dev Should return the supported hook flags.
-    function _supportedHookFlags() internal view virtual override returns (uint256) {
-        return BEFORE_MINT_ERC1155_FLAG | BEFORE_TRANSFER_ERC1155_FLAG | BEFORE_BATCH_TRANSFER_ERC1155_FLAG
-            | BEFORE_BURN_ERC1155_FLAG | BEFORE_APPROVE_FOR_ALL_FLAG | ON_TOKEN_URI_FLAG | ON_ROYALTY_INFO_FLAG;
+    function _isAuthorizedToCallExtensionFunctions(address _target) internal view override returns (bool) {
+        return _target == owner();
     }
 
     /// @dev Sets contract URI
@@ -303,13 +269,13 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
 
     /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
-        address hook = getHookImplementation(BEFORE_MINT_ERC1155_FLAG);
+        address hook = getCallbackFunctionImplementation(BeforeMintHookERC1155.beforeMintERC1155.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(BeforeMintHookERC1155.beforeMintERC1155.selector, _to, _tokenId, _value, _data)
             );
-            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
         } else {
             revert ERC1155CoreMintDisabled();
         }
@@ -317,7 +283,8 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _tokenId, uint256 _value) internal virtual {
-        address hook = getHookImplementation(BEFORE_TRANSFER_ERC1155_FLAG);
+        address hook =
+            getCallbackFunctionImplementation(BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
@@ -325,7 +292,7 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
                     BeforeTransferHookERC1155.beforeTransferERC1155.selector, _from, _to, _tokenId, _value
                 )
             );
-            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
         }
     }
 
@@ -334,7 +301,8 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
         internal
         virtual
     {
-        address hook = getHookImplementation(BEFORE_BATCH_TRANSFER_ERC1155_FLAG);
+        address hook =
+            getCallbackFunctionImplementation(BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
@@ -342,13 +310,13 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
                     BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector, _from, _to, _tokenIds, _values
                 )
             );
-            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
         }
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address _operator, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
-        address hook = getHookImplementation(BEFORE_BURN_ERC1155_FLAG);
+        address hook = getCallbackFunctionImplementation(BeforeBurnHookERC1155.beforeBurnERC1155.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
@@ -356,25 +324,25 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
                     BeforeBurnHookERC1155.beforeBurnERC1155.selector, _operator, _tokenId, _value, _data
                 )
             );
-            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
         }
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApproveForAll(address _from, address _to, bool _approved) internal virtual {
-        address hook = getHookImplementation(BEFORE_APPROVE_FOR_ALL_FLAG);
+        address hook = getCallbackFunctionImplementation(BeforeApproveForAllHook.beforeApproveForAll.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(BeforeApproveForAllHook.beforeApproveForAll.selector, _from, _to, _approved)
             );
-            if (!success) _revert(returndata, ERC1155CoreHookCallFailed.selector);
+            if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
         }
     }
 
     /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory _uri) {
-        address hook = getHookImplementation(ON_TOKEN_URI_FLAG);
+        address hook = getCallbackFunctionImplementation(OnTokenURIHook.onTokenURI.selector);
 
         if (hook != address(0)) {
             _uri = OnTokenURIHook(hook).onTokenURI(_tokenId);
@@ -388,7 +356,7 @@ contract ERC1155Core is ERC1155, HookInstaller, Ownable, Multicallable, IERC1155
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address hook = getHookImplementation(ON_ROYALTY_INFO_FLAG);
+        address hook = getCallbackFunctionImplementation(OnRoyaltyInfoHook.onRoyaltyInfo.selector);
 
         if (hook != address(0)) {
             (receiver, royaltyAmount) = OnRoyaltyInfoHook(hook).onRoyaltyInfo(_tokenId, _salePrice);

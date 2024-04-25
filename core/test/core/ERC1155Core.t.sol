@@ -3,15 +3,15 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
-import {MockHookERC1155, MockOnTokenURIHook, MockHookWithPermissionedFallback} from "../mocks/MockHook.sol";
+
+import {MockExtensionERC1155} from "../mocks/MockExtension.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {HookInstaller, IHookInstaller} from "src/core/HookInstaller.sol";
-import {IHook} from "src/interface/IHook.sol";
+import {CoreContract, ICoreContract} from "src/core/CoreContract.sol";
 
 abstract contract ERC1155TokenReceiver {
     function onERC1155Received(address, address, uint256, uint256, bytes calldata) external virtual returns (bytes4) {
@@ -148,26 +148,25 @@ contract ERC1155CoreTest is Test, TestPlus {
 
     function setUp() public {
         bytes memory hookInitData = abi.encodeWithSelector(
-            MockHookERC1155.initialize.selector,
+            MockExtensionERC1155.initialize.selector,
             address(0x123) // upgradeAdmin
         );
-        hookProxyAddress = address(new EIP1967Proxy(address(new MockHookERC1155()), hookInitData));
+        hookProxyAddress = address(new EIP1967Proxy(address(new MockExtensionERC1155()), hookInitData));
 
         vm.startPrank(admin);
 
-        ERC1155Core.OnInitializeParams memory onInitializeCall;
-        ERC1155Core.InstallHookParams[] memory hooksToInstallOnInit;
+        address[] memory extensionsToInstall = new address[](1);
+        extensionsToInstall[0] = hookProxyAddress;
 
         token = new ERC1155Core(
             "Token",
             "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            admin, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            admin, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
-        token.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
-
         vm.stopPrank();
 
         vm.label(address(token), "ERC1155Core");

@@ -9,7 +9,11 @@ import {IHook} from "src/interface/IHook.sol";
 import {IHookInstaller} from "src/interface/IHookInstaller.sol";
 import {HookFlagsDirectory} from "src/hook/HookFlagsDirectory.sol";
 
-import {MockHookERC1155, MockOneHookImplERC1155, MockFourHookImplERC1155} from "test/mocks/MockHook.sol";
+import {
+    MockExtensionERC1155,
+    MockExtensionWithOneCallbackERC1155,
+    MockExtensionWithFourCallbacksERC1155
+} from "test/mocks/MockExtension.sol";
 
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
@@ -35,9 +39,9 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
 
         hookProxyAddress = address(
             new EIP1967Proxy(
-                address(new MockHookERC1155()),
+                address(new MockExtensionERC1155()),
                 abi.encodeWithSelector(
-                    MockHookERC1155.initialize.selector,
+                    MockExtensionERC1155.initialize.selector,
                     platformAdmin // upgradeAdmin
                 )
             )
@@ -48,25 +52,22 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
         // Developer contract: gas incurred by developer.
         vm.startPrank(platformUser);
 
-        ERC1155Core.OnInitializeParams memory onInitializeCall;
-        ERC1155Core.InstallHookParams[] memory hooksToInstallOnInit;
+        address[] memory extensionsToInstall = new address[](0);
 
         erc1155 = new ERC1155Core(
-            "Test ERC1155",
-            "TST",
+            "Token",
+            "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            platformUser, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            platformUser, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
-
-        // Developer installs `MockHookERC1155` hook
-        erc1155.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
 
         vm.stopPrank();
 
         vm.label(address(erc1155), "ERC1155Core");
-        vm.label(hookProxyAddress, "MockHookERC1155");
+        vm.label(hookProxyAddress, "MockExtensionERC1155");
         vm.label(platformAdmin, "Admin");
         vm.label(platformUser, "Developer");
         vm.label(claimer, "Claimer");
@@ -81,18 +82,18 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
 
         vm.pauseGasMetering();
 
-        ERC1155Core.OnInitializeParams memory onInitializeCall;
-        ERC1155Core.InstallHookParams[] memory hooksToInstallOnInit;
+        address[] memory extensionsToInstall = new address[](0);
 
         vm.resumeGasMetering();
 
         ERC1155Core core = new ERC1155Core(
-            "Test ERC1155",
-            "TST",
+            "Token",
+            "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            platformUser, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            platformUser, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
     }
 
@@ -102,6 +103,9 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
 
     function test_mintOneToken() public {
         vm.pauseGasMetering();
+
+        vm.prank(platformUser);
+        erc1155.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
 
@@ -121,6 +125,9 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
 
     function test_mintTenTokens() public {
         vm.pauseGasMetering();
+
+        vm.prank(platformUser);
+        erc1155.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
 
@@ -144,6 +151,9 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
 
     function test_transferOneToken() public {
         vm.pauseGasMetering();
+
+        vm.prank(platformUser);
+        erc1155.installExtension(hookProxyAddress, 0, "");
 
         // Check pre-mint state
 
@@ -171,9 +181,9 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_beaconUpgrade() public {
         vm.pauseGasMetering();
 
-        address newImpl = address(new MockHookERC1155());
+        address newImpl = address(new MockExtensionERC1155());
         address proxyAdmin = platformAdmin;
-        MockHookERC1155 proxy = MockHookERC1155(payable(hookProxyAddress));
+        MockExtensionERC1155 proxy = MockExtensionERC1155(payable(hookProxyAddress));
 
         vm.prank(proxyAdmin);
 
@@ -190,64 +200,58 @@ contract ERC1155CoreBenchmarkTest is Test, HookFlagsDirectory {
     function test_installOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImplERC1155()));
+        address mockHook = address(new MockExtensionWithOneCallbackERC1155());
         ERC1155Core hookConsumer = erc1155;
-
-        vm.prank(platformUser);
-        hookConsumer.uninstallHook(hookProxyAddress);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(mockHook, 0, "");
     }
 
     function test_installFourHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImplERC1155()));
+        address mockHook = address(new MockExtensionWithFourCallbacksERC1155());
         ERC1155Core hookConsumer = erc1155;
-
-        vm.prank(platformUser);
-        hookConsumer.uninstallHook(hookProxyAddress);
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(mockHook, 0, "");
     }
 
     function test_uninstallOneHook() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockOneHookImplERC1155()));
+        address mockHook = address(new MockExtensionWithOneCallbackERC1155());
         ERC1155Core hookConsumer = erc1155;
+
+        vm.prank(platformUser);
+        hookConsumer.installExtension(mockHook, 0, "");
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(address(mockHook));
+        hookConsumer.uninstallExtension(mockHook, 0, "");
     }
 
     function test_uninstallFourHooks() public {
         vm.pauseGasMetering();
 
-        IHook mockHook = IHook(address(new MockFourHookImplERC1155()));
+        address mockHook = address(new MockExtensionWithFourCallbacksERC1155());
         ERC1155Core hookConsumer = erc1155;
 
         vm.prank(platformUser);
-        hookConsumer.uninstallHook(hookProxyAddress);
-
-        vm.prank(platformUser);
-        hookConsumer.installHook(IHookInstaller.InstallHookParams(address(mockHook), 0, ""));
+        hookConsumer.installExtension(mockHook, 0, "");
 
         vm.prank(platformUser);
 
         vm.resumeGasMetering();
 
-        hookConsumer.uninstallHook(address(mockHook));
+        hookConsumer.uninstallExtension(address(mockHook), 0, "");
     }
 }

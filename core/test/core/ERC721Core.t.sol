@@ -3,16 +3,14 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
-import {MockHookERC721, MockOnTokenURIHook, MockHookWithPermissionedFallback} from "../mocks/MockHook.sol";
+import {MockExtensionERC721} from "../mocks/MockExtension.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-import {ERC721} from "@solady/tokens/ERC721.sol";
+import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {HookInstaller, IHookInstaller} from "src/core/HookInstaller.sol";
-import {IHook} from "src/interface/IHook.sol";
-import {IERC721A} from "@erc721a/IERC721A.sol";
+import {CoreContract, ICoreContract} from "src/core/CoreContract.sol";
 
 abstract contract ERC721TokenReceiver {
     function onERC721Received(address, address, uint256, bytes calldata) external virtual returns (bytes4) {
@@ -70,25 +68,25 @@ contract ERC721CoreTest is Test, TestPlus {
 
     function setUp() public {
         bytes memory hookInitData = abi.encodeWithSelector(
-            MockHookERC721.initialize.selector,
+            MockExtensionERC721.initialize.selector,
             address(0x123) // upgradeAdmin
         );
-        hookProxyAddress = address(new EIP1967Proxy(address(new MockHookERC721()), hookInitData));
+        hookProxyAddress = address(new EIP1967Proxy(address(new MockExtensionERC721()), hookInitData));
 
         vm.startPrank(admin);
 
-        ERC721Core.OnInitializeParams memory onInitializeCall;
-        ERC721Core.InstallHookParams[] memory hooksToInstallOnInit;
+        address[] memory extensionsToInstall = new address[](1);
+        extensionsToInstall[0] = hookProxyAddress;
 
         token = new ERC721Core(
             "Token",
             "TKN",
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
-            admin, // core contract owner
-            onInitializeCall,
-            hooksToInstallOnInit
+            admin, // core contract owner,
+            extensionsToInstall,
+            address(0),
+            bytes("")
         );
-        token.installHook(IHookInstaller.InstallHookParams(hookProxyAddress, 0, bytes("")));
 
         vm.stopPrank();
 
@@ -361,7 +359,7 @@ contract ERC721CoreTest is Test, TestPlus {
 
         token.mint(minter, quantity, "");
 
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TransferFromIncorrectOwner.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.TransferFromIncorrectOwner.selector));
         token.transferFrom(address(0xFEED), address(0xBEEF), 5);
     }
 
@@ -371,7 +369,7 @@ contract ERC721CoreTest is Test, TestPlus {
 
         token.mint(minter, quantity, "");
 
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TransferToZeroAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.TransferToZeroAddress.selector));
         token.transferFrom(address(this), address(0), 5);
     }
 
@@ -381,7 +379,7 @@ contract ERC721CoreTest is Test, TestPlus {
 
         token.mint(minter, quantity, "");
 
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TransferFromIncorrectOwner.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.TransferFromIncorrectOwner.selector));
         token.transferFrom(address(0xCAFE), address(0xBEEF), 5);
     }
 
@@ -428,7 +426,7 @@ contract ERC721CoreTest is Test, TestPlus {
         token.mint(minter, quantity, "");
 
         address unsafeRecipient = address(new WrongReturnDataERC721Recipient());
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TransferToNonERC721ReceiverImplementer.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.TransferToNonERC721ReceiverImplementer.selector));
         token.safeTransferFrom(address(this), unsafeRecipient, 5);
     }
 
@@ -439,12 +437,12 @@ contract ERC721CoreTest is Test, TestPlus {
         token.mint(minter, quantity, "");
 
         address unsafeRecipient = address(new WrongReturnDataERC721Recipient());
-        vm.expectRevert(abi.encodeWithSelector(ERC721.TransferToNonERC721ReceiverImplementer.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.TransferToNonERC721ReceiverImplementer.selector));
         token.safeTransferFrom(address(this), unsafeRecipient, 5, "testing 123");
     }
 
     function test_revert_BalanceOfZeroAddress() public {
-        vm.expectRevert(abi.encodeWithSelector(ERC721.BalanceQueryForZeroAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC721A.BalanceQueryForZeroAddress.selector));
         token.balanceOf(address(0));
     }
 
