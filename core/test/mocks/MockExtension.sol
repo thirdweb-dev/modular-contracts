@@ -3,15 +3,19 @@ pragma solidity ^0.8.0;
 
 import {BeforeMintHookERC20} from "src/hook/BeforeMintHookERC20.sol";
 import {BeforeMintHookERC721} from "src/hook/BeforeMintHookERC721.sol";
+import {BeforeMintHookERC1155} from "src/hook/BeforeMintHookERC1155.sol";
 
 import {BeforeTransferHookERC20} from "src/hook/BeforeTransferHookERC20.sol";
 import {BeforeTransferHookERC721} from "src/hook/BeforeTransferHookERC721.sol";
+import {BeforeTransferHookERC1155} from "src/hook/BeforeTransferHookERC1155.sol";
 
 import {BeforeBurnHookERC20} from "src/hook/BeforeBurnHookERC20.sol";
 import {BeforeBurnHookERC721} from "src/hook/BeforeBurnHookERC721.sol";
+import {BeforeBurnHookERC1155} from "src/hook/BeforeBurnHookERC1155.sol";
 
 import {BeforeApproveHookERC20} from "src/hook/BeforeApproveHookERC20.sol";
 import {BeforeApproveHookERC721} from "src/hook/BeforeApproveHookERC721.sol";
+import {BeforeApproveForAllHook} from "src/hook/BeforeApproveForAllHook.sol";
 
 import {OnTokenURIHook} from "src/hook/OnTokenURIHook.sol";
 
@@ -334,5 +338,141 @@ contract MockExtensionWithFourCallbacksERC721 is
         config.callbackFunctions[1] = this.beforeTransferERC721.selector;
         config.callbackFunctions[2] = this.beforeBurnERC721.selector;
         config.callbackFunctions[3] = this.beforeApproveERC721.selector;
+    }
+}
+
+contract MockExtensionERC1155 is BeforeMintHookERC1155, IExtensionContract, Initializable, UUPSUpgradeable {
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    mapping(address => uint256) nextTokenIdToMint;
+
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](1);
+        config.callbackFunctions[0] = this.beforeMintERC1155.selector;
+    }
+
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
+        address token = msg.sender;
+
+        uint256 tokenIdToMint = _id;
+        uint256 quantityToMint = _quantity;
+
+        return abi.encode(tokenIdToMint, quantityToMint);
+    }
+}
+
+contract BuggyMockExtensionERC1155 is BeforeMintHookERC1155, IExtensionContract, Initializable, UUPSUpgradeable {
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    mapping(address => uint256) nextTokenIdToMint;
+
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](1);
+        config.callbackFunctions[0] = this.beforeMintERC1155.selector;
+    }
+
+    error BuggyMinting();
+
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
+        address token = msg.sender;
+
+        uint256 tokenIdToMint = _id;
+        uint256 quantityToMint = _quantity;
+
+        revert BuggyMinting();
+    }
+}
+
+contract MockExtensionWithOneCallbackERC1155 is
+    BeforeMintHookERC1155,
+    IExtensionContract,
+    Initializable,
+    UUPSUpgradeable
+{
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](1);
+        config.callbackFunctions[0] = this.beforeMintERC1155.selector;
+    }
+}
+
+contract MockExtensionWithFourCallbacksERC1155 is
+    IExtensionContract,
+    BeforeMintHookERC1155,
+    BeforeTransferHookERC1155,
+    BeforeBurnHookERC1155,
+    BeforeApproveForAllHook,
+    Initializable,
+    UUPSUpgradeable
+{
+    address public upgradeAdmin;
+
+    function initialize(address _upgradeAdmin) public initializer {
+        upgradeAdmin = _upgradeAdmin;
+    }
+
+    error UnauthorizedUpgrade();
+
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != upgradeAdmin) {
+            revert UnauthorizedUpgrade();
+        }
+    }
+
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](4);
+        config.callbackFunctions[0] = this.beforeMintERC1155.selector;
+        config.callbackFunctions[1] = this.beforeTransferERC1155.selector;
+        config.callbackFunctions[2] = this.beforeBurnERC1155.selector;
+        config.callbackFunctions[3] = this.beforeApproveForAll.selector;
     }
 }
