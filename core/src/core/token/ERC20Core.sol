@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.23;
 
 import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
@@ -18,23 +18,17 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The name of the token.
-    string private name_;
+    string private _name;
 
     /// @notice The symbol of the token.
-    string private symbol_;
+    string private _symbol;
 
     /// @notice The contract metadata URI of the contract.
-    string private contractURI_;
+    string private _contractURI;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when the on initialize call fails.
-    error ERC20CoreInitCallFailed();
-
-    /// @notice Emitted when a hook call fails.
-    error ERC20CoreCallbackFailed();
 
     /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
     error ERC20CoreMintDisabled();
@@ -51,31 +45,26 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        string memory _name,
-        string memory _symbol,
-        string memory _contractURI,
-        address _owner,
-        address[] memory _extensionsToInstall,
-        address _initCallTarget,
-        bytes memory _initCalldata
+        string memory name,
+        string memory symbol,
+        string memory contractURI,
+        address owner,
+        address[] memory extensions,
+        bytes[] memory extensionInstallData
     ) payable {
         // Set contract metadata
-        name_ = _name;
-        symbol_ = _symbol;
-        _setupContractURI(_contractURI);
+        _name = _name;
+        _symbol = _symbol;
+
+        _setupContractURI(contractURI);
 
         // Set contract owner
-        _setOwner(_owner);
+        _setOwner(owner);
 
-        // External call upon core core contract initialization.
-        if (_initCallTarget != address(0) && _initCalldata.length > 0) {
-            (bool success, bytes memory returndata) = _initCallTarget.call{value: msg.value}(_initCalldata);
-            if (!success) _revert(returndata, ERC20CoreInitCallFailed.selector);
-        }
-
-        // Install and initialize hooks
-        for (uint256 i = 0; i < _extensionsToInstall.length; i++) {
-            _installExtension(_extensionsToInstall[i]);
+        // Install and initialize extensions
+        require(extensions.length == extensions.length);
+        for (uint256 i = 0; i < extensions.length; i++) {
+            _installExtension(extensions[i], extensionInstallData[i]);
         }
     }
 
@@ -85,12 +74,12 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
 
     /// @notice Returns the name of the token.
     function name() public view override returns (string memory) {
-        return name_;
+        return _name;
     }
 
     /// @notice Returns the symbol of the token.
     function symbol() public view override returns (string memory) {
-        return symbol_;
+        return _symbol;
     }
 
     /**
@@ -98,7 +87,7 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view returns (string memory) {
-        return contractURI_;
+        return _contractURI;
     }
 
     function getSupportedCallbackFunctions()
@@ -108,11 +97,10 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
         returns (bytes4[] memory supportedCallbackFunctions)
     {
         supportedCallbackFunctions = new bytes4[](4);
-
-        supportedCallbackFunctions[0] = BeforeMintHookERC20.beforeMintERC20.selector;
-        supportedCallbackFunctions[1] = BeforeTransferHookERC20.beforeTransferERC20.selector;
-        supportedCallbackFunctions[2] = BeforeBurnHookERC20.beforeBurnERC20.selector;
-        supportedCallbackFunctions[3] = BeforeApproveHookERC20.beforeApproveERC20.selector;
+        supportedCallbackFunctions[0] = this.mint.selector;
+        supportedCallbackFunctions[1] = this.transfer.selector;
+        supportedCallbackFunctions[2] = this.burn.selector;
+        supportedCallbackFunctions[3] = this.approve.selector;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -122,54 +110,66 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     /**
      *  @notice Sets the contract URI of the contract.
      *  @dev Only callable by contract admin.
-     *  @param _contractURI The contract URI to set.
+     *  @param contractURI The contract URI to set.
      */
-    function setContractURI(string memory _contractURI) external onlyOwner {
-        _setupContractURI(_contractURI);
+    function setContractURI(string memory contractURI) external onlyOwner {
+        _setupContractURI(contractURI);
     }
 
     /**
      *  @notice Mints tokens. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
-     *  @param _to The address to mint the tokens to.
-     *  @param _amount The amount of tokens to mint.
-     *  @param _data ABI encoded data to pass to the beforeMintERC20 hook.
+     *  @param to The address to mint the tokens to.
+     *  @param amount The amount of tokens to mint.
+     *  @param data ABI encoded data to pass to the beforeMintERC20 hook.
      */
-    function mint(address _to, uint256 _amount, bytes calldata _data) external payable {
-        _beforeMint(_to, _amount, _data);
-        _mint(_to, _amount);
+    function mint(
+        address to,
+        uint256 amount,
+        bytes calldata data
+    ) external payable {
+        _beforeMint(to, amount, data);
+        _mint(to, amount);
     }
 
     /**
      *  @notice Burns tokens.
      *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
-     *  @param _amount The amount of tokens to burn.
-     *  @param _data ABI encoded arguments to pass to the beforeBurnERC20 hook.
+     *  @param amount The amount of tokens to burn.
+     *  @param data ABI encoded arguments to pass to the beforeBurnERC20 hook.
      */
-    function burn(uint256 _amount, bytes calldata _data) external {
-        _beforeBurn(msg.sender, _amount, _data);
-        _burn(msg.sender, _amount);
+    function burn(uint256 amount, bytes calldata data) external {
+        _beforeBurn(msg.sender, amount, data);
+        _burn(msg.sender, amount);
     }
 
     /**
      *  @notice Transfers tokens from a sender to a recipient.
-     *  @param _from The address to transfer tokens from.
-     *  @param _to The address to transfer tokens to.
-     *  @param _amount The quantity of tokens to transfer.
+     *  @param from The address to transfer tokens from.
+     *  @param to The address to transfer tokens to.
+     *  @param amount The quantity of tokens to transfer.
      */
-    function transferFrom(address _from, address _to, uint256 _amount) public override returns (bool) {
-        _beforeTransfer(_from, _to, _amount);
-        return super.transferFrom(_from, _to, _amount);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
+        _beforeTransfer(from, to, amount);
+        return super.transferFrom(from, to, amount);
     }
 
     /**
      *  @notice Approves a spender to spend tokens on behalf of an owner.
-     *  @param _spender The address to approve spending on behalf of the token owner.
-     *  @param _amount The quantity of tokens to approve.
+     *  @param spender The address to approve spending on behalf of the token owner.
+     *  @param amount The quantity of tokens to approve.
      */
-    function approve(address _spender, uint256 _amount) public override returns (bool) {
-        _beforeApprove(msg.sender, _spender, _amount);
-        return super.approve(_spender, _amount);
+    function approve(address spender, uint256 amount)
+        public
+        override
+        returns (bool)
+    {
+        _beforeApprove(msg.sender, spender, amount);
+        return super.approve(spender, amount);
     }
 
     /**
@@ -178,38 +178,48 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
      * See https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
      * section].
      *
-     *  @param _owner The account approving the tokens
-     *  @param _spender The address to approve
-     *  @param _value Amount of tokens to approve
+     *  @param owner The account approving the tokens
+     *  @param spender The address to approve
+     *  @param value Amount of tokens to approve
      */
     function permit(
-        address _owner,
-        address _spender,
-        uint256 _value,
-        uint256 _deadline,
-        uint8 _v,
-        bytes32 _r,
-        bytes32 _s
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) public override {
-        _beforeApprove(_owner, _spender, _value);
-        super.permit(_owner, _spender, _value, _deadline, _v, _r, _s);
+        _beforeApprove(owner, spender, value);
+        super.permit(owner, spender, value, deadline, v, r, s);
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _isAuthorizedToInstallExtensions(address _target) internal view override returns (bool) {
+    function _isAuthorizedToInstallExtensions(address _target)
+        internal
+        view
+        override
+        returns (bool)
+    {
         return _target == owner();
     }
 
-    function _isAuthorizedToCallExtensionFunctions(address _target) internal view override returns (bool) {
+    function _isAuthorizedToCallExtensionFunctions(address _target)
+        internal
+        view
+        override
+        returns (bool)
+    {
         return _target == owner();
     }
 
     /// @dev Sets contract URI
-    function _setupContractURI(string memory _contractURI) internal {
-        contractURI_ = _contractURI;
+    function _setupContractURI(string memory contractURI) internal {
+        _contractURI = contractURI;
         emit ContractURIUpdated();
     }
 
@@ -218,54 +228,63 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address _to, uint256 _amount, bytes calldata _data) internal virtual {
-        address extension = getCallbackFunctionImplementation(BeforeMintHookERC20.beforeMintERC20.selector);
-
-        if (extension != address(0)) {
-            (bool success, bytes memory returndata) = extension.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeMintHookERC20.beforeMintERC20.selector, _to, _amount, _data)
-            );
-
-            if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
-        } else {
-            // Revert if beforeMint hook is not installed to disable un-permissioned minting.
-            revert ERC20CoreMintDisabled();
-        }
+    function _beforeMint(
+        address to,
+        uint256 amount,
+        bytes calldata data
+    ) internal virtual {
+        // TODO should revert if extension doesn't exists
+        _callExtensionCallback(
+            BeforeMintHookERC20.beforeMintERC20.selector,
+            abi.encodeCall(
+                BeforeMintHookERC20.beforeMintERC20,
+                (to, amount, data)
+            )
+        );
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(address _from, address _to, uint256 _amount) internal virtual {
-        address extension = getCallbackFunctionImplementation(BeforeTransferHookERC20.beforeTransferERC20.selector);
-
-        if (extension != address(0)) {
-            (bool success, bytes memory returndata) = extension.call(
-                abi.encodeWithSelector(BeforeTransferHookERC20.beforeTransferERC20.selector, _from, _to, _amount)
-            );
-            if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
-        }
+    function _beforeTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {
+        _callExtensionCallback(
+            BeforeTransferHookERC20.beforeTransferERC20.selector,
+            abi.encodeCall(
+                BeforeTransferHookERC20.beforeTransferERC20,
+                (from, to, amount)
+            )
+        );
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address _from, uint256 _amount, bytes calldata _data) internal virtual {
-        address extension = getCallbackFunctionImplementation(BeforeBurnHookERC20.beforeBurnERC20.selector);
-
-        if (extension != address(0)) {
-            (bool success, bytes memory returndata) = extension.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeBurnHookERC20.beforeBurnERC20.selector, _from, _amount, _data)
-            );
-            if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
-        }
+    function _beforeBurn(
+        address from,
+        uint256 amount,
+        bytes calldata data
+    ) internal virtual {
+        _callExtensionCallback(
+            BeforeBurnHookERC20.beforeBurnERC20.selector,
+            abi.encodeCall(
+                BeforeBurnHookERC20.beforeBurnERC20,
+                (from, amount, data)
+            )
+        );
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(address _from, address _to, uint256 _amount) internal virtual {
-        address extension = getCallbackFunctionImplementation(BeforeApproveHookERC20.beforeApproveERC20.selector);
-
-        if (extension != address(0)) {
-            (bool success, bytes memory returndata) = extension.call(
-                abi.encodeWithSelector(BeforeApproveHookERC20.beforeApproveERC20.selector, _from, _to, _amount)
-            );
-            if (!success) _revert(returndata, ERC20CoreCallbackFailed.selector);
-        }
+    function _beforeApprove(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {
+        _callExtensionCallback(
+            BeforeApproveHookERC20.beforeApproveERC20.selector,
+            abi.encodeCall(
+                BeforeApproveHookERC20.beforeApproveERC20,
+                (from, to, amount)
+            )
+        );
     }
 }

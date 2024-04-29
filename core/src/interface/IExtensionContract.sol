@@ -11,5 +11,8 @@ interface IExtensionContract is IExtensionTypes {
     /**
      *  @notice Returns all extension functions and supported callback functions of an extension contract.
      */
-    function getExtensionConfig() external pure returns (ExtensionConfig memory);
+    function getExtensionConfig()
+        external
+        pure
+        returns (ExtensionConfig memory);
 }

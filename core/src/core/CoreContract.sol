@@ -1,18 +1,38 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.23;
 
-import "../interface/ICoreContract.sol";
-import "../interface/IExtensionContract.sol";
+import {IExtensionContract} from "../interface/IExtensionContract.sol";
+import "../interface/IExtensionTypes.sol";
 
-abstract contract CoreContract is ICoreContract {
+interface IExtensionInstallation {
+    function onInstall(bytes calldata data) external;
+
+    function onUninstall(bytes calldata data) external;
+}
+
+abstract contract CoreContract is IExtensionTypes {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
+    struct CallbackFunction {
+        bytes4 selector;
+        uint8 maxOrder; // before, on, after
+        uint8 executionType; // execution error / success behavior?
+        uint8 required; // required to execute on the function? (mint)
+    }
+
+    struct InstalledExtension {
+        address implementation;
+        ExtensionConfig config;
+    }
 
     struct InstalledExtensionFunction {
         address implementation;
         ExtensionFunction data;
     }
+
+    event ExtensionInstalled(address extension);
+    event ExtensionUninstalled(address extension);
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -21,42 +41,52 @@ abstract contract CoreContract is ICoreContract {
     address[] private extensionImplementation_;
     mapping(address => bool) private extensionInstalled_;
     mapping(bytes4 => address) private callbackFunctionImplementation_;
-    mapping(bytes4 => InstalledExtensionFunction) private extensionFunctionData_;
+    mapping(bytes4 => InstalledExtensionFunction)
+        private extensionFunctionData_;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     error UnauthorizedInstall();
-    error UnauthorizedExtensionCall();
     error ExtensionUnsupportedCallbackFunction();
     error ExtensionInitializationFailed();
     error ExtensionAlreadyInstalled();
     error ExtensionNotInstalled();
+    error InvalidFunction();
+    error UnauthorizedFunctionCall();
     error ExtensionFunctionAlreadyInstalled();
     error CallbackFunctionAlreadyInstalled();
+    error CallbackExecutionReverted();
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTION
     //////////////////////////////////////////////////////////////*/
 
+    receive() external payable {}
+
     fallback() external payable {
         // Get extension function data.
-        InstalledExtensionFunction memory extensionFunction = extensionFunctionData_[msg.sig];
+        InstalledExtensionFunction
+            memory extensionFunction = extensionFunctionData_[msg.sig];
 
         // Check: extension function data exists.
         if (extensionFunction.implementation == address(0)) {
-            revert ExtensionNotInstalled();
+            revert InvalidFunction();
         }
 
         // Check: authorized to call permissioned extension function
-        if (extensionFunction.data.permissioned && !_isAuthorizedToCallExtensionFunctions(msg.sender)) {
-            revert UnauthorizedExtensionCall();
+        if (
+            extensionFunction.data.permissioned &&
+            !_isAuthorizedToCallExtensionFunctions(msg.sender)
+        ) {
+            revert UnauthorizedFunctionCall();
         }
 
         // Call extension function.
         CallType callType = extensionFunction.data.callType;
 
+        // note: these code block needs to happen at the end of the function
         if (callType == CallType.CALL) {
             _callAndReturn(extensionFunction.implementation, msg.value);
         } else if (callType == CallType.DELEGATECALL) {
@@ -70,12 +100,15 @@ abstract contract CoreContract is ICoreContract {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getSupportedCallbackFunctions() public pure virtual returns (bytes4[] memory);
+    function getSupportedCallbackFunctions()
+        public
+        pure
+        virtual
+        returns (bytes4[] memory);
 
     function getInstalledExtensions()
         external
         view
-        virtual
         returns (InstalledExtension[] memory _installedExtensions)
     {
         uint256 totalInstalled = extensionImplementation_.length;
@@ -90,14 +123,17 @@ abstract contract CoreContract is ICoreContract {
         }
     }
 
-    function getCallbackFunctionImplementation(bytes4 _selector) public view virtual returns (address) {
+    function getCallbackFunctionImplementation(bytes4 _selector)
+        public
+        view
+        returns (address)
+    {
         return callbackFunctionImplementation_[_selector];
     }
 
     function getExtensionFunctionData(bytes4 _selector)
         public
         view
-        virtual
         returns (InstalledExtensionFunction memory)
     {
         return extensionFunctionData_[_selector];
@@ -107,52 +143,49 @@ abstract contract CoreContract is ICoreContract {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function installExtension(address _extensionContract, uint256 _value, bytes calldata _data) external {
+    function installExtension(address _extensionContract, bytes calldata _data)
+        external
+        payable
+    {
         // Check: authorized to install extensions.
         if (!_isAuthorizedToInstallExtensions(msg.sender)) {
             revert UnauthorizedInstall();
         }
 
         // Install extension.
-        _installExtension(_extensionContract);
-
-        // Initialize extension with external call.
-        if (_data.length > 0) {
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returndata) = _extensionContract.call{value: _value}(_data);
-            if (!success) {
-                _revert(returndata, ExtensionInitializationFailed.selector);
-            }
-        }
+        _installExtension(_extensionContract, _data);
     }
 
-    function uninstallExtension(address _extensionContract, uint256 _value, bytes calldata _data) external {
+    function uninstallExtension(
+        address _extensionContract,
+        bytes calldata _data
+    ) external payable {
         // Check: authorized to install extensions.
         if (!_isAuthorizedToInstallExtensions(msg.sender)) {
             revert UnauthorizedInstall();
         }
 
         // Uninstall extension.
-        uninstallExtension(_extensionContract);
-
-        // Update extension with external call.
-        if (_data.length > 0) {
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory returndata) = _extensionContract.call{value: _value}(_data);
-            if (!success) {
-                _revert(returndata, ExtensionInitializationFailed.selector);
-            }
-        }
+        _uninstallExtension(_extensionContract, _data);
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _isAuthorizedToInstallExtensions(address _target) internal view virtual returns (bool);
-    function _isAuthorizedToCallExtensionFunctions(address _target) internal view virtual returns (bool);
+    function _isAuthorizedToInstallExtensions(address _target)
+        internal
+        view
+        virtual
+        returns (bool);
 
-    function _installExtension(address _extension) internal virtual {
+    function _isAuthorizedToCallExtensionFunctions(address _target)
+        internal
+        view
+        virtual
+        returns (bool);
+
+    function _installExtension(address _extension, bytes memory data) internal {
         // Check: extension not already installed.
         if (extensionInstalled_[_extension]) {
             revert ExtensionAlreadyInstalled();
@@ -161,7 +194,8 @@ abstract contract CoreContract is ICoreContract {
         extensionImplementation_.push(_extension);
 
         // Get extension config.
-        ExtensionConfig memory config = IExtensionContract(_extension).getExtensionConfig();
+        ExtensionConfig memory config = IExtensionContract(_extension)
+            .getExtensionConfig();
 
         // Store callback function data. Only install supported callback functions
         uint256 totalCallbacks = config.callbackFunctions.length;
@@ -171,7 +205,9 @@ abstract contract CoreContract is ICoreContract {
             bytes4 callbackFunction = config.callbackFunctions[i];
 
             // Check: callback function data not already stored.
-            if (callbackFunctionImplementation_[callbackFunction] != address(0)) {
+            if (
+                callbackFunctionImplementation_[callbackFunction] != address(0)
+            ) {
                 revert CallbackFunctionAlreadyInstalled();
             }
 
@@ -192,18 +228,36 @@ abstract contract CoreContract is ICoreContract {
         // Store extension function data.
         uint256 totalFunctions = config.extensionABI.length;
         for (uint256 i = 0; i < totalFunctions; i++) {
-            ExtensionFunction memory data = config.extensionABI[i];
+            ExtensionFunction memory ext = config.extensionABI[i];
 
             // Check: extension function data not already stored.
-            if (extensionFunctionData_[data.selector].implementation != address(0)) {
+            if (
+                extensionFunctionData_[ext.selector].implementation !=
+                address(0)
+            ) {
                 revert ExtensionFunctionAlreadyInstalled();
             }
 
-            extensionFunctionData_[data.selector] = InstalledExtensionFunction({implementation: _extension, data: data});
+            extensionFunctionData_[ext.selector] = InstalledExtensionFunction({
+                implementation: _extension,
+                data: ext
+            });
         }
+
+        // callback (TODO: check if contract supports it)
+        (bool success, bytes memory returndata) = _extension.call{
+            value: msg.value
+        }(abi.encodeCall(IExtensionInstallation.onInstall, (data)));
+        if (!success) {
+            _revert(returndata, CallbackExecutionReverted.selector);
+        }
+
+        emit ExtensionInstalled(_extension);
     }
 
-    function uninstallExtension(address _extension) internal virtual {
+    function _uninstallExtension(address _extension, bytes memory data)
+        internal
+    {
         // Check: extension installed.
         if (!extensionInstalled_[_extension]) {
             revert ExtensionNotInstalled();
@@ -211,25 +265,52 @@ abstract contract CoreContract is ICoreContract {
         delete extensionInstalled_[_extension];
 
         // Get extension config.
-        ExtensionConfig memory config = IExtensionContract(_extension).getExtensionConfig();
+        ExtensionConfig memory config = IExtensionContract(_extension)
+            .getExtensionConfig();
 
         // Remove extension function data.
         uint256 totalFunctions = config.extensionABI.length;
         for (uint256 i = 0; i < totalFunctions; i++) {
-            ExtensionFunction memory data = config.extensionABI[i];
-            delete extensionFunctionData_[data.selector];
+            ExtensionFunction memory ext = config.extensionABI[i];
+            delete extensionFunctionData_[ext.selector];
         }
 
-        // Remove callback function data.
+        // Remove callback function ext
         uint256 totalCallbacks = config.callbackFunctions.length;
         for (uint256 i = 0; i < totalCallbacks; i++) {
             bytes4 callbackFunction = config.callbackFunctions[i];
             delete callbackFunctionImplementation_[callbackFunction];
         }
+
+        // callback (TODO: check if contract supports it)
+        (bool success, bytes memory returndata) = _extension.call{
+            value: msg.value
+        }(abi.encodeCall(IExtensionInstallation.onUninstall, (data)));
+        if (!success) {
+            _revert(returndata, CallbackExecutionReverted.selector);
+        }
+
+        emit ExtensionUninstalled(_extension);
+    }
+
+    function _callExtensionCallback(
+        bytes4 selector,
+        bytes memory encodedAbiCallData
+    ) internal {
+        address extension = callbackFunctionImplementation_[selector];
+
+        if (extension != address(0)) {
+            (bool success, bytes memory returndata) = extension.call{
+                value: msg.value
+            }(encodedAbiCallData);
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
+            }
+        }
     }
 
     /// @dev delegateCalls an `implementation` smart contract.
-    function _delegateAndReturn(address implementation) internal virtual {
+    function _delegateAndReturn(address implementation) private {
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
             // block because it will not return to Solidity code. We overwrite the
@@ -238,20 +319,31 @@ abstract contract CoreContract is ICoreContract {
 
             // Call the implementation.
             // out and outsize are 0 because we don't know the size yet.
-            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
+            let result := delegatecall(
+                gas(),
+                implementation,
+                0,
+                calldatasize(),
+                0,
+                0
+            )
 
             // Copy the returned data.
             returndatacopy(0, 0, returndatasize())
 
             switch result
-            // delegatecall returns 0 on error.
-            case 0 { revert(0, returndatasize()) }
-            default { return(0, returndatasize()) }
+            // returns 0 on error.
+            case 0 {
+                revert(0, returndatasize())
+            }
+            default {
+                return(0, returndatasize())
+            }
         }
     }
 
     /// @dev calls an `implementation` smart contract and returns data.
-    function _staticcallAndReturn(address implementation) internal virtual {
+    function _callAndReturn(address implementation, uint256 _value) private {
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
             // block because it will not return to Solidity code. We overwrite the
@@ -260,20 +352,32 @@ abstract contract CoreContract is ICoreContract {
 
             // Staticcall the implementation.
             // out and outsize are 0 because we don't know the size yet.
-            let result := staticcall(gas(), implementation, 0, calldatasize(), 0, 0)
+            let result := call(
+                gas(),
+                implementation,
+                _value,
+                0,
+                calldatasize(),
+                0,
+                0
+            )
 
             // Copy the returned data.
             returndatacopy(0, 0, returndatasize())
 
             switch result
-            // staticcall returns 0 on error.
-            case 0 { revert(0, returndatasize()) }
-            default { return(0, returndatasize()) }
+            // returns 0 on error.
+            case 0 {
+                revert(0, returndatasize())
+            }
+            default {
+                return(0, returndatasize())
+            }
         }
     }
 
     /// @dev calls an `implementation` smart contract and returns data.
-    function _callAndReturn(address implementation, uint256 _value) internal virtual {
+    function _staticcallAndReturn(address implementation) private view {
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
             // block because it will not return to Solidity code. We overwrite the
@@ -282,20 +386,34 @@ abstract contract CoreContract is ICoreContract {
 
             // Staticcall the implementation.
             // out and outsize are 0 because we don't know the size yet.
-            let result := call(gas(), implementation, _value, 0, calldatasize(), 0, 0)
+            let result := staticcall(
+                gas(),
+                implementation,
+                0,
+                calldatasize(),
+                0,
+                0
+            )
 
             // Copy the returned data.
             returndatacopy(0, 0, returndatasize())
 
             switch result
-            // staticcall returns 0 on error.
-            case 0 { revert(0, returndatasize()) }
-            default { return(0, returndatasize()) }
+            // returns 0 on error.
+            case 0 {
+                revert(0, returndatasize())
+            }
+            default {
+                return(0, returndatasize())
+            }
         }
     }
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory _returndata, bytes4 _errorSignature) internal pure {
+    function _revert(bytes memory _returndata, bytes4 _errorSignature)
+        internal
+        pure
+    {
         // Look for revert reason and bubble it up if present
         if (_returndata.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly

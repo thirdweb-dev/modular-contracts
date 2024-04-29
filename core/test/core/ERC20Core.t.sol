@@ -3,26 +3,28 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {TestPlus} from "../utils/TestPlus.sol";
-import {
-    MockExtensionERC20,
-    MockExtensionWithOnTokenURICallback,
-    MockExtensionWithPermissionedFallback
-} from "../mocks/MockExtension.sol";
+import {MockExtensionERC20, MockExtensionWithOnTokenURICallback, MockExtensionWithPermissionedFallback} from "../mocks/MockExtension.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {CoreContract, ICoreContract} from "src/core/CoreContract.sol";
+import {CoreContract} from "src/core/CoreContract.sol";
 
 contract ERC20CoreTest is Test, TestPlus {
     bytes32 constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        keccak256(
+            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+        );
 
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
-    event Approval(address indexed owner, address indexed spender, uint256 amount);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 amount
+    );
 
     struct _TestTemps {
         address owner;
@@ -56,7 +58,9 @@ contract ERC20CoreTest is Test, TestPlus {
             MockExtensionERC20.initialize.selector,
             address(0x123) // upgradeAdmin
         );
-        hookProxyAddress = address(new EIP1967Proxy(address(new MockExtensionERC20()), hookInitData));
+        hookProxyAddress = address(
+            new EIP1967Proxy(address(new MockExtensionERC20()), hookInitData)
+        );
 
         vm.startPrank(admin);
 
@@ -69,8 +73,7 @@ contract ERC20CoreTest is Test, TestPlus {
             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
             admin, // core contract owner,
             extensionsToInstall,
-            address(0),
-            bytes("")
+            new bytes[](extensionsToInstall.length)
         );
         vm.stopPrank();
 
@@ -80,16 +83,24 @@ contract ERC20CoreTest is Test, TestPlus {
 
     function testPermissionedFallbackFunctionCall() public {
         vm.startPrank(admin);
-        address permissionedCallHook = address(new MockExtensionWithPermissionedFallback());
+        address permissionedCallHook = address(
+            new MockExtensionWithPermissionedFallback()
+        );
 
-        token.installExtension(permissionedCallHook, 0, "");
+        token.installExtension(permissionedCallHook, "");
         vm.stopPrank();
 
-        vm.expectRevert(abi.encodeWithSelector(CoreContract.UnauthorizedExtensionCall.selector));
-        MockExtensionWithPermissionedFallback(address(token)).permissionedFunction();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CoreContract.UnauthorizedFunctionCall.selector
+            )
+        );
+        MockExtensionWithPermissionedFallback(address(token))
+            .permissionedFunction();
 
         vm.prank(admin);
-        uint256 result = MockExtensionWithPermissionedFallback(address(token)).permissionedFunction();
+        uint256 result = MockExtensionWithPermissionedFallback(address(token))
+            .permissionedFunction();
         assertEq(result, 1);
     }
 
@@ -97,8 +108,12 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.startPrank(admin);
         address mockHook = address(new MockExtensionWithOnTokenURICallback());
 
-        vm.expectRevert(abi.encodeWithSelector(CoreContract.ExtensionUnsupportedCallbackFunction.selector));
-        token.installExtension(address(mockHook), 0, "");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CoreContract.ExtensionUnsupportedCallbackFunction.selector
+            )
+        );
+        token.installExtension(address(mockHook), "");
         vm.stopPrank();
     }
 
@@ -219,7 +234,9 @@ contract ERC20CoreTest is Test, TestPlus {
         uint256 quantity = 0.9e18;
 
         token.mint(minter, quantity, "");
-        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC20.InsufficientBalance.selector)
+        );
         token.transfer(address(0xBEEF), 1e18);
     }
 
@@ -233,7 +250,9 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.prank(from);
         token.approve(address(this), 0.9e18);
 
-        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientAllowance.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC20.InsufficientAllowance.selector)
+        );
         token.transferFrom(from, address(0xBEEF), 1e18);
     }
 
@@ -247,7 +266,9 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.prank(from);
         token.approve(address(this), 1e18);
 
-        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC20.InsufficientBalance.selector)
+        );
         token.transferFrom(from, address(0xBEEF), 1e18);
     }
 
@@ -264,7 +285,11 @@ contract ERC20CoreTest is Test, TestPlus {
         assertEq(token.balanceOf(to), amount);
     }
 
-    function testBurn(address from, uint256 mintAmount, uint256 burnAmount) public {
+    function testBurn(
+        address from,
+        uint256 mintAmount,
+        uint256 burnAmount
+    ) public {
         vm.assume(from != address(0));
         burnAmount = _bound(burnAmount, 0, mintAmount);
 
@@ -313,8 +338,16 @@ contract ERC20CoreTest is Test, TestPlus {
         }
     }
 
-    function testTransferFrom(address spender, address from, address to, uint256 approval, uint256 amount) public {
-        vm.assume(spender != address(0) && from != address(0) && to != address(0));
+    function testTransferFrom(
+        address spender,
+        address from,
+        address to,
+        uint256 approval,
+        uint256 amount
+    ) public {
+        vm.assume(
+            spender != address(0) && from != address(0) && to != address(0)
+        );
         amount = _bound(amount, 0, approval);
 
         address minter = from;
@@ -363,7 +396,11 @@ contract ERC20CoreTest is Test, TestPlus {
         assertEq(token.nonces(t.owner), t.nonce + 1);
     }
 
-    function testBurnInsufficientBalanceReverts(address to, uint256 mintAmount, uint256 burnAmount) public {
+    function testBurnInsufficientBalanceReverts(
+        address to,
+        uint256 mintAmount,
+        uint256 burnAmount
+    ) public {
         vm.assume(to != address(0));
         if (mintAmount == type(uint256).max) mintAmount--;
         burnAmount = _bound(burnAmount, mintAmount + 1, type(uint256).max);
@@ -376,12 +413,18 @@ contract ERC20CoreTest is Test, TestPlus {
         address burner = to;
         uint256 burnQuantity = burnAmount;
 
-        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC20.InsufficientBalance.selector)
+        );
         vm.prank(to);
         token.burn(burnQuantity, "");
     }
 
-    function testTransferInsufficientBalanceReverts(address to, uint256 mintAmount, uint256 sendAmount) public {
+    function testTransferInsufficientBalanceReverts(
+        address to,
+        uint256 mintAmount,
+        uint256 sendAmount
+    ) public {
         vm.assume(to != address(0));
         if (mintAmount == type(uint256).max) mintAmount--;
         sendAmount = _bound(sendAmount, mintAmount + 1, type(uint256).max);
@@ -390,11 +433,17 @@ contract ERC20CoreTest is Test, TestPlus {
         uint256 quantity = mintAmount;
 
         token.mint(minter, quantity, "");
-        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC20.InsufficientBalance.selector)
+        );
         token.transfer(to, sendAmount);
     }
 
-    function testTransferFromInsufficientAllowanceReverts(address to, uint256 approval, uint256 amount) public {
+    function testTransferFromInsufficientAllowanceReverts(
+        address to,
+        uint256 approval,
+        uint256 amount
+    ) public {
         vm.assume(to != address(0));
         if (approval == type(uint256).max) approval--;
         amount = _bound(amount, approval + 1, type(uint256).max);
@@ -409,11 +458,17 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.prank(from);
         token.approve(address(this), approval);
 
-        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientAllowance.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC20.InsufficientAllowance.selector)
+        );
         token.transferFrom(from, to, amount);
     }
 
-    function testTransferFromInsufficientBalanceReverts(address to, uint256 mintAmount, uint256 sendAmount) public {
+    function testTransferFromInsufficientBalanceReverts(
+        address to,
+        uint256 mintAmount,
+        uint256 sendAmount
+    ) public {
         vm.assume(to != address(0));
         if (mintAmount == type(uint256).max) mintAmount--;
         sendAmount = _bound(sendAmount, mintAmount + 1, type(uint256).max);
@@ -428,7 +483,9 @@ contract ERC20CoreTest is Test, TestPlus {
         vm.prank(from);
         token.approve(address(this), sendAmount);
 
-        vm.expectRevert(abi.encodeWithSelector(ERC20.InsufficientBalance.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC20.InsufficientBalance.selector)
+        );
         token.transferFrom(from, to, sendAmount);
     }
 
@@ -478,9 +535,20 @@ contract ERC20CoreTest is Test, TestPlus {
     }
 
     function _signPermit(_TestTemps memory t) internal view {
-        bytes32 innerHash = keccak256(abi.encode(PERMIT_TYPEHASH, t.owner, t.to, t.amount, t.nonce, t.deadline));
+        bytes32 innerHash = keccak256(
+            abi.encode(
+                PERMIT_TYPEHASH,
+                t.owner,
+                t.to,
+                t.amount,
+                t.nonce,
+                t.deadline
+            )
+        );
         bytes32 domainSeparator = token.DOMAIN_SEPARATOR();
-        bytes32 outerHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, innerHash));
+        bytes32 outerHash = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, innerHash)
+        );
         (t.v, t.r, t.s) = vm.sign(t.privateKey, outerHash);
     }
 
