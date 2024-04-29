@@ -27,9 +27,24 @@ contract MockCore is MockBase, CoreContract {
         public
         pure
         override
-        returns (bytes4[] memory supportedCallbackFunctions)
+        returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = getFunctionSignature();
+        supportedCallbackFunctions = getCallbackFunctions();
+    }
+
+    function getCallbackFunctions()
+        internal
+        pure
+        returns (SupportedCallbackFunction[] memory functions)
+    {
+        functions = new SupportedCallbackFunction[](NUMBER_OF_CALLBACK);
+        for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
+            functions[i] = SupportedCallbackFunction({
+                selector: bytes4(uint32(i)),
+                orderFlags: OrderFlag.BEFORE,
+                modeFlags: ModeFlag.OPTIONAL
+            });
+        }
     }
 
     function _isAuthorizedToInstallExtensions(

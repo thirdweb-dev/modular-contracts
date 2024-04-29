@@ -143,16 +143,44 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         public
         pure
         override
-        returns (bytes4[] memory supportedCallbackFunctions)
+        returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new bytes4[](7);
-        supportedCallbackFunctions[0] = this.mint.selector;
-        supportedCallbackFunctions[1] = this.safeTransferFrom.selector;
-        supportedCallbackFunctions[2] = this.safeBatchTransferFrom.selector;
-        supportedCallbackFunctions[3] = this.burn.selector;
-        supportedCallbackFunctions[4] = this.setApprovalForAll.selector;
-        supportedCallbackFunctions[5] = this.uri.selector;
-        supportedCallbackFunctions[6] = this.royaltyInfo.selector;
+        supportedCallbackFunctions = new SupportedCallbackFunction[](7);
+        supportedCallbackFunctions[0] = SupportedCallbackFunction({
+            selector: this.mint.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.REQUIRED
+        });
+        supportedCallbackFunctions[1] = SupportedCallbackFunction({
+            selector: this.safeTransferFrom.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
+            selector: this.safeBatchTransferFrom.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+            selector: this.burn.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[4] = SupportedCallbackFunction({
+            selector: this.setApprovalForAll.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[5] = SupportedCallbackFunction({
+            selector: this.uri.selector,
+            orderFlags: OrderFlag.ON,
+            modeFlags: ModeFlag.REQUIRED
+        });
+        supportedCallbackFunctions[6] = SupportedCallbackFunction({
+            selector: this.royaltyInfo.selector,
+            orderFlags: OrderFlag.ON,
+            modeFlags: ModeFlag.OPTIONAL
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -379,13 +407,14 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         virtual
         returns (string memory uri)
     {
+        /*
         address hook = getCallbackFunctionImplementation(
             OnTokenURIHook.onTokenURI.selector
         );
 
         if (hook != address(0)) {
             uri = OnTokenURIHook(hook).onTokenURI(tokenId);
-        }
+        }*/
     }
 
     /// @dev Fetches royalty info from the royalty hook.
@@ -395,6 +424,7 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
+        /*
         address hook = getCallbackFunctionImplementation(
             OnRoyaltyInfoHook.onRoyaltyInfo.selector
         );
@@ -405,5 +435,6 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
                 salePrice
             );
         }
+        */
     }
 }

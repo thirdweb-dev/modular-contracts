@@ -2,6 +2,8 @@
 pragma solidity ^0.8.23;
 
 import {IExtensionContract} from "../interface/IExtensionContract.sol";
+import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
+
 import "../interface/IExtensionTypes.sol";
 
 interface IExtensionInstallation {
@@ -11,24 +13,47 @@ interface IExtensionInstallation {
 }
 
 abstract contract CoreContract is IExtensionTypes {
+    using EnumerableSetLib for *;
+
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
-    struct CallbackFunction {
+    enum OrderFlag {
+        BEFORE,
+        ON,
+        AFTER
+    }
+
+    enum ModeFlag {
+        OPTIONAL,
+        REQUIRED
+    }
+
+    struct SupportedCallbackFunction {
         bytes4 selector;
-        uint8 maxOrder; // before, on, after
-        uint8 executionType; // execution error / success behavior?
-        uint8 required; // required to execute on the function? (mint)
+        OrderFlag orderFlags;
+        ModeFlag modeFlags;
     }
 
     struct InstalledExtension {
         address implementation;
         ExtensionConfig config;
+
+        // bytes4[] registeredCallback;
+        // bytes4[] exposedFunctions;
+
+        // bytes4 selector;
+        // CallType callType;
+        // bool permissioned;
     }
 
     struct InstalledExtensionFunction {
         address implementation;
         ExtensionFunction data;
+        // bytes4[] callbackFunctions;
+        // bytes4[] exposedFunctions;
+        // bool[] permissions;
+        // CallType[] calltypes;
     }
 
     event ExtensionInstalled(address extension);
@@ -38,8 +63,8 @@ abstract contract CoreContract is IExtensionTypes {
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address[] private extensionImplementation_;
-    mapping(address => bool) private extensionInstalled_;
+    EnumerableSetLib.AddressSet private extensions;
+
     mapping(bytes4 => address) private callbackFunctionImplementation_;
     mapping(bytes4 => InstalledExtensionFunction)
         private extensionFunctionData_;
@@ -104,39 +129,23 @@ abstract contract CoreContract is IExtensionTypes {
         public
         pure
         virtual
-        returns (bytes4[] memory);
+        returns (SupportedCallbackFunction[] memory);
 
     function getInstalledExtensions()
         external
         view
         returns (InstalledExtension[] memory _installedExtensions)
     {
-        uint256 totalInstalled = extensionImplementation_.length;
+        uint256 totalInstalled = extensions.length();
         _installedExtensions = new InstalledExtension[](totalInstalled);
 
         for (uint256 i = 0; i < totalInstalled; i++) {
-            address implementation = extensionImplementation_[i];
+            address implementation = extensions.at(i);
             _installedExtensions[i] = InstalledExtension({
                 implementation: implementation,
                 config: IExtensionContract(implementation).getExtensionConfig()
             });
         }
-    }
-
-    function getCallbackFunctionImplementation(bytes4 _selector)
-        public
-        view
-        returns (address)
-    {
-        return callbackFunctionImplementation_[_selector];
-    }
-
-    function getExtensionFunctionData(bytes4 _selector)
-        public
-        view
-        returns (InstalledExtensionFunction memory)
-    {
-        return extensionFunctionData_[_selector];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -186,12 +195,10 @@ abstract contract CoreContract is IExtensionTypes {
         returns (bool);
 
     function _installExtension(address _extension, bytes memory data) internal {
-        // Check: extension not already installed.
-        if (extensionInstalled_[_extension]) {
+        // Check: add and check if extension not already installed.
+        if (!extensions.add(_extension)) {
             revert ExtensionAlreadyInstalled();
         }
-        extensionInstalled_[_extension] = true;
-        extensionImplementation_.push(_extension);
 
         // Get extension config.
         ExtensionConfig memory config = IExtensionContract(_extension)
@@ -199,7 +206,6 @@ abstract contract CoreContract is IExtensionTypes {
 
         // Store callback function data. Only install supported callback functions
         uint256 totalCallbacks = config.callbackFunctions.length;
-        bytes4[] memory supportedCallbacks = getSupportedCallbackFunctions();
 
         for (uint256 i = 0; i < totalCallbacks; i++) {
             bytes4 callbackFunction = config.callbackFunctions[i];
@@ -211,16 +217,7 @@ abstract contract CoreContract is IExtensionTypes {
                 revert CallbackFunctionAlreadyInstalled();
             }
 
-            bool supported = false;
-            for (uint256 j = 0; j < supportedCallbacks.length; j++) {
-                if (callbackFunction == supportedCallbacks[j]) {
-                    supported = true;
-                    break;
-                }
-            }
-            if (!supported) {
-                revert ExtensionUnsupportedCallbackFunction();
-            }
+            // extension can register to non-advertised callback functions, but they most likely won't be triggered
 
             callbackFunctionImplementation_[callbackFunction] = _extension;
         }
@@ -258,11 +255,10 @@ abstract contract CoreContract is IExtensionTypes {
     function _uninstallExtension(address _extension, bytes memory data)
         internal
     {
-        // Check: extension installed.
-        if (!extensionInstalled_[_extension]) {
+        // Check: remove and check if the extension is installed
+        if (!extensions.remove(_extension)) {
             revert ExtensionNotInstalled();
         }
-        delete extensionInstalled_[_extension];
 
         // Get extension config.
         ExtensionConfig memory config = IExtensionContract(_extension)
@@ -410,21 +406,20 @@ abstract contract CoreContract is IExtensionTypes {
     }
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory _returndata, bytes4 _errorSignature)
+    function _revert(bytes memory returnData, bytes4 errorSignature)
         internal
         pure
     {
         // Look for revert reason and bubble it up if present
-        if (_returndata.length > 0) {
+        if (returnData.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly
             /// @solidity memory-safe-assembly
             assembly {
-                let returndata_size := mload(_returndata)
-                revert(add(32, _returndata), returndata_size)
+                revert(add(0x20, returnData), mload(returnData))
             }
         } else {
             assembly {
-                mstore(0x00, _errorSignature)
+                mstore(0x00, errorSignature)
                 revert(0x1c, 0x04)
             }
         }

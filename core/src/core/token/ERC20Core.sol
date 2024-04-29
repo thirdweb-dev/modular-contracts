@@ -94,13 +94,29 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
         public
         pure
         override
-        returns (bytes4[] memory supportedCallbackFunctions)
+        returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new bytes4[](4);
-        supportedCallbackFunctions[0] = this.mint.selector;
-        supportedCallbackFunctions[1] = this.transfer.selector;
-        supportedCallbackFunctions[2] = this.burn.selector;
-        supportedCallbackFunctions[3] = this.approve.selector;
+        supportedCallbackFunctions = new SupportedCallbackFunction[](4);
+        supportedCallbackFunctions[0] = SupportedCallbackFunction({
+            selector: this.mint.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.REQUIRED
+        });
+        supportedCallbackFunctions[1] = SupportedCallbackFunction({
+            selector: this.transfer.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
+            selector: this.burn.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+            selector: this.approve.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -118,16 +118,44 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         public
         pure
         override
-        returns (bytes4[] memory supportedCallbackFunctions)
+        returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new bytes4[](7);
-        supportedCallbackFunctions[0] = this.mint.selector;
-        supportedCallbackFunctions[1] = this.transferFrom.selector;
-        supportedCallbackFunctions[2] = this.burn.selector;
-        supportedCallbackFunctions[3] = this.approve.selector;
-        supportedCallbackFunctions[4] = this.setApprovalForAll.selector;
-        supportedCallbackFunctions[5] = this.tokenURI.selector;
-        supportedCallbackFunctions[6] = this.royaltyInfo.selector;
+        supportedCallbackFunctions = new SupportedCallbackFunction[](7);
+        supportedCallbackFunctions[0] = SupportedCallbackFunction({
+            selector: this.mint.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.REQUIRED
+        });
+        supportedCallbackFunctions[1] = SupportedCallbackFunction({
+            selector: this.transferFrom.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
+            selector: this.burn.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+            selector: this.approve.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[4] = SupportedCallbackFunction({
+            selector: this.setApprovalForAll.selector,
+            orderFlags: OrderFlag.BEFORE,
+            modeFlags: ModeFlag.OPTIONAL
+        });
+        supportedCallbackFunctions[5] = SupportedCallbackFunction({
+            selector: this.tokenURI.selector,
+            orderFlags: OrderFlag.ON,
+            modeFlags: ModeFlag.REQUIRED
+        });
+        supportedCallbackFunctions[6] = SupportedCallbackFunction({
+            selector: this.royaltyInfo.selector,
+            orderFlags: OrderFlag.ON,
+            modeFlags: ModeFlag.OPTIONAL
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -330,6 +358,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         virtual
         returns (string memory uri)
     {
+        /*
         address hook = getCallbackFunctionImplementation(
             OnTokenURIHook.onTokenURI.selector
         );
@@ -337,6 +366,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         if (hook != address(0)) {
             uri = OnTokenURIHook(hook).onTokenURI(_tokenId);
         }
+        */
     }
 
     /// @dev Fetches royalty info from the royalty hook.
@@ -346,6 +376,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
+        /*
         address hook = getCallbackFunctionImplementation(
             OnRoyaltyInfoHook.onRoyaltyInfo.selector
         );
@@ -356,5 +387,6 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
                 _salePrice
             );
         }
+        */
     }
 }
