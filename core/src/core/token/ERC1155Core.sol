@@ -7,13 +7,13 @@ import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
 import {CoreContract} from "../CoreContract.sol";
 
-import {BeforeMintHookERC1155} from "../../hook/BeforeMintHookERC1155.sol";
-import {BeforeTransferHookERC1155} from "../../hook/BeforeTransferHookERC1155.sol";
-import {BeforeBatchTransferHookERC1155} from "../../hook/BeforeBatchTransferHookERC1155.sol";
-import {BeforeBurnHookERC1155} from "../../hook/BeforeBurnHookERC1155.sol";
-import {BeforeApproveForAllHook} from "../../hook/BeforeApproveForAllHook.sol";
-import {OnTokenURIHook} from "../../hook/OnTokenURIHook.sol";
-import {OnRoyaltyInfoHook} from "../../hook/OnRoyaltyInfoHook.sol";
+import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC1155.sol";
+import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
+import {BeforeBatchTransferCallbackERC1155} from "../../callback/BeforeBatchTransferCallbackERC1155.sol";
+import {BeforeBurnCallbackERC1155} from "../../callback/BeforeBurnCallbackERC1155.sol";
+import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
+import {OnRoyaltyInfoCallback} from "../../callback/OnRoyaltyInfoCallback.sol";
 
 contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
@@ -150,12 +150,12 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         returns (bytes4[] memory supportedCallbackFunctions)
     {
         supportedCallbackFunctions = new bytes4[](6);
-        supportedCallbackFunctions[0] = BeforeMintHookERC1155.beforeMintERC1155.selector;
-        supportedCallbackFunctions[1] = BeforeTransferHookERC1155.beforeTransferERC1155.selector;
-        supportedCallbackFunctions[2] = BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector;
-        supportedCallbackFunctions[3] = BeforeBurnHookERC1155.beforeBurnERC1155.selector;
-        supportedCallbackFunctions[4] = BeforeApproveForAllHook.beforeApproveForAll.selector;
-        supportedCallbackFunctions[5] = OnTokenURIHook.onTokenURI.selector;
+        supportedCallbackFunctions[0] = BeforeMintCallbackERC1155.beforeMintERC1155.selector;
+        supportedCallbackFunctions[1] = BeforeTransferCallbackERC1155.beforeTransferERC1155.selector;
+        supportedCallbackFunctions[2] = BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155.selector;
+        supportedCallbackFunctions[3] = BeforeBurnCallbackERC1155.beforeBurnERC1155.selector;
+        supportedCallbackFunctions[4] = BeforeApproveForAllCallback.beforeApproveForAll.selector;
+        supportedCallbackFunctions[5] = OnTokenURICallback.onTokenURI.selector;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -269,11 +269,13 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
-        address hook = getCallbackFunctionImplementation(BeforeMintHookERC1155.beforeMintERC1155.selector);
+        address hook = getCallbackFunctionImplementation(BeforeMintCallbackERC1155.beforeMintERC1155.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeMintHookERC1155.beforeMintERC1155.selector, _to, _tokenId, _value, _data)
+                abi.encodeWithSelector(
+                    BeforeMintCallbackERC1155.beforeMintERC1155.selector, _to, _tokenId, _value, _data
+                )
             );
             if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
         } else {
@@ -284,12 +286,12 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _tokenId, uint256 _value) internal virtual {
         address hook =
-            getCallbackFunctionImplementation(BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector);
+            getCallbackFunctionImplementation(BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(
-                    BeforeTransferHookERC1155.beforeTransferERC1155.selector, _from, _to, _tokenId, _value
+                    BeforeTransferCallbackERC1155.beforeTransferERC1155.selector, _from, _to, _tokenId, _value
                 )
             );
             if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
@@ -302,12 +304,16 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         virtual
     {
         address hook =
-            getCallbackFunctionImplementation(BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector);
+            getCallbackFunctionImplementation(BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(
-                    BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector, _from, _to, _tokenIds, _values
+                    BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155.selector,
+                    _from,
+                    _to,
+                    _tokenIds,
+                    _values
                 )
             );
             if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
@@ -316,12 +322,12 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address _operator, uint256 _tokenId, uint256 _value, bytes memory _data) internal virtual {
-        address hook = getCallbackFunctionImplementation(BeforeBurnHookERC1155.beforeBurnERC1155.selector);
+        address hook = getCallbackFunctionImplementation(BeforeBurnCallbackERC1155.beforeBurnERC1155.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(
-                    BeforeBurnHookERC1155.beforeBurnERC1155.selector, _operator, _tokenId, _value, _data
+                    BeforeBurnCallbackERC1155.beforeBurnERC1155.selector, _operator, _tokenId, _value, _data
                 )
             );
             if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
@@ -330,11 +336,11 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApproveForAll(address _from, address _to, bool _approved) internal virtual {
-        address hook = getCallbackFunctionImplementation(BeforeApproveForAllHook.beforeApproveForAll.selector);
+        address hook = getCallbackFunctionImplementation(BeforeApproveForAllCallback.beforeApproveForAll.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeApproveForAllHook.beforeApproveForAll.selector, _from, _to, _approved)
+                abi.encodeWithSelector(BeforeApproveForAllCallback.beforeApproveForAll.selector, _from, _to, _approved)
             );
             if (!success) _revert(returndata, ERC1155CoreCallbackFailed.selector);
         }
@@ -342,10 +348,10 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
 
     /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory _uri) {
-        address hook = getCallbackFunctionImplementation(OnTokenURIHook.onTokenURI.selector);
+        address hook = getCallbackFunctionImplementation(OnTokenURICallback.onTokenURI.selector);
 
         if (hook != address(0)) {
-            _uri = OnTokenURIHook(hook).onTokenURI(_tokenId);
+            _uri = OnTokenURICallback(hook).onTokenURI(_tokenId);
         }
     }
 
@@ -356,10 +362,10 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address hook = getCallbackFunctionImplementation(OnRoyaltyInfoHook.onRoyaltyInfo.selector);
+        address hook = getCallbackFunctionImplementation(OnRoyaltyInfoCallback.onRoyaltyInfo.selector);
 
         if (hook != address(0)) {
-            (receiver, royaltyAmount) = OnRoyaltyInfoHook(hook).onRoyaltyInfo(_tokenId, _salePrice);
+            (receiver, royaltyAmount) = OnRoyaltyInfoCallback(hook).onRoyaltyInfo(_tokenId, _salePrice);
         }
     }
 }

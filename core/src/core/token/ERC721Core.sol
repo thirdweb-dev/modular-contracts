@@ -7,13 +7,13 @@ import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQu
 
 import {CoreContract} from "../CoreContract.sol";
 
-import {BeforeMintHookERC721} from "../../hook/BeforeMintHookERC721.sol";
-import {BeforeTransferHookERC721} from "../../hook/BeforeTransferHookERC721.sol";
-import {BeforeBurnHookERC721} from "../../hook/BeforeBurnHookERC721.sol";
-import {BeforeApproveHookERC721} from "../../hook/BeforeApproveHookERC721.sol";
-import {BeforeApproveForAllHook} from "../../hook/BeforeApproveForAllHook.sol";
-import {OnTokenURIHook} from "../../hook/OnTokenURIHook.sol";
-import {OnRoyaltyInfoHook} from "../../hook/OnRoyaltyInfoHook.sol";
+import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
+import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
+import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
+import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
+import {OnRoyaltyInfoCallback} from "../../callback/OnRoyaltyInfoCallback.sol";
 
 contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
@@ -125,13 +125,13 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         returns (bytes4[] memory supportedCallbackFunctions)
     {
         supportedCallbackFunctions = new bytes4[](7);
-        supportedCallbackFunctions[0] = BeforeMintHookERC721.beforeMintERC721.selector;
-        supportedCallbackFunctions[1] = BeforeTransferHookERC721.beforeTransferERC721.selector;
-        supportedCallbackFunctions[2] = BeforeBurnHookERC721.beforeBurnERC721.selector;
-        supportedCallbackFunctions[3] = BeforeApproveHookERC721.beforeApproveERC721.selector;
-        supportedCallbackFunctions[4] = BeforeApproveForAllHook.beforeApproveForAll.selector;
-        supportedCallbackFunctions[5] = OnTokenURIHook.onTokenURI.selector;
-        supportedCallbackFunctions[6] = OnRoyaltyInfoHook.onRoyaltyInfo.selector;
+        supportedCallbackFunctions[0] = BeforeMintCallbackERC721.beforeMintERC721.selector;
+        supportedCallbackFunctions[1] = BeforeTransferCallbackERC721.beforeTransferERC721.selector;
+        supportedCallbackFunctions[2] = BeforeBurnCallbackERC721.beforeBurnERC721.selector;
+        supportedCallbackFunctions[3] = BeforeApproveCallbackERC721.beforeApproveERC721.selector;
+        supportedCallbackFunctions[4] = BeforeApproveForAllCallback.beforeApproveForAll.selector;
+        supportedCallbackFunctions[5] = OnTokenURICallback.onTokenURI.selector;
+        supportedCallbackFunctions[6] = OnRoyaltyInfoCallback.onRoyaltyInfo.selector;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -227,11 +227,11 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeMint hook.
     function _beforeMint(address _to, uint256 _quantity, bytes calldata _data) internal virtual {
-        address hook = getCallbackFunctionImplementation(BeforeMintHookERC721.beforeMintERC721.selector);
+        address hook = getCallbackFunctionImplementation(BeforeMintCallbackERC721.beforeMintERC721.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeMintHookERC721.beforeMintERC721.selector, _to, _quantity, _data)
+                abi.encodeWithSelector(BeforeMintCallbackERC721.beforeMintERC721.selector, _to, _quantity, _data)
             );
             if (!success) _revert(returndata, ERC721CoreCallbackFailed.selector);
         } else {
@@ -241,11 +241,11 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address _from, address _to, uint256 _tokenId) internal virtual {
-        address hook = getCallbackFunctionImplementation(BeforeTransferHookERC721.beforeTransferERC721.selector);
+        address hook = getCallbackFunctionImplementation(BeforeTransferCallbackERC721.beforeTransferERC721.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeTransferHookERC721.beforeTransferERC721.selector, _from, _to, _tokenId)
+                abi.encodeWithSelector(BeforeTransferCallbackERC721.beforeTransferERC721.selector, _from, _to, _tokenId)
             );
             if (!success) _revert(returndata, ERC721CoreCallbackFailed.selector);
         }
@@ -253,11 +253,11 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address _operator, uint256 _tokenId, bytes calldata _data) internal virtual {
-        address hook = getCallbackFunctionImplementation(BeforeBurnHookERC721.beforeBurnERC721.selector);
+        address hook = getCallbackFunctionImplementation(BeforeBurnCallbackERC721.beforeBurnERC721.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeBurnHookERC721.beforeBurnERC721.selector, _operator, _tokenId, _data)
+                abi.encodeWithSelector(BeforeBurnCallbackERC721.beforeBurnERC721.selector, _operator, _tokenId, _data)
             );
             if (!success) _revert(returndata, ERC721CoreCallbackFailed.selector);
         }
@@ -265,12 +265,12 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApprove(address _from, address _to, uint256 _tokenId, bool _approve) internal virtual {
-        address hook = getCallbackFunctionImplementation(BeforeApproveHookERC721.beforeApproveERC721.selector);
+        address hook = getCallbackFunctionImplementation(BeforeApproveCallbackERC721.beforeApproveERC721.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
                 abi.encodeWithSelector(
-                    BeforeApproveHookERC721.beforeApproveERC721.selector, _from, _to, _tokenId, _approve
+                    BeforeApproveCallbackERC721.beforeApproveERC721.selector, _from, _to, _tokenId, _approve
                 )
             );
             if (!success) _revert(returndata, ERC721CoreCallbackFailed.selector);
@@ -279,11 +279,11 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
 
     /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApproveForAll(address _from, address _to, bool _approve) internal virtual {
-        address hook = getCallbackFunctionImplementation(BeforeApproveForAllHook.beforeApproveForAll.selector);
+        address hook = getCallbackFunctionImplementation(BeforeApproveForAllCallback.beforeApproveForAll.selector);
 
         if (hook != address(0)) {
             (bool success, bytes memory returndata) = hook.call{value: msg.value}(
-                abi.encodeWithSelector(BeforeApproveHookERC721.beforeApproveERC721.selector, _from, _to, _approve)
+                abi.encodeWithSelector(BeforeApproveCallbackERC721.beforeApproveERC721.selector, _from, _to, _approve)
             );
             if (!success) _revert(returndata, ERC721CoreCallbackFailed.selector);
         }
@@ -291,10 +291,10 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
 
     /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 _tokenId) internal view virtual returns (string memory uri) {
-        address hook = getCallbackFunctionImplementation(OnTokenURIHook.onTokenURI.selector);
+        address hook = getCallbackFunctionImplementation(OnTokenURICallback.onTokenURI.selector);
 
         if (hook != address(0)) {
-            uri = OnTokenURIHook(hook).onTokenURI(_tokenId);
+            uri = OnTokenURICallback(hook).onTokenURI(_tokenId);
         }
     }
 
@@ -305,10 +305,10 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        address hook = getCallbackFunctionImplementation(OnRoyaltyInfoHook.onRoyaltyInfo.selector);
+        address hook = getCallbackFunctionImplementation(OnRoyaltyInfoCallback.onRoyaltyInfo.selector);
 
         if (hook != address(0)) {
-            (receiver, royaltyAmount) = OnRoyaltyInfoHook(hook).onRoyaltyInfo(_tokenId, _salePrice);
+            (receiver, royaltyAmount) = OnRoyaltyInfoCallback(hook).onRoyaltyInfo(_tokenId, _salePrice);
         }
     }
 }
