@@ -7,13 +7,13 @@ import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
 import {CoreContract} from "../CoreContract.sol";
 
-import {BeforeMintHookERC1155} from "../../hook/BeforeMintHookERC1155.sol";
-import {BeforeTransferHookERC1155} from "../../hook/BeforeTransferHookERC1155.sol";
-import {BeforeBatchTransferHookERC1155} from "../../hook/BeforeBatchTransferHookERC1155.sol";
-import {BeforeBurnHookERC1155} from "../../hook/BeforeBurnHookERC1155.sol";
-import {BeforeApproveForAllHook} from "../../hook/BeforeApproveForAllHook.sol";
-import {OnTokenURIHook} from "../../hook/OnTokenURIHook.sol";
-import {OnRoyaltyInfoHook} from "../../hook/OnRoyaltyInfoHook.sol";
+import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC1155.sol";
+import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
+import {BeforeBatchTransferCallbackERC1155} from "../../callback/BeforeBatchTransferCallbackERC1155.sol";
+import {BeforeBurnCallbackERC1155} from "../../callback/BeforeBurnCallbackERC1155.sol";
+import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
+import {OnRoyaltyInfoCallback} from "../../callback/OnRoyaltyInfoCallback.sol";
 
 contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////

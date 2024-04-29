@@ -7,13 +7,13 @@ import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQu
 
 import {CoreContract} from "../CoreContract.sol";
 
-import {BeforeMintHookERC721} from "../../hook/BeforeMintHookERC721.sol";
-import {BeforeTransferHookERC721} from "../../hook/BeforeTransferHookERC721.sol";
-import {BeforeBurnHookERC721} from "../../hook/BeforeBurnHookERC721.sol";
-import {BeforeApproveHookERC721} from "../../hook/BeforeApproveHookERC721.sol";
-import {BeforeApproveForAllHook} from "../../hook/BeforeApproveForAllHook.sol";
-import {OnTokenURIHook} from "../../hook/OnTokenURIHook.sol";
-import {OnRoyaltyInfoHook} from "../../hook/OnRoyaltyInfoHook.sol";
+import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
+import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
+import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
+import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
+import {OnRoyaltyInfoCallback} from "../../callback/OnRoyaltyInfoCallback.sol";
 
 contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
@@ -364,7 +364,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         );
 
         if (hook != address(0)) {
-            uri = OnTokenURIHook(hook).onTokenURI(_tokenId);
+            uri = OnTokenURICallback(hook).onTokenURI(_tokenId);
         }
         */
     }
@@ -386,6 +386,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
                 _tokenId,
                 _salePrice
             );
+
         }
         */
     }
