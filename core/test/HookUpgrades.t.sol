@@ -5,8 +5,6 @@ import {Test} from "forge-std/Test.sol";
 
 import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
-import {IHook} from "src/interface/IHook.sol";
-import {IHookInstaller} from "src/interface/IHookInstaller.sol";
 import {ICoreContract} from "src/interface/ICoreContract.sol";
 
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
