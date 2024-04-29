@@ -329,9 +329,9 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
     ) internal virtual {
         // TODO should revert if extension doesn't exists
         _callExtensionCallback(
-            BeforeMintHookERC1155.beforeMintERC1155.selector,
+            BeforeMintCallbackERC1155.beforeMintERC1155.selector,
             abi.encodeCall(
-                BeforeMintHookERC1155.beforeMintERC1155,
+                BeforeMintCallbackERC1155.beforeMintERC1155,
                 (to, tokenId, value, data)
             )
         );
@@ -345,9 +345,9 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         uint256 value
     ) internal virtual {
         _callExtensionCallback(
-            BeforeTransferHookERC1155.beforeTransferERC1155.selector,
+            BeforeTransferCallbackERC1155.beforeTransferERC1155.selector,
             abi.encodeCall(
-                BeforeTransferHookERC1155.beforeTransferERC1155,
+                BeforeTransferCallbackERC1155.beforeTransferERC1155,
                 (from, to, tokenId, value)
             )
         );
@@ -361,9 +361,11 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         uint256[] calldata values
     ) internal virtual {
         _callExtensionCallback(
-            BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155.selector,
+            BeforeBatchTransferCallbackERC1155
+                .beforeBatchTransferERC1155
+                .selector,
             abi.encodeCall(
-                BeforeBatchTransferHookERC1155.beforeBatchTransferERC1155,
+                BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155,
                 (from, to, tokenIds, values)
             )
         );
@@ -377,9 +379,9 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         bytes memory data
     ) internal virtual {
         _callExtensionCallback(
-            BeforeBurnHookERC1155.beforeBurnERC1155.selector,
+            BeforeBurnCallbackERC1155.beforeBurnERC1155.selector,
             abi.encodeCall(
-                BeforeBurnHookERC1155.beforeBurnERC1155,
+                BeforeBurnCallbackERC1155.beforeBurnERC1155,
                 (operator, tokenId, value, data)
             )
         );
@@ -392,9 +394,9 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         bool approved
     ) internal virtual {
         _callExtensionCallback(
-            BeforeApproveForAllHook.beforeApproveForAll.selector,
+            BeforeApproveForAllCallback.beforeApproveForAll.selector,
             abi.encodeCall(
-                BeforeApproveForAllHook.beforeApproveForAll,
+                BeforeApproveForAllCallback.beforeApproveForAll,
                 (from, to, approved)
             )
         );

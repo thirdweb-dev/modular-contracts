@@ -282,9 +282,9 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
     ) internal virtual {
         // TODO should revert if extension doesn't exists
         _callExtensionCallback(
-            BeforeMintHookERC721.beforeMintERC721.selector,
+            BeforeMintCallbackERC721.beforeMintERC721.selector,
             abi.encodeCall(
-                BeforeMintHookERC721.beforeMintERC721,
+                BeforeMintCallbackERC721.beforeMintERC721,
                 (to, quantity, data)
             )
         );
@@ -297,9 +297,9 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         uint256 tokenId
     ) internal virtual {
         _callExtensionCallback(
-            BeforeTransferHookERC721.beforeTransferERC721.selector,
+            BeforeTransferCallbackERC721.beforeTransferERC721.selector,
             abi.encodeCall(
-                BeforeTransferHookERC721.beforeTransferERC721,
+                BeforeTransferCallbackERC721.beforeTransferERC721,
                 (from, to, tokenId)
             )
         );
@@ -312,9 +312,9 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         bytes calldata data
     ) internal virtual {
         _callExtensionCallback(
-            BeforeBurnHookERC721.beforeBurnERC721.selector,
+            BeforeBurnCallbackERC721.beforeBurnERC721.selector,
             abi.encodeCall(
-                BeforeBurnHookERC721.beforeBurnERC721,
+                BeforeBurnCallbackERC721.beforeBurnERC721,
                 (operator, tokenId, data)
             )
         );
@@ -328,9 +328,9 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         bool approved
     ) internal virtual {
         _callExtensionCallback(
-            BeforeApproveHookERC721.beforeApproveERC721.selector,
+            BeforeApproveCallbackERC721.beforeApproveERC721.selector,
             abi.encodeCall(
-                BeforeApproveHookERC721.beforeApproveERC721,
+                BeforeApproveCallbackERC721.beforeApproveERC721,
                 (from, to, tokenId, approved)
             )
         );
@@ -343,9 +343,9 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         bool approved
     ) internal virtual {
         _callExtensionCallback(
-            BeforeApproveForAllHook.beforeApproveForAll.selector,
+            BeforeApproveForAllCallback.beforeApproveForAll.selector,
             abi.encodeCall(
-                BeforeApproveForAllHook.beforeApproveForAll,
+                BeforeApproveForAllCallback.beforeApproveForAll,
                 (from, to, approved)
             )
         );

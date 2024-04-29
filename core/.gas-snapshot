@@ -1,6 +1,6 @@
 CoreBenchmark:test_core_callFunction_notPermissionedDelegate() (gas: 37066)
 CoreBenchmark:test_core_callFunction_notPermissionedExternal() (gas: 37089)
-CoreBenchmark:test_deployCore() (gas: 1493778)
+CoreBenchmark:test_deployCore() (gas: 1493766)
 CoreBenchmark:test_deployExtension() (gas: 292849)
 CoreBenchmark:test_extension_callFunction_notPermissionedDelegate() (gas: 29380)
 CoreBenchmark:test_extension_callFunction_notPermissionedExternal() (gas: 29378)

@@ -251,9 +251,9 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     ) internal virtual {
         // TODO should revert if extension doesn't exists
         _callExtensionCallback(
-            BeforeMintHookERC20.beforeMintERC20.selector,
+            BeforeMintCallbackERC20.beforeMintERC20.selector,
             abi.encodeCall(
-                BeforeMintHookERC20.beforeMintERC20,
+                BeforeMintCallbackERC20.beforeMintERC20,
                 (to, amount, data)
             )
         );
@@ -266,9 +266,9 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
         uint256 amount
     ) internal virtual {
         _callExtensionCallback(
-            BeforeTransferHookERC20.beforeTransferERC20.selector,
+            BeforeTransferCallbackERC20.beforeTransferERC20.selector,
             abi.encodeCall(
-                BeforeTransferHookERC20.beforeTransferERC20,
+                BeforeTransferCallbackERC20.beforeTransferERC20,
                 (from, to, amount)
             )
         );
@@ -281,9 +281,9 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
         bytes calldata data
     ) internal virtual {
         _callExtensionCallback(
-            BeforeBurnHookERC20.beforeBurnERC20.selector,
+            BeforeBurnCallbackERC20.beforeBurnERC20.selector,
             abi.encodeCall(
-                BeforeBurnHookERC20.beforeBurnERC20,
+                BeforeBurnCallbackERC20.beforeBurnERC20,
                 (from, amount, data)
             )
         );
@@ -296,9 +296,9 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
         uint256 amount
     ) internal virtual {
         _callExtensionCallback(
-            BeforeApproveHookERC20.beforeApproveERC20.selector,
+            BeforeApproveCallbackERC20.beforeApproveERC20.selector,
             abi.encodeCall(
-                BeforeApproveHookERC20.beforeApproveERC20,
+                BeforeApproveCallbackERC20.beforeApproveERC20,
                 (from, to, amount)
             )
         );
