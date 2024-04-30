@@ -1,19 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IHook} from "@core-contracts/interface/IHook.sol";
-
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {OnTokenURIHook} from "@core-contracts/hook/OnTokenURIHook.sol";
-
+import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
 import {LibString} from "@solady/utils/LibString.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 library LazyMintStorage {
     /// @custom:storage-location erc7201:lazymint.storage
-    /// @dev keccak256(abi.encode(uint256(keccak256("lazymint.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant LAZY_MINT_STORAGE_POSITION =
-        0x8911971c3aad928c9cac140eac0269f3210708ac8d69db5b5f5c70209d935800;
+        keccak256(abi.encode(uint256(keccak256("lazymint.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         /// @notice Mapping from token => batch IDs
@@ -32,7 +26,7 @@ library LazyMintStorage {
     }
 }
 
-contract LazyMintMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Multicallable {
+contract LazyMintMetadataHook is IExtensionContract {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -64,18 +58,36 @@ contract LazyMintMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Mult
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](1);
+        config.callbackFunctions[0] = this.onTokenURI.selector;
+
+        config.extensionABI = new ExtensionFunction[](3);
+
+        config.extensionABI[0] =
+            ExtensionFunction({selector: this.lazyMint.selector, callType: CallType.CALL, permissioned: true});
+        config.extensionABI[1] = ExtensionFunction({
+            selector: this.getBaseURICount.selector,
+            callType: CallType.STATICCALL,
+            permissioned: false
+        });
+        config.extensionABI[2] = ExtensionFunction({
+            selector: this.getBatchIdAtIndex.selector,
+            callType: CallType.STATICCALL,
+            permissioned: false
+        });
+    }
+
     /**
-     *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
-     *          callable via core contract fallback function.
+     *  @notice Returns the URI to fetch token metadata from.
+     *  @dev Meant to be called by the core token contract.
+     *  @param _id The token ID of the NFT.
      */
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = ON_TOKEN_URI_FLAG;
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](3);
-        hookInfo.hookFallbackFunctions[0] =
-            HookFallbackFunction(this.getBaseURICount.selector, CallType.STATICCALL, false);
-        hookInfo.hookFallbackFunctions[1] =
-            HookFallbackFunction(this.getBatchIdAtIndex.selector, CallType.STATICCALL, false);
-        hookInfo.hookFallbackFunctions[2] = HookFallbackFunction(this.lazyMint.selector, CallType.CALL, true);
+    function onTokenURI(uint256 _id) public view returns (string memory) {
+        address token = msg.sender;
+        string memory batchUri = _getBaseURI(token, _id);
+
+        return string(abi.encodePacked(batchUri, _id.toString()));
     }
 
     /**
@@ -84,18 +96,6 @@ contract LazyMintMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Mult
      */
     function getBaseURICount(address _token) public view returns (uint256) {
         return _lazyMintStorage().batchIds[_token].length;
-    }
-
-    /**
-     *  @notice Returns the URI to fetch token metadata from.
-     *  @dev Meant to be called by the core token contract.
-     *  @param _id The token ID of the NFT.
-     */
-    function onTokenURI(uint256 _id) public view override returns (string memory) {
-        address token = msg.sender;
-        string memory batchUri = _getBaseURI(token, _id);
-
-        return string(abi.encodePacked(batchUri, _id.toString()));
     }
 
     /**

@@ -1,22 +1,15 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {IHook} from "@core-contracts/interface/IHook.sol";
-
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {BeforeMintHookERC20} from "@core-contracts/hook/BeforeMintHookERC20.sol";
-import {BeforeMintHookERC721} from "@core-contracts/hook/BeforeMintHookERC721.sol";
-import {BeforeMintHookERC1155} from "@core-contracts/hook/BeforeMintHookERC1155.sol";
+import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
 
 import {Ownable} from "@solady/auth/Ownable.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 library SignatureMintHookStorage {
-    /// @custom:storage-location erc7201:mint.hook.storage
-    /// @dev keccak256(abi.encode(uint256(keccak256("signature.mint.hook.storage")) - 1)) & ~bytes32(uint256(0xff))
+    /// @custom:storage-location erc7201:signature.mint.hook.storage
     bytes32 public constant SIGNATURE_MINT_HOOK_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("signature.mint.hook.storage")) - 1)) & ~bytes32(uint256(0xff));
 
@@ -33,15 +26,7 @@ library SignatureMintHookStorage {
     }
 }
 
-contract SignatureMintHook is
-    IHook,
-    HookFlagsDirectory,
-    BeforeMintHookERC20,
-    BeforeMintHookERC721,
-    BeforeMintHookERC1155,
-    EIP712,
-    Multicallable
-{
+contract SignatureMintHook is IExtensionContract, EIP712 {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -137,18 +122,27 @@ contract SignatureMintHook is
                             HOOK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getHookInfo() external pure returns (HookInfo memory info) {
-        info.hookFlags = BEFORE_MINT_ERC20_FLAG | BEFORE_MINT_ERC721_FLAG | BEFORE_MINT_ERC1155_FLAG;
-        info.hookFallbackFunctions = new HookFallbackFunction[](2);
-        info.hookFallbackFunctions[0] = HookFallbackFunction(this.getSaleConfig.selector, CallType.STATICCALL, false);
-        info.hookFallbackFunctions[1] = HookFallbackFunction(this.setSaleConfig.selector, CallType.CALL, true);
+    function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](3);
+        config.extensionABI = new ExtensionFunction[](2);
+
+        config.callbackFunctions[0] = this.beforeMintERC20.selector;
+        config.callbackFunctions[1] = this.beforeMintERC721.selector;
+        config.callbackFunctions[2] = this.beforeMintERC1155.selector;
+
+        config.extensionABI[0] = ExtensionFunction({
+            selector: this.getSaleConfig.selector,
+            callType: CallType.STATICCALL,
+            permissioned: false
+        });
+        config.extensionABI[1] =
+            ExtensionFunction({selector: this.setSaleConfig.selector, callType: CallType.CALL, permissioned: false});
     }
 
     function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
-        override
         returns (bytes memory)
     {
         SignatureMintParamsERC20 memory _params = abi.decode(_data, (SignatureMintParamsERC20));
@@ -159,7 +153,6 @@ contract SignatureMintHook is
         external
         payable
         virtual
-        override
         returns (bytes memory)
     {
         SignatureMintParamsERC721 memory _params = abi.decode(_data, (SignatureMintParamsERC721));
@@ -170,27 +163,10 @@ contract SignatureMintHook is
         external
         payable
         virtual
-        override
         returns (bytes memory)
     {
         SignatureMintParamsERC1155 memory _params = abi.decode(_data, (SignatureMintParamsERC1155));
         _mintWithSignatureERC1155(_to, _quantity, _id, _params.request, _params.signature);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            ENCODE FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function signatureMintERC20(SignatureMintParamsERC20 memory _params) external pure returns (bytes memory) {
-        return abi.encode(_params);
-    }
-
-    function signatureMintERC721(SignatureMintParamsERC721 memory _params) external pure returns (bytes memory) {
-        return abi.encode(_params);
-    }
-
-    function signatureMintERC1155(SignatureMintParamsERC1155 memory _params) external pure returns (bytes memory) {
-        return abi.encode(_params);
     }
 
     /*//////////////////////////////////////////////////////////////

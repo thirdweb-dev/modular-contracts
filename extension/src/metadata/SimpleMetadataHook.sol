@@ -1,19 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IHook} from "@core-contracts/interface/IHook.sol";
-
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {OnTokenURIHook} from "@core-contracts/hook/OnTokenURIHook.sol";
-
+import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
 import {LibString} from "@solady/utils/LibString.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 library SimpleMetadataStorage {
     /// @custom:storage-location erc7201:simple.metadata.storage
-    /// @dev keccak256(abi.encode(uint256(keccak256("simple.metadata.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant SIMPLE_METADATA_STORAGE_POSITION =
-        0x8ec6ff141fffd07767dee37f0023e9d3be86f52ffb0ca9c1e2ac0369422b1900;
+        keccak256(abi.encode(uint256(keccak256("simple.metadata.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         /// @notice Mapping from token => base URI
@@ -28,7 +22,7 @@ library SimpleMetadataStorage {
     }
 }
 
-contract SimpleMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Multicallable {
+contract SimpleMetadataHook is IExtensionContract {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -46,10 +40,13 @@ contract SimpleMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Multic
      *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
      *          callable via core contract fallback function.
      */
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = ON_TOKEN_URI_FLAG;
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](1);
-        hookInfo.hookFallbackFunctions[0] = HookFallbackFunction(this.setTokenURI.selector, CallType.CALL, true);
+    function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](1);
+        config.extensionABI = new ExtensionFunction[](1);
+
+        config.callbackFunctions[0] = this.onTokenURI.selector;
+        config.extensionABI[0] =
+            ExtensionFunction({selector: this.setTokenURI.selector, callType: CallType.CALL, permissioned: true});
     }
 
     /**
@@ -57,7 +54,7 @@ contract SimpleMetadataHook is IHook, HookFlagsDirectory, OnTokenURIHook, Multic
      *  @dev Meant to be called by the core token contract.
      *  @param _id The token ID of the NFT.
      */
-    function onTokenURI(uint256 _id) public view override returns (string memory) {
+    function onTokenURI(uint256 _id) public view returns (string memory) {
         return SimpleMetadataStorage.data().uris[msg.sender][_id];
     }
 

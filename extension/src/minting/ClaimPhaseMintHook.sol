@@ -1,29 +1,20 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {IHook} from "@core-contracts/interface/IHook.sol";
+import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
 
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {BeforeMintHookERC20} from "@core-contracts/hook/BeforeMintHookERC20.sol";
-import {BeforeMintHookERC721} from "@core-contracts/hook/BeforeMintHookERC721.sol";
-import {BeforeMintHookERC1155} from "@core-contracts/hook/BeforeMintHookERC1155.sol";
-
-import {Ownable} from "@solady/auth/Ownable.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 library ClaimPhaseMintHookStorage {
-    /// @custom:storage-location erc7201:mint.hook.storage
-    /// @dev keccak256(abi.encode(uint256(keccak256("claim.phase.mint.hook.storage")) - 1)) & ~bytes32(uint256(0xff))
+    /// @custom:storage-location erc7201:claim.phase.mint.hook.storage
     bytes32 public constant CLAIM_PHASE_MINT_HOOK_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("claim.phase.mint.hook.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         mapping(address => ClaimPhaseMintHook.SaleConfig) saleConfig;
-        mapping(address => ClaimPhaseMintHook.ClaimPhase) allowlistClaimPhaseERC20;
-        mapping(address => ClaimPhaseMintHook.ClaimPhase) allowlistClaimPhaseERC721;
-        mapping(address => mapping(uint256 => ClaimPhaseMintHook.ClaimPhase)) allowlistClaimPhaseERC1155;
+        mapping(address => ClaimPhaseMintHook.ClaimPhase) claimPhase;
+        mapping(address => mapping(uint256 => ClaimPhaseMintHook.ClaimPhase)) claimPhaseByTokenId;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -34,14 +25,7 @@ library ClaimPhaseMintHookStorage {
     }
 }
 
-contract ClaimPhaseMintHook is
-    IHook,
-    HookFlagsDirectory,
-    BeforeMintHookERC20,
-    BeforeMintHookERC721,
-    BeforeMintHookERC1155,
-    Multicallable
-{
+contract ClaimPhaseMintHook is IExtensionContract {
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -86,27 +70,44 @@ contract ClaimPhaseMintHook is
                             HOOK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getHookInfo() external pure returns (HookInfo memory info) {
-        info.hookFlags = BEFORE_MINT_ERC20_FLAG | BEFORE_MINT_ERC721_FLAG | BEFORE_MINT_ERC1155_FLAG;
-        info.hookFallbackFunctions = new HookFallbackFunction[](8);
-        info.hookFallbackFunctions[0] = HookFallbackFunction(this.getSaleConfig.selector, CallType.STATICCALL, false);
-        info.hookFallbackFunctions[1] = HookFallbackFunction(this.setSaleConfig.selector, CallType.CALL, true);
-        info.hookFallbackFunctions[2] =
-            HookFallbackFunction(this.getClaimPhaseERC20.selector, CallType.STATICCALL, false);
-        info.hookFallbackFunctions[3] =
-            HookFallbackFunction(this.getClaimPhaseERC721.selector, CallType.STATICCALL, false);
-        info.hookFallbackFunctions[4] =
-            HookFallbackFunction(this.getClaimPhaseERC1155.selector, CallType.STATICCALL, false);
-        info.hookFallbackFunctions[5] = HookFallbackFunction(this.setClaimPhaseERC20.selector, CallType.CALL, true);
-        info.hookFallbackFunctions[6] = HookFallbackFunction(this.setClaimPhaseERC721.selector, CallType.CALL, true);
-        info.hookFallbackFunctions[7] = HookFallbackFunction(this.setClaimPhaseERC1155.selector, CallType.CALL, true);
+    function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](3);
+        config.extensionABI = new ExtensionFunction[](6);
+
+        config.callbackFunctions[0] = this.beforeMintERC20.selector;
+        config.callbackFunctions[1] = this.beforeMintERC721.selector;
+        config.callbackFunctions[2] = this.beforeMintERC1155.selector;
+
+        config.extensionABI[0] = ExtensionFunction({
+            selector: this.getSaleConfig.selector,
+            callType: CallType.STATICCALL,
+            permissioned: false
+        });
+        config.extensionABI[1] =
+            ExtensionFunction({selector: this.setSaleConfig.selector, callType: CallType.CALL, permissioned: true});
+        config.extensionABI[2] = ExtensionFunction({
+            selector: this.getClaimPhase.selector,
+            callType: CallType.STATICCALL,
+            permissioned: false
+        });
+        config.extensionABI[3] = ExtensionFunction({
+            selector: this.getClaimPhaseByTokenId.selector,
+            callType: CallType.STATICCALL,
+            permissioned: false
+        });
+        config.extensionABI[4] =
+            ExtensionFunction({selector: this.setClaimPhase.selector, callType: CallType.CALL, permissioned: true});
+        config.extensionABI[5] = ExtensionFunction({
+            selector: this.setClaimPhaseByTokenId.selector,
+            callType: CallType.CALL,
+            permissioned: true
+        });
     }
 
     function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
-        override
         returns (bytes memory)
     {
         ClaimParams memory _params = abi.decode(_data, (ClaimParams));
@@ -117,7 +118,6 @@ contract ClaimPhaseMintHook is
         external
         payable
         virtual
-        override
         returns (bytes memory)
     {
         ClaimParams memory _params = abi.decode(_data, (ClaimParams));
@@ -128,24 +128,10 @@ contract ClaimPhaseMintHook is
         external
         payable
         virtual
-        override
         returns (bytes memory)
     {
         ClaimParams memory _params = abi.decode(_data, (ClaimParams));
         _allowlistedMintERC1155(_to, _id, _quantity, _params);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            ENCODE FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function allowlistMint(ClaimParams memory _params) external pure returns (bytes memory) {
-        return abi.encode(_params);
-    }
-
-    function decodeClaimParams(bytes memory _data) external pure returns (ClaimParams memory) {
-        ClaimParams memory _params = abi.decode(_data, (ClaimParams));
-        return _params;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -169,31 +155,22 @@ contract ClaimPhaseMintHook is
             SaleConfig(_primarySaleRecipient, _platformFeeRecipient, _platformFeeBps);
     }
 
-    function getClaimPhaseERC20(address _token) external view returns (ClaimPhase memory claimPhase) {
-        return _claimPhaseMintHookStorage().allowlistClaimPhaseERC20[_token];
+    function getClaimPhase(address _token) external view returns (ClaimPhase memory claimPhase) {
+        return _claimPhaseMintHookStorage().claimPhase[_token];
     }
 
-    function getClaimPhaseERC721(address _token) external view returns (ClaimPhase memory claimPhase) {
-        return _claimPhaseMintHookStorage().allowlistClaimPhaseERC721[_token];
+    function getClaimPhaseByTokenId(address _token, uint256 _id) external view returns (ClaimPhase memory claimPhase) {
+        return _claimPhaseMintHookStorage().claimPhaseByTokenId[_token][_id];
     }
 
-    function getClaimPhaseERC1155(address _token, uint256 _id) external view returns (ClaimPhase memory claimPhase) {
-        return _claimPhaseMintHookStorage().allowlistClaimPhaseERC1155[_token][_id];
-    }
-
-    function setClaimPhaseERC20(ClaimPhase memory _claimPhase) external {
+    function setClaimPhase(ClaimPhase memory _claimPhase) external {
         address token = msg.sender;
-        _claimPhaseMintHookStorage().allowlistClaimPhaseERC20[token] = _claimPhase;
+        _claimPhaseMintHookStorage().claimPhase[token] = _claimPhase;
     }
 
-    function setClaimPhaseERC721(ClaimPhase memory _claimPhase) external {
+    function setClaimPhaseByTokenId(uint256 _id, ClaimPhase memory _claimPhase) external {
         address token = msg.sender;
-        _claimPhaseMintHookStorage().allowlistClaimPhaseERC721[token] = _claimPhase;
-    }
-
-    function setClaimPhaseERC1155(uint256 _id, ClaimPhase memory _claimPhase) external {
-        address token = msg.sender;
-        _claimPhaseMintHookStorage().allowlistClaimPhaseERC1155[token][_id] = _claimPhase;
+        _claimPhaseMintHookStorage().claimPhaseByTokenId[token][_id] = _claimPhase;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -203,7 +180,7 @@ contract ClaimPhaseMintHook is
     function _allowlistedMintERC20(address _recipient, uint256 _quantity, ClaimParams memory _params) internal {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().allowlistClaimPhaseERC20[token];
+        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().claimPhase[token];
 
         if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
         {
@@ -228,7 +205,7 @@ contract ClaimPhaseMintHook is
             }
         }
 
-        _claimPhaseMintHookStorage().allowlistClaimPhaseERC20[token].availableSupply -= _quantity;
+        _claimPhaseMintHookStorage().claimPhase[token].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, (_quantity * _params.expectedPricePerUnit) / 1e18);
     }
@@ -236,7 +213,7 @@ contract ClaimPhaseMintHook is
     function _allowlistedMintERC721(address _recipient, uint256 _quantity, ClaimParams memory _params) internal {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().allowlistClaimPhaseERC721[token];
+        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().claimPhase[token];
 
         if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
         {
@@ -261,7 +238,7 @@ contract ClaimPhaseMintHook is
             }
         }
 
-        _claimPhaseMintHookStorage().allowlistClaimPhaseERC721[token].availableSupply -= _quantity;
+        _claimPhaseMintHookStorage().claimPhase[token].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, _quantity * _params.expectedPricePerUnit);
     }
@@ -271,7 +248,7 @@ contract ClaimPhaseMintHook is
     {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().allowlistClaimPhaseERC1155[token][_id];
+        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().claimPhaseByTokenId[token][_id];
 
         if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
         {
@@ -296,7 +273,7 @@ contract ClaimPhaseMintHook is
             }
         }
 
-        _claimPhaseMintHookStorage().allowlistClaimPhaseERC1155[token][_id].availableSupply -= _quantity;
+        _claimPhaseMintHookStorage().claimPhaseByTokenId[token][_id].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, _quantity * _params.expectedPricePerUnit);
     }

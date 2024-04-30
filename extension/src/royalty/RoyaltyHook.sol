@@ -1,18 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {IHook} from "@core-contracts/interface/IHook.sol";
-
-import {HookFlagsDirectory} from "@core-contracts/hook/HookFlagsDirectory.sol";
-import {OnRoyaltyInfoHook} from "@core-contracts/hook/OnRoyaltyInfoHook.sol";
-
-import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
 
 library RoyaltyHookStorage {
     /// @custom:storage-location erc7201:royalty.hook.storage
-    /// @dev keccak256(abi.encode(uint256(keccak256("royalty.hook.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant ROYALTY_HOOK_STORAGE_POSITION =
-        0x7ee93e57dcce937c8a9b57c763d236ae026d58f90462880b3a87d31ffacf4800;
+        keccak256(abi.encode(uint256(keccak256("royalty.hook.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         /// @notice Mapping from token => default royalty info.
@@ -29,7 +23,7 @@ library RoyaltyHookStorage {
     }
 }
 
-contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoHook, Multicallable {
+contract RoyaltyHook is IExtensionContract {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -63,21 +57,32 @@ contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoHook, Multicalla
                                VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
-     *          callable via core contract fallback function.
-     */
-    function getHookInfo() external pure returns (HookInfo memory hookInfo) {
-        hookInfo.hookFlags = ON_ROYALTY_INFO_FLAG;
-        hookInfo.hookFallbackFunctions = new HookFallbackFunction[](4);
-        hookInfo.hookFallbackFunctions[0] =
-            HookFallbackFunction(this.getRoyaltyInfoForToken.selector, CallType.STATICCALL, false);
-        hookInfo.hookFallbackFunctions[1] =
-            HookFallbackFunction(this.getDefaultRoyaltyInfo.selector, CallType.STATICCALL, false);
-        hookInfo.hookFallbackFunctions[2] =
-            HookFallbackFunction(this.setDefaultRoyaltyInfo.selector, CallType.CALL, true);
-        hookInfo.hookFallbackFunctions[3] =
-            HookFallbackFunction(this.setRoyaltyInfoForToken.selector, CallType.CALL, true);
+    function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new bytes4[](0);
+        config.extensionABI = new ExtensionFunction[](5);
+
+        config.extensionABI[0] =
+            ExtensionFunction({selector: this.royaltyInfo.selector, callType: CallType.STATICCALL, permissioned: false});
+        config.extensionABI[1] = ExtensionFunction({
+            selector: this.getDefaultRoyaltyInfo.selector,
+            callType: CallType.STATICCALL,
+            permissioned: false
+        });
+        config.extensionABI[2] = ExtensionFunction({
+            selector: this.getRoyaltyInfoForToken.selector,
+            callType: CallType.STATICCALL,
+            permissioned: false
+        });
+        config.extensionABI[3] = ExtensionFunction({
+            selector: this.setDefaultRoyaltyInfo.selector,
+            callType: CallType.CALL,
+            permissioned: true
+        });
+        config.extensionABI[4] = ExtensionFunction({
+            selector: this.setRoyaltyInfoForToken.selector,
+            callType: CallType.CALL,
+            permissioned: true
+        });
     }
 
     /**
@@ -88,11 +93,10 @@ contract RoyaltyHook is IHook, HookFlagsDirectory, OnRoyaltyInfoHook, Multicalla
      *  @return receiver The royalty recipient address.
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
      */
-    function onRoyaltyInfo(uint256 _tokenId, uint256 _salePrice)
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
         external
         view
         virtual
-        override
         returns (address receiver, uint256 royaltyAmount)
     {
         address token = msg.sender;
