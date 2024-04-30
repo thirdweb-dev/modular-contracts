@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
-
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
@@ -12,9 +11,12 @@ library ClaimConditionMintStorage {
         keccak256(abi.encode(uint256(keccak256("claim.condition.mint.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
+        // token address => sale config: primary sale recipient, and platform fee recipient + BPS.
         mapping(address => ClaimConditionMint.SaleConfig) saleConfig;
-        mapping(address => ClaimConditionMint.ClaimPhase) claimPhase;
-        mapping(address => mapping(uint256 => ClaimConditionMint.ClaimPhase)) claimPhaseByTokenId;
+        // token => claim condition
+        mapping(address => ClaimConditionMint.ClaimCondition) claimCondition;
+        // token => token ID => claim condition
+        mapping(address => mapping(uint256 => ClaimConditionMint.ClaimCondition)) claimConditionByTokenId;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -30,7 +32,16 @@ contract ClaimConditionMint is IExtensionContract {
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
 
-    struct ClaimPhase {
+    /**
+     *  @notice Conditions under which tokens can be minted.
+     *  @param availableSupply The total number of tokens that can be minted.
+     *  @param allowlistMerkleRoot The allowlist of addresses who can mint tokens.
+     *  @param pricePerUnit The price per token.
+     *  @param currency The currency in which the price is denominated.
+     *  @param startTimestamp The timestamp at which the minting window opens.
+     *  @param endTimestamp The timestamp after which the minting window closes.
+     */
+    struct ClaimCondition {
         uint256 availableSupply;
         bytes32 allowlistMerkleRoot;
         uint256 pricePerUnit;
@@ -39,12 +50,24 @@ contract ClaimConditionMint is IExtensionContract {
         uint48 endTimestamp;
     }
 
+    /**
+     *  @notice The parameters required to mint tokens.
+     *  @param allowlistProof The proof of inclusion in the allowlist.
+     *  @param expectedPricePerUnit The expected price per token.
+     *  @param expectedCurrency The expected currency in which the price is denominated.
+     */
     struct ClaimParams {
         bytes32[] allowlistProof;
         uint256 expectedPricePerUnit;
         address expectedCurrency;
     }
 
+    /**
+     *  @notice Details for distributing the proceeds of a mint.
+     *  @param primarySaleRecipient The address to which the total proceeds minus fees are sent.
+     *  @param platformFeeRecipient The address to which the platform fee is sent.
+     *  @param platformFeeBps The platform fee in basis points. 10_000 BPS = 100%.
+     */
     struct SaleConfig {
         address primarySaleRecipient;
         address platformFeeRecipient;
@@ -54,10 +77,20 @@ contract ClaimConditionMint is IExtensionContract {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
+
+    /// @dev Emitted when incorrect amount of native token is sent.
     error ClaimConditionMintIncorrectNativeTokenSent();
+
+    /// @dev Emitted when the mint price or currency does not match the expected price or currency.
     error ClaimConditionMintPriceMismatch();
+
+    /// @dev Emitted when the mint is attempted outside the minting window.
     error ClaimConditionMintOutOfTimeWindow();
+
+    /// @dev Emitted when the mint is out of supply.
     error ClaimConditionMintOutOfSupply();
+
+    /// @dev Emitted when the minter is not in the allowlist.
     error ClaimConditionMintNotInAllowlist();
 
     /*//////////////////////////////////////////////////////////////
@@ -70,6 +103,7 @@ contract ClaimConditionMint is IExtensionContract {
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
         config.callbackFunctions = new bytes4[](3);
         config.extensionABI = new ExtensionFunction[](6);
@@ -86,19 +120,19 @@ contract ClaimConditionMint is IExtensionContract {
         config.extensionABI[1] =
             ExtensionFunction({selector: this.setSaleConfig.selector, callType: CallType.CALL, permissioned: true});
         config.extensionABI[2] = ExtensionFunction({
-            selector: this.getClaimPhase.selector,
+            selector: this.getClaimCondition.selector,
             callType: CallType.STATICCALL,
             permissioned: false
         });
         config.extensionABI[3] = ExtensionFunction({
-            selector: this.getClaimPhaseByTokenId.selector,
+            selector: this.getClaimConditionByTokenId.selector,
             callType: CallType.STATICCALL,
             permissioned: false
         });
         config.extensionABI[4] =
-            ExtensionFunction({selector: this.setClaimPhase.selector, callType: CallType.CALL, permissioned: true});
+            ExtensionFunction({selector: this.setClaimCondition.selector, callType: CallType.CALL, permissioned: true});
         config.extensionABI[5] = ExtensionFunction({
-            selector: this.setClaimPhaseByTokenId.selector,
+            selector: this.setClaimConditionByTokenId.selector,
             callType: CallType.CALL,
             permissioned: true
         });
@@ -108,6 +142,7 @@ contract ClaimConditionMint is IExtensionContract {
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Callback function for the ERC20Core.mint function.
     function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
         external
         payable
@@ -118,6 +153,7 @@ contract ClaimConditionMint is IExtensionContract {
         _allowlistedMintERC20(_to, _quantity, _params);
     }
 
+    /// @notice Callback function for the ERC721Core.mint function.
     function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
         external
         payable
@@ -128,6 +164,7 @@ contract ClaimConditionMint is IExtensionContract {
         _allowlistedMintERC721(_to, _quantity, _params);
     }
 
+    /// @notice Callback function for the ERC1155Core.mint function.
     function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
         external
         payable
@@ -142,6 +179,7 @@ contract ClaimConditionMint is IExtensionContract {
                             EXTENSION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns the sale configuration for a token.
     function getSaleConfig(address _token)
         external
         view
@@ -151,6 +189,7 @@ contract ClaimConditionMint is IExtensionContract {
         return (saleConfig.primarySaleRecipient, saleConfig.platformFeeRecipient, saleConfig.platformFeeBps);
     }
 
+    /// @notice Sets the sale configuration for a token.
     function setSaleConfig(address _primarySaleRecipient, address _platformFeeRecipient, uint16 _platformFeeBps)
         external
     {
@@ -159,49 +198,54 @@ contract ClaimConditionMint is IExtensionContract {
             SaleConfig(_primarySaleRecipient, _platformFeeRecipient, _platformFeeBps);
     }
 
-    function getClaimPhase(address _token) external view returns (ClaimPhase memory claimPhase) {
-        return _claimConditionMintStorage().claimPhase[_token];
+    /// @notice Returns the claim condition for a token.
+    function getClaimCondition(address _token) external view returns (ClaimCondition memory claimCondition) {
+        return _claimConditionMintStorage().claimCondition[_token];
     }
 
-    function getClaimPhaseByTokenId(address _token, uint256 _id) external view returns (ClaimPhase memory claimPhase) {
-        return _claimConditionMintStorage().claimPhaseByTokenId[_token][_id];
+    /// @notice Returns the claim condition for a token and a specific token ID.
+    function getClaimConditionByTokenId(address _token, uint256 _id) external view returns (ClaimCondition memory claimCondition) {
+        return _claimConditionMintStorage().claimConditionByTokenId[_token][_id];
     }
 
-    function setClaimPhase(ClaimPhase memory _claimPhase) external {
+    /// @notice Sets the claim condition for a token.
+    function setClaimCondition(ClaimCondition memory _claimCondition) external {
         address token = msg.sender;
-        _claimConditionMintStorage().claimPhase[token] = _claimPhase;
+        _claimConditionMintStorage().claimCondition[token] = _claimCondition;
     }
 
-    function setClaimPhaseByTokenId(uint256 _id, ClaimPhase memory _claimPhase) external {
+    /// @notice Sets the claim condition for a token and a specific token ID.
+    function setClaimConditionByTokenId(uint256 _id, ClaimCondition memory _claimCondition) external {
         address token = msg.sender;
-        _claimConditionMintStorage().claimPhaseByTokenId[token][_id] = _claimPhase;
+        _claimConditionMintStorage().claimConditionByTokenId[token][_id] = _claimCondition;
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Processes a mint for an ERC20 token against the claim condition set for it.
     function _allowlistedMintERC20(address _recipient, uint256 _quantity, ClaimParams memory _params) internal {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimConditionMintStorage().claimPhase[token];
+        ClaimCondition memory claimCondition = _claimConditionMintStorage().claimCondition[token];
 
-        if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
+        if (claimCondition.currency != _params.expectedCurrency || claimCondition.pricePerUnit != _params.expectedPricePerUnit)
         {
             revert ClaimConditionMintPriceMismatch();
         }
 
-        if (block.timestamp < claimPhase.startTimestamp || claimPhase.endTimestamp <= block.timestamp) {
+        if (block.timestamp < claimCondition.startTimestamp || claimCondition.endTimestamp <= block.timestamp) {
             revert ClaimConditionMintOutOfTimeWindow();
         }
 
-        if (_quantity > claimPhase.availableSupply) {
+        if (_quantity > claimCondition.availableSupply) {
             revert ClaimConditionMintOutOfSupply();
         }
 
-        if (claimPhase.allowlistMerkleRoot != bytes32(0)) {
+        if (claimCondition.allowlistMerkleRoot != bytes32(0)) {
             bool isAllowlisted = MerkleProofLib.verify(
-                _params.allowlistProof, claimPhase.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
+                _params.allowlistProof, claimCondition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
             );
 
             if (!isAllowlisted) {
@@ -209,32 +253,33 @@ contract ClaimConditionMint is IExtensionContract {
             }
         }
 
-        _claimConditionMintStorage().claimPhase[token].availableSupply -= _quantity;
+        _claimConditionMintStorage().claimCondition[token].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, (_quantity * _params.expectedPricePerUnit) / 1e18);
     }
 
+    /// @dev Processes a mint for an ERC721 token against the claim condition set for it.
     function _allowlistedMintERC721(address _recipient, uint256 _quantity, ClaimParams memory _params) internal {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimConditionMintStorage().claimPhase[token];
+        ClaimCondition memory claimCondition = _claimConditionMintStorage().claimCondition[token];
 
-        if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
+        if (claimCondition.currency != _params.expectedCurrency || claimCondition.pricePerUnit != _params.expectedPricePerUnit)
         {
             revert ClaimConditionMintPriceMismatch();
         }
 
-        if (block.timestamp < claimPhase.startTimestamp || claimPhase.endTimestamp <= block.timestamp) {
+        if (block.timestamp < claimCondition.startTimestamp || claimCondition.endTimestamp <= block.timestamp) {
             revert ClaimConditionMintOutOfTimeWindow();
         }
 
-        if (_quantity > claimPhase.availableSupply) {
+        if (_quantity > claimCondition.availableSupply) {
             revert ClaimConditionMintOutOfSupply();
         }
 
-        if (claimPhase.allowlistMerkleRoot != bytes32(0)) {
+        if (claimCondition.allowlistMerkleRoot != bytes32(0)) {
             bool isAllowlisted = MerkleProofLib.verify(
-                _params.allowlistProof, claimPhase.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
+                _params.allowlistProof, claimCondition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
             );
 
             if (!isAllowlisted) {
@@ -242,34 +287,35 @@ contract ClaimConditionMint is IExtensionContract {
             }
         }
 
-        _claimConditionMintStorage().claimPhase[token].availableSupply -= _quantity;
+        _claimConditionMintStorage().claimCondition[token].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, _quantity * _params.expectedPricePerUnit);
     }
 
+    /// @dev Processes a mint for an ERC1155 token against the claim condition set for it.
     function _allowlistedMintERC1155(address _recipient, uint256 _id, uint256 _quantity, ClaimParams memory _params)
         internal
     {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimConditionMintStorage().claimPhaseByTokenId[token][_id];
+        ClaimCondition memory claimCondition = _claimConditionMintStorage().claimConditionByTokenId[token][_id];
 
-        if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
+        if (claimCondition.currency != _params.expectedCurrency || claimCondition.pricePerUnit != _params.expectedPricePerUnit)
         {
             revert ClaimConditionMintPriceMismatch();
         }
 
-        if (block.timestamp < claimPhase.startTimestamp || claimPhase.endTimestamp <= block.timestamp) {
+        if (block.timestamp < claimCondition.startTimestamp || claimCondition.endTimestamp <= block.timestamp) {
             revert ClaimConditionMintOutOfTimeWindow();
         }
 
-        if (_quantity > claimPhase.availableSupply) {
+        if (_quantity > claimCondition.availableSupply) {
             revert ClaimConditionMintOutOfSupply();
         }
 
-        if (claimPhase.allowlistMerkleRoot != bytes32(0)) {
+        if (claimCondition.allowlistMerkleRoot != bytes32(0)) {
             bool isAllowlisted = MerkleProofLib.verify(
-                _params.allowlistProof, claimPhase.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
+                _params.allowlistProof, claimCondition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
             );
 
             if (!isAllowlisted) {
@@ -277,11 +323,12 @@ contract ClaimConditionMint is IExtensionContract {
             }
         }
 
-        _claimConditionMintStorage().claimPhaseByTokenId[token][_id].availableSupply -= _quantity;
+        _claimConditionMintStorage().claimConditionByTokenId[token][_id].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, _quantity * _params.expectedPricePerUnit);
     }
 
+    /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.
     function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {

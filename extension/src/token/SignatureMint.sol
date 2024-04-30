@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
-
 import {Ownable} from "@solady/auth/Ownable.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";

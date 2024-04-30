@@ -29,13 +29,14 @@ contract SimpleMetadata is IExtensionContract {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when the base URI for a token is updated.
+    /// @notice Emitted when the metadata URI for a token is updated.
     event MetadataUpdate(address indexed token, uint256 id);
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
         config.callbackFunctions = new bytes4[](1);
         config.extensionABI = new ExtensionFunction[](1);
@@ -49,11 +50,7 @@ contract SimpleMetadata is IExtensionContract {
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     *  @notice Returns the URI to fetch token metadata from.
-     *  @dev Meant to be called by the core token contract.
-     *  @param _id The token ID of the NFT.
-     */
+    /// @notice Callback function for ERC721Metadata.tokenURI
     function onTokenURI(uint256 _id) public view returns (string memory) {
         return SimpleMetadataStorage.data().uris[msg.sender][_id];
     }
@@ -62,11 +59,7 @@ contract SimpleMetadata is IExtensionContract {
                             EXTENSION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     *  @notice Sets the base URI for a token.
-     *  @param _id The token ID of the NFT.
-     *  @param _uri The base URI to set.
-     */
+    /// @notice Sets the metadata URI for a token.
     function setTokenURI(uint256 _id, string calldata _uri) external {
         address token = msg.sender;
 

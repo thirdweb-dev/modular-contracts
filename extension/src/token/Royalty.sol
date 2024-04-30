@@ -9,9 +9,9 @@ library RoyaltyStorage {
         keccak256(abi.encode(uint256(keccak256("royalty.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        /// @notice Mapping from token => default royalty info.
+        /// @notice token => default royalty info
         mapping(address => Royalty.RoyaltyInfo) defaultRoyaltyInfo;
-        /// @notice Mapping from token => tokenId => royalty info.
+        /// @notice token => tokenId => royalty info
         mapping(address => mapping(uint256 => Royalty.RoyaltyInfo)) royaltyInfoForToken;
     }
 
@@ -28,6 +28,11 @@ contract Royalty is IExtensionContract {
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+    *   @notice RoyaltyInfo struct to store royalty information.
+    *   @param recipient The address that will receive the royalty payment.
+    *   @param bps The percentage of a secondary sale that will be paid as royalty.
+    */
     struct RoyaltyInfo {
         address recipient;
         uint256 bps;
@@ -40,7 +45,7 @@ contract Royalty is IExtensionContract {
     /// @notice Emitted when the default royalty info for a token is updated.
     event DefaultRoyaltyUpdate(address indexed token, address indexed recipient, uint256 bps);
 
-    /// @notice Emitted when the royalty info for a specific NFT of a token collection is updated.
+    /// @notice Emitted when the royalty info for a specific NFT is updated.
     event TokenRoyaltyUpdate(address indexed token, uint256 indexed tokenId, address indexed recipient, uint256 bps);
 
     /*//////////////////////////////////////////////////////////////
@@ -54,6 +59,7 @@ contract Royalty is IExtensionContract {
                                EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
         config.callbackFunctions = new bytes4[](0);
         config.extensionABI = new ExtensionFunction[](5);
@@ -86,14 +92,7 @@ contract Royalty is IExtensionContract {
                             EXTENSION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     *  @notice Returns the royalty recipient and amount for a given sale.
-     *  @dev Meant to be called by a token contract.
-     *  @param _tokenId The token ID of the NFT.
-     *  @param _salePrice The sale price of the NFT.
-     *  @return receiver The royalty recipient address.
-     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale.
-     */
+    /// @notice Returns the royalty recipient and amount for a given sale.
     function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
         external
         view
@@ -111,13 +110,7 @@ contract Royalty is IExtensionContract {
         royaltyAmount = (_salePrice * bps) / 10_000;
     }
 
-    /**
-     *  @notice Returns the overriden royalty info for a given token.
-     *  @param _token The token address.
-     *  @param _tokenId The token ID of the NFT.
-     *  @return recipient The royalty recipient address.
-     *  @return bps The basis points of the sale price that is taken as royalty.
-     */
+    /// @notice Returns the overriden royalty info for a given token.
     function getRoyaltyInfoForToken(address _token, uint256 _tokenId) public view returns (address, uint16) {
         RoyaltyStorage.Data storage data = RoyaltyStorage.data();
         RoyaltyInfo memory royaltyForToken = data.royaltyInfoForToken[_token][_tokenId];
@@ -125,22 +118,13 @@ contract Royalty is IExtensionContract {
         return (royaltyForToken.recipient, uint16(royaltyForToken.bps));
     }
 
-    /**
-     *  @notice Returns the default royalty info for a given token.
-     *  @param _token The token address.
-     *  @return recipient The royalty recipient address.
-     *  @return bps The basis points of the sale price that is taken as royalty.
-     */
+    /// @notice Returns the default royalty info for a given token.
     function getDefaultRoyaltyInfo(address _token) public view returns (address, uint16) {
         RoyaltyInfo memory defaultRoyaltyInfo = RoyaltyStorage.data().defaultRoyaltyInfo[_token];
         return (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps));
     }
 
-    /**
-     *  @notice Sets the default royalty info for a given token.
-     *  @param _royaltyRecipient The royalty recipient address.
-     *  @param _royaltyBps The basis points of the sale price that is taken as royalty.
-     */
+    /// @notice Sets the default royalty info for a given token.
     function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) external {
         address token = msg.sender;
         if (_royaltyBps > 10_000) {
@@ -152,12 +136,7 @@ contract Royalty is IExtensionContract {
         emit DefaultRoyaltyUpdate(token, _royaltyRecipient, _royaltyBps);
     }
 
-    /**
-     *  @notice Sets the royalty info for a specific NFT of a token collection.
-     *  @param _tokenId The token ID of the NFT.
-     *  @param _recipient The royalty recipient address.
-     *  @param _bps The basis points of the sale price that is taken as royalty.
-     */
+    /// @notice Sets the royalty info for a specific NFT of a token collection.
     function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint256 _bps) external {
         address token = msg.sender;
         if (_bps > 10_000) {
