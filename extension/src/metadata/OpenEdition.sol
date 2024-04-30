@@ -4,25 +4,25 @@ pragma solidity ^0.8.0;
 import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
 import {NFTMetadataRenderer} from "../lib/NFTMetadataRenderer.sol";
 
-library SharedMetadataStorage {
-    /// @custom:storage-location erc7201:open.edition.metadata.storage
-    bytes32 public constant SHARED_METADATA_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("open.edition.metadata.storage")) - 1)) & ~bytes32(uint256(0xff));
+library OpenEditionStorage {
+    /// @custom:storage-location erc7201:open.edition.storage
+    bytes32 public constant OPEN_EDITION_STORAGE_POSITION =
+        keccak256(abi.encode(uint256(keccak256("open.edition.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         /// @notice Token metadata information
-        mapping(address => OpenEditionMetadataHook.SharedMetadataInfo) sharedMetadata;
+        mapping(address => OpenEdition.SharedMetadataInfo) sharedMetadata;
     }
 
     function data() internal pure returns (Data storage data_) {
-        bytes32 position = SHARED_METADATA_STORAGE_POSITION;
+        bytes32 position = OPEN_EDITION_STORAGE_POSITION;
         assembly {
             data_.slot := position
         }
     }
 }
 
-contract OpenEditionMetadataHook is IExtensionContract {
+contract OpenEdition is IExtensionContract {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -50,7 +50,7 @@ contract OpenEditionMetadataHook is IExtensionContract {
     event BatchMetadataUpdate(address indexed token, uint256 _fromTokenId, uint256 _toTokenId);
 
     /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
+                            EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
@@ -62,6 +62,10 @@ contract OpenEditionMetadataHook is IExtensionContract {
             ExtensionFunction({selector: this.setSharedMetadata.selector, callType: CallType.CALL, permissioned: true});
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            CALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      *  @notice Returns the URI to fetch token metadata from.
      *  @dev Meant to be called by the core token contract.
@@ -72,14 +76,14 @@ contract OpenEditionMetadataHook is IExtensionContract {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        Shared metadata logic
+                        EXTENSION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set shared metadata for NFTs
     function setSharedMetadata(SharedMetadataInfo calldata _metadata) external {
         address token = msg.sender;
 
-        SharedMetadataStorage.data().sharedMetadata[token] = SharedMetadataInfo({
+        OpenEditionStorage.data().sharedMetadata[token] = SharedMetadataInfo({
             name: _metadata.name,
             description: _metadata.description,
             imageURI: _metadata.imageURI,
@@ -93,12 +97,16 @@ contract OpenEditionMetadataHook is IExtensionContract {
         );
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      *  @dev Token URI information getter
      *  @param tokenId Token ID to get URI for
      */
     function _getURIFromSharedMetadata(address _token, uint256 tokenId) internal view returns (string memory) {
-        SharedMetadataInfo memory info = SharedMetadataStorage.data().sharedMetadata[_token];
+        SharedMetadataInfo memory info = OpenEditionStorage.data().sharedMetadata[_token];
 
         return NFTMetadataRenderer.createMetadataEdition({
             name: info.name,

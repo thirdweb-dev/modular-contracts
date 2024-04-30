@@ -3,27 +3,27 @@ pragma solidity ^0.8.0;
 
 import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
 
-library RoyaltyHookStorage {
-    /// @custom:storage-location erc7201:royalty.hook.storage
-    bytes32 public constant ROYALTY_HOOK_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("royalty.hook.storage")) - 1)) & ~bytes32(uint256(0xff));
+library RoyaltyStorage {
+    /// @custom:storage-location erc7201:royalty.storage
+    bytes32 public constant ROYALTY_STORAGE_POSITION =
+        keccak256(abi.encode(uint256(keccak256("royalty.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         /// @notice Mapping from token => default royalty info.
-        mapping(address => RoyaltyHook.RoyaltyInfo) defaultRoyaltyInfo;
+        mapping(address => Royalty.RoyaltyInfo) defaultRoyaltyInfo;
         /// @notice Mapping from token => tokenId => royalty info.
-        mapping(address => mapping(uint256 => RoyaltyHook.RoyaltyInfo)) royaltyInfoForToken;
+        mapping(address => mapping(uint256 => Royalty.RoyaltyInfo)) royaltyInfoForToken;
     }
 
     function data() internal pure returns (Data storage data_) {
-        bytes32 position = ROYALTY_HOOK_STORAGE_POSITION;
+        bytes32 position = ROYALTY_STORAGE_POSITION;
         assembly {
             data_.slot := position
         }
     }
 }
 
-contract RoyaltyHook is IExtensionContract {
+contract Royalty is IExtensionContract {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -47,14 +47,11 @@ contract RoyaltyHook is IExtensionContract {
                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when caller is not token core admin.
-    error RoyaltyHookNotAuthorized();
-
     /// @notice Emitted when royalty BPS exceeds 10,000.
-    error RoyaltyHookExceedsMaxBps();
+    error RoyaltyExceedsMaxBps();
 
     /*//////////////////////////////////////////////////////////////
-                               VIEW FUNCTIONS
+                               EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
@@ -84,6 +81,10 @@ contract RoyaltyHook is IExtensionContract {
             permissioned: true
         });
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            EXTENSION FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      *  @notice Returns the royalty recipient and amount for a given sale.
@@ -118,7 +119,7 @@ contract RoyaltyHook is IExtensionContract {
      *  @return bps The basis points of the sale price that is taken as royalty.
      */
     function getRoyaltyInfoForToken(address _token, uint256 _tokenId) public view returns (address, uint16) {
-        RoyaltyHookStorage.Data storage data = RoyaltyHookStorage.data();
+        RoyaltyStorage.Data storage data = RoyaltyStorage.data();
         RoyaltyInfo memory royaltyForToken = data.royaltyInfoForToken[_token][_tokenId];
 
         return (royaltyForToken.recipient, uint16(royaltyForToken.bps));
@@ -131,13 +132,9 @@ contract RoyaltyHook is IExtensionContract {
      *  @return bps The basis points of the sale price that is taken as royalty.
      */
     function getDefaultRoyaltyInfo(address _token) public view returns (address, uint16) {
-        RoyaltyInfo memory defaultRoyaltyInfo = RoyaltyHookStorage.data().defaultRoyaltyInfo[_token];
+        RoyaltyInfo memory defaultRoyaltyInfo = RoyaltyStorage.data().defaultRoyaltyInfo[_token];
         return (defaultRoyaltyInfo.recipient, uint16(defaultRoyaltyInfo.bps));
     }
-
-    /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
 
     /**
      *  @notice Sets the default royalty info for a given token.
@@ -147,11 +144,10 @@ contract RoyaltyHook is IExtensionContract {
     function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) external {
         address token = msg.sender;
         if (_royaltyBps > 10_000) {
-            revert RoyaltyHookExceedsMaxBps();
+            revert RoyaltyExceedsMaxBps();
         }
 
-        RoyaltyHookStorage.data().defaultRoyaltyInfo[token] =
-            RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
+        RoyaltyStorage.data().defaultRoyaltyInfo[token] = RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
 
         emit DefaultRoyaltyUpdate(token, _royaltyRecipient, _royaltyBps);
     }
@@ -165,10 +161,10 @@ contract RoyaltyHook is IExtensionContract {
     function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint256 _bps) external {
         address token = msg.sender;
         if (_bps > 10_000) {
-            revert RoyaltyHookExceedsMaxBps();
+            revert RoyaltyExceedsMaxBps();
         }
 
-        RoyaltyHookStorage.data().royaltyInfoForToken[token][_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
+        RoyaltyStorage.data().royaltyInfoForToken[token][_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
 
         emit TokenRoyaltyUpdate(token, _tokenId, _recipient, _bps);
     }

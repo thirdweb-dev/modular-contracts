@@ -8,25 +8,25 @@ import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
-library SignatureMintHookStorage {
-    /// @custom:storage-location erc7201:signature.mint.hook.storage
-    bytes32 public constant SIGNATURE_MINT_HOOK_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("signature.mint.hook.storage")) - 1)) & ~bytes32(uint256(0xff));
+library SignatureMintStorage {
+    /// @custom:storage-location erc7201:signature.mint.storage
+    bytes32 public constant SIGNATURE_MINT_STORAGE_POSITION =
+        keccak256(abi.encode(uint256(keccak256("signature.mint.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         mapping(bytes32 => bool) uidUsed;
-        mapping(address => SignatureMintHook.SaleConfig) saleConfig;
+        mapping(address => SignatureMint.SaleConfig) saleConfig;
     }
 
     function data() internal pure returns (Data storage data_) {
-        bytes32 position = SIGNATURE_MINT_HOOK_STORAGE_POSITION;
+        bytes32 position = SIGNATURE_MINT_STORAGE_POSITION;
         assembly {
             data_.slot := position
         }
     }
 }
 
-contract SignatureMintHook is IExtensionContract, EIP712 {
+contract SignatureMint is IExtensionContract, EIP712 {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -92,13 +92,12 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error MintHookUnrecognizedParams();
-    error MintHookIncorrectNativeTokenSent();
-    error MintHookRequestExpired();
-    error MintHookRequestUidReused();
-    error MintHookRequestInvalidToken();
-    error MintHookRequestMismatch();
-    error MintHookRequestUnauthorizedSignature();
+    error SignatureMintIncorrectNativeTokenSent();
+    error SigantureMintRequestExpired();
+    error SignatureMintRequestUidReused();
+    error SignatureMintRequestInvalidToken();
+    error SignatureMintRequestMismatch();
+    error SignatureMintRequestUnauthorizedSignature();
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -119,7 +118,7 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                            HOOK FUNCTIONS
+                            EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
@@ -138,6 +137,10 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         config.extensionABI[1] =
             ExtensionFunction({selector: this.setSaleConfig.selector, callType: CallType.CALL, permissioned: false});
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            CALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
         external
@@ -170,7 +173,7 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            HOOK FALLBACK FUNCTIONS
+                            EXTENSION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     function getSaleConfig(address _token)
@@ -178,7 +181,7 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         view
         returns (address primarySaleRecipient, address platformFeeRecipient, uint16 platformFeeBps)
     {
-        SaleConfig memory saleConfig = _signatureMintHookStorage().saleConfig[_token];
+        SaleConfig memory saleConfig = _signatureMintStorage().saleConfig[_token];
         return (saleConfig.primarySaleRecipient, saleConfig.platformFeeRecipient, saleConfig.platformFeeBps);
     }
 
@@ -186,7 +189,7 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         external
     {
         address token = msg.sender;
-        _signatureMintHookStorage().saleConfig[token] =
+        _signatureMintStorage().saleConfig[token] =
             SaleConfig(_primarySaleRecipient, _platformFeeRecipient, _platformFeeBps);
     }
 
@@ -201,19 +204,19 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         bytes memory _signature
     ) internal {
         if (_req.token != msg.sender) {
-            revert MintHookRequestInvalidToken();
+            revert SignatureMintRequestInvalidToken();
         }
 
         if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
-            revert MintHookRequestMismatch();
+            revert SignatureMintRequestMismatch();
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintHookRequestExpired();
+            revert SigantureMintRequestExpired();
         }
 
-        if (_signatureMintHookStorage().uidUsed[_req.uid]) {
-            revert MintHookRequestUidReused();
+        if (_signatureMintStorage().uidUsed[_req.uid]) {
+            revert SignatureMintRequestUidReused();
         }
 
         address signer = _hashTypedData(
@@ -233,10 +236,10 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         ).recover(_signature);
 
         if (Ownable(_req.token).owner() != signer) {
-            revert MintHookRequestUnauthorizedSignature();
+            revert SignatureMintRequestUnauthorizedSignature();
         }
 
-        _signatureMintHookStorage().uidUsed[_req.uid] = true;
+        _signatureMintStorage().uidUsed[_req.uid] = true;
 
         _distributeMintPrice(_req.recipient, _req.currency, (_req.quantity * _req.pricePerUnit) / 1e18);
     }
@@ -248,19 +251,19 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         bytes memory _signature
     ) internal {
         if (_req.token != msg.sender) {
-            revert MintHookRequestInvalidToken();
+            revert SignatureMintRequestInvalidToken();
         }
 
         if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
-            revert MintHookRequestMismatch();
+            revert SignatureMintRequestMismatch();
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintHookRequestExpired();
+            revert SigantureMintRequestExpired();
         }
 
-        if (_signatureMintHookStorage().uidUsed[_req.uid]) {
-            revert MintHookRequestUidReused();
+        if (_signatureMintStorage().uidUsed[_req.uid]) {
+            revert SignatureMintRequestUidReused();
         }
 
         address signer = _hashTypedData(
@@ -280,10 +283,10 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         ).recover(_signature);
 
         if (Ownable(_req.token).owner() != signer) {
-            revert MintHookRequestUnauthorizedSignature();
+            revert SignatureMintRequestUnauthorizedSignature();
         }
 
-        _signatureMintHookStorage().uidUsed[_req.uid] = true;
+        _signatureMintStorage().uidUsed[_req.uid] = true;
 
         _distributeMintPrice(_req.recipient, _req.currency, _req.quantity * _req.pricePerUnit);
     }
@@ -296,21 +299,21 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         bytes memory _signature
     ) internal {
         if (_req.token != msg.sender) {
-            revert MintHookRequestInvalidToken();
+            revert SignatureMintRequestInvalidToken();
         }
 
         if (
             _req.recipient != _expectedRecipient || _req.quantity != _expectedAmount || _req.tokenId != _expectedTokenId
         ) {
-            revert MintHookRequestMismatch();
+            revert SignatureMintRequestMismatch();
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintHookRequestExpired();
+            revert SigantureMintRequestExpired();
         }
 
-        if (_signatureMintHookStorage().uidUsed[_req.uid]) {
-            revert MintHookRequestUidReused();
+        if (_signatureMintStorage().uidUsed[_req.uid]) {
+            revert SignatureMintRequestUidReused();
         }
 
         address signer = _hashTypedData(
@@ -331,10 +334,10 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         ).recover(_signature);
 
         if (Ownable(_req.token).owner() != signer) {
-            revert MintHookRequestUnauthorizedSignature();
+            revert SignatureMintRequestUnauthorizedSignature();
         }
 
-        _signatureMintHookStorage().uidUsed[_req.uid] = true;
+        _signatureMintStorage().uidUsed[_req.uid] = true;
 
         _distributeMintPrice(_req.recipient, _req.currency, _req.quantity * _req.pricePerUnit);
     }
@@ -342,18 +345,18 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
     function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {
-                revert MintHookIncorrectNativeTokenSent();
+                revert SignatureMintIncorrectNativeTokenSent();
             }
             return;
         }
 
-        SaleConfig memory saleConfig = _signatureMintHookStorage().saleConfig[msg.sender];
+        SaleConfig memory saleConfig = _signatureMintStorage().saleConfig[msg.sender];
 
         uint256 platformFee = (_price * saleConfig.platformFeeBps) / 10_000;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
-                revert MintHookIncorrectNativeTokenSent();
+                revert SignatureMintIncorrectNativeTokenSent();
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price - platformFee);
             SafeTransferLib.safeTransferETH(saleConfig.platformFeeRecipient, platformFee);
@@ -368,7 +371,7 @@ contract SignatureMintHook is IExtensionContract, EIP712 {
         version = "1";
     }
 
-    function _signatureMintHookStorage() internal pure returns (SignatureMintHookStorage.Data storage) {
-        return SignatureMintHookStorage.data();
+    function _signatureMintStorage() internal pure returns (SignatureMintStorage.Data storage) {
+        return SignatureMintStorage.data();
     }
 }

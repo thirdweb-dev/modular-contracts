@@ -3,24 +3,24 @@ pragma solidity ^0.8.0;
 
 import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.sol";
 
-library NonTransferableHookStorage {
-    /// @custom:storage-location erc7201:non.transferable.hook.storage
-    bytes32 public constant NON_TRANSFERABLE_HOOK_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("non.transferable.hook.storage")) - 1)) & ~bytes32(uint256(0xff));
+library NonTransferableStorage {
+    /// @custom:storage-location erc7201:non.transferable.storage
+    bytes32 public constant NON_TRANSFERABLE_STORAGE_POSITION =
+        keccak256(abi.encode(uint256(keccak256("non.transferable.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         mapping(address => bool) transferDisabled;
     }
 
     function data() internal pure returns (Data storage data_) {
-        bytes32 position = NON_TRANSFERABLE_HOOK_STORAGE_POSITION;
+        bytes32 position = NON_TRANSFERABLE_STORAGE_POSITION;
         assembly {
             data_.slot := position
         }
     }
 }
 
-contract NonTransferableHook is IExtensionContract {
+contract NonTransferable is IExtensionContract {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -28,7 +28,7 @@ contract NonTransferableHook is IExtensionContract {
     error TransfersDisabled();
 
     /*//////////////////////////////////////////////////////////////
-                            HOOK FUNCTIONS
+                            EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
@@ -50,50 +50,54 @@ contract NonTransferableHook is IExtensionContract {
             ExtensionFunction({selector: this.enableTransfers.selector, callType: CallType.CALL, permissioned: true});
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            CALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     function beforeTransferERC20(address, address, uint256) external virtual returns (bytes memory) {
         address token = msg.sender;
-        if (_nonTransferableHookStorage().transferDisabled[token]) {
+        if (_nonTransferableStorage().transferDisabled[token]) {
             revert TransfersDisabled();
         }
     }
 
     function beforeTransferERC721(address, address, uint256) external virtual returns (bytes memory) {
         address token = msg.sender;
-        if (_nonTransferableHookStorage().transferDisabled[token]) {
+        if (_nonTransferableStorage().transferDisabled[token]) {
             revert TransfersDisabled();
         }
     }
 
     function beforeTransferERC1155(address, address, uint256, uint256) external virtual returns (bytes memory result) {
         address token = msg.sender;
-        if (_nonTransferableHookStorage().transferDisabled[token]) {
+        if (_nonTransferableStorage().transferDisabled[token]) {
             revert TransfersDisabled();
         }
     }
 
     /*//////////////////////////////////////////////////////////////
-                            HOOK FALLBACK FUNCTIONS
+                            EXTENSION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     function isTransfersDisabled(address _token) external view returns (bool) {
-        return _nonTransferableHookStorage().transferDisabled[_token];
+        return _nonTransferableStorage().transferDisabled[_token];
     }
 
     function disableTransfers() external {
         address token = msg.sender;
-        _nonTransferableHookStorage().transferDisabled[token] = true;
+        _nonTransferableStorage().transferDisabled[token] = true;
     }
 
     function enableTransfers() external {
         address token = msg.sender;
-        _nonTransferableHookStorage().transferDisabled[token] = false;
+        _nonTransferableStorage().transferDisabled[token] = false;
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _nonTransferableHookStorage() internal pure returns (NonTransferableHookStorage.Data storage) {
-        return NonTransferableHookStorage.data();
+    function _nonTransferableStorage() internal pure returns (NonTransferableStorage.Data storage) {
+        return NonTransferableStorage.data();
     }
 }

@@ -6,26 +6,26 @@ import {IExtensionContract} from "@core-contracts/interface/IExtensionContract.s
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
-library ClaimPhaseMintHookStorage {
-    /// @custom:storage-location erc7201:claim.phase.mint.hook.storage
-    bytes32 public constant CLAIM_PHASE_MINT_HOOK_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("claim.phase.mint.hook.storage")) - 1)) & ~bytes32(uint256(0xff));
+library ClaimConditionMintStorage {
+    /// @custom:storage-location erc7201:claim.condition.mint.storage
+    bytes32 public constant CLAIM_CONDITION_MINT_STORAGE_POSITION =
+        keccak256(abi.encode(uint256(keccak256("claim.condition.mint.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        mapping(address => ClaimPhaseMintHook.SaleConfig) saleConfig;
-        mapping(address => ClaimPhaseMintHook.ClaimPhase) claimPhase;
-        mapping(address => mapping(uint256 => ClaimPhaseMintHook.ClaimPhase)) claimPhaseByTokenId;
+        mapping(address => ClaimConditionMint.SaleConfig) saleConfig;
+        mapping(address => ClaimConditionMint.ClaimPhase) claimPhase;
+        mapping(address => mapping(uint256 => ClaimConditionMint.ClaimPhase)) claimPhaseByTokenId;
     }
 
     function data() internal pure returns (Data storage data_) {
-        bytes32 position = CLAIM_PHASE_MINT_HOOK_STORAGE_POSITION;
+        bytes32 position = CLAIM_CONDITION_MINT_STORAGE_POSITION;
         assembly {
             data_.slot := position
         }
     }
 }
 
-contract ClaimPhaseMintHook is IExtensionContract {
+contract ClaimConditionMint is IExtensionContract {
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -54,11 +54,11 @@ contract ClaimPhaseMintHook is IExtensionContract {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
-    error MintHookIncorrectNativeTokenSent();
-    error MintHookClaimPhasePriceMismatch();
-    error MintHookClaimPhaseOutOfTimeWindow();
-    error MintHookClaimPhaseOutOfSupply();
-    error MintHookClaimPhaseNotInAllowlist();
+    error ClaimConditionMintIncorrectNativeTokenSent();
+    error ClaimConditionMintPriceMismatch();
+    error ClaimConditionMintOutOfTimeWindow();
+    error ClaimConditionMintOutOfSupply();
+    error ClaimConditionMintNotInAllowlist();
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -67,7 +67,7 @@ contract ClaimPhaseMintHook is IExtensionContract {
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                            HOOK FUNCTIONS
+                            EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
@@ -104,6 +104,10 @@ contract ClaimPhaseMintHook is IExtensionContract {
         });
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            CALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
         external
         payable
@@ -135,7 +139,7 @@ contract ClaimPhaseMintHook is IExtensionContract {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            HOOK FALLBACK FUNCTIONS
+                            EXTENSION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     function getSaleConfig(address _token)
@@ -143,7 +147,7 @@ contract ClaimPhaseMintHook is IExtensionContract {
         view
         returns (address primarySaleRecipient, address platformFeeRecipient, uint16 platformFeeBps)
     {
-        SaleConfig memory saleConfig = _claimPhaseMintHookStorage().saleConfig[_token];
+        SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig[_token];
         return (saleConfig.primarySaleRecipient, saleConfig.platformFeeRecipient, saleConfig.platformFeeBps);
     }
 
@@ -151,26 +155,26 @@ contract ClaimPhaseMintHook is IExtensionContract {
         external
     {
         address token = msg.sender;
-        _claimPhaseMintHookStorage().saleConfig[token] =
+        _claimConditionMintStorage().saleConfig[token] =
             SaleConfig(_primarySaleRecipient, _platformFeeRecipient, _platformFeeBps);
     }
 
     function getClaimPhase(address _token) external view returns (ClaimPhase memory claimPhase) {
-        return _claimPhaseMintHookStorage().claimPhase[_token];
+        return _claimConditionMintStorage().claimPhase[_token];
     }
 
     function getClaimPhaseByTokenId(address _token, uint256 _id) external view returns (ClaimPhase memory claimPhase) {
-        return _claimPhaseMintHookStorage().claimPhaseByTokenId[_token][_id];
+        return _claimConditionMintStorage().claimPhaseByTokenId[_token][_id];
     }
 
     function setClaimPhase(ClaimPhase memory _claimPhase) external {
         address token = msg.sender;
-        _claimPhaseMintHookStorage().claimPhase[token] = _claimPhase;
+        _claimConditionMintStorage().claimPhase[token] = _claimPhase;
     }
 
     function setClaimPhaseByTokenId(uint256 _id, ClaimPhase memory _claimPhase) external {
         address token = msg.sender;
-        _claimPhaseMintHookStorage().claimPhaseByTokenId[token][_id] = _claimPhase;
+        _claimConditionMintStorage().claimPhaseByTokenId[token][_id] = _claimPhase;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -180,19 +184,19 @@ contract ClaimPhaseMintHook is IExtensionContract {
     function _allowlistedMintERC20(address _recipient, uint256 _quantity, ClaimParams memory _params) internal {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().claimPhase[token];
+        ClaimPhase memory claimPhase = _claimConditionMintStorage().claimPhase[token];
 
         if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
         {
-            revert MintHookClaimPhasePriceMismatch();
+            revert ClaimConditionMintPriceMismatch();
         }
 
         if (block.timestamp < claimPhase.startTimestamp || claimPhase.endTimestamp <= block.timestamp) {
-            revert MintHookClaimPhaseOutOfTimeWindow();
+            revert ClaimConditionMintOutOfTimeWindow();
         }
 
         if (_quantity > claimPhase.availableSupply) {
-            revert MintHookClaimPhaseOutOfSupply();
+            revert ClaimConditionMintOutOfSupply();
         }
 
         if (claimPhase.allowlistMerkleRoot != bytes32(0)) {
@@ -201,11 +205,11 @@ contract ClaimPhaseMintHook is IExtensionContract {
             );
 
             if (!isAllowlisted) {
-                revert MintHookClaimPhaseNotInAllowlist();
+                revert ClaimConditionMintNotInAllowlist();
             }
         }
 
-        _claimPhaseMintHookStorage().claimPhase[token].availableSupply -= _quantity;
+        _claimConditionMintStorage().claimPhase[token].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, (_quantity * _params.expectedPricePerUnit) / 1e18);
     }
@@ -213,19 +217,19 @@ contract ClaimPhaseMintHook is IExtensionContract {
     function _allowlistedMintERC721(address _recipient, uint256 _quantity, ClaimParams memory _params) internal {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().claimPhase[token];
+        ClaimPhase memory claimPhase = _claimConditionMintStorage().claimPhase[token];
 
         if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
         {
-            revert MintHookClaimPhasePriceMismatch();
+            revert ClaimConditionMintPriceMismatch();
         }
 
         if (block.timestamp < claimPhase.startTimestamp || claimPhase.endTimestamp <= block.timestamp) {
-            revert MintHookClaimPhaseOutOfTimeWindow();
+            revert ClaimConditionMintOutOfTimeWindow();
         }
 
         if (_quantity > claimPhase.availableSupply) {
-            revert MintHookClaimPhaseOutOfSupply();
+            revert ClaimConditionMintOutOfSupply();
         }
 
         if (claimPhase.allowlistMerkleRoot != bytes32(0)) {
@@ -234,11 +238,11 @@ contract ClaimPhaseMintHook is IExtensionContract {
             );
 
             if (!isAllowlisted) {
-                revert MintHookClaimPhaseNotInAllowlist();
+                revert ClaimConditionMintNotInAllowlist();
             }
         }
 
-        _claimPhaseMintHookStorage().claimPhase[token].availableSupply -= _quantity;
+        _claimConditionMintStorage().claimPhase[token].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, _quantity * _params.expectedPricePerUnit);
     }
@@ -248,19 +252,19 @@ contract ClaimPhaseMintHook is IExtensionContract {
     {
         address token = msg.sender;
 
-        ClaimPhase memory claimPhase = _claimPhaseMintHookStorage().claimPhaseByTokenId[token][_id];
+        ClaimPhase memory claimPhase = _claimConditionMintStorage().claimPhaseByTokenId[token][_id];
 
         if (claimPhase.currency != _params.expectedCurrency || claimPhase.pricePerUnit != _params.expectedPricePerUnit)
         {
-            revert MintHookClaimPhasePriceMismatch();
+            revert ClaimConditionMintPriceMismatch();
         }
 
         if (block.timestamp < claimPhase.startTimestamp || claimPhase.endTimestamp <= block.timestamp) {
-            revert MintHookClaimPhaseOutOfTimeWindow();
+            revert ClaimConditionMintOutOfTimeWindow();
         }
 
         if (_quantity > claimPhase.availableSupply) {
-            revert MintHookClaimPhaseOutOfSupply();
+            revert ClaimConditionMintOutOfSupply();
         }
 
         if (claimPhase.allowlistMerkleRoot != bytes32(0)) {
@@ -269,11 +273,11 @@ contract ClaimPhaseMintHook is IExtensionContract {
             );
 
             if (!isAllowlisted) {
-                revert MintHookClaimPhaseNotInAllowlist();
+                revert ClaimConditionMintNotInAllowlist();
             }
         }
 
-        _claimPhaseMintHookStorage().claimPhaseByTokenId[token][_id].availableSupply -= _quantity;
+        _claimConditionMintStorage().claimPhaseByTokenId[token][_id].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, _quantity * _params.expectedPricePerUnit);
     }
@@ -281,18 +285,18 @@ contract ClaimPhaseMintHook is IExtensionContract {
     function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {
-                revert MintHookIncorrectNativeTokenSent();
+                revert ClaimConditionMintIncorrectNativeTokenSent();
             }
             return;
         }
 
-        SaleConfig memory saleConfig = _claimPhaseMintHookStorage().saleConfig[msg.sender];
+        SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig[msg.sender];
 
         uint256 platformFee = (_price * saleConfig.platformFeeBps) / 10_000;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
-                revert MintHookIncorrectNativeTokenSent();
+                revert ClaimConditionMintIncorrectNativeTokenSent();
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price - platformFee);
             SafeTransferLib.safeTransferETH(saleConfig.platformFeeRecipient, platformFee);
@@ -302,7 +306,7 @@ contract ClaimPhaseMintHook is IExtensionContract {
         }
     }
 
-    function _claimPhaseMintHookStorage() internal pure returns (ClaimPhaseMintHookStorage.Data storage) {
-        return ClaimPhaseMintHookStorage.data();
+    function _claimConditionMintStorage() internal pure returns (ClaimConditionMintStorage.Data storage) {
+        return ClaimConditionMintStorage.data();
     }
 }

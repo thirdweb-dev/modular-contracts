@@ -26,7 +26,7 @@ library LazyMintStorage {
     }
 }
 
-contract LazyMintMetadataHook is IExtensionContract {
+contract LazyMint is IExtensionContract {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -42,17 +42,14 @@ contract LazyMintMetadataHook is IExtensionContract {
                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when caller is not token core admin.
-    error LazyMintHookNotAuthorized();
-
     /// @notice Emitted when querying an invalid index in a batch array.
-    error LazyMintHookInvalidIndex();
+    error LazyMintInvalidIndex();
 
     /// @notice Emitted when lazy minting zero tokens.
-    error LazyMintHookZeroAmount();
+    error LazyMintZeroAmount();
 
     /// @notice Emitted when querying URI for a non-existent invalid token ID.
-    error LazyMintHookInvalidTokenId();
+    error LazyMintInvalidTokenId();
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -105,7 +102,7 @@ contract LazyMintMetadataHook is IExtensionContract {
      */
     function getBatchIdAtIndex(address _token, uint256 _index) public view returns (uint256) {
         if (_index >= getBaseURICount(_token)) {
-            revert LazyMintHookInvalidIndex();
+            revert LazyMintInvalidIndex();
         }
         return _lazyMintStorage().batchIds[_token][_index];
     }
@@ -128,7 +125,7 @@ contract LazyMintMetadataHook is IExtensionContract {
     {
         address token = msg.sender;
         if (_amount == 0) {
-            revert LazyMintHookZeroAmount();
+            revert LazyMintZeroAmount();
         }
 
         uint256 startId = _lazyMintStorage().nextTokenIdToLazyMint[token];
@@ -169,7 +166,7 @@ contract LazyMintMetadataHook is IExtensionContract {
                 return _lazyMintStorage().baseURI[_token][indices[i]];
             }
         }
-        revert LazyMintHookInvalidTokenId();
+        revert LazyMintInvalidTokenId();
     }
 
     function _lazyMintStorage() internal pure returns (LazyMintStorage.Data storage) {

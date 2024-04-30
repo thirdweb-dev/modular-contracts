@@ -22,7 +22,7 @@ library SimpleMetadataStorage {
     }
 }
 
-contract SimpleMetadataHook is IExtensionContract {
+contract SimpleMetadata is IExtensionContract {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -33,13 +33,9 @@ contract SimpleMetadataHook is IExtensionContract {
     event MetadataUpdate(address indexed token, uint256 id);
 
     /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
+                            EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     *  @notice Returns all hooks implemented by the contract and all hook contract functions to register as
-     *          callable via core contract fallback function.
-     */
     function getExtensionConfig() external pure returns (ExtensionConfig memory config) {
         config.callbackFunctions = new bytes4[](1);
         config.extensionABI = new ExtensionFunction[](1);
@@ -48,6 +44,10 @@ contract SimpleMetadataHook is IExtensionContract {
         config.extensionABI[0] =
             ExtensionFunction({selector: this.setTokenURI.selector, callType: CallType.CALL, permissioned: true});
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            CALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      *  @notice Returns the URI to fetch token metadata from.
@@ -59,7 +59,7 @@ contract SimpleMetadataHook is IExtensionContract {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
+                            EXTENSION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
