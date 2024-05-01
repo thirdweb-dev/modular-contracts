@@ -4,7 +4,11 @@ pragma solidity ^0.8.0;
 import {Initializable} from "@solady/utils/Initializable.sol";
 import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {IERC721AUpgradeable, ERC721AUpgradeable, ERC721AQueryableUpgradeable} from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
+import {
+    IERC721AUpgradeable,
+    ERC721AUpgradeable,
+    ERC721AQueryableUpgradeable
+} from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
 
 import {CoreContract} from "../CoreContract.sol";
 
@@ -98,7 +102,12 @@ contract ERC721Core is ERC721AQueryableUpgradeable, CoreContract, Ownable, Multi
      *  @param _id The token ID of the NFT.
      *  @return metadata The URI to fetch metadata from.
      */
-    function tokenURI(uint256 _id) public view override(ERC721AUpgradeable, IERC721AUpgradeable) returns (string memory) {
+    function tokenURI(uint256 _id)
+        public
+        view
+        override(ERC721AUpgradeable, IERC721AUpgradeable)
+        returns (string memory)
+    {
         return _getTokenURI(_id);
     }
 
@@ -117,7 +126,12 @@ contract ERC721Core is ERC721AQueryableUpgradeable, CoreContract, Ownable, Multi
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param _interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 _interfaceId) public pure override(IERC721AUpgradeable, ERC721AUpgradeable) returns (bool) {
+    function supportsInterface(bytes4 _interfaceId)
+        public
+        pure
+        override(IERC721AUpgradeable, ERC721AUpgradeable)
+        returns (bool)
+    {
         return _interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || _interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
             || _interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
@@ -183,7 +197,11 @@ contract ERC721Core is ERC721AQueryableUpgradeable, CoreContract, Ownable, Multi
      *  @param _to The address to transfer to
      *  @param _id The token ID of the NFT
      */
-    function transferFrom(address _from, address _to, uint256 _id) public payable override(IERC721AUpgradeable, ERC721AUpgradeable) {
+    function transferFrom(address _from, address _to, uint256 _id)
+        public
+        payable
+        override(IERC721AUpgradeable, ERC721AUpgradeable)
+    {
         _beforeTransfer(_from, _to, _id);
         super.transferFrom(_from, _to, _id);
     }
@@ -204,7 +222,10 @@ contract ERC721Core is ERC721AQueryableUpgradeable, CoreContract, Ownable, Multi
      *  @param _operator The address to approve or revoke approval from
      *  @param _approved Whether the operator is approved
      */
-    function setApprovalForAll(address _operator, bool _approved) public override(IERC721AUpgradeable, ERC721AUpgradeable) {
+    function setApprovalForAll(address _operator, bool _approved)
+        public
+        override(IERC721AUpgradeable, ERC721AUpgradeable)
+    {
         _beforeApproveForAll(msg.sender, _operator, _approved);
         super.setApprovalForAll(_operator, _approved);
     }
