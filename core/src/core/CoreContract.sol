@@ -31,22 +31,13 @@ abstract contract CoreContract is IExtensionTypes {
     struct InstalledExtension {
         address implementation;
         ExtensionConfig config;
-
-        // bytes4[] registeredCallback;
-        // bytes4[] exposedFunctions;
-
-        // bytes4 selector;
-        // CallType callType;
-        // bool permissioned;
     }
 
     struct InstalledExtensionFunction {
-        address implementation;
-        ExtensionFunction data;
-        // bytes4[] callbackFunctions;
-        // bytes4[] exposedFunctions;
-        // bool[] permissions;
-        // CallType[] calltypes;
+        address implementation; // 20
+        bytes4 selector; // 24
+        CallType callType; // 25
+        bool permission; // 26
     }
 
     event ExtensionInstalled(address extension);
@@ -96,14 +87,14 @@ abstract contract CoreContract is IExtensionTypes {
 
         // Check: authorized to call permissioned extension function
         if (
-            extensionFunction.data.permissioned &&
+            extensionFunction.permission &&
             !_isAuthorizedToCallExtensionFunctions(msg.sender)
         ) {
             revert UnauthorizedFunctionCall();
         }
 
         // Call extension function.
-        CallType callType = extensionFunction.data.callType;
+        CallType callType = extensionFunction.callType;
 
         // note: these code block needs to happen at the end of the function
         if (callType == CallType.CALL) {
@@ -200,7 +191,6 @@ abstract contract CoreContract is IExtensionTypes {
 
         // Store callback function data. Only install supported callback functions
         uint256 totalCallbacks = config.callbackFunctions.length;
-
         for (uint256 i = 0; i < totalCallbacks; i++) {
             bytes4 callbackFunction = config.callbackFunctions[i];
 
@@ -231,7 +221,9 @@ abstract contract CoreContract is IExtensionTypes {
 
             extensionFunctionData_[ext.selector] = InstalledExtensionFunction({
                 implementation: _extension,
-                data: ext
+                selector: ext.selector,
+                callType: ext.callType,
+                permission: ext.permissioned
             });
         }
 
