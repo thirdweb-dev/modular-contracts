@@ -18,12 +18,6 @@ abstract contract CoreContract is IExtensionTypes {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
-    enum CallbackOrder {
-        BEFORE,
-        ON,
-        AFTER
-    }
-
     enum CallbackMode {
         OPTIONAL,
         REQUIRED
@@ -31,7 +25,6 @@ abstract contract CoreContract is IExtensionTypes {
 
     struct SupportedCallbackFunction {
         bytes4 selector;
-        CallbackOrder order;
         CallbackMode mode;
     }
 
@@ -293,31 +286,62 @@ abstract contract CoreContract is IExtensionTypes {
     function _callExtensionCallback(
         bytes4 selector,
         bytes memory encodedAbiCallData
-    ) internal {
+    ) internal returns (bool success, bytes memory returndata) {
         SupportedCallbackFunction[]
             memory functions = getSupportedCallbackFunctions();
         uint256 len = functions.length;
 
-        SupportedCallbackFunction memory callbackFunctionData;
+        CallbackMode callbackMode;
 
         // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
             if (functions[i].selector == selector) {
-                callbackFunctionData = functions[i];
+                callbackMode = functions[i].mode;
                 break;
             }
         }
 
         address extension = callbackFunctionImplementation_[selector];
         if (extension != address(0)) {
-            (bool success, bytes memory returndata) = extension.call{
-                value: msg.value
-            }(encodedAbiCallData);
+            (success, returndata) = extension.call{value: msg.value}(
+                encodedAbiCallData
+            );
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
         } else {
-            if (callbackFunctionData.mode == CallbackMode.REQUIRED) {
+            if (callbackMode == CallbackMode.REQUIRED) {
+                revert CallbackFunctionRequired();
+            }
+        }
+    }
+
+    function _staticcallExtensionCallback(
+        bytes4 selector,
+        bytes memory encodedAbiCallData
+    ) internal view returns (bool success, bytes memory returndata) {
+        SupportedCallbackFunction[]
+            memory functions = getSupportedCallbackFunctions();
+        uint256 len = functions.length;
+
+        CallbackMode callbackMode;
+
+        // TODO: optimize
+        for (uint256 i = 0; i < len; i++) {
+            if (functions[i].selector == selector) {
+                callbackMode = functions[i].mode;
+                break;
+            }
+        }
+
+        address extension = callbackFunctionImplementation_[selector];
+        if (extension != address(0)) {
+            (success, returndata) = extension.staticcall(encodedAbiCallData);
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
+            }
+        } else {
+            if (callbackMode == CallbackMode.REQUIRED) {
                 revert CallbackFunctionRequired();
             }
         }

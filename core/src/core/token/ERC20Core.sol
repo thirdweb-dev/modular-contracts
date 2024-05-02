@@ -27,13 +27,6 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     string private _contractURI;
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted on an attempt to mint tokens when no beforeMint hook is installed.
-    error ERC20CoreMintDisabled();
-
-    /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
@@ -99,22 +92,18 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
         supportedCallbackFunctions = new SupportedCallbackFunction[](4);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: this.mint.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[1] = SupportedCallbackFunction({
             selector: this.transfer.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[2] = SupportedCallbackFunction({
             selector: this.burn.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[3] = SupportedCallbackFunction({
             selector: this.approve.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
     }

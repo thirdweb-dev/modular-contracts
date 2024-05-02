@@ -148,37 +148,30 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         supportedCallbackFunctions = new SupportedCallbackFunction[](7);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: this.mint.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[1] = SupportedCallbackFunction({
             selector: this.safeTransferFrom.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[2] = SupportedCallbackFunction({
             selector: this.safeBatchTransferFrom.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[3] = SupportedCallbackFunction({
             selector: this.burn.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[4] = SupportedCallbackFunction({
             selector: this.setApprovalForAll.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[5] = SupportedCallbackFunction({
             selector: this.uri.selector,
-            order: CallbackOrder.ON,
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[6] = SupportedCallbackFunction({
             selector: this.royaltyInfo.selector,
-            order: CallbackOrder.ON,
             mode: CallbackMode.OPTIONAL
         });
     }
@@ -406,16 +399,13 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         internal
         view
         virtual
-        returns (string memory uri)
+        returns (string memory tokenUri)
     {
-        /*
-        address hook = getCallbackFunctionImplementation(
-            OnTokenURIHook.onTokenURI.selector
+        (, bytes memory returndata) = _staticcallExtensionCallback(
+            OnTokenURICallback.onTokenURI.selector,
+            abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
         );
-
-        if (hook != address(0)) {
-            uri = OnTokenURIHook(hook).onTokenURI(tokenId);
-        }*/
+        tokenUri = abi.decode(returndata, (string));
     }
 
     /// @dev Fetches royalty info from the royalty hook.
@@ -425,17 +415,13 @@ contract ERC1155Core is ERC1155, CoreContract, Ownable, Multicallable {
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        /*
-        address hook = getCallbackFunctionImplementation(
-            OnRoyaltyInfoHook.onRoyaltyInfo.selector
+        (, bytes memory returndata) = _staticcallExtensionCallback(
+            OnRoyaltyInfoCallback.onRoyaltyInfo.selector,
+            abi.encodeCall(
+                OnRoyaltyInfoCallback.onRoyaltyInfo,
+                (tokenId, salePrice)
+            )
         );
-
-        if (hook != address(0)) {
-            (receiver, royaltyAmount) = OnRoyaltyInfoHook(hook).onRoyaltyInfo(
-                tokenId,
-                salePrice
-            );
-        }
-        */
+        (receiver, royaltyAmount) = abi.decode(returndata, (address, uint256));
     }
 }

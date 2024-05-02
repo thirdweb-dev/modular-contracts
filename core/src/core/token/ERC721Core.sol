@@ -123,37 +123,30 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         supportedCallbackFunctions = new SupportedCallbackFunction[](7);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: this.mint.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[1] = SupportedCallbackFunction({
             selector: this.transferFrom.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[2] = SupportedCallbackFunction({
             selector: this.burn.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[3] = SupportedCallbackFunction({
             selector: this.approve.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[4] = SupportedCallbackFunction({
             selector: this.setApprovalForAll.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[5] = SupportedCallbackFunction({
             selector: this.tokenURI.selector,
-            order: CallbackOrder.ON,
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[6] = SupportedCallbackFunction({
             selector: this.royaltyInfo.selector,
-            order: CallbackOrder.ON,
             mode: CallbackMode.OPTIONAL
         });
     }
@@ -351,42 +344,33 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
     }
 
     /// @dev Fetches token URI from the token metadata hook.
-    function _getTokenURI(uint256 _tokenId)
+    function _getTokenURI(uint256 tokenId)
         internal
         view
         virtual
         returns (string memory uri)
     {
-        /*
-        address hook = getCallbackFunctionImplementation(
-            OnTokenURIHook.onTokenURI.selector
+        (, bytes memory returndata) = _staticcallExtensionCallback(
+            OnTokenURICallback.onTokenURI.selector,
+            abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
         );
-
-        if (hook != address(0)) {
-            uri = OnTokenURICallback(hook).onTokenURI(_tokenId);
-        }
-        */
+        uri = abi.decode(returndata, (string));
     }
 
     /// @dev Fetches royalty info from the royalty hook.
-    function _getRoyaltyInfo(uint256 _tokenId, uint256 _salePrice)
+    function _getRoyaltyInfo(uint256 tokenId, uint256 salePrice)
         internal
         view
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        /*
-        address hook = getCallbackFunctionImplementation(
-            OnRoyaltyInfoHook.onRoyaltyInfo.selector
+        (, bytes memory returndata) = _staticcallExtensionCallback(
+            OnRoyaltyInfoCallback.onRoyaltyInfo.selector,
+            abi.encodeCall(
+                OnRoyaltyInfoCallback.onRoyaltyInfo,
+                (tokenId, salePrice)
+            )
         );
-
-        if (hook != address(0)) {
-            (receiver, royaltyAmount) = OnRoyaltyInfoHook(hook).onRoyaltyInfo(
-                _tokenId,
-                _salePrice
-            );
-
-        }
-        */
+        (receiver, royaltyAmount) = abi.decode(returndata, (address, uint256));
     }
 }

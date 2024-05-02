@@ -42,7 +42,6 @@ contract MockCoreMinimal is MockBase, CoreContract {
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
             functions[i] = SupportedCallbackFunction({
                 selector: bytes4(uint32(i)),
-                order: CallbackOrder.BEFORE,
                 mode: CallbackMode.OPTIONAL
             });
         }
@@ -80,14 +79,12 @@ contract MockCore is MockBase, CoreContract {
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
             functions[i] = SupportedCallbackFunction({
                 selector: bytes4(uint32(i)),
-                order: CallbackOrder.BEFORE,
                 mode: CallbackMode.OPTIONAL
             });
         }
 
         functions[NUMBER_OF_CALLBACK] = SupportedCallbackFunction({
             selector: this.callbackFunctionOne.selector,
-            order: CallbackOrder.BEFORE,
             mode: CallbackMode.REQUIRED
         });
     }
