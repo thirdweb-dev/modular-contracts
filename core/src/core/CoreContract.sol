@@ -34,10 +34,9 @@ abstract contract CoreContract is IExtensionTypes {
     }
 
     struct InstalledExtensionFunction {
-        address implementation; // 20
-        bytes4 selector; // 24
-        CallType callType; // 25
-        bool permission; // 26
+        address implementation;
+        CallType callType;
+        bool permission;
     }
 
     event ExtensionInstalled(address extension);
@@ -98,7 +97,7 @@ abstract contract CoreContract is IExtensionTypes {
 
         // note: these code block needs to happen at the end of the function
         if (callType == CallType.CALL) {
-            _callAndReturn(extensionFunction.implementation, msg.value);
+            _callAndReturn(extensionFunction.implementation);
         } else if (callType == CallType.DELEGATECALL) {
             _delegateAndReturn(extensionFunction.implementation);
         } else if (callType == CallType.STATICCALL) {
@@ -221,7 +220,6 @@ abstract contract CoreContract is IExtensionTypes {
 
             extensionFunctionData_[ext.selector] = InstalledExtensionFunction({
                 implementation: _extension,
-                selector: ext.selector,
                 callType: ext.callType,
                 permission: ext.permissioned
             });
@@ -340,16 +338,19 @@ abstract contract CoreContract is IExtensionTypes {
     }
 
     /// @dev delegateCalls an `implementation` smart contract.
+    /// @notice Only use this at the end of the function as it reverts or returns the result
     function _delegateAndReturn(address implementation) private {
+        /// @solidity memory-safe-assembly
         assembly {
-            // Copy msg.data. We take full control of memory in this inline assembly
-            // block because it will not return to Solidity code. We overwrite the
-            // Solidity scratch pad at memory position 0.
-            calldatacopy(0, 0, calldatasize())
+            function allocate(length) -> pos {
+                pos := mload(0x40)
+                mstore(0x40, add(pos, length))
+            }
 
-            // Call the implementation.
-            // out and outsize are 0 because we don't know the size yet.
-            let result := delegatecall(
+            let calldataPtr := allocate(calldatasize())
+            calldatacopy(calldataPtr, 0, calldatasize())
+
+            let success := delegatecall(
                 gas(),
                 implementation,
                 0,
@@ -358,65 +359,63 @@ abstract contract CoreContract is IExtensionTypes {
                 0
             )
 
-            // Copy the returned data.
-            returndatacopy(0, 0, returndatasize())
-
-            switch result
-            // returns 0 on error.
-            case 0 {
-                revert(0, returndatasize())
+            let returnDataPtr := allocate(returndatasize())
+            returndatacopy(returnDataPtr, 0, returndatasize())
+            if iszero(success) {
+                revert(returnDataPtr, returndatasize())
             }
-            default {
-                return(0, returndatasize())
-            }
+            return(returnDataPtr, returndatasize())
         }
     }
 
     /// @dev calls an `implementation` smart contract and returns data.
-    function _callAndReturn(address implementation, uint256 _value) private {
-        assembly {
-            // Copy msg.data. We take full control of memory in this inline assembly
-            // block because it will not return to Solidity code. We overwrite the
-            // Solidity scratch pad at memory position 0.
-            calldatacopy(0, 0, calldatasize())
+    /// @notice Only use this at the end of the function as it reverts or returns the result
+    function _callAndReturn(address implementation) private {
+        uint256 value = msg.value;
 
-            // Staticcall the implementation.
-            // out and outsize are 0 because we don't know the size yet.
-            let result := call(
+        /// @solidity memory-safe-assembly
+        assembly {
+            function allocate(length) -> pos {
+                pos := mload(0x40)
+                mstore(0x40, add(pos, length))
+            }
+
+            let calldataPtr := allocate(calldatasize())
+            calldatacopy(calldataPtr, 0, calldatasize())
+
+            let success := call(
                 gas(),
                 implementation,
-                _value,
-                0,
+                value,
+                calldataPtr,
                 calldatasize(),
                 0,
                 0
             )
 
-            // Copy the returned data.
-            returndatacopy(0, 0, returndatasize())
-
-            switch result
-            // returns 0 on error.
-            case 0 {
-                revert(0, returndatasize())
+            let returnDataPtr := allocate(returndatasize())
+            returndatacopy(returnDataPtr, 0, returndatasize())
+            if iszero(success) {
+                revert(returnDataPtr, returndatasize())
             }
-            default {
-                return(0, returndatasize())
-            }
+            return(returnDataPtr, returndatasize())
         }
     }
 
     /// @dev calls an `implementation` smart contract and returns data.
+    /// @notice Only use this at the end of the function as it reverts or returns the result
     function _staticcallAndReturn(address implementation) private view {
+        /// @solidity memory-safe-assembly
         assembly {
-            // Copy msg.data. We take full control of memory in this inline assembly
-            // block because it will not return to Solidity code. We overwrite the
-            // Solidity scratch pad at memory position 0.
-            calldatacopy(0, 0, calldatasize())
+            function allocate(length) -> pos {
+                pos := mload(0x40)
+                mstore(0x40, add(pos, length))
+            }
 
-            // Staticcall the implementation.
-            // out and outsize are 0 because we don't know the size yet.
-            let result := staticcall(
+            let calldataPtr := allocate(calldatasize())
+            calldatacopy(calldataPtr, 0, calldatasize())
+
+            let success := staticcall(
                 gas(),
                 implementation,
                 0,
@@ -425,17 +424,12 @@ abstract contract CoreContract is IExtensionTypes {
                 0
             )
 
-            // Copy the returned data.
-            returndatacopy(0, 0, returndatasize())
-
-            switch result
-            // returns 0 on error.
-            case 0 {
-                revert(0, returndatasize())
+            let returnDataPtr := allocate(returndatasize())
+            returndatacopy(returnDataPtr, 0, returndatasize())
+            if iszero(success) {
+                revert(returnDataPtr, returndatasize())
             }
-            default {
-                return(0, returndatasize())
-            }
+            return(returnDataPtr, returndatasize())
         }
     }
 
