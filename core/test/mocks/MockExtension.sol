@@ -19,12 +19,12 @@ import {BeforeApproveForAllCallback} from "src/callback/BeforeApproveForAllCallb
 
 import {OnTokenURICallback} from "src/callback/OnTokenURICallback.sol";
 
-import {IExtensionContract} from "src/interface/IExtensionContract.sol";
+import {IModularExtension} from "src/interface/IModularExtension.sol";
 
 import "@solady/utils/Initializable.sol";
 import "@solady/utils/UUPSUpgradeable.sol";
 
-contract MockExtensionERC20 is BeforeMintCallbackERC20, IExtensionContract, Initializable, UUPSUpgradeable {
+contract MockExtensionERC20 is BeforeMintCallbackERC20, IModularExtension, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -56,7 +56,7 @@ contract MockExtensionERC20 is BeforeMintCallbackERC20, IExtensionContract, Init
 
 contract MockExtensionWithOnTokenURICallback is
     OnTokenURICallback,
-    IExtensionContract,
+    IModularExtension,
     Initializable,
     UUPSUpgradeable
 {
@@ -86,7 +86,7 @@ contract MockExtensionWithOnTokenURICallback is
     }
 }
 
-contract MockExtensionWithPermissionedFallback is IExtensionContract, Initializable, UUPSUpgradeable {
+contract MockExtensionWithPermissionedFallback is IModularExtension, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -115,7 +115,7 @@ contract MockExtensionWithPermissionedFallback is IExtensionContract, Initializa
 
 contract MockExtensionWithOneCallbackERC20 is
     BeforeMintCallbackERC20,
-    IExtensionContract,
+    IModularExtension,
     Initializable,
     UUPSUpgradeable
 {
@@ -142,7 +142,7 @@ contract MockExtensionWithOneCallbackERC20 is
 }
 
 contract MockExtensionWithFourCallbacksERC20 is
-    IExtensionContract,
+    IModularExtension,
     BeforeMintCallbackERC20,
     BeforeTransferCallbackERC20,
     BeforeBurnCallbackERC20,
@@ -175,7 +175,7 @@ contract MockExtensionWithFourCallbacksERC20 is
     }
 }
 
-contract BuggyMockExtensionERC20 is BeforeMintCallbackERC20, IExtensionContract, Initializable, UUPSUpgradeable {
+contract BuggyMockExtensionERC20 is BeforeMintCallbackERC20, IModularExtension, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -208,7 +208,7 @@ contract BuggyMockExtensionERC20 is BeforeMintCallbackERC20, IExtensionContract,
     }
 }
 
-contract MockExtensionERC721 is BeforeMintCallbackERC721, IExtensionContract, Initializable, UUPSUpgradeable {
+contract MockExtensionERC721 is BeforeMintCallbackERC721, IModularExtension, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -247,7 +247,7 @@ contract MockExtensionERC721 is BeforeMintCallbackERC721, IExtensionContract, In
     }
 }
 
-contract BuggyMockExtensionERC721 is BeforeMintCallbackERC721, IExtensionContract, Initializable, UUPSUpgradeable {
+contract BuggyMockExtensionERC721 is BeforeMintCallbackERC721, IModularExtension, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -290,7 +290,7 @@ contract BuggyMockExtensionERC721 is BeforeMintCallbackERC721, IExtensionContrac
 
 contract MockExtensionWithOneCallbackERC721 is
     BeforeMintCallbackERC721,
-    IExtensionContract,
+    IModularExtension,
     Initializable,
     UUPSUpgradeable
 {
@@ -315,7 +315,7 @@ contract MockExtensionWithOneCallbackERC721 is
 }
 
 contract MockExtensionWithFourCallbacksERC721 is
-    IExtensionContract,
+    IModularExtension,
     BeforeMintCallbackERC721,
     BeforeTransferCallbackERC721,
     BeforeBurnCallbackERC721,
@@ -346,7 +346,7 @@ contract MockExtensionWithFourCallbacksERC721 is
     }
 }
 
-contract MockExtensionERC1155 is BeforeMintCallbackERC1155, IExtensionContract, Initializable, UUPSUpgradeable {
+contract MockExtensionERC1155 is BeforeMintCallbackERC1155, IModularExtension, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -384,7 +384,7 @@ contract MockExtensionERC1155 is BeforeMintCallbackERC1155, IExtensionContract, 
     }
 }
 
-contract BuggyMockExtensionERC1155 is BeforeMintCallbackERC1155, IExtensionContract, Initializable, UUPSUpgradeable {
+contract BuggyMockExtensionERC1155 is BeforeMintCallbackERC1155, IModularExtension, Initializable, UUPSUpgradeable {
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -426,7 +426,7 @@ contract BuggyMockExtensionERC1155 is BeforeMintCallbackERC1155, IExtensionContr
 
 contract MockExtensionWithOneCallbackERC1155 is
     BeforeMintCallbackERC1155,
-    IExtensionContract,
+    IModularExtension,
     Initializable,
     UUPSUpgradeable
 {
@@ -451,7 +451,7 @@ contract MockExtensionWithOneCallbackERC1155 is
 }
 
 contract MockExtensionWithFourCallbacksERC1155 is
-    IExtensionContract,
+    IModularExtension,
     BeforeMintCallbackERC1155,
     BeforeTransferCallbackERC1155,
     BeforeBurnCallbackERC1155,

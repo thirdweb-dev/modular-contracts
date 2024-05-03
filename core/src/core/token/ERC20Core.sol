@@ -5,14 +5,14 @@ import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
-import {CoreContract} from "../CoreContract.sol";
+import {ModularCore} from "../ModularCore.sol";
 
 import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
 
-contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
+contract ERC20Core is ERC20, ModularCore, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -90,22 +90,14 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
         supportedCallbackFunctions = new SupportedCallbackFunction[](4);
-        supportedCallbackFunctions[0] = SupportedCallbackFunction({
-            selector: this.mint.selector,
-            mode: CallbackMode.REQUIRED
-        });
-        supportedCallbackFunctions[1] = SupportedCallbackFunction({
-            selector: this.transfer.selector,
-            mode: CallbackMode.OPTIONAL
-        });
-        supportedCallbackFunctions[2] = SupportedCallbackFunction({
-            selector: this.burn.selector,
-            mode: CallbackMode.OPTIONAL
-        });
-        supportedCallbackFunctions[3] = SupportedCallbackFunction({
-            selector: this.approve.selector,
-            mode: CallbackMode.OPTIONAL
-        });
+        supportedCallbackFunctions[0] =
+            SupportedCallbackFunction({selector: this.mint.selector, mode: CallbackMode.REQUIRED});
+        supportedCallbackFunctions[1] =
+            SupportedCallbackFunction({selector: this.transfer.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions[2] =
+            SupportedCallbackFunction({selector: this.burn.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions[3] =
+            SupportedCallbackFunction({selector: this.approve.selector, mode: CallbackMode.OPTIONAL});
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -128,11 +120,7 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
      *  @param amount The amount of tokens to mint.
      *  @param data ABI encoded data to pass to the beforeMintERC20 hook.
      */
-    function mint(
-        address to,
-        uint256 amount,
-        bytes calldata data
-    ) external payable {
+    function mint(address to, uint256 amount, bytes calldata data) external payable {
         _beforeMint(to, amount, data);
         _mint(to, amount);
     }
@@ -154,11 +142,7 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
      *  @param to The address to transfer tokens to.
      *  @param amount The quantity of tokens to transfer.
      */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         _beforeTransfer(from, to, amount);
         return super.transferFrom(from, to, amount);
     }
@@ -168,11 +152,7 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
      *  @param spender The address to approve spending on behalf of the token owner.
      *  @param amount The quantity of tokens to approve.
      */
-    function approve(address spender, uint256 amount)
-        public
-        override
-        returns (bool)
-    {
+    function approve(address spender, uint256 amount) public override returns (bool) {
         _beforeApprove(msg.sender, spender, amount);
         return super.approve(spender, amount);
     }
@@ -187,15 +167,10 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
      *  @param spender The address to approve
      *  @param value Amount of tokens to approve
      */
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public override {
+    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+        public
+        override
+    {
         _beforeApprove(owner, spender, value);
         super.permit(owner, spender, value, deadline, v, r, s);
     }
@@ -204,21 +179,11 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _isAuthorizedToInstallExtensions(address _target)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _isAuthorizedToInstallExtensions(address _target) internal view override returns (bool) {
         return _target == owner();
     }
 
-    function _isAuthorizedToCallExtensionFunctions(address _target)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _isAuthorizedToCallExtensionFunctions(address _target) internal view override returns (bool) {
         return _target == owner();
     }
 
@@ -233,62 +198,34 @@ contract ERC20Core is ERC20, CoreContract, Ownable, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(
-        address to,
-        uint256 amount,
-        bytes calldata data
-    ) internal virtual {
+    function _beforeMint(address to, uint256 amount, bytes calldata data) internal virtual {
         _callExtensionCallback(
             BeforeMintCallbackERC20.beforeMintERC20.selector,
-            abi.encodeCall(
-                BeforeMintCallbackERC20.beforeMintERC20,
-                (to, amount, data)
-            )
+            abi.encodeCall(BeforeMintCallbackERC20.beforeMintERC20, (to, amount, data))
         );
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {
+    function _beforeTransfer(address from, address to, uint256 amount) internal virtual {
         _callExtensionCallback(
             BeforeTransferCallbackERC20.beforeTransferERC20.selector,
-            abi.encodeCall(
-                BeforeTransferCallbackERC20.beforeTransferERC20,
-                (from, to, amount)
-            )
+            abi.encodeCall(BeforeTransferCallbackERC20.beforeTransferERC20, (from, to, amount))
         );
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(
-        address from,
-        uint256 amount,
-        bytes calldata data
-    ) internal virtual {
+    function _beforeBurn(address from, uint256 amount, bytes calldata data) internal virtual {
         _callExtensionCallback(
             BeforeBurnCallbackERC20.beforeBurnERC20.selector,
-            abi.encodeCall(
-                BeforeBurnCallbackERC20.beforeBurnERC20,
-                (from, amount, data)
-            )
+            abi.encodeCall(BeforeBurnCallbackERC20.beforeBurnERC20, (from, amount, data))
         );
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {
+    function _beforeApprove(address from, address to, uint256 amount) internal virtual {
         _callExtensionCallback(
             BeforeApproveCallbackERC20.beforeApproveERC20.selector,
-            abi.encodeCall(
-                BeforeApproveCallbackERC20.beforeApproveERC20,
-                (from, to, amount)
-            )
+            abi.encodeCall(BeforeApproveCallbackERC20.beforeApproveERC20, (from, to, amount))
         );
     }
 }

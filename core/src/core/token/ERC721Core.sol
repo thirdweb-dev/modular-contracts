@@ -5,7 +5,7 @@ import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
-import {CoreContract} from "../CoreContract.sol";
+import {ModularCore} from "../ModularCore.sol";
 
 import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
@@ -15,7 +15,7 @@ import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCal
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 import {OnRoyaltyInfoCallback} from "../../callback/OnRoyaltyInfoCallback.sol";
 
-contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
+contract ERC721Core is ERC721AQueryable, ModularCore, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -73,12 +73,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
      *  @param id The token ID of the NFT.
      *  @return metadata The URI to fetch metadata from.
      */
-    function tokenURI(uint256 id)
-        public
-        view
-        override(ERC721A, IERC721A)
-        returns (string memory)
-    {
+    function tokenURI(uint256 id) public view override(ERC721A, IERC721A) returns (string memory) {
         return _getTokenURI(id);
     }
 
@@ -89,11 +84,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
      *  @return recipient The royalty recipient address
      *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
      */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice)
-        external
-        view
-        returns (address, uint256)
-    {
+    function royaltyInfo(uint256 tokenId, uint256 salePrice) external view returns (address, uint256) {
         return _getRoyaltyInfo(tokenId, salePrice);
     }
 
@@ -101,17 +92,11 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 interfaceId)
-        public
-        pure
-        override(ERC721A, IERC721A)
-        returns (bool)
-    {
-        return
-            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
-            interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+    function supportsInterface(bytes4 interfaceId) public pure override(ERC721A, IERC721A) returns (bool) {
+        return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
+            || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
+            || interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
     }
 
     function getSupportedCallbackFunctions()
@@ -121,34 +106,20 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
         supportedCallbackFunctions = new SupportedCallbackFunction[](7);
-        supportedCallbackFunctions[0] = SupportedCallbackFunction({
-            selector: this.mint.selector,
-            mode: CallbackMode.REQUIRED
-        });
-        supportedCallbackFunctions[1] = SupportedCallbackFunction({
-            selector: this.transferFrom.selector,
-            mode: CallbackMode.OPTIONAL
-        });
-        supportedCallbackFunctions[2] = SupportedCallbackFunction({
-            selector: this.burn.selector,
-            mode: CallbackMode.OPTIONAL
-        });
-        supportedCallbackFunctions[3] = SupportedCallbackFunction({
-            selector: this.approve.selector,
-            mode: CallbackMode.OPTIONAL
-        });
-        supportedCallbackFunctions[4] = SupportedCallbackFunction({
-            selector: this.setApprovalForAll.selector,
-            mode: CallbackMode.OPTIONAL
-        });
-        supportedCallbackFunctions[5] = SupportedCallbackFunction({
-            selector: this.tokenURI.selector,
-            mode: CallbackMode.REQUIRED
-        });
-        supportedCallbackFunctions[6] = SupportedCallbackFunction({
-            selector: this.royaltyInfo.selector,
-            mode: CallbackMode.OPTIONAL
-        });
+        supportedCallbackFunctions[0] =
+            SupportedCallbackFunction({selector: this.mint.selector, mode: CallbackMode.REQUIRED});
+        supportedCallbackFunctions[1] =
+            SupportedCallbackFunction({selector: this.transferFrom.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions[2] =
+            SupportedCallbackFunction({selector: this.burn.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions[3] =
+            SupportedCallbackFunction({selector: this.approve.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions[4] =
+            SupportedCallbackFunction({selector: this.setApprovalForAll.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions[5] =
+            SupportedCallbackFunction({selector: this.tokenURI.selector, mode: CallbackMode.REQUIRED});
+        supportedCallbackFunctions[6] =
+            SupportedCallbackFunction({selector: this.royaltyInfo.selector, mode: CallbackMode.OPTIONAL});
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -171,11 +142,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
      *  @param quantity The quantity of tokens to mint.
      *  @param data ABI encoded data to pass to the beforeMint hook.
      */
-    function mint(
-        address to,
-        uint256 quantity,
-        bytes calldata data
-    ) external payable {
+    function mint(address to, uint256 quantity, bytes calldata data) external payable {
         _beforeMint(to, quantity, data);
         _mint(to, quantity);
     }
@@ -198,11 +165,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
      *  @param to The address to transfer to
      *  @param id The token ID of the NFT
      */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public payable override(ERC721A, IERC721A) {
+    function transferFrom(address from, address to, uint256 id) public payable override(ERC721A, IERC721A) {
         _beforeTransfer(from, to, id);
         super.transferFrom(from, to, id);
     }
@@ -213,11 +176,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
      *  @param spender The address to approve
      *  @param id The token ID of the NFT
      */
-    function approve(address spender, uint256 id)
-        public
-        payable
-        override(ERC721A, IERC721A)
-    {
+    function approve(address spender, uint256 id) public payable override(ERC721A, IERC721A) {
         _beforeApprove(msg.sender, spender, id, true);
         super.approve(spender, id);
     }
@@ -227,10 +186,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
      *  @param operator The address to approve or revoke approval from
      *  @param approved Whether the operator is approved
      */
-    function setApprovalForAll(address operator, bool approved)
-        public
-        override(ERC721A, IERC721A)
-    {
+    function setApprovalForAll(address operator, bool approved) public override(ERC721A, IERC721A) {
         _beforeApproveForAll(msg.sender, operator, approved);
         super.setApprovalForAll(operator, approved);
     }
@@ -239,21 +195,11 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _isAuthorizedToInstallExtensions(address target)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _isAuthorizedToInstallExtensions(address target) internal view override returns (bool) {
         return target == owner();
     }
 
-    function _isAuthorizedToCallExtensionFunctions(address target)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _isAuthorizedToCallExtensionFunctions(address target) internal view override returns (bool) {
         return target == owner();
     }
 
@@ -268,91 +214,49 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(
-        address to,
-        uint256 quantity,
-        bytes calldata data
-    ) internal virtual {
+    function _beforeMint(address to, uint256 quantity, bytes calldata data) internal virtual {
         _callExtensionCallback(
             BeforeMintCallbackERC721.beforeMintERC721.selector,
-            abi.encodeCall(
-                BeforeMintCallbackERC721.beforeMintERC721,
-                (to, quantity, data)
-            )
+            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (to, quantity, data))
         );
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual {
+    function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
         _callExtensionCallback(
             BeforeTransferCallbackERC721.beforeTransferERC721.selector,
-            abi.encodeCall(
-                BeforeTransferCallbackERC721.beforeTransferERC721,
-                (from, to, tokenId)
-            )
+            abi.encodeCall(BeforeTransferCallbackERC721.beforeTransferERC721, (from, to, tokenId))
         );
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(
-        address operator,
-        uint256 tokenId,
-        bytes calldata data
-    ) internal virtual {
+    function _beforeBurn(address operator, uint256 tokenId, bytes calldata data) internal virtual {
         _callExtensionCallback(
             BeforeBurnCallbackERC721.beforeBurnERC721.selector,
-            abi.encodeCall(
-                BeforeBurnCallbackERC721.beforeBurnERC721,
-                (operator, tokenId, data)
-            )
+            abi.encodeCall(BeforeBurnCallbackERC721.beforeBurnERC721, (operator, tokenId, data))
         );
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(
-        address from,
-        address to,
-        uint256 tokenId,
-        bool approved
-    ) internal virtual {
+    function _beforeApprove(address from, address to, uint256 tokenId, bool approved) internal virtual {
         _callExtensionCallback(
             BeforeApproveCallbackERC721.beforeApproveERC721.selector,
-            abi.encodeCall(
-                BeforeApproveCallbackERC721.beforeApproveERC721,
-                (from, to, tokenId, approved)
-            )
+            abi.encodeCall(BeforeApproveCallbackERC721.beforeApproveERC721, (from, to, tokenId, approved))
         );
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApproveForAll(
-        address from,
-        address to,
-        bool approved
-    ) internal virtual {
+    function _beforeApproveForAll(address from, address to, bool approved) internal virtual {
         _callExtensionCallback(
             BeforeApproveForAllCallback.beforeApproveForAll.selector,
-            abi.encodeCall(
-                BeforeApproveForAllCallback.beforeApproveForAll,
-                (from, to, approved)
-            )
+            abi.encodeCall(BeforeApproveForAllCallback.beforeApproveForAll, (from, to, approved))
         );
     }
 
     /// @dev Fetches token URI from the token metadata hook.
-    function _getTokenURI(uint256 tokenId)
-        internal
-        view
-        virtual
-        returns (string memory uri)
-    {
+    function _getTokenURI(uint256 tokenId) internal view virtual returns (string memory uri) {
         (, bytes memory returndata) = _staticcallExtensionCallback(
-            OnTokenURICallback.onTokenURI.selector,
-            abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
+            OnTokenURICallback.onTokenURI.selector, abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
         );
         uri = abi.decode(returndata, (string));
     }
@@ -366,10 +270,7 @@ contract ERC721Core is ERC721AQueryable, CoreContract, Ownable, Multicallable {
     {
         (, bytes memory returndata) = _staticcallExtensionCallback(
             OnRoyaltyInfoCallback.onRoyaltyInfo.selector,
-            abi.encodeCall(
-                OnRoyaltyInfoCallback.onRoyaltyInfo,
-                (tokenId, salePrice)
-            )
+            abi.encodeCall(OnRoyaltyInfoCallback.onRoyaltyInfo, (tokenId, salePrice))
         );
         (receiver, royaltyAmount) = abi.decode(returndata, (address, uint256));
     }
