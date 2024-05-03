@@ -9,8 +9,8 @@ import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
 import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {ModularCore} from "src/core/ModularCore.sol";
+import {ERC721Core} from "src/token/ERC721Core.sol";
+import {ModularCore} from "src/ModularCore.sol";
 
 abstract contract ERC721TokenReceiver {
     function onERC721Received(address, address, uint256, bytes calldata) external virtual returns (bytes4) {

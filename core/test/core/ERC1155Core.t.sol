@@ -10,8 +10,8 @@ import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
-import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {ModularCore} from "src/core/ModularCore.sol";
+import {ERC1155Core} from "src/token/ERC1155Core.sol";
+import {ModularCore} from "src/ModularCore.sol";
 
 abstract contract ERC1155TokenReceiver {
     function onERC1155Received(address, address, uint256, uint256, bytes calldata) external virtual returns (bytes4) {

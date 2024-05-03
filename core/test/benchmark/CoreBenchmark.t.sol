@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 
 import {IModularExtension, IExtensionTypes} from "src/interface/IModularExtension.sol";
-import {ModularCore} from "src/core/ModularCore.sol";
-import {ERC20Core} from "src/core/token/ERC20Core.sol";
+import {ModularCore} from "src/ModularCore.sol";
+import {ERC20Core} from "src/token/ERC20Core.sol";
 
 contract MockBase {
     uint256 internal constant NUMBER_OF_CALLBACK = 10;

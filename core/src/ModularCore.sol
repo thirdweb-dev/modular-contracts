@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {IModularExtension} from "../interface/IModularExtension.sol";
+import {IExtensionTypes} from "./interface/IExtensionTypes.sol";
+import {IModularExtension} from "./interface/IModularExtension.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
-
-import "../interface/IExtensionTypes.sol";
 
 interface IExtensionInstallation {
     function onInstall(bytes calldata data) external;
