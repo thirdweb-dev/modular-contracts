@@ -78,9 +78,9 @@ contract MockCore is MockBase, ModularCore {
 }
 
 contract MockExtension is MockBase, IModularExtension {
-    function onInstall(bytes memory data) external {}
+    function onInstall(address sender, bytes memory data) external {}
 
-    function onUninstall(bytes memory data) external {}
+    function onUninstall(address sender, bytes memory data) external {}
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getFunctionSignature();
@@ -90,9 +90,9 @@ contract MockExtension is MockBase, IModularExtension {
 contract MockExtensionWithFunctions is MockBase, IModularExtension {
     event CallbackFunctionOne();
 
-    function onInstall(bytes memory data) external {}
+    function onInstall(address sender, bytes memory data) external {}
 
-    function onUninstall(bytes memory data) external {}
+    function onUninstall(address sender, bytes memory data) external {}
 
     function getFunctionSignature() internal pure override returns (bytes4[] memory functions) {
         functions = new bytes4[](NUMBER_OF_CALLBACK + 1);

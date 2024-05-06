@@ -16,8 +16,7 @@ contract ExtensionProxy {
 
     /// @dev The ERC-1967 storage slot for the admin in the proxy.
     /// `uint256(keccak256("eip1967.proxy.admin")) - 1`.
-    bytes32 private constant _ERC1967_ADMIN_SLOT =
-        0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+    bytes32 private constant _ERC1967_ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
     constructor(address implementation) {
         _setAdmin(msg.sender);
@@ -51,17 +50,12 @@ contract ExtensionProxy {
      *
      * Emits an {Upgraded} event.
      */
-    function _upgradeToAndCall(
-        address newImplementation,
-        bytes memory data,
-        bool forceCall
-    ) internal {
+    function _upgradeToAndCall(address newImplementation, bytes memory data, bool forceCall) internal {
         _setImplementation(newImplementation);
         emit Upgraded(newImplementation);
 
         if (data.length > 0 || forceCall) {
-            (bool success, bytes memory returndata) = newImplementation
-                .delegatecall(data);
+            (bool success, bytes memory returndata) = newImplementation.delegatecall(data);
             if (!success) {
                 _revert(returndata, UpgradeCallFailed.selector);
             }
@@ -69,10 +63,7 @@ contract ExtensionProxy {
     }
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory returnData, bytes4 errorSignature)
-        internal
-        pure
-    {
+    function _revert(bytes memory returnData, bytes4 errorSignature) internal pure {
         // Look for revert reason and bubble it up if present
         if (returnData.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly
@@ -103,19 +94,10 @@ contract ExtensionProxy {
             // Solidity scratch pad at memory position 0.
             calldatacopy(0, 0, calldatasize())
 
-            let result := delegatecall(
-                gas(),
-                sload(_ERC1967_IMPLEMENTATION_SLOT),
-                0,
-                calldatasize(),
-                0,
-                0
-            )
+            let result := delegatecall(gas(), sload(_ERC1967_IMPLEMENTATION_SLOT), 0, calldatasize(), 0, 0)
 
             returndatacopy(0, 0, returndatasize())
-            if iszero(result) {
-                revert(0, returndatasize())
-            }
+            if iszero(result) { revert(0, returndatasize()) }
             return(0, returndatasize())
         }
     }

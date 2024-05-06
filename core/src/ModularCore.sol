@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
+import {ExtensionProxy} from "./ExtensionProxy.sol";
 import {IModularCore} from "./interface/IModularCore.sol";
 import {IModularExtensionCallback, IModularExtension} from "./interface/IModularExtension.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
@@ -11,8 +12,8 @@ abstract contract ModularCore is IModularCore {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
-    event ExtensionInstalled(address extension);
-    event ExtensionUninstalled(address extension);
+    event ExtensionInstalled(address sender, address extension);
+    event ExtensionUninstalled(address sender, address extension);
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -131,14 +132,19 @@ abstract contract ModularCore is IModularCore {
 
     function _isAuthorizedToCallExtensionFunctions(address _target) internal view virtual returns (bool);
 
-    function _installExtension(address _extension, bytes memory data) internal {
+    function _installExtension(address extensionImplementation, bytes memory data) internal {
+        bytes32 salt = bytes32(keccak256(abi.encode(msg.sender, extensionImplementation))); // TODO
+
+        // TODO: if create revert means plugin already deployed
+        address extension = address(new ExtensionProxy{salt: salt}(extensionImplementation));
+
         // Check: add and check if extension not already installed.
-        if (!extensions.add(_extension)) {
+        if (!extensions.add(extension)) {
             revert ExtensionAlreadyInstalled();
         }
 
         // Get extension config.
-        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
+        ExtensionConfig memory config = IModularExtension(extension).getExtensionConfig();
 
         if (config.requiredInterfaceId != bytes4(0)) {
             if (!this.supportsInterface(config.requiredInterfaceId)) {
@@ -163,7 +169,7 @@ abstract contract ModularCore is IModularCore {
 
             // extension can register to non-advertised callback functions, but they most likely won't be triggered
 
-            callbackFunctionImplementation_[callbackFunction] = _extension;
+            callbackFunctionImplementation_[callbackFunction] = extension;
         }
 
         // Store extension function data.
@@ -177,7 +183,7 @@ abstract contract ModularCore is IModularCore {
             }
 
             extensionFunctionData_[ext.selector] = InstalledExtensionFunction({
-                implementation: _extension,
+                implementation: extension,
                 callType: ext.callType,
                 permission: ext.permissioned
             });
@@ -185,22 +191,44 @@ abstract contract ModularCore is IModularCore {
 
         // callback (TODO: check if contract supports it)
         (bool success, bytes memory returndata) =
-            _extension.call{value: msg.value}(abi.encodeCall(IModularExtensionCallback.onInstall, (data)));
+            extension.call{value: msg.value}(abi.encodeCall(IModularExtensionCallback.onInstall, (msg.sender, data)));
         if (!success) {
             _revert(returndata, CallbackExecutionReverted.selector);
         }
 
-        emit ExtensionInstalled(_extension);
+        emit ExtensionInstalled(msg.sender, extension);
     }
 
-    function _uninstallExtension(address _extension, bytes memory data) internal {
+    function _updateExtension(address _extension, bytes memory data) internal {
+        // TODO
+    }
+
+    function _uninstallExtension(address extensionImplementation, bytes memory data) internal {
+        bytes32 salt = bytes32(keccak256(abi.encode(msg.sender, extensionImplementation))); // TODO
+        address extension = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff),
+                            address(this),
+                            salt,
+                            keccak256(
+                                abi.encodePacked(type(ExtensionProxy).creationCode, abi.encode(extensionImplementation))
+                            )
+                        )
+                    )
+                )
+            )
+        );
+
         // Check: remove and check if the extension is installed
-        if (!extensions.remove(_extension)) {
+        if (!extensions.remove(extension)) {
             revert ExtensionNotInstalled();
         }
 
         // Get extension config.
-        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
+        ExtensionConfig memory config = IModularExtension(extension).getExtensionConfig();
 
         uint256 supportedInterfaceLength = config.supportedInterfaces.length;
         for (uint256 i = 0; i < supportedInterfaceLength; i++) {
@@ -224,12 +252,12 @@ abstract contract ModularCore is IModularCore {
 
         // callback (TODO: check if contract supports it)
         (bool success, bytes memory returndata) =
-            _extension.call{value: msg.value}(abi.encodeCall(IModularExtensionCallback.onUninstall, (data)));
+            extension.call{value: msg.value}(abi.encodeCall(IModularExtensionCallback.onUninstall, (msg.sender, data)));
         if (!success) {
             _revert(returndata, CallbackExecutionReverted.selector);
         }
 
-        emit ExtensionUninstalled(_extension);
+        emit ExtensionUninstalled(msg.sender, extension);
     }
 
     function _callExtensionCallback(bytes4 selector, bytes memory encodedAbiCallData)

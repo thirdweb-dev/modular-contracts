@@ -4,9 +4,9 @@ pragma solidity ^0.8.23;
 import {IModular} from "./IModular.sol";
 
 interface IModularExtensionCallback {
-    function onInstall(bytes calldata data) external;
+    function onInstall(address sender, bytes calldata data) external;
 
-    function onUninstall(bytes calldata data) external;
+    function onUninstall(address sender, bytes calldata data) external;
 }
 
 interface IModularExtension is IModular {
