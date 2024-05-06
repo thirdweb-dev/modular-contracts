@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-interface IExtensionTypes {
+interface IModular {
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -22,7 +22,9 @@ interface IExtensionTypes {
 
     /// @notice All extension functions and supported callback functions of an extension contract.
     struct ExtensionConfig {
+        bytes4 requiredInterfaceId; // Optional, can be bytes4(0), if there is no required interface id
         bytes4[] callbackFunctions;
+        bytes4[] supportedInterfaces;
         ExtensionFunction[] extensionABI;
     }
 }
