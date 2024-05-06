@@ -78,7 +78,7 @@ contract MockExtensionWithOnTokenURICallback is
         bytes4[] memory callbackFunctions = new bytes4[](1);
         callbackFunctions[0] = this.onTokenURI.selector;
         ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
-        return ExtensionConfig(bytes4(0), new bytes4[](0), callbackFunctions, extensionABI);
+        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
     }
 
     function onTokenURI(uint256 _id) public view override returns (string memory) {
@@ -105,7 +105,7 @@ contract MockExtensionWithPermissionedFallback is IModularExtension, Initializab
         bytes4[] memory callbackFunctions = new bytes4[](0);
         ExtensionFunction[] memory extensionABI = new ExtensionFunction[](1);
         extensionABI[0] = ExtensionFunction(this.permissionedFunction.selector, CallType.CALL, true);
-        return ExtensionConfig(bytes4(0), new bytes4[](0), callbackFunctions, extensionABI);
+        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
     }
 
     function permissionedFunction() external pure virtual returns (uint256) {
@@ -137,7 +137,7 @@ contract MockExtensionWithOneCallbackERC20 is
         bytes4[] memory callbackFunctions = new bytes4[](1);
         callbackFunctions[0] = this.beforeMintERC20.selector;
         ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
-        return ExtensionConfig(bytes4(0), new bytes4[](0), callbackFunctions, extensionABI);
+        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
     }
 }
 
@@ -171,7 +171,7 @@ contract MockExtensionWithFourCallbacksERC20 is
         callbackFunctions[2] = this.beforeBurnERC20.selector;
         callbackFunctions[3] = this.beforeApproveERC20.selector;
         ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
-        return ExtensionConfig(bytes4(0), new bytes4[](0), callbackFunctions, extensionABI);
+        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
     }
 }
 

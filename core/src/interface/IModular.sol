@@ -23,8 +23,7 @@ interface IModular {
     /// @notice All extension functions and supported callback functions of an extension contract.
     struct ExtensionConfig {
         bytes4 requiredInterfaceId; // Optional, can be bytes4(0), if there is no required interface id
-        // bool hasInstallCallback;
-        // bool hasUninstallCallback;
+        bool registerInstallationCallback; // Register onInstall / onUninstall callback
         bytes4[] callbackFunctions;
         bytes4[] supportedInterfaces;
         ExtensionFunction[] extensionABI;

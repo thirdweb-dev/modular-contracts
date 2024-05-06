@@ -189,11 +189,13 @@ abstract contract ModularCore is IModularCore {
             });
         }
 
-        // callback (TODO: check if contract supports it)
-        (bool success, bytes memory returndata) =
-            extension.call{value: msg.value}(abi.encodeCall(IModularExtensionCallback.onInstall, (msg.sender, data)));
-        if (!success) {
-            _revert(returndata, CallbackExecutionReverted.selector);
+        if (config.registerInstallationCallback) {
+            (bool success, bytes memory returndata) = extension.call{value: msg.value}(
+                abi.encodeCall(IModularExtensionCallback.onInstall, (msg.sender, data))
+            );
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
+            }
         }
 
         emit ExtensionInstalled(msg.sender, extension);
@@ -250,11 +252,13 @@ abstract contract ModularCore is IModularCore {
             delete callbackFunctionImplementation_[callbackFunction];
         }
 
-        // callback (TODO: check if contract supports it)
-        (bool success, bytes memory returndata) =
-            extension.call{value: msg.value}(abi.encodeCall(IModularExtensionCallback.onUninstall, (msg.sender, data)));
-        if (!success) {
-            _revert(returndata, CallbackExecutionReverted.selector);
+        if (config.registerInstallationCallback) {
+            (bool success, bytes memory returndata) = extension.call{value: msg.value}(
+                abi.encodeCall(IModularExtensionCallback.onUninstall, (msg.sender, data))
+            );
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
+            }
         }
 
         emit ExtensionUninstalled(msg.sender, extension);
