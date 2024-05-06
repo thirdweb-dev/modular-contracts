@@ -2,8 +2,9 @@
 pragma solidity ^0.8.23;
 
 import {IModular} from "./IModular.sol";
+import {IERC165} from "./IERC165.sol";
 
-interface IModularCore is IModular {
+interface IModularCore is IModular, IERC165 {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -33,26 +34,15 @@ interface IModularCore is IModular {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getSupportedCallbackFunctions()
-        external
-        pure
-        returns (SupportedCallbackFunction[] memory);
+    function getSupportedCallbackFunctions() external pure returns (SupportedCallbackFunction[] memory);
 
-    function getInstalledExtensions()
-        external
-        view
-        returns (InstalledExtension[] memory);
+    function getInstalledExtensions() external view returns (InstalledExtension[] memory);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function installExtension(address _extensionContract, bytes calldata _data)
-        external
-        payable;
+    function installExtension(address _extensionContract, bytes calldata _data) external payable;
 
-    function uninstallExtension(
-        address _extensionContract,
-        bytes calldata _data
-    ) external payable;
+    function uninstallExtension(address _extensionContract, bytes calldata _data) external payable;
 }

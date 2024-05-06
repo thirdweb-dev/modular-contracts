@@ -2,14 +2,8 @@
 pragma solidity ^0.8.23;
 
 import {IModularCore} from "./interface/IModularCore.sol";
-import {IModularExtension} from "./interface/IModularExtension.sol";
+import {IModularExtensionCallback, IModularExtension} from "./interface/IModularExtension.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
-
-interface IExtensionInstallation {
-    function onInstall(bytes calldata data) external;
-
-    function onUninstall(bytes calldata data) external;
-}
 
 abstract contract ModularCore is IModularCore {
     using EnumerableSetLib for *;
@@ -26,9 +20,9 @@ abstract contract ModularCore is IModularCore {
 
     EnumerableSetLib.AddressSet private extensions;
 
+    mapping(bytes4 => uint256) private supportedInterfaceRefCounter;
     mapping(bytes4 => address) private callbackFunctionImplementation_;
-    mapping(bytes4 => InstalledExtensionFunction)
-        private extensionFunctionData_;
+    mapping(bytes4 => InstalledExtensionFunction) private extensionFunctionData_;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -39,6 +33,7 @@ abstract contract ModularCore is IModularCore {
     error ExtensionInitializationFailed();
     error ExtensionAlreadyInstalled();
     error ExtensionNotInstalled();
+    error ExtensionInterfaceNotCompatible(bytes4 requiredInterfaceId);
     error InvalidFunction();
     error UnauthorizedFunctionCall();
     error ExtensionFunctionAlreadyInstalled();
@@ -54,8 +49,7 @@ abstract contract ModularCore is IModularCore {
 
     fallback() external payable {
         // Get extension function data.
-        InstalledExtensionFunction
-            memory extensionFunction = extensionFunctionData_[msg.sig];
+        InstalledExtensionFunction memory extensionFunction = extensionFunctionData_[msg.sig];
 
         // Check: extension function data exists.
         if (extensionFunction.implementation == address(0)) {
@@ -63,10 +57,7 @@ abstract contract ModularCore is IModularCore {
         }
 
         // Check: authorized to call permissioned extension function
-        if (
-            extensionFunction.permission &&
-            !_isAuthorizedToCallExtensionFunctions(msg.sender)
-        ) {
+        if (extensionFunction.permission && !_isAuthorizedToCallExtensionFunctions(msg.sender)) {
             revert UnauthorizedFunctionCall();
         }
 
@@ -87,17 +78,9 @@ abstract contract ModularCore is IModularCore {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getSupportedCallbackFunctions()
-        public
-        pure
-        virtual
-        returns (SupportedCallbackFunction[] memory);
+    function getSupportedCallbackFunctions() public pure virtual returns (SupportedCallbackFunction[] memory);
 
-    function getInstalledExtensions()
-        external
-        view
-        returns (InstalledExtension[] memory _installedExtensions)
-    {
+    function getInstalledExtensions() external view returns (InstalledExtension[] memory _installedExtensions) {
         uint256 totalInstalled = extensions.length();
         _installedExtensions = new InstalledExtension[](totalInstalled);
 
@@ -114,10 +97,7 @@ abstract contract ModularCore is IModularCore {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function installExtension(address _extensionContract, bytes calldata _data)
-        external
-        payable
-    {
+    function installExtension(address _extensionContract, bytes calldata _data) external payable {
         // Check: authorized to install extensions.
         if (!_isAuthorizedToInstallExtensions(msg.sender)) {
             revert UnauthorizedInstall();
@@ -127,10 +107,7 @@ abstract contract ModularCore is IModularCore {
         _installExtension(_extensionContract, _data);
     }
 
-    function uninstallExtension(
-        address _extensionContract,
-        bytes calldata _data
-    ) external payable {
+    function uninstallExtension(address _extensionContract, bytes calldata _data) external payable {
         // Check: authorized to install extensions.
         if (!_isAuthorizedToInstallExtensions(msg.sender)) {
             revert UnauthorizedInstall();
@@ -140,21 +117,19 @@ abstract contract ModularCore is IModularCore {
         _uninstallExtension(_extensionContract, _data);
     }
 
+    function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
+        if (interfaceId == 0xffffffff) return false;
+        if (supportedInterfaceRefCounter[interfaceId] > 0) return true;
+        return false;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _isAuthorizedToInstallExtensions(address _target)
-        internal
-        view
-        virtual
-        returns (bool);
+    function _isAuthorizedToInstallExtensions(address _target) internal view virtual returns (bool);
 
-    function _isAuthorizedToCallExtensionFunctions(address _target)
-        internal
-        view
-        virtual
-        returns (bool);
+    function _isAuthorizedToCallExtensionFunctions(address _target) internal view virtual returns (bool);
 
     function _installExtension(address _extension, bytes memory data) internal {
         // Check: add and check if extension not already installed.
@@ -163,21 +138,26 @@ abstract contract ModularCore is IModularCore {
         }
 
         // Get extension config.
-        ExtensionConfig memory config = IModularExtension(_extension)
-            .getExtensionConfig();
+        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
 
-        // TODO check config.requiredInterfaceId;
-        // TODO check config.supportedInterfaces;
+        if (config.requiredInterfaceId != bytes4(0)) {
+            if (!this.supportsInterface(config.requiredInterfaceId)) {
+                revert ExtensionInterfaceNotCompatible(config.requiredInterfaceId);
+            }
+        }
+
+        uint256 supportedInterfaceLength = config.supportedInterfaces.length;
+        for (uint256 i = 0; i < supportedInterfaceLength; i++) {
+            supportedInterfaceRefCounter[config.supportedInterfaces[i]] += 1;
+        }
 
         // Store callback function data. Only install supported callback functions
-        uint256 totalCallbacks = config.callbackFunctions.length;
-        for (uint256 i = 0; i < totalCallbacks; i++) {
+        uint256 callbackLength = config.callbackFunctions.length;
+        for (uint256 i = 0; i < callbackLength; i++) {
             bytes4 callbackFunction = config.callbackFunctions[i];
 
             // Check: callback function data not already stored.
-            if (
-                callbackFunctionImplementation_[callbackFunction] != address(0)
-            ) {
+            if (callbackFunctionImplementation_[callbackFunction] != address(0)) {
                 revert CallbackFunctionAlreadyInstalled();
             }
 
@@ -187,15 +167,12 @@ abstract contract ModularCore is IModularCore {
         }
 
         // Store extension function data.
-        uint256 totalFunctions = config.extensionABI.length;
-        for (uint256 i = 0; i < totalFunctions; i++) {
+        uint256 functionLength = config.extensionABI.length;
+        for (uint256 i = 0; i < functionLength; i++) {
             ExtensionFunction memory ext = config.extensionABI[i];
 
             // Check: extension function data not already stored.
-            if (
-                extensionFunctionData_[ext.selector].implementation !=
-                address(0)
-            ) {
+            if (extensionFunctionData_[ext.selector].implementation != address(0)) {
                 revert ExtensionFunctionAlreadyInstalled();
             }
 
@@ -207,9 +184,8 @@ abstract contract ModularCore is IModularCore {
         }
 
         // callback (TODO: check if contract supports it)
-        (bool success, bytes memory returndata) = _extension.call{
-            value: msg.value
-        }(abi.encodeCall(IExtensionInstallation.onInstall, (data)));
+        (bool success, bytes memory returndata) =
+            _extension.call{value: msg.value}(abi.encodeCall(IModularExtensionCallback.onInstall, (data)));
         if (!success) {
             _revert(returndata, CallbackExecutionReverted.selector);
         }
@@ -217,36 +193,38 @@ abstract contract ModularCore is IModularCore {
         emit ExtensionInstalled(_extension);
     }
 
-    function _uninstallExtension(address _extension, bytes memory data)
-        internal
-    {
+    function _uninstallExtension(address _extension, bytes memory data) internal {
         // Check: remove and check if the extension is installed
         if (!extensions.remove(_extension)) {
             revert ExtensionNotInstalled();
         }
 
         // Get extension config.
-        ExtensionConfig memory config = IModularExtension(_extension)
-            .getExtensionConfig();
+        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
+
+        uint256 supportedInterfaceLength = config.supportedInterfaces.length;
+        for (uint256 i = 0; i < supportedInterfaceLength; i++) {
+            // Note: This should not underflow because extension needs to be installed before uninstalling. getExtensionConfig should returns the same value during installation and uninstallation.
+            supportedInterfaceRefCounter[config.supportedInterfaces[i]] -= 1;
+        }
 
         // Remove extension function data
-        uint256 totalFunctions = config.extensionABI.length;
-        for (uint256 i = 0; i < totalFunctions; i++) {
+        uint256 functionLength = config.extensionABI.length;
+        for (uint256 i = 0; i < functionLength; i++) {
             ExtensionFunction memory ext = config.extensionABI[i];
             delete extensionFunctionData_[ext.selector];
         }
 
         // Remove callback function ext
-        uint256 totalCallbacks = config.callbackFunctions.length;
-        for (uint256 i = 0; i < totalCallbacks; i++) {
+        uint256 callbackLength = config.callbackFunctions.length;
+        for (uint256 i = 0; i < callbackLength; i++) {
             bytes4 callbackFunction = config.callbackFunctions[i];
             delete callbackFunctionImplementation_[callbackFunction];
         }
 
         // callback (TODO: check if contract supports it)
-        (bool success, bytes memory returndata) = _extension.call{
-            value: msg.value
-        }(abi.encodeCall(IExtensionInstallation.onUninstall, (data)));
+        (bool success, bytes memory returndata) =
+            _extension.call{value: msg.value}(abi.encodeCall(IModularExtensionCallback.onUninstall, (data)));
         if (!success) {
             _revert(returndata, CallbackExecutionReverted.selector);
         }
@@ -254,12 +232,11 @@ abstract contract ModularCore is IModularCore {
         emit ExtensionUninstalled(_extension);
     }
 
-    function _callExtensionCallback(
-        bytes4 selector,
-        bytes memory encodedAbiCallData
-    ) internal returns (bool success, bytes memory returndata) {
-        SupportedCallbackFunction[]
-            memory functions = getSupportedCallbackFunctions();
+    function _callExtensionCallback(bytes4 selector, bytes memory encodedAbiCallData)
+        internal
+        returns (bool success, bytes memory returndata)
+    {
+        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
@@ -274,9 +251,7 @@ abstract contract ModularCore is IModularCore {
 
         address extension = callbackFunctionImplementation_[selector];
         if (extension != address(0)) {
-            (success, returndata) = extension.call{value: msg.value}(
-                encodedAbiCallData
-            );
+            (success, returndata) = extension.call{value: msg.value}(encodedAbiCallData);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -287,12 +262,12 @@ abstract contract ModularCore is IModularCore {
         }
     }
 
-    function _staticcallExtensionCallback(
-        bytes4 selector,
-        bytes memory encodedAbiCallData
-    ) internal view returns (bool success, bytes memory returndata) {
-        SupportedCallbackFunction[]
-            memory functions = getSupportedCallbackFunctions();
+    function _staticcallExtensionCallback(bytes4 selector, bytes memory encodedAbiCallData)
+        internal
+        view
+        returns (bool success, bytes memory returndata)
+    {
+        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
@@ -331,20 +306,11 @@ abstract contract ModularCore is IModularCore {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := delegatecall(
-                gas(),
-                implementation,
-                0,
-                calldatasize(),
-                0,
-                0
-            )
+            let success := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
-            if iszero(success) {
-                revert(returnDataPtr, returndatasize())
-            }
+            if iszero(success) { revert(returnDataPtr, returndatasize()) }
             return(returnDataPtr, returndatasize())
         }
     }
@@ -364,21 +330,11 @@ abstract contract ModularCore is IModularCore {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := call(
-                gas(),
-                implementation,
-                value,
-                calldataPtr,
-                calldatasize(),
-                0,
-                0
-            )
+            let success := call(gas(), implementation, value, calldataPtr, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
-            if iszero(success) {
-                revert(returnDataPtr, returndatasize())
-            }
+            if iszero(success) { revert(returnDataPtr, returndatasize()) }
             return(returnDataPtr, returndatasize())
         }
     }
@@ -396,29 +352,17 @@ abstract contract ModularCore is IModularCore {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := staticcall(
-                gas(),
-                implementation,
-                0,
-                calldatasize(),
-                0,
-                0
-            )
+            let success := staticcall(gas(), implementation, 0, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
-            if iszero(success) {
-                revert(returnDataPtr, returndatasize())
-            }
+            if iszero(success) { revert(returnDataPtr, returndatasize()) }
             return(returnDataPtr, returndatasize())
         }
     }
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory returnData, bytes4 errorSignature)
-        internal
-        pure
-    {
+    function _revert(bytes memory returnData, bytes4 errorSignature) internal pure {
         // Look for revert reason and bubble it up if present
         if (returnData.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly

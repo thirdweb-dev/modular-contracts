@@ -92,11 +92,17 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Ownable, Multicallable {
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 interfaceId) public pure override(ERC721A, IERC721A) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721A, IERC721A, ModularCore)
+        returns (bool)
+    {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
             || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
-            || interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+            || interfaceId == 0x2a55205a // ERC165 Interface ID for ERC-2981
+            || super.supportsInterface(interfaceId); // right-most ModularCore
     }
 
     function getSupportedCallbackFunctions()

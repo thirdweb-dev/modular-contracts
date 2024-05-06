@@ -117,11 +117,12 @@ contract ERC1155Core is ERC1155, ModularCore, Ownable, Multicallable {
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC1155, ModularCore) returns (bool) {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0xd9b67a26 // ERC165 Interface ID for ERC1155
             || interfaceId == 0x0e89341c // ERC165 Interface ID for ERC1155MetadataURI
-            || interfaceId == 0x2a55205a; // ERC165 Interface ID for ERC-2981
+            || interfaceId == 0x2a55205a // ERC165 Interface ID for ERC-2981
+            || super.supportsInterface(interfaceId); // right-most ModularCore
     }
 
     function getSupportedCallbackFunctions()

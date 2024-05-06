@@ -10,12 +10,7 @@ import {ERC20Core} from "src/token/ERC20Core.sol";
 contract MockBase {
     uint256 internal constant NUMBER_OF_CALLBACK = 10;
 
-    function getFunctionSignature()
-        internal
-        pure
-        virtual
-        returns (bytes4[] memory functions)
-    {
+    function getFunctionSignature() internal pure virtual returns (bytes4[] memory functions) {
         functions = new bytes4[](NUMBER_OF_CALLBACK);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
             functions[i] = bytes4(uint32(i));
@@ -33,29 +28,18 @@ contract MockCoreMinimal is MockBase, ModularCore {
         supportedCallbackFunctions = getCallbackFunctions();
     }
 
-    function getCallbackFunctions()
-        internal
-        pure
-        returns (SupportedCallbackFunction[] memory functions)
-    {
+    function getCallbackFunctions() internal pure returns (SupportedCallbackFunction[] memory functions) {
         functions = new SupportedCallbackFunction[](NUMBER_OF_CALLBACK);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
-            functions[i] = SupportedCallbackFunction({
-                selector: bytes4(uint32(i)),
-                mode: CallbackMode.OPTIONAL
-            });
+            functions[i] = SupportedCallbackFunction({selector: bytes4(uint32(i)), mode: CallbackMode.OPTIONAL});
         }
     }
 
-    function _isAuthorizedToInstallExtensions(
-        address /* _target */
-    ) internal pure override returns (bool) {
+    function _isAuthorizedToInstallExtensions(address /* _target */ ) internal pure override returns (bool) {
         return true;
     }
 
-    function _isAuthorizedToCallExtensionFunctions(
-        address /*_target*/
-    ) internal pure override returns (bool) {
+    function _isAuthorizedToCallExtensionFunctions(address /*_target*/ ) internal pure override returns (bool) {
         return true;
     }
 }
@@ -70,41 +54,25 @@ contract MockCore is MockBase, ModularCore {
         supportedCallbackFunctions = getCallbackFunctions();
     }
 
-    function getCallbackFunctions()
-        internal
-        pure
-        returns (SupportedCallbackFunction[] memory functions)
-    {
+    function getCallbackFunctions() internal pure returns (SupportedCallbackFunction[] memory functions) {
         functions = new SupportedCallbackFunction[](NUMBER_OF_CALLBACK + 1);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
-            functions[i] = SupportedCallbackFunction({
-                selector: bytes4(uint32(i)),
-                mode: CallbackMode.OPTIONAL
-            });
+            functions[i] = SupportedCallbackFunction({selector: bytes4(uint32(i)), mode: CallbackMode.OPTIONAL});
         }
 
-        functions[NUMBER_OF_CALLBACK] = SupportedCallbackFunction({
-            selector: this.callbackFunctionOne.selector,
-            mode: CallbackMode.REQUIRED
-        });
+        functions[NUMBER_OF_CALLBACK] =
+            SupportedCallbackFunction({selector: this.callbackFunctionOne.selector, mode: CallbackMode.REQUIRED});
     }
 
     function callbackFunctionOne() external {
-        _callExtensionCallback(
-            msg.sig,
-            abi.encodeCall(this.callbackFunctionOne, ())
-        );
+        _callExtensionCallback(msg.sig, abi.encodeCall(this.callbackFunctionOne, ()));
     }
 
-    function _isAuthorizedToInstallExtensions(
-        address /* _target */
-    ) internal pure override returns (bool) {
+    function _isAuthorizedToInstallExtensions(address /* _target */ ) internal pure override returns (bool) {
         return true;
     }
 
-    function _isAuthorizedToCallExtensionFunctions(
-        address /*_target*/
-    ) internal pure override returns (bool) {
+    function _isAuthorizedToCallExtensionFunctions(address /*_target*/ ) internal pure override returns (bool) {
         return true;
     }
 }
@@ -114,12 +82,7 @@ contract MockExtension is MockBase, IModularExtension {
 
     function onUninstall(bytes memory data) external {}
 
-    function getExtensionConfig()
-        external
-        pure
-        override
-        returns (ExtensionConfig memory config)
-    {
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getFunctionSignature();
     }
 }
@@ -131,12 +94,7 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
 
     function onUninstall(bytes memory data) external {}
 
-    function getFunctionSignature()
-        internal
-        pure
-        override
-        returns (bytes4[] memory functions)
-    {
+    function getFunctionSignature() internal pure override returns (bytes4[] memory functions) {
         functions = new bytes4[](NUMBER_OF_CALLBACK + 1);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
             functions[i] = bytes4(uint32(i));
@@ -144,12 +102,7 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
         functions[NUMBER_OF_CALLBACK] = this.callbackFunctionOne.selector;
     }
 
-    function getExtensionConfig()
-        external
-        pure
-        override
-        returns (ExtensionConfig memory config)
-    {
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getFunctionSignature();
 
         ExtensionFunction[] memory functions = new ExtensionFunction[](6);
@@ -223,10 +176,7 @@ contract CoreBenchmark is Test {
         extensionWithFunctions = new MockExtensionWithFunctions();
 
         coreWithExtensionsNoCallback.installExtension(address(extension), "");
-        coreWithExtensions.installExtension(
-            address(extensionWithFunctions),
-            ""
-        );
+        coreWithExtensions.installExtension(address(extensionWithFunctions), "");
     }
 
     function test_deployCore() public {
@@ -250,50 +200,38 @@ contract CoreBenchmark is Test {
     }
 
     function test_extension_callFunction_notPermissionedExternal() public {
-        (bool success, ) = address(extensionWithFunctions).call(
-            abi.encodeCall(MockExtensionWithFunctions.notPermissioned_call, ())
-        );
+        (bool success,) =
+            address(extensionWithFunctions).call(abi.encodeCall(MockExtensionWithFunctions.notPermissioned_call, ()));
         vm.assertTrue(success);
     }
 
     function test_extension_callFunction_notPermissionedDelegate() public {
-        (bool success, ) = address(extensionWithFunctions).call(
-            abi.encodeCall(
-                MockExtensionWithFunctions.notPermissioned_delegatecall,
-                ()
-            )
+        (bool success,) = address(extensionWithFunctions).call(
+            abi.encodeCall(MockExtensionWithFunctions.notPermissioned_delegatecall, ())
         );
         vm.assertTrue(success);
     }
 
     function test_core_callFunction_notPermissionedExternal() public {
-        (bool success, ) = address(coreWithExtensions).call(
-            abi.encodeCall(MockExtensionWithFunctions.notPermissioned_call, ())
-        );
+        (bool success,) =
+            address(coreWithExtensions).call(abi.encodeCall(MockExtensionWithFunctions.notPermissioned_call, ()));
         vm.assertTrue(success);
     }
 
     function test_core_callFunction_notPermissionedDelegate() public {
-        (bool success, ) = address(coreWithExtensions).call(
-            abi.encodeCall(
-                MockExtensionWithFunctions.notPermissioned_delegatecall,
-                ()
-            )
+        (bool success,) = address(coreWithExtensions).call(
+            abi.encodeCall(MockExtensionWithFunctions.notPermissioned_delegatecall, ())
         );
         vm.assertTrue(success);
     }
 
     function test_core_callCallbackFunction_required() public {
-        (bool success, ) = address(coreWithExtensions).call(
-            abi.encodeCall(coreWithExtensions.callbackFunctionOne, ())
-        );
+        (bool success,) = address(coreWithExtensions).call(abi.encodeCall(coreWithExtensions.callbackFunctionOne, ()));
         vm.assertTrue(success);
     }
 
     function test_core_callFunction_callback_callbackFunctionRequired() public {
         vm.expectRevert(ModularCore.CallbackFunctionRequired.selector);
-        address(coreWithExtensionsNoCallback).call(
-            abi.encodeCall(coreWithExtensionsNoCallback.callbackFunctionOne, ())
-        );
+        address(coreWithExtensionsNoCallback).call(abi.encodeCall(coreWithExtensionsNoCallback.callbackFunctionOne, ()));
     }
 }
