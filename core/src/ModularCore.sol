@@ -57,6 +57,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     /// @dev extension function selector => extension function data.
     mapping(bytes4 => InstalledExtensionFunction) private extensionFunctionData_;
 
+    /// @dev extension => bytecodehash stored at installation time.
+    mapping(address => bytes32) private extensionBytecodehash;
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -70,6 +73,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     error CallbackFunctionRequired();
     error CallbackExecutionReverted();
 
+    error ExtensionOutOfSync();
     error CallbackFunctionAlreadyInstalled();
     error ExtensionFunctionAlreadyInstalled();
     error ExtensionUnsupportedCallbackFunction();
@@ -85,6 +89,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     fallback() external payable {
         // Get extension function data.
         InstalledExtensionFunction memory extensionFunction = extensionFunctionData_[msg.sig];
+
+        // Verify that extension works according to the extension config stored for it.
+        _verifyExtensionBytecodehash(extensionFunction.implementation);
 
         // Check: extension function data exists.
         if (extensionFunction.implementation == address(0)) {
@@ -170,6 +177,13 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         if (!extensions.add(_extension)) {
             revert ExtensionAlreadyInstalled();
         }
+
+        // Store extension bytecodehash
+        bytes32 bytecodeHash;
+        assembly {
+            bytecodeHash := extcodehash(_extension)
+        }
+        extensionBytecodehash[_extension] = bytecodeHash;
 
         // Get extension config.
         ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
@@ -303,6 +317,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         address extension = callbackFunctionImplementation_[_selector];
+
+        // Verify that extension works according to the extension config stored for it.
+        _verifyExtensionBytecodehash(extension);
+
         if (extension != address(0)) {
             (success, returndata) = extension.call{value: msg.value}(_abiEncodedCalldata);
             if (!success) {
@@ -335,6 +353,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         address extension = callbackFunctionImplementation_[_selector];
+
+        // Verify that extension works according to the extension config stored for it.
+        _verifyExtensionBytecodehash(extension);
+
         if (extension != address(0)) {
             (success, returndata) = extension.staticcall(_abiEncodedCalldata);
             if (!success) {
@@ -429,6 +451,18 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                 mstore(0x00, _errorSignature)
                 revert(0x1c, 0x04)
             }
+        }
+    }
+
+    /// @dev Verifies that the bytecode of the extension has not changed.
+    function _verifyExtensionBytecodehash(address _extension) internal view {
+        bytes32 bytecodeHash;
+        assembly {
+            bytecodeHash := extcodehash(_extension)
+        }
+
+        if (extensionBytecodehash[_extension] != bytecodeHash) {
+            revert ExtensionOutOfSync();
         }
     }
 }
