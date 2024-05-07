@@ -6,7 +6,7 @@ import {IERC165} from "./IERC165.sol";
 
 interface IModularCore is IExtensionConfig, IERC165 {
     /*//////////////////////////////////////////////////////////////
-                                STRUCTS
+                                TYPES
     //////////////////////////////////////////////////////////////*/
 
     enum CallbackMode {
@@ -14,20 +14,14 @@ interface IModularCore is IExtensionConfig, IERC165 {
         REQUIRED
     }
 
-    struct InstalledExtension {
-        address implementation;
-        ExtensionConfig config;
-    }
-
     struct SupportedCallbackFunction {
         bytes4 selector;
         CallbackMode mode;
     }
 
-    struct InstalledExtensionFunction {
+    struct InstalledExtension {
         address implementation;
-        CallType callType;
-        uint256 permissionBits;
+        ExtensionConfig config;
     }
 
     /*//////////////////////////////////////////////////////////////

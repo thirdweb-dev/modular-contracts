@@ -12,6 +12,16 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     using EnumerableSetLib for *;
 
     /*//////////////////////////////////////////////////////////////
+                                TYPES
+    //////////////////////////////////////////////////////////////*/
+
+    struct InstalledExtensionFunction {
+        address implementation;
+        CallType callType;
+        uint256 permissionBits;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
