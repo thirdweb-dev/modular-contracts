@@ -97,9 +97,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         // Get extension function data.
         InstalledExtensionFunction memory extensionFunction = extensionFunctionData_[msg.sig];
 
-        // Verify that extension works according to the extension config stored for it.
-        _verifyExtensionBytecodehash(extensionFunction.implementation);
-
         // Check: extension function data exists.
         if (extensionFunction.implementation == address(0)) {
             revert ExtensionFunctionNotInstalled();
