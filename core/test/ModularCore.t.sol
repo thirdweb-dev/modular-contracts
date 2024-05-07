@@ -22,9 +22,7 @@ contract MockBase {
 }
 
 contract MockCore is MockBase, ModularCore {
-    constructor(address _owner) {
-        _setOwner(_owner);
-    }
+    constructor(address _owner) ModularCore(_owner) {}
 
     function getSupportedCallbackFunctions()
         public
