@@ -17,7 +17,7 @@ interface IExtensionConfig {
     struct ExtensionFunction {
         bytes4 selector;
         CallType callType;
-        bool permissioned;
+        uint256 permissionBits;
     }
 
     /// @notice All extension functions and supported callback functions of an extension contract.

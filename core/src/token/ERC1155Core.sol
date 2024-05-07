@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
@@ -15,7 +14,7 @@ import {BeforeApproveForAllCallback} from "../callback/BeforeApproveForAllCallba
 import {OnTokenURICallback} from "../callback/OnTokenURICallback.sol";
 import {OnRoyaltyInfoCallback} from "../callback/OnRoyaltyInfoCallback.sol";
 
-contract ERC1155Core is ERC1155, ModularCore, Ownable, Multicallable {
+contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -52,8 +51,9 @@ contract ERC1155Core is ERC1155, ModularCore, Ownable, Multicallable {
         _symbol = symbol;
         _setupContractURI(contractURI);
 
-        // Set contract owner
+        // Set permissions
         _setOwner(owner);
+        _setRoles(owner, ADMIN_ROLE);
 
         // Install and initialize hooks
         require(extensions.length == extensions.length);

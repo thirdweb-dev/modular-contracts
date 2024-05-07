@@ -87,6 +87,8 @@ contract MockExtensionWithOnTokenURICallback is
 }
 
 contract MockExtensionWithPermissionedFallback is IModularExtension, Initializable, UUPSUpgradeable {
+    uint256 public constant ADMIN_ROLE = 1 << 0;
+
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -104,7 +106,7 @@ contract MockExtensionWithPermissionedFallback is IModularExtension, Initializab
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
         bytes4[] memory callbackFunctions = new bytes4[](0);
         ExtensionFunction[] memory extensionABI = new ExtensionFunction[](1);
-        extensionABI[0] = ExtensionFunction(this.permissionedFunction.selector, CallType.CALL, true);
+        extensionABI[0] = ExtensionFunction(this.permissionedFunction.selector, CallType.CALL, ADMIN_ROLE);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
     }
 

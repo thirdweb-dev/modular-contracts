@@ -90,6 +90,8 @@ contract MockExtension is MockBase, IModularExtension {
 contract MockExtensionWithFunctions is MockBase, IModularExtension {
     event CallbackFunctionOne();
 
+    uint256 public constant ADMIN_ROLE = 1 << 0;
+
     function onInstall(address sender, bytes memory data) external {}
 
     function onUninstall(address sender, bytes memory data) external {}
@@ -109,32 +111,32 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
         functions[0] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
-            permissioned: false
+            permissionBits: 0
         });
         functions[1] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
-            permissioned: false
+            permissionBits: 0
         });
         functions[2] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
-            permissioned: false
+            permissionBits: 0
         });
         functions[3] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
-            permissioned: true
+            permissionBits: ADMIN_ROLE
         });
         functions[4] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
-            permissioned: true
+            permissionBits: ADMIN_ROLE
         });
         functions[5] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
-            permissioned: true
+            permissionBits: ADMIN_ROLE
         });
         config.extensionABI = functions;
     }

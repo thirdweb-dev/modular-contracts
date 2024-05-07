@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
@@ -12,7 +11,7 @@ import {BeforeApproveCallbackERC20} from "../callback/BeforeApproveCallbackERC20
 import {BeforeTransferCallbackERC20} from "../callback/BeforeTransferCallbackERC20.sol";
 import {BeforeBurnCallbackERC20} from "../callback/BeforeBurnCallbackERC20.sol";
 
-contract ERC20Core is ERC20, ModularCore, Ownable, Multicallable {
+contract ERC20Core is ERC20, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -51,8 +50,9 @@ contract ERC20Core is ERC20, ModularCore, Ownable, Multicallable {
 
         _setupContractURI(contractURI);
 
-        // Set contract owner
+        // Set permissions
         _setOwner(owner);
+        _setRoles(owner, ADMIN_ROLE);
 
         // Install and initialize extensions
         require(extensions.length == extensions.length);

@@ -6,15 +6,23 @@ import {IModularCore} from "./interface/IModularCore.sol";
 import {IModularExtension} from "./interface/IModularExtension.sol";
 import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
+import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
-abstract contract ModularCore is IModularCore {
+abstract contract ModularCore is IModularCore, OwnableRoles {
     using EnumerableSetLib for *;
 
     /*//////////////////////////////////////////////////////////////
-                                STRUCTS
+                                EVENTS
     //////////////////////////////////////////////////////////////*/
+
     event ExtensionInstalled(address sender, address extension);
     event ExtensionUninstalled(address sender, address extension);
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    uint256 public constant ADMIN_ROLE = _ROLE_0;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -59,8 +67,8 @@ abstract contract ModularCore is IModularCore {
         }
 
         // Check: authorized to call permissioned extension function
-        if (extensionFunction.permission && !_isAuthorizedToCallExtensionFunctions(msg.sender)) {
-            revert UnauthorizedFunctionCall();
+        if (extensionFunction.permissionBits > 0) {
+            _checkRoles(extensionFunction.permissionBits);
         }
 
         // Call extension function.
@@ -186,7 +194,7 @@ abstract contract ModularCore is IModularCore {
             extensionFunctionData_[ext.selector] = InstalledExtensionFunction({
                 implementation: extension,
                 callType: ext.callType,
-                permission: ext.permissioned
+                permissionBits: ext.permissionBits
             });
         }
 

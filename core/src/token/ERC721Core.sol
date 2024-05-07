@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
@@ -15,7 +14,7 @@ import {BeforeApproveForAllCallback} from "../callback/BeforeApproveForAllCallba
 import {OnTokenURICallback} from "../callback/OnTokenURICallback.sol";
 import {OnRoyaltyInfoCallback} from "../callback/OnRoyaltyInfoCallback.sol";
 
-contract ERC721Core is ERC721AQueryable, ModularCore, Ownable, Multicallable {
+contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -45,8 +44,9 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Ownable, Multicallable {
         // Set contract metadata
         _setupContractURI(contractURI);
 
-        // Set contract owner
+        // Set permissions
         _setOwner(owner);
+        _setRoles(owner, ADMIN_ROLE);
 
         // Install and initialize extensions
         require(extensions.length == extensions.length);

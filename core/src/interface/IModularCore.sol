@@ -27,7 +27,7 @@ interface IModularCore is IExtensionConfig, IERC165 {
     struct InstalledExtensionFunction {
         address implementation;
         CallType callType;
-        bool permission;
+        uint256 permissionBits;
     }
 
     /*//////////////////////////////////////////////////////////////
