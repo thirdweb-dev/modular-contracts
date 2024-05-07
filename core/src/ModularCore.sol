@@ -63,7 +63,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     error UnauthorizedInstall();
-    error ExtensionUnsupportedCallbackFunction();
     error ExtensionInitializationFailed();
     error ExtensionAlreadyInstalled();
     error ExtensionNotInstalled();
@@ -74,6 +73,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     error CallbackFunctionAlreadyInstalled();
     error ExtensionFunctionAlreadyInstalled();
+    error ExtensionUnsupportedCallbackFunction();
     error ExtensionInterfaceNotCompatible(bytes4 requiredInterfaceId);
 
     /*//////////////////////////////////////////////////////////////
@@ -199,6 +199,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         // Store callback function data. Only install supported callback functions
+        SupportedCallbackFunction[] memory supportedCallbacks = getSupportedCallbackFunctions();
+        uint256 supportedCallbacksLength = supportedCallbacks.length;
+
         uint256 callbackLength = config.callbackFunctions.length;
         for (uint256 i = 0; i < callbackLength; i++) {
             bytes4 callbackFunction = config.callbackFunctions[i];
@@ -208,7 +211,15 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                 revert CallbackFunctionAlreadyInstalled();
             }
 
-            // extension can register to non-advertised callback functions, but they most likely won't be triggered
+            // Check: callback function is supported
+            bool supported = false;
+            for (uint256 j = 0; j < supportedCallbacksLength; j++) {
+                if (supportedCallbacks[j].selector == callbackFunction) {
+                    supported = true;
+                    break;
+                }
+            }
+            if (!supported) revert ExtensionUnsupportedCallbackFunction();
 
             callbackFunctionImplementation_[callbackFunction] = extension;
         }
