@@ -7,7 +7,6 @@ import {IModularExtension} from "./interface/IModularExtension.sol";
 import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 
 // Utils
-import {ExtensionProxy} from "./ExtensionProxy.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 
@@ -136,23 +135,23 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Installs an extension contract.
-    function installExtension(address _extensionImplementation, bytes calldata _data)
+    function installExtension(address _extension, bytes calldata _data)
         external
         payable
         onlyOwnerOrRoles(INSTALLER_ROLE)
     {
         // Install extension.
-        _installExtension(_extensionImplementation, _data);
+        _installExtension(_extension, _data);
     }
 
     /// @notice Uninstalls an extension contract.
-    function uninstallExtension(address _extensionImplementation, bytes calldata _data)
+    function uninstallExtension(address _extension, bytes calldata _data)
         external
         payable
         onlyOwnerOrRoles(INSTALLER_ROLE)
     {
         // Uninstall extension.
-        _uninstallExtension(_extensionImplementation, _data);
+        _uninstallExtension(_extension, _data);
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
@@ -167,23 +166,13 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Installs an extension contract.
-    function _installExtension(address _extensionImplementation, bytes memory _data) internal {
-        // There is only 1 deterministic extension proxy per (ModularCore, extensionImplementation) pair.
-        bytes32 salt = bytes32(keccak256(abi.encode(address(this), _extensionImplementation)));
-
-        // Deploy extension proxy if not already deployed.
-        address extension = _predictExtensionProxyAddress(salt, _extensionImplementation);
-        if (extension.code.length == 0) {
-            new ExtensionProxy{salt: salt}(_extensionImplementation);
-        }
-
-        // Check: add and check if extension not already installed.
-        if (!extensions.add(extension)) {
+    function _installExtension(address _extension, bytes memory _data) internal {
+        if (!extensions.add(_extension)) {
             revert ExtensionAlreadyInstalled();
         }
 
         // Get extension config.
-        ExtensionConfig memory config = IModularExtension(extension).getExtensionConfig();
+        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
 
         // Check: ModularCore supports interface required by extension.
         if (config.requiredInterfaceId != bytes4(0)) {
@@ -221,7 +210,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
             if (!supported) revert ExtensionUnsupportedCallbackFunction();
 
-            callbackFunctionImplementation_[callbackFunction] = extension;
+            callbackFunctionImplementation_[callbackFunction] = _extension;
         }
 
         // Store extension function data.
@@ -235,7 +224,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
 
             extensionFunctionData_[ext.selector] = InstalledExtensionFunction({
-                implementation: extension,
+                implementation: _extension,
                 callType: ext.callType,
                 permissionBits: ext.permissionBits
             });
@@ -244,31 +233,24 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         // Call `onInstall` callback function if extension has registered installation callback.
         if (config.registerInstallationCallback) {
             (bool success, bytes memory returndata) =
-                extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
+                _extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
         }
 
-        emit ExtensionInstalled(msg.sender, extension);
-    }
-
-    function _updateExtension(address _extension, bytes memory data) internal {
-        // TODO
+        emit ExtensionInstalled(msg.sender, _extension);
     }
 
     /// @notice Uninstalls an extension contract.
-    function _uninstallExtension(address _extensionImplementation, bytes memory _data) internal {
-        bytes32 salt = bytes32(keccak256(abi.encode(address(this), _extensionImplementation)));
-        address extension = _predictExtensionProxyAddress(salt, _extensionImplementation);
-
+    function _uninstallExtension(address _extension, bytes memory _data) internal {
         // Check: remove and check if the extension is installed
-        if (!extensions.remove(extension)) {
+        if (!extensions.remove(_extension)) {
             revert ExtensionNotInstalled();
         }
 
         // Get extension config.
-        ExtensionConfig memory config = IModularExtension(extension).getExtensionConfig();
+        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
 
         uint256 supportedInterfaceLength = config.supportedInterfaces.length;
         for (uint256 i = 0; i < supportedInterfaceLength; i++) {
@@ -283,7 +265,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             delete extensionFunctionData_[ext.selector];
         }
 
-        // Remove callback function ext
+        // Remove callback function data
         uint256 callbackLength = config.callbackFunctions.length;
         for (uint256 i = 0; i < callbackLength; i++) {
             bytes4 callbackFunction = config.callbackFunctions[i];
@@ -291,14 +273,15 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) =
-                extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data)));
+            (bool success, bytes memory returndata) = _extension.call{value: msg.value}(
+                abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data))
+            );
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
         }
 
-        emit ExtensionUninstalled(msg.sender, extension);
+        emit ExtensionUninstalled(msg.sender, _extension);
     }
 
     /// @dev Calls an extension callback function and checks whether it is optional or required.
@@ -447,23 +430,5 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                 revert(0x1c, 0x04)
             }
         }
-    }
-
-    /// @dev Returns the predicted address of an extension proxy contract.
-    function _predictExtensionProxyAddress(bytes32 _salt, address _implementation) internal view returns (address) {
-        return address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff),
-                            address(this),
-                            _salt,
-                            keccak256(abi.encodePacked(type(ExtensionProxy).creationCode, abi.encode(_implementation)))
-                        )
-                    )
-                )
-            )
-        );
     }
 }
