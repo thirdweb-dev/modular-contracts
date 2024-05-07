@@ -32,7 +32,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint256 public constant ADMIN_ROLE = _ROLE_0;
+    uint256 public constant CALLER_ROLE = _ROLE_0;
+    uint256 public constant INSTALLER_ROLE = _ROLE_1;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -78,7 +79,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         // Check: authorized to call permissioned extension function
         if (extensionFunction.permissionBits > 0) {
-            _checkRoles(extensionFunction.permissionBits);
+            _checkOwnerOrRoles(extensionFunction.permissionBits);
         }
 
         // Call extension function.
@@ -117,22 +118,20 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function installExtension(address _extensionContract, bytes calldata _data) external payable {
-        // Check: authorized to install extensions.
-        if (!_isAuthorizedToInstallExtensions(msg.sender)) {
-            revert UnauthorizedInstall();
-        }
-
+    function installExtension(address _extensionContract, bytes calldata _data)
+        external
+        payable
+        onlyOwnerOrRoles(INSTALLER_ROLE)
+    {
         // Install extension.
         _installExtension(_extensionContract, _data);
     }
 
-    function uninstallExtension(address _extensionContract, bytes calldata _data) external payable {
-        // Check: authorized to install extensions.
-        if (!_isAuthorizedToInstallExtensions(msg.sender)) {
-            revert UnauthorizedInstall();
-        }
-
+    function uninstallExtension(address _extensionContract, bytes calldata _data)
+        external
+        payable
+        onlyOwnerOrRoles(INSTALLER_ROLE)
+    {
         // Uninstall extension.
         _uninstallExtension(_extensionContract, _data);
     }
@@ -146,8 +145,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _isAuthorizedToInstallExtensions(address _target) internal view virtual returns (bool);
 
     function _installExtension(address extensionImplementation, bytes memory data) internal {
         bytes32 salt = bytes32(keccak256(abi.encode(msg.sender, extensionImplementation))); // TODO

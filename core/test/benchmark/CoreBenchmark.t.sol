@@ -34,10 +34,6 @@ contract MockCoreMinimal is MockBase, ModularCore {
             functions[i] = SupportedCallbackFunction({selector: bytes4(uint32(i)), mode: CallbackMode.OPTIONAL});
         }
     }
-
-    function _isAuthorizedToInstallExtensions(address /* _target */ ) internal pure override returns (bool) {
-        return true;
-    }
 }
 
 contract MockCore is MockBase, ModularCore {
@@ -63,10 +59,6 @@ contract MockCore is MockBase, ModularCore {
     function callbackFunctionOne() external {
         _callExtensionCallback(msg.sig, abi.encodeCall(this.callbackFunctionOne, ()));
     }
-
-    function _isAuthorizedToInstallExtensions(address /* _target */ ) internal pure override returns (bool) {
-        return true;
-    }
 }
 
 contract MockExtension is MockBase, IModularExtension {
@@ -82,7 +74,7 @@ contract MockExtension is MockBase, IModularExtension {
 contract MockExtensionWithFunctions is MockBase, IModularExtension {
     event CallbackFunctionOne();
 
-    uint256 public constant ADMIN_ROLE = 1 << 0;
+    uint256 public constant CALLER_ROLE = 1 << 0;
 
     function onInstall(address sender, bytes memory data) external {}
 
@@ -118,17 +110,17 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
         functions[3] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
-            permissionBits: ADMIN_ROLE
+            permissionBits: CALLER_ROLE
         });
         functions[4] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
-            permissionBits: ADMIN_ROLE
+            permissionBits: CALLER_ROLE
         });
         functions[5] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
-            permissionBits: ADMIN_ROLE
+            permissionBits: CALLER_ROLE
         });
         config.extensionFunctions = functions;
     }

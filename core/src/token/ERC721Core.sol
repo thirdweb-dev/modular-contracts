@@ -46,7 +46,6 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
 
         // Set permissions
         _setOwner(owner);
-        _setRoles(owner, ADMIN_ROLE);
 
         // Install and initialize extensions
         require(extensions.length == extensions.length);
@@ -200,10 +199,6 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _isAuthorizedToInstallExtensions(address target) internal view override returns (bool) {
-        return target == owner();
-    }
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory contractURI) internal {

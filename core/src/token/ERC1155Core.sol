@@ -53,7 +53,6 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
 
         // Set permissions
         _setOwner(owner);
-        _setRoles(owner, ADMIN_ROLE);
 
         // Install and initialize hooks
         require(extensions.length == extensions.length);
@@ -240,10 +239,6 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _isAuthorizedToInstallExtensions(address target) internal view override returns (bool) {
-        return target == owner();
-    }
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory uri) internal {

@@ -52,7 +52,6 @@ contract ERC20Core is ERC20, ModularCore, Multicallable {
 
         // Set permissions
         _setOwner(owner);
-        _setRoles(owner, ADMIN_ROLE);
 
         // Install and initialize extensions
         require(extensions.length == extensions.length);
@@ -178,10 +177,6 @@ contract ERC20Core is ERC20, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _isAuthorizedToInstallExtensions(address _target) internal view override returns (bool) {
-        return _target == owner();
-    }
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory contractURI) internal {
