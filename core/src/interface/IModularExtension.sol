@@ -1,15 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {IModular} from "./IModular.sol";
+import {IExtensionConfig} from "./IExtensionConfig.sol";
 
-interface IModularExtensionCallback {
-    function onInstall(address sender, bytes calldata data) external;
-
-    function onUninstall(address sender, bytes calldata data) external;
-}
-
-interface IModularExtension is IModular {
+interface IModularExtension is IExtensionConfig {
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

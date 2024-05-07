@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 
-import {IModularExtension, IModular} from "src/interface/IModularExtension.sol";
+import {IModularExtension, IExtensionConfig} from "src/interface/IModularExtension.sol";
 import {ModularCore} from "src/ModularCore.sol";
 import {ERC20Core} from "src/token/ERC20Core.sol";
 
@@ -34,14 +34,6 @@ contract MockCoreMinimal is MockBase, ModularCore {
             functions[i] = SupportedCallbackFunction({selector: bytes4(uint32(i)), mode: CallbackMode.OPTIONAL});
         }
     }
-
-    function _isAuthorizedToInstallExtensions(address /* _target */ ) internal pure override returns (bool) {
-        return true;
-    }
-
-    function _isAuthorizedToCallExtensionFunctions(address /*_target*/ ) internal pure override returns (bool) {
-        return true;
-    }
 }
 
 contract MockCore is MockBase, ModularCore {
@@ -67,14 +59,6 @@ contract MockCore is MockBase, ModularCore {
     function callbackFunctionOne() external {
         _callExtensionCallback(msg.sig, abi.encodeCall(this.callbackFunctionOne, ()));
     }
-
-    function _isAuthorizedToInstallExtensions(address /* _target */ ) internal pure override returns (bool) {
-        return true;
-    }
-
-    function _isAuthorizedToCallExtensionFunctions(address /*_target*/ ) internal pure override returns (bool) {
-        return true;
-    }
 }
 
 contract MockExtension is MockBase, IModularExtension {
@@ -89,6 +73,8 @@ contract MockExtension is MockBase, IModularExtension {
 
 contract MockExtensionWithFunctions is MockBase, IModularExtension {
     event CallbackFunctionOne();
+
+    uint256 public constant CALLER_ROLE = 1 << 0;
 
     function onInstall(address sender, bytes memory data) external {}
 
@@ -108,35 +94,35 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
         ExtensionFunction[] memory functions = new ExtensionFunction[](6);
         functions[0] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_call()")),
-            callType: IModular.CallType.CALL,
-            permissioned: false
+            callType: IExtensionConfig.CallType.CALL,
+            permissionBits: 0
         });
         functions[1] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_delegatecall()")),
-            callType: IModular.CallType.DELEGATECALL,
-            permissioned: false
+            callType: IExtensionConfig.CallType.DELEGATECALL,
+            permissionBits: 0
         });
         functions[2] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_staticcall()")),
-            callType: IModular.CallType.STATICCALL,
-            permissioned: false
+            callType: IExtensionConfig.CallType.STATICCALL,
+            permissionBits: 0
         });
         functions[3] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_call()")),
-            callType: IModular.CallType.CALL,
-            permissioned: true
+            callType: IExtensionConfig.CallType.CALL,
+            permissionBits: CALLER_ROLE
         });
         functions[4] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_delegatecall()")),
-            callType: IModular.CallType.DELEGATECALL,
-            permissioned: true
+            callType: IExtensionConfig.CallType.DELEGATECALL,
+            permissionBits: CALLER_ROLE
         });
         functions[5] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_staticcall()")),
-            callType: IModular.CallType.STATICCALL,
-            permissioned: true
+            callType: IExtensionConfig.CallType.STATICCALL,
+            permissionBits: CALLER_ROLE
         });
-        config.extensionABI = functions;
+        config.extensionFunctions = functions;
     }
 
     function callbackFunctionOne() external {

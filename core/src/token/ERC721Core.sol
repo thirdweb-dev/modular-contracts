@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {Ownable} from "@solady/auth/Ownable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
@@ -15,7 +14,7 @@ import {BeforeApproveForAllCallback} from "../callback/BeforeApproveForAllCallba
 import {OnTokenURICallback} from "../callback/OnTokenURICallback.sol";
 import {OnRoyaltyInfoCallback} from "../callback/OnRoyaltyInfoCallback.sol";
 
-contract ERC721Core is ERC721AQueryable, ModularCore, Ownable, Multicallable {
+contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -45,7 +44,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Ownable, Multicallable {
         // Set contract metadata
         _setupContractURI(contractURI);
 
-        // Set contract owner
+        // Set permissions
         _setOwner(owner);
 
         // Install and initialize extensions
@@ -111,21 +110,29 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Ownable, Multicallable {
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](7);
-        supportedCallbackFunctions[0] =
-            SupportedCallbackFunction({selector: this.mint.selector, mode: CallbackMode.REQUIRED});
-        supportedCallbackFunctions[1] =
-            SupportedCallbackFunction({selector: this.transferFrom.selector, mode: CallbackMode.OPTIONAL});
-        supportedCallbackFunctions[2] =
-            SupportedCallbackFunction({selector: this.burn.selector, mode: CallbackMode.OPTIONAL});
-        supportedCallbackFunctions[3] =
-            SupportedCallbackFunction({selector: this.approve.selector, mode: CallbackMode.OPTIONAL});
-        supportedCallbackFunctions[4] =
-            SupportedCallbackFunction({selector: this.setApprovalForAll.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions = new SupportedCallbackFunction[](6);
+        supportedCallbackFunctions[0] = SupportedCallbackFunction({
+            selector: BeforeMintCallbackERC721.beforeMintERC721.selector,
+            mode: CallbackMode.REQUIRED
+        });
+        supportedCallbackFunctions[1] = SupportedCallbackFunction({
+            selector: BeforeTransferCallbackERC721.beforeTransferERC721.selector,
+            mode: CallbackMode.OPTIONAL
+        });
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
+            selector: BeforeBurnCallbackERC721.beforeBurnERC721.selector,
+            mode: CallbackMode.OPTIONAL
+        });
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+            selector: BeforeApproveCallbackERC721.beforeApproveERC721.selector,
+            mode: CallbackMode.OPTIONAL
+        });
+        supportedCallbackFunctions[4] = SupportedCallbackFunction({
+            selector: BeforeApproveForAllCallback.beforeApproveForAll.selector,
+            mode: CallbackMode.OPTIONAL
+        });
         supportedCallbackFunctions[5] =
-            SupportedCallbackFunction({selector: this.tokenURI.selector, mode: CallbackMode.REQUIRED});
-        supportedCallbackFunctions[6] =
-            SupportedCallbackFunction({selector: this.royaltyInfo.selector, mode: CallbackMode.OPTIONAL});
+            SupportedCallbackFunction({selector: OnTokenURICallback.onTokenURI.selector, mode: CallbackMode.REQUIRED});
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -200,14 +207,6 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _isAuthorizedToInstallExtensions(address target) internal view override returns (bool) {
-        return target == owner();
-    }
-
-    function _isAuthorizedToCallExtensionFunctions(address target) internal view override returns (bool) {
-        return target == owner();
-    }
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory contractURI) internal {

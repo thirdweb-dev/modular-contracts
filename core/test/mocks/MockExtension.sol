@@ -77,8 +77,8 @@ contract MockExtensionWithOnTokenURICallback is
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
         bytes4[] memory callbackFunctions = new bytes4[](1);
         callbackFunctions[0] = this.onTokenURI.selector;
-        ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
-        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
+        ExtensionFunction[] memory extensionFunctions = new ExtensionFunction[](0);
+        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionFunctions);
     }
 
     function onTokenURI(uint256 _id) public view override returns (string memory) {
@@ -87,6 +87,8 @@ contract MockExtensionWithOnTokenURICallback is
 }
 
 contract MockExtensionWithPermissionedFallback is IModularExtension, Initializable, UUPSUpgradeable {
+    uint256 public constant CALLER_ROLE = 1 << 0;
+
     address public upgradeAdmin;
 
     function initialize(address _upgradeAdmin) public initializer {
@@ -103,9 +105,9 @@ contract MockExtensionWithPermissionedFallback is IModularExtension, Initializab
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
         bytes4[] memory callbackFunctions = new bytes4[](0);
-        ExtensionFunction[] memory extensionABI = new ExtensionFunction[](1);
-        extensionABI[0] = ExtensionFunction(this.permissionedFunction.selector, CallType.CALL, true);
-        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
+        ExtensionFunction[] memory extensionFunctions = new ExtensionFunction[](1);
+        extensionFunctions[0] = ExtensionFunction(this.permissionedFunction.selector, CallType.CALL, CALLER_ROLE);
+        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionFunctions);
     }
 
     function permissionedFunction() external pure virtual returns (uint256) {
@@ -136,8 +138,8 @@ contract MockExtensionWithOneCallbackERC20 is
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
         bytes4[] memory callbackFunctions = new bytes4[](1);
         callbackFunctions[0] = this.beforeMintERC20.selector;
-        ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
-        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
+        ExtensionFunction[] memory extensionFunctions = new ExtensionFunction[](0);
+        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionFunctions);
     }
 }
 
@@ -170,8 +172,8 @@ contract MockExtensionWithFourCallbacksERC20 is
         callbackFunctions[1] = this.beforeTransferERC20.selector;
         callbackFunctions[2] = this.beforeBurnERC20.selector;
         callbackFunctions[3] = this.beforeApproveERC20.selector;
-        ExtensionFunction[] memory extensionABI = new ExtensionFunction[](0);
-        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionABI);
+        ExtensionFunction[] memory extensionFunctions = new ExtensionFunction[](0);
+        return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, extensionFunctions);
     }
 }
 

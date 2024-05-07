@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {Ownable} from "@solady/auth/Ownable.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {ERC20} from "@solady/tokens/ERC20.sol";
-
 import {ModularCore} from "../ModularCore.sol";
 
+import {ERC20} from "@solady/tokens/ERC20.sol";
+import {Multicallable} from "@solady/utils/Multicallable.sol";
+
 import {BeforeMintCallbackERC20} from "../callback/BeforeMintCallbackERC20.sol";
+import {BeforeBurnCallbackERC20} from "../callback/BeforeBurnCallbackERC20.sol";
 import {BeforeApproveCallbackERC20} from "../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../callback/BeforeTransferCallbackERC20.sol";
-import {BeforeBurnCallbackERC20} from "../callback/BeforeBurnCallbackERC20.sol";
 
-contract ERC20Core is ERC20, ModularCore, Ownable, Multicallable {
+contract ERC20Core is ERC20, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -51,7 +50,7 @@ contract ERC20Core is ERC20, ModularCore, Ownable, Multicallable {
 
         _setupContractURI(contractURI);
 
-        // Set contract owner
+        // Set permissions
         _setOwner(owner);
 
         // Install and initialize extensions
@@ -90,14 +89,22 @@ contract ERC20Core is ERC20, ModularCore, Ownable, Multicallable {
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
         supportedCallbackFunctions = new SupportedCallbackFunction[](4);
-        supportedCallbackFunctions[0] =
-            SupportedCallbackFunction({selector: this.mint.selector, mode: CallbackMode.REQUIRED});
-        supportedCallbackFunctions[1] =
-            SupportedCallbackFunction({selector: this.transfer.selector, mode: CallbackMode.OPTIONAL});
-        supportedCallbackFunctions[2] =
-            SupportedCallbackFunction({selector: this.burn.selector, mode: CallbackMode.OPTIONAL});
-        supportedCallbackFunctions[3] =
-            SupportedCallbackFunction({selector: this.approve.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions[0] = SupportedCallbackFunction({
+            selector: BeforeMintCallbackERC20.beforeMintERC20.selector,
+            mode: CallbackMode.REQUIRED
+        });
+        supportedCallbackFunctions[1] = SupportedCallbackFunction({
+            selector: BeforeTransferCallbackERC20.beforeTransferERC20.selector,
+            mode: CallbackMode.OPTIONAL
+        });
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
+            selector: BeforeBurnCallbackERC20.beforeBurnERC20.selector,
+            mode: CallbackMode.OPTIONAL
+        });
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+            selector: BeforeApproveCallbackERC20.beforeApproveERC20.selector,
+            mode: CallbackMode.OPTIONAL
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -178,14 +185,6 @@ contract ERC20Core is ERC20, ModularCore, Ownable, Multicallable {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _isAuthorizedToInstallExtensions(address _target) internal view override returns (bool) {
-        return _target == owner();
-    }
-
-    function _isAuthorizedToCallExtensionFunctions(address _target) internal view override returns (bool) {
-        return _target == owner();
-    }
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory contractURI) internal {

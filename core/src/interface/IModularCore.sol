@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {IModular} from "./IModular.sol";
+import {IExtensionConfig} from "./IExtensionConfig.sol";
 import {IERC165} from "./IERC165.sol";
 
-interface IModularCore is IModular, IERC165 {
+interface IModularCore is IExtensionConfig, IERC165 {
     /*//////////////////////////////////////////////////////////////
-                                STRUCTS
+                                TYPES
     //////////////////////////////////////////////////////////////*/
 
     enum CallbackMode {
@@ -14,20 +14,14 @@ interface IModularCore is IModular, IERC165 {
         REQUIRED
     }
 
-    struct InstalledExtension {
-        address implementation;
-        ExtensionConfig config;
-    }
-
     struct SupportedCallbackFunction {
         bytes4 selector;
         CallbackMode mode;
     }
 
-    struct InstalledExtensionFunction {
+    struct InstalledExtension {
         address implementation;
-        CallType callType;
-        bool permission;
+        ExtensionConfig config;
     }
 
     /*//////////////////////////////////////////////////////////////
