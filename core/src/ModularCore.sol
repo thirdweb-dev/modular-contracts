@@ -12,7 +12,7 @@ import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 
 abstract contract ModularCore is IModularCore, OwnableRoles {
-    using EnumerableSetLib for *;
+    using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
     /*//////////////////////////////////////////////////////////////
                                 TYPES
