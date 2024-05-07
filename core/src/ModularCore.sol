@@ -3,7 +3,8 @@ pragma solidity ^0.8.23;
 
 import {ExtensionProxy} from "./ExtensionProxy.sol";
 import {IModularCore} from "./interface/IModularCore.sol";
-import {IModularExtensionCallback, IModularExtension} from "./interface/IModularExtension.sol";
+import {IModularExtension} from "./interface/IModularExtension.sol";
+import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 
 abstract contract ModularCore is IModularCore {
@@ -190,9 +191,8 @@ abstract contract ModularCore is IModularCore {
         }
 
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) = extension.call{value: msg.value}(
-                abi.encodeCall(IModularExtensionCallback.onInstall, (msg.sender, data))
-            );
+            (bool success, bytes memory returndata) =
+                extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -253,9 +253,8 @@ abstract contract ModularCore is IModularCore {
         }
 
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) = extension.call{value: msg.value}(
-                abi.encodeCall(IModularExtensionCallback.onUninstall, (msg.sender, data))
-            );
+            (bool success, bytes memory returndata) =
+                extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }

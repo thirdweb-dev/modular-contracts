@@ -3,12 +3,6 @@ pragma solidity ^0.8.23;
 
 import {IExtensionConfig} from "./IExtensionConfig.sol";
 
-interface IModularExtensionCallback {
-    function onInstall(address sender, bytes calldata data) external;
-
-    function onUninstall(address sender, bytes calldata data) external;
-}
-
 interface IModularExtension is IExtensionConfig {
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
