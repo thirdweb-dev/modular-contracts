@@ -147,7 +147,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     function _installExtension(address extensionImplementation, bytes memory data) internal {
-        bytes32 salt = bytes32(keccak256(abi.encode(msg.sender, extensionImplementation))); // TODO
+        bytes32 salt = bytes32(keccak256(abi.encode(address(this), extensionImplementation)));
 
         address extension = _predictExtensionProxyAddress(salt, extensionImplementation);
         if (extension.code.length == 0) {
@@ -221,7 +221,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     }
 
     function _uninstallExtension(address extensionImplementation, bytes memory data) internal {
-        bytes32 salt = bytes32(keccak256(abi.encode(msg.sender, extensionImplementation))); // TODO
+        bytes32 salt = bytes32(keccak256(abi.encode(address(this), extensionImplementation)));
         address extension = _predictExtensionProxyAddress(salt, extensionImplementation);
 
         // Check: remove and check if the extension is installed
