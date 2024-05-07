@@ -38,10 +38,6 @@ contract MockCoreMinimal is MockBase, ModularCore {
     function _isAuthorizedToInstallExtensions(address /* _target */ ) internal pure override returns (bool) {
         return true;
     }
-
-    function _isAuthorizedToCallExtensionFunctions(address /*_target*/ ) internal pure override returns (bool) {
-        return true;
-    }
 }
 
 contract MockCore is MockBase, ModularCore {
@@ -69,10 +65,6 @@ contract MockCore is MockBase, ModularCore {
     }
 
     function _isAuthorizedToInstallExtensions(address /* _target */ ) internal pure override returns (bool) {
-        return true;
-    }
-
-    function _isAuthorizedToCallExtensionFunctions(address /*_target*/ ) internal pure override returns (bool) {
         return true;
     }
 }

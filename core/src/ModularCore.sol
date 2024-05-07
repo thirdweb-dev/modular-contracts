@@ -149,8 +149,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     function _isAuthorizedToInstallExtensions(address _target) internal view virtual returns (bool);
 
-    function _isAuthorizedToCallExtensionFunctions(address _target) internal view virtual returns (bool);
-
     function _installExtension(address extensionImplementation, bytes memory data) internal {
         bytes32 salt = bytes32(keccak256(abi.encode(msg.sender, extensionImplementation))); // TODO
 

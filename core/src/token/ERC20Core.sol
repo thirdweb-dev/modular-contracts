@@ -183,10 +183,6 @@ contract ERC20Core is ERC20, ModularCore, Multicallable {
         return _target == owner();
     }
 
-    function _isAuthorizedToCallExtensionFunctions(address _target) internal view override returns (bool) {
-        return _target == owner();
-    }
-
     /// @dev Sets contract URI
     function _setupContractURI(string memory contractURI) internal {
         _contractURI = contractURI;

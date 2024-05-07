@@ -245,10 +245,6 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         return target == owner();
     }
 
-    function _isAuthorizedToCallExtensionFunctions(address target) internal view override returns (bool) {
-        return target == owner();
-    }
-
     /// @dev Sets contract URI
     function _setupContractURI(string memory uri) internal {
         _contractURI = uri;

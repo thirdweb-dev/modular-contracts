@@ -205,10 +205,6 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
         return target == owner();
     }
 
-    function _isAuthorizedToCallExtensionFunctions(address target) internal view override returns (bool) {
-        return target == owner();
-    }
-
     /// @dev Sets contract URI
     function _setupContractURI(string memory contractURI) internal {
         _contractURI = contractURI;
