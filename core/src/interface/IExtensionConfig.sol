@@ -26,6 +26,6 @@ interface IExtensionConfig {
         bool registerInstallationCallback; // Register onInstall / onUninstall callback
         bytes4[] callbackFunctions;
         bytes4[] supportedInterfaces;
-        ExtensionFunction[] extensionABI;
+        ExtensionFunction[] extensionFunctions;
     }
 }

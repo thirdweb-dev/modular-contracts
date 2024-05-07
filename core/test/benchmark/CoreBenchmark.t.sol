@@ -138,7 +138,7 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: ADMIN_ROLE
         });
-        config.extensionABI = functions;
+        config.extensionFunctions = functions;
     }
 
     function callbackFunctionOne() external {
