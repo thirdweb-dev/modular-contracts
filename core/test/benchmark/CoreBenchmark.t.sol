@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 
-import {IModularExtension, IModular} from "src/interface/IModularExtension.sol";
+import {IModularExtension, IExtensionConfig} from "src/interface/IModularExtension.sol";
 import {ModularCore} from "src/ModularCore.sol";
 import {ERC20Core} from "src/token/ERC20Core.sol";
 
@@ -108,32 +108,32 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
         ExtensionFunction[] memory functions = new ExtensionFunction[](6);
         functions[0] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_call()")),
-            callType: IModular.CallType.CALL,
+            callType: IExtensionConfig.CallType.CALL,
             permissioned: false
         });
         functions[1] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_delegatecall()")),
-            callType: IModular.CallType.DELEGATECALL,
+            callType: IExtensionConfig.CallType.DELEGATECALL,
             permissioned: false
         });
         functions[2] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_staticcall()")),
-            callType: IModular.CallType.STATICCALL,
+            callType: IExtensionConfig.CallType.STATICCALL,
             permissioned: false
         });
         functions[3] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_call()")),
-            callType: IModular.CallType.CALL,
+            callType: IExtensionConfig.CallType.CALL,
             permissioned: true
         });
         functions[4] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_delegatecall()")),
-            callType: IModular.CallType.DELEGATECALL,
+            callType: IExtensionConfig.CallType.DELEGATECALL,
             permissioned: true
         });
         functions[5] = ExtensionFunction({
             selector: bytes4(keccak256("permissioned_staticcall()")),
-            callType: IModular.CallType.STATICCALL,
+            callType: IExtensionConfig.CallType.STATICCALL,
             permissioned: true
         });
         config.extensionABI = functions;

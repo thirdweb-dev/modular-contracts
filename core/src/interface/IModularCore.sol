@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {IModular} from "./IModular.sol";
+import {IExtensionConfig} from "./IExtensionConfig.sol";
 import {IERC165} from "./IERC165.sol";
 
-interface IModularCore is IModular, IERC165 {
+interface IModularCore is IExtensionConfig, IERC165 {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
