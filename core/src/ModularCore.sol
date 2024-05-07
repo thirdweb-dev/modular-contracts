@@ -149,8 +149,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     function _installExtension(address extensionImplementation, bytes memory data) internal {
         bytes32 salt = bytes32(keccak256(abi.encode(msg.sender, extensionImplementation))); // TODO
 
-        // TODO: if create revert means plugin already deployed
-        address extension = address(new ExtensionProxy{salt: salt}(extensionImplementation));
+        address extension = _predictExtensionProxyAddress(salt, extensionImplementation);
+        if (extension.code.length == 0) {
+            new ExtensionProxy{salt: salt}(extensionImplementation);
+        }
 
         // Check: add and check if extension not already installed.
         if (!extensions.add(extension)) {
@@ -220,22 +222,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     function _uninstallExtension(address extensionImplementation, bytes memory data) internal {
         bytes32 salt = bytes32(keccak256(abi.encode(msg.sender, extensionImplementation))); // TODO
-        address extension = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff),
-                            address(this),
-                            salt,
-                            keccak256(
-                                abi.encodePacked(type(ExtensionProxy).creationCode, abi.encode(extensionImplementation))
-                            )
-                        )
-                    )
-                )
-            )
-        );
+        address extension = _predictExtensionProxyAddress(salt, extensionImplementation);
 
         // Check: remove and check if the extension is installed
         if (!extensions.remove(extension)) {
@@ -420,5 +407,23 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                 revert(0x1c, 0x04)
             }
         }
+    }
+
+    /// @dev Returns the predicted address of an extension proxy contract.
+    function _predictExtensionProxyAddress(bytes32 _salt, address _implementation) internal view returns (address) {
+        return address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff),
+                            address(this),
+                            _salt,
+                            keccak256(abi.encodePacked(type(ExtensionProxy).creationCode, abi.encode(_implementation)))
+                        )
+                    )
+                )
+            )
+        );
     }
 }
