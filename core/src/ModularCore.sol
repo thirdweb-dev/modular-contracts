@@ -67,13 +67,14 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     error ExtensionInitializationFailed();
     error ExtensionAlreadyInstalled();
     error ExtensionNotInstalled();
-    error ExtensionInterfaceNotCompatible(bytes4 requiredInterfaceId);
     error InvalidFunction();
     error UnauthorizedFunctionCall();
-    error ExtensionFunctionAlreadyInstalled();
-    error CallbackFunctionAlreadyInstalled();
     error CallbackFunctionRequired();
     error CallbackExecutionReverted();
+
+    error CallbackFunctionAlreadyInstalled();
+    error ExtensionFunctionAlreadyInstalled();
+    error ExtensionInterfaceNotCompatible(bytes4 requiredInterfaceId);
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTION
@@ -167,8 +168,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @dev Installs an extension contract.
     function _installExtension(address _extensionImplementation, bytes memory _data) internal {
+        // There is only 1 deterministic extension proxy per (ModularCore, extensionImplementation) pair.
         bytes32 salt = bytes32(keccak256(abi.encode(address(this), _extensionImplementation)));
 
+        // Deploy extension proxy if not already deployed.
         address extension = _predictExtensionProxyAddress(salt, _extensionImplementation);
         if (extension.code.length == 0) {
             new ExtensionProxy{salt: salt}(_extensionImplementation);
@@ -182,12 +185,14 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         // Get extension config.
         ExtensionConfig memory config = IModularExtension(extension).getExtensionConfig();
 
+        // Check: ModularCore supports interface required by extension.
         if (config.requiredInterfaceId != bytes4(0)) {
             if (!this.supportsInterface(config.requiredInterfaceId)) {
                 revert ExtensionInterfaceNotCompatible(config.requiredInterfaceId);
             }
         }
 
+        // Store interface support inherited via extension installation.
         uint256 supportedInterfaceLength = config.supportedInterfaces.length;
         for (uint256 i = 0; i < supportedInterfaceLength; i++) {
             supportedInterfaceRefCounter[config.supportedInterfaces[i]] += 1;
@@ -225,6 +230,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             });
         }
 
+        // Call `onInstall` callback function if extension has registered installation callback.
         if (config.registerInstallationCallback) {
             (bool success, bytes memory returndata) =
                 extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
