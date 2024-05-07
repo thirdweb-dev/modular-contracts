@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {ExtensionProxy} from "./ExtensionProxy.sol";
+// Interface
 import {IModularCore} from "./interface/IModularCore.sol";
 import {IModularExtension} from "./interface/IModularExtension.sol";
 import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
-import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
+
+// Utils
+import {ExtensionProxy} from "./ExtensionProxy.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
+import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 
 abstract contract ModularCore is IModularCore, OwnableRoles {
     using EnumerableSetLib for *;
