@@ -110,21 +110,29 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](7);
-        supportedCallbackFunctions[0] =
-            SupportedCallbackFunction({selector: this.mint.selector, mode: CallbackMode.REQUIRED});
-        supportedCallbackFunctions[1] =
-            SupportedCallbackFunction({selector: this.transferFrom.selector, mode: CallbackMode.OPTIONAL});
-        supportedCallbackFunctions[2] =
-            SupportedCallbackFunction({selector: this.burn.selector, mode: CallbackMode.OPTIONAL});
-        supportedCallbackFunctions[3] =
-            SupportedCallbackFunction({selector: this.approve.selector, mode: CallbackMode.OPTIONAL});
-        supportedCallbackFunctions[4] =
-            SupportedCallbackFunction({selector: this.setApprovalForAll.selector, mode: CallbackMode.OPTIONAL});
+        supportedCallbackFunctions = new SupportedCallbackFunction[](6);
+        supportedCallbackFunctions[0] = SupportedCallbackFunction({
+            selector: BeforeMintCallbackERC721.beforeMintERC721.selector,
+            mode: CallbackMode.REQUIRED
+        });
+        supportedCallbackFunctions[1] = SupportedCallbackFunction({
+            selector: BeforeTransferCallbackERC721.beforeTransferERC721.selector,
+            mode: CallbackMode.OPTIONAL
+        });
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
+            selector: BeforeBurnCallbackERC721.beforeBurnERC721.selector,
+            mode: CallbackMode.OPTIONAL
+        });
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+            selector: BeforeApproveCallbackERC721.beforeApproveERC721.selector,
+            mode: CallbackMode.OPTIONAL
+        });
+        supportedCallbackFunctions[4] = SupportedCallbackFunction({
+            selector: BeforeApproveForAllCallback.beforeApproveForAll.selector,
+            mode: CallbackMode.OPTIONAL
+        });
         supportedCallbackFunctions[5] =
-            SupportedCallbackFunction({selector: this.tokenURI.selector, mode: CallbackMode.REQUIRED});
-        supportedCallbackFunctions[6] =
-            SupportedCallbackFunction({selector: this.royaltyInfo.selector, mode: CallbackMode.OPTIONAL});
+            SupportedCallbackFunction({selector: OnTokenURICallback.onTokenURI.selector, mode: CallbackMode.REQUIRED});
     }
 
     /*//////////////////////////////////////////////////////////////
