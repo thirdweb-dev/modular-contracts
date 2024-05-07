@@ -18,6 +18,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                                 TYPES
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Internal representation of an extension function callable via fallback().
     struct InstalledExtensionFunction {
         address implementation;
         CallType callType;
@@ -28,24 +29,33 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when an extension is installed.
     event ExtensionInstalled(address sender, address extension);
+
+    /// @notice Emitted when an extension is uninstalled.
     event ExtensionUninstalled(address sender, address extension);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint256 public constant CALLER_ROLE = _ROLE_0;
-    uint256 public constant INSTALLER_ROLE = _ROLE_1;
+    /// @notice The role required to install or uninstall extensions.
+    uint256 public constant INSTALLER_ROLE = _ROLE_0;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev The set of addresses of installed extensions.
     EnumerableSetLib.AddressSet private extensions;
 
+    /// @dev interface ID => counter of extensions supporting the interface.
     mapping(bytes4 => uint256) private supportedInterfaceRefCounter;
+
+    /// @dev callback function selector => call destination.
     mapping(bytes4 => address) private callbackFunctionImplementation_;
+
+    /// @dev extension function selector => extension function data.
     mapping(bytes4 => InstalledExtensionFunction) private extensionFunctionData_;
 
     /*//////////////////////////////////////////////////////////////
@@ -71,6 +81,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     receive() external payable {}
 
+    /// @notice Routes a call to the appropriate extension contract.
     fallback() external payable {
         // Get extension function data.
         InstalledExtensionFunction memory extensionFunction = extensionFunctionData_[msg.sig];
@@ -102,8 +113,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns the list of all callback functions called on some extension contract.
     function getSupportedCallbackFunctions() public pure virtual returns (SupportedCallbackFunction[] memory);
 
+    /// @notice Returns a list of addresess and respective extension configs of all installed extensions.
     function getInstalledExtensions() external view returns (InstalledExtension[] memory _installedExtensions) {
         uint256 totalInstalled = extensions.length();
         _installedExtensions = new InstalledExtension[](totalInstalled);
@@ -121,24 +134,27 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function installExtension(address _extensionContract, bytes calldata _data)
+    /// @notice Installs an extension contract.
+    function installExtension(address _extensionImplementation, bytes calldata _data)
         external
         payable
         onlyOwnerOrRoles(INSTALLER_ROLE)
     {
         // Install extension.
-        _installExtension(_extensionContract, _data);
+        _installExtension(_extensionImplementation, _data);
     }
 
-    function uninstallExtension(address _extensionContract, bytes calldata _data)
+    /// @notice Uninstalls an extension contract.
+    function uninstallExtension(address _extensionImplementation, bytes calldata _data)
         external
         payable
         onlyOwnerOrRoles(INSTALLER_ROLE)
     {
         // Uninstall extension.
-        _uninstallExtension(_extensionContract, _data);
+        _uninstallExtension(_extensionImplementation, _data);
     }
 
+    /// @notice Returns whether a given interface is implemented by the contract.
     function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
         if (interfaceId == 0xffffffff) return false;
         if (supportedInterfaceRefCounter[interfaceId] > 0) return true;
@@ -149,12 +165,13 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _installExtension(address extensionImplementation, bytes memory data) internal {
-        bytes32 salt = bytes32(keccak256(abi.encode(address(this), extensionImplementation)));
+    /// @dev Installs an extension contract.
+    function _installExtension(address _extensionImplementation, bytes memory _data) internal {
+        bytes32 salt = bytes32(keccak256(abi.encode(address(this), _extensionImplementation)));
 
-        address extension = _predictExtensionProxyAddress(salt, extensionImplementation);
+        address extension = _predictExtensionProxyAddress(salt, _extensionImplementation);
         if (extension.code.length == 0) {
-            new ExtensionProxy{salt: salt}(extensionImplementation);
+            new ExtensionProxy{salt: salt}(_extensionImplementation);
         }
 
         // Check: add and check if extension not already installed.
@@ -210,7 +227,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         if (config.registerInstallationCallback) {
             (bool success, bytes memory returndata) =
-                extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, data)));
+                extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -223,9 +240,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         // TODO
     }
 
-    function _uninstallExtension(address extensionImplementation, bytes memory data) internal {
-        bytes32 salt = bytes32(keccak256(abi.encode(address(this), extensionImplementation)));
-        address extension = _predictExtensionProxyAddress(salt, extensionImplementation);
+    /// @notice Uninstalls an extension contract.
+    function _uninstallExtension(address _extensionImplementation, bytes memory _data) internal {
+        bytes32 salt = bytes32(keccak256(abi.encode(address(this), _extensionImplementation)));
+        address extension = _predictExtensionProxyAddress(salt, _extensionImplementation);
 
         // Check: remove and check if the extension is installed
         if (!extensions.remove(extension)) {
@@ -257,7 +275,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         if (config.registerInstallationCallback) {
             (bool success, bytes memory returndata) =
-                extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, data)));
+                extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -266,7 +284,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         emit ExtensionUninstalled(msg.sender, extension);
     }
 
-    function _callExtensionCallback(bytes4 selector, bytes memory encodedAbiCallData)
+    /// @dev Calls an extension callback function and checks whether it is optional or required.
+    function _callExtensionCallback(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
         returns (bool success, bytes memory returndata)
     {
@@ -277,15 +296,15 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
-            if (functions[i].selector == selector) {
+            if (functions[i].selector == _selector) {
                 callbackMode = functions[i].mode;
                 break;
             }
         }
 
-        address extension = callbackFunctionImplementation_[selector];
+        address extension = callbackFunctionImplementation_[_selector];
         if (extension != address(0)) {
-            (success, returndata) = extension.call{value: msg.value}(encodedAbiCallData);
+            (success, returndata) = extension.call{value: msg.value}(_abiEncodedCalldata);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -296,7 +315,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
     }
 
-    function _staticcallExtensionCallback(bytes4 selector, bytes memory encodedAbiCallData)
+    /// @dev Staticcalls an extension callback function and checks whether it is optional or required.
+    function _staticcallExtensionCallback(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
         view
         returns (bool success, bytes memory returndata)
@@ -308,15 +328,15 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
-            if (functions[i].selector == selector) {
+            if (functions[i].selector == _selector) {
                 callbackMode = functions[i].mode;
                 break;
             }
         }
 
-        address extension = callbackFunctionImplementation_[selector];
+        address extension = callbackFunctionImplementation_[_selector];
         if (extension != address(0)) {
-            (success, returndata) = extension.staticcall(encodedAbiCallData);
+            (success, returndata) = extension.staticcall(_abiEncodedCalldata);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -329,7 +349,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @dev delegateCalls an `implementation` smart contract.
     /// @notice Only use this at the end of the function as it reverts or returns the result
-    function _delegateAndReturn(address implementation) private {
+    function _delegateAndReturn(address _implementation) private {
         /// @solidity memory-safe-assembly
         assembly {
             function allocate(length) -> pos {
@@ -340,7 +360,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
+            let success := delegatecall(gas(), _implementation, 0, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
@@ -351,7 +371,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @dev calls an `implementation` smart contract and returns data.
     /// @notice Only use this at the end of the function as it reverts or returns the result
-    function _callAndReturn(address implementation) private {
+    function _callAndReturn(address _implementation) private {
         uint256 value = msg.value;
 
         /// @solidity memory-safe-assembly
@@ -364,7 +384,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := call(gas(), implementation, value, calldataPtr, calldatasize(), 0, 0)
+            let success := call(gas(), _implementation, value, calldataPtr, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
@@ -375,7 +395,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @dev calls an `implementation` smart contract and returns data.
     /// @notice Only use this at the end of the function as it reverts or returns the result
-    function _staticcallAndReturn(address implementation) private view {
+    function _staticcallAndReturn(address _implementation) private view {
         /// @solidity memory-safe-assembly
         assembly {
             function allocate(length) -> pos {
@@ -386,7 +406,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := staticcall(gas(), implementation, 0, calldatasize(), 0, 0)
+            let success := staticcall(gas(), _implementation, 0, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
@@ -396,17 +416,17 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     }
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(bytes memory returnData, bytes4 errorSignature) internal pure {
+    function _revert(bytes memory _returnData, bytes4 _errorSignature) internal pure {
         // Look for revert reason and bubble it up if present
-        if (returnData.length > 0) {
+        if (_returnData.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly
             /// @solidity memory-safe-assembly
             assembly {
-                revert(add(0x20, returnData), mload(returnData))
+                revert(add(0x20, _returnData), mload(_returnData))
             }
         } else {
             assembly {
-                mstore(0x00, errorSignature)
+                mstore(0x00, _errorSignature)
                 revert(0x1c, 0x04)
             }
         }
