@@ -247,7 +247,7 @@ contract ModularCoreTest is Test {
         //    This function is unavailable prior to the update, but crucial for the extension
         //    to work according to spec.
 
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.InvalidFunction.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionFunctionNotInstalled.selector));
         MockExtensionAlternate(address(core)).someNewFunction();
 
         // 2. Core contract owner updates the extension used by all their N core contracts at once
@@ -260,7 +260,7 @@ contract ModularCoreTest is Test {
         // 3. Now any core contract using the extension requires a refresh
         //    since it is currently out-of-sync with the updated extension config.
 
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.InvalidFunction.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionFunctionNotInstalled.selector));
         MockExtensionAlternate(address(core)).someNewFunction();
 
         vm.startPrank(owner);

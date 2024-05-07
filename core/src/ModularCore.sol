@@ -64,19 +64,18 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error UnauthorizedInstall();
-    error ExtensionInitializationFailed();
-    error ExtensionAlreadyInstalled();
+    error ExtensionOutOfSync();
     error ExtensionNotInstalled();
-    error InvalidFunction();
-    error UnauthorizedFunctionCall();
+    error ExtensionAlreadyInstalled();
+
     error CallbackFunctionRequired();
     error CallbackExecutionReverted();
-
-    error ExtensionOutOfSync();
+    error CallbackFunctionNotSupported();
     error CallbackFunctionAlreadyInstalled();
+
     error ExtensionFunctionAlreadyInstalled();
-    error ExtensionUnsupportedCallbackFunction();
+    error ExtensionFunctionNotInstalled();
+
     error ExtensionInterfaceNotCompatible(bytes4 requiredInterfaceId);
 
     /*//////////////////////////////////////////////////////////////
@@ -95,7 +94,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         // Check: extension function data exists.
         if (extensionFunction.implementation == address(0)) {
-            revert InvalidFunction();
+            revert ExtensionFunctionNotInstalled();
         }
 
         // Check: authorized to call permissioned extension function
@@ -222,7 +221,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                     break;
                 }
             }
-            if (!supported) revert ExtensionUnsupportedCallbackFunction();
+            if (!supported) revert CallbackFunctionNotSupported();
 
             callbackFunctionImplementation_[callbackFunction] = _extension;
         }
