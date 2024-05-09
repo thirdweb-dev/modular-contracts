@@ -19,6 +19,8 @@ contract MockBase {
 }
 
 contract MockCoreMinimal is MockBase, ModularCore {
+    constructor() ModularCore(msg.sender) {}
+
     function getSupportedCallbackFunctions()
         public
         pure
@@ -37,6 +39,8 @@ contract MockCoreMinimal is MockBase, ModularCore {
 }
 
 contract MockCore is MockBase, ModularCore {
+    constructor() ModularCore(msg.sender) {}
+
     function getSupportedCallbackFunctions()
         public
         pure
@@ -155,6 +159,7 @@ contract CoreBenchmark is Test {
     MockExtensionWithFunctions public extensionWithFunctions;
 
     function setUp() public {
+        vm.startPrank(address(0x42));
         core = new MockCore();
         coreWithExtensions = new MockCore();
         coreWithExtensionsNoCallback = new MockCore();

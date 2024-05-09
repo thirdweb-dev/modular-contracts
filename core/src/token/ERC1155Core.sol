@@ -45,14 +45,11 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable {
+    ) payable ModularCore(owner) {
         // Set contract metadata
         _name = name;
         _symbol = symbol;
         _setupContractURI(contractURI);
-
-        // Set permissions
-        _setOwner(owner);
 
         // Install and initialize hooks
         require(extensions.length == extensions.length);

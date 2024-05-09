@@ -40,12 +40,9 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ERC721A(name, symbol) {
+    ) payable ERC721A(name, symbol) ModularCore(owner) {
         // Set contract metadata
         _setupContractURI(contractURI);
-
-        // Set permissions
-        _setOwner(owner);
 
         // Install and initialize extensions
         require(extensions.length == extensions.length);
