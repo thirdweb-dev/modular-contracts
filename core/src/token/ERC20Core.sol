@@ -43,12 +43,12 @@ contract ERC20Core is ERC20, ModularCore, Multicallable {
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ModularCore(owner) {
+    ) payable {
         // Set contract metadata
         _name = _name;
         _symbol = _symbol;
-
         _setupContractURI(contractURI);
+        _initializeOwner(owner);
 
         // Install and initialize extensions
         require(extensions.length == extensions.length);

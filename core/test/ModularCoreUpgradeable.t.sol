@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 // Test utils
 import {Test} from "forge-std/Test.sol";
-import {ExtensionProxyFactory} from "./utils/ExtensionProxyFactory.sol";
+import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 
 // Target contract
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCore} from "src/ModularCore.sol";
+import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
 
 contract MockBase {
     uint256 internal constant NUMBER_OF_CALLBACK = 10;
@@ -21,8 +21,10 @@ contract MockBase {
     }
 }
 
-contract MockCore is MockBase, ModularCore {
-    constructor(address _owner) ModularCore(_owner) {}
+contract MockCore is MockBase, ModularCoreUpgradeable {
+    constructor(address _owner) {
+        _initializeOwner(_owner);
+    }
 
     function getSupportedCallbackFunctions()
         public
@@ -54,6 +56,8 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
 
     uint256 public constant CALLER_ROLE = 1 << 5;
 
+    uint256 private number;
+
     function onInstall(address sender, bytes memory data) external {}
 
     function onUninstall(address sender, bytes memory data) external {}
@@ -69,64 +73,7 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getFunctionSignature();
 
-        ExtensionFunction[] memory functions = new ExtensionFunction[](6);
-        functions[0] = ExtensionFunction({
-            selector: bytes4(keccak256("notPermissioned_call()")),
-            callType: IExtensionConfig.CallType.CALL,
-            permissionBits: 0
-        });
-        functions[1] = ExtensionFunction({
-            selector: bytes4(keccak256("notPermissioned_delegatecall()")),
-            callType: IExtensionConfig.CallType.DELEGATECALL,
-            permissionBits: 0
-        });
-        functions[2] = ExtensionFunction({
-            selector: bytes4(keccak256("notPermissioned_staticcall()")),
-            callType: IExtensionConfig.CallType.STATICCALL,
-            permissionBits: 0
-        });
-        functions[3] = ExtensionFunction({
-            selector: bytes4(keccak256("permissioned_call()")),
-            callType: IExtensionConfig.CallType.CALL,
-            permissionBits: CALLER_ROLE
-        });
-        functions[4] = ExtensionFunction({
-            selector: bytes4(keccak256("permissioned_delegatecall()")),
-            callType: IExtensionConfig.CallType.DELEGATECALL,
-            permissionBits: CALLER_ROLE
-        });
-        functions[5] = ExtensionFunction({
-            selector: bytes4(keccak256("permissioned_staticcall()")),
-            callType: IExtensionConfig.CallType.STATICCALL,
-            permissionBits: CALLER_ROLE
-        });
-        config.extensionFunctions = functions;
-    }
-
-    function callbackFunctionOne() external {
-        emit CallbackFunctionOne();
-    }
-
-    function notPermissioned_call() external {
-        emit ExtensionFunctionCalled();
-    }
-
-    function notPermissioned_delegatecall() external {}
-
-    function notPermissioned_staticcall() external view {}
-
-    function permissioned_call() external {}
-
-    function permissioned_delegatecall() external {}
-
-    function permissioned_staticcall() external view {}
-}
-
-contract MockExtensionAlternate is MockExtensionWithFunctions {
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = getFunctionSignature();
-
-        ExtensionFunction[] memory functions = new ExtensionFunction[](7);
+        ExtensionFunction[] memory functions = new ExtensionFunction[](8);
         functions[0] = ExtensionFunction({
             selector: bytes4(keccak256("notPermissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
@@ -158,6 +105,91 @@ contract MockExtensionAlternate is MockExtensionWithFunctions {
             permissionBits: CALLER_ROLE
         });
         functions[6] = ExtensionFunction({
+            selector: bytes4(keccak256("setNumber(uint256)")),
+            callType: IExtensionConfig.CallType.CALL,
+            permissionBits: CALLER_ROLE
+        });
+        functions[7] = ExtensionFunction({
+            selector: bytes4(keccak256("getNumber()")),
+            callType: IExtensionConfig.CallType.STATICCALL,
+            permissionBits: 0
+        });
+        config.extensionFunctions = functions;
+    }
+
+    function setNumber(uint256 _number) external {
+        number = _number;
+    }
+
+    function getNumber() external view returns (uint256) {
+        return number;
+    }
+
+    function callbackFunctionOne() external {
+        emit CallbackFunctionOne();
+    }
+
+    function notPermissioned_call() external {
+        emit ExtensionFunctionCalled();
+    }
+
+    function notPermissioned_delegatecall() external {}
+
+    function notPermissioned_staticcall() external view {}
+
+    function permissioned_call() external {}
+
+    function permissioned_delegatecall() external {}
+
+    function permissioned_staticcall() external view {}
+}
+
+contract MockExtensionAlternate is MockExtensionWithFunctions {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = getFunctionSignature();
+
+        ExtensionFunction[] memory functions = new ExtensionFunction[](9);
+        functions[0] = ExtensionFunction({
+            selector: bytes4(keccak256("notPermissioned_call()")),
+            callType: IExtensionConfig.CallType.CALL,
+            permissionBits: 0
+        });
+        functions[1] = ExtensionFunction({
+            selector: bytes4(keccak256("notPermissioned_delegatecall()")),
+            callType: IExtensionConfig.CallType.DELEGATECALL,
+            permissionBits: 0
+        });
+        functions[2] = ExtensionFunction({
+            selector: bytes4(keccak256("notPermissioned_staticcall()")),
+            callType: IExtensionConfig.CallType.STATICCALL,
+            permissionBits: 0
+        });
+        functions[3] = ExtensionFunction({
+            selector: bytes4(keccak256("permissioned_call()")),
+            callType: IExtensionConfig.CallType.CALL,
+            permissionBits: CALLER_ROLE
+        });
+        functions[4] = ExtensionFunction({
+            selector: bytes4(keccak256("permissioned_delegatecall()")),
+            callType: IExtensionConfig.CallType.DELEGATECALL,
+            permissionBits: CALLER_ROLE
+        });
+        functions[5] = ExtensionFunction({
+            selector: bytes4(keccak256("permissioned_staticcall()")),
+            callType: IExtensionConfig.CallType.STATICCALL,
+            permissionBits: CALLER_ROLE
+        });
+        functions[6] = ExtensionFunction({
+            selector: bytes4(keccak256("setNumber()")),
+            callType: IExtensionConfig.CallType.CALL,
+            permissionBits: CALLER_ROLE
+        });
+        functions[7] = ExtensionFunction({
+            selector: bytes4(keccak256("getNumber()")),
+            callType: IExtensionConfig.CallType.STATICCALL,
+            permissionBits: 0
+        });
+        functions[8] = ExtensionFunction({
             selector: bytes4(keccak256("someNewFunction()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: 0
@@ -172,20 +204,24 @@ contract MockExtensionAlternate is MockExtensionWithFunctions {
     }
 }
 
-contract ModularCoreTest is Test {
-    ExtensionProxyFactory public factory;
-
+contract ModularCoreUpgradeableTest is Test {
     MockCore public core;
+
     MockExtensionWithFunctions public extensionImplementation;
+    MockExtensionAlternate public newExtensionImplementation;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
     address public unpermissionedActor = address(0x3);
 
     function setUp() public {
-        factory = new ExtensionProxyFactory();
+        // Deterministic, canonical ERC1967Factory contract
+        vm.etch(ERC1967FactoryConstants.ADDRESS, ERC1967FactoryConstants.BYTECODE);
+
         core = new MockCore(owner);
+
         extensionImplementation = new MockExtensionWithFunctions();
+        newExtensionImplementation = new MockExtensionAlternate();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -196,38 +232,19 @@ contract ModularCoreTest is Test {
     event ExtensionFunctionCalled();
 
     function test_installExtension() public {
-        // 1. Deterministic deploy a proxy to the extension implementation using the core
-        //    contract owner address as salt.
-        //
-        //    This is to maintain the property that the core contract owner can use 1 extension
-        //    contract for N core contracts.
-
-        bytes32 salt = bytes32(abi.encode(owner));
-        address extensionAddress = factory.deployDeterministic(address(extensionImplementation), owner, salt);
-
-        // 2. Install the extension in the core contract
+        // 1. Install the extension in the core contract by providing an implementation address.
         vm.prank(owner);
-        core.installExtension(extensionAddress, "");
+        core.installExtension(address(extensionImplementation), "");
 
-        // 3. Callback function is now called
+        // 2. Callback function is now called
         vm.expectEmit(true, false, false, false);
         emit CallbackFunctionOne();
         core.callbackFunctionOne();
 
-        // 4. Extension functions now callable via the core contract fallback
+        // 3. Extension functions now callable via the core contract fallback
         vm.expectEmit(true, false, false, false);
         emit ExtensionFunctionCalled();
         MockExtensionWithFunctions(address(core)).notPermissioned_call();
-    }
-
-    function _setup_postInstallExtension() internal returns (address extensionAddress) {
-        // 1. Deterministic deploy proxy to extension implementation.
-        bytes32 salt = bytes32(abi.encode(owner));
-        extensionAddress = factory.deployDeterministic(address(extensionImplementation), owner, salt);
-
-        // 2. Install extension in the core contract
-        vm.prank(owner);
-        core.installExtension(extensionAddress, "");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -237,7 +254,13 @@ contract ModularCoreTest is Test {
     event SomeNewEvent();
 
     function test_updateExtension() public {
-        address extension = _setup_postInstallExtension();
+        // Setup: Install extension in the core contract and set some storage
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        vm.prank(owner);
+        MockExtensionWithFunctions(address(core)).setNumber(42);
+        assertEq(MockExtensionWithFunctions(address(core)).getNumber(), 42);
 
         // 1. The extension update is going to include an additional extension function in
         //    the extension config called `someNewFunction`.
@@ -245,32 +268,23 @@ contract ModularCoreTest is Test {
         //    This function is unavailable prior to the update, but crucial for the extension
         //    to work according to spec.
 
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionFunctionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionFunctionNotInstalled.selector));
         MockExtensionAlternate(address(core)).someNewFunction();
 
-        // 2. Core contract owner updates the extension used by all their N core contracts at once
-        //    by updating its implementation via the extension proxy factory.
+        // 2. Core contract owner updates the extension used by the core contract by updating
+        //    its implementation via the `updateExtension` API.
 
-        address newExtensionImplementation = address(new MockExtensionAlternate());
         vm.prank(owner);
-        factory.upgrade(extension, newExtensionImplementation);
+        core.updateExtension(address(extensionImplementation), address(newExtensionImplementation));
 
-        // 3. Now any core contract using the extension requires a refresh
-        //    since it is currently out-of-sync with the updated extension config.
-
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionFunctionNotInstalled.selector));
-        MockExtensionAlternate(address(core)).someNewFunction();
-
-        vm.startPrank(owner);
-        core.uninstallExtension(extension, "");
-        core.installExtension(extension, "");
-        vm.stopPrank();
-
-        // 4. The new extension function is now callable.
+        // 3. The new extension function is now callable.
 
         vm.expectEmit(true, false, false, false);
         emit SomeNewEvent();
         MockExtensionAlternate(address(core)).someNewFunction();
+
+        // 4. Storage is not lost during the update because the proxy contract is the same, only its implementation is now different.
+        assertEq(MockExtensionAlternate(address(core)).getNumber(), 42);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -278,18 +292,29 @@ contract ModularCoreTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_uninstallExtension() public {
-        address extension = _setup_postInstallExtension();
+        // Setup: Install extension in the core contract and set some storage
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        // Setup: Update extension implementation to include new function.
+        vm.prank(owner);
+        core.updateExtension(address(extensionImplementation), address(newExtensionImplementation));
 
         vm.expectEmit(true, false, false, false);
         emit CallbackFunctionOne();
         core.callbackFunctionOne();
 
-        // 1. Uninstall the extension from the core contract
+        // 1. Uninstall the extension from the core contract by providing the current implementation address.
+
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionNotInstalled.selector));
         vm.prank(owner);
-        core.uninstallExtension(extension, "");
+        core.uninstallExtension(address(extensionImplementation), "");
+
+        vm.prank(owner);
+        core.uninstallExtension(address(newExtensionImplementation), "");
 
         // 2. E.g. required callback function no longer has a call destination
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionRequired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionRequired.selector));
         core.callbackFunctionOne();
     }
 }

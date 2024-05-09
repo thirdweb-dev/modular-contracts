@@ -212,7 +212,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         proxyFactory.upgrade(extensionProxyAddress, _newExtensionImplementation);
 
         // Re-install the extension config of the proxy post-upgrade
-        _installExtension(_newExtensionImplementation, "");
+        _mapExtensionConfigToProxy(extensionProxyAddress);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -243,7 +243,10 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
          *
          *  We discard this extension ID once the Extension is uninstalled.
          */
-        bytes32 extensionID = keccak256(abi.encode(extensionProxySaltSeed, address(this)));
+        bytes32 saltHash = keccak256(abi.encode(extensionProxySaltSeed, address(this)));
+        bytes20 addressBytes = bytes20(address(this));
+
+        bytes32 extensionID = bytes32(addressBytes) | (saltHash & bytes32(uint256(0xFFFFFFFFFFFFFFFFFFFFFFFF)));
 
         // Use the extension ID as a seed for whichever proxy contract contract is deployed next.
         extensionProxySaltSeed = extensionID;

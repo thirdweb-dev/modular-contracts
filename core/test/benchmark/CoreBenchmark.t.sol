@@ -19,7 +19,9 @@ contract MockBase {
 }
 
 contract MockCoreMinimal is MockBase, ModularCore {
-    constructor() ModularCore(msg.sender) {}
+    constructor() {
+        _initializeOwner(msg.sender);
+    }
 
     function getSupportedCallbackFunctions()
         public
@@ -39,7 +41,9 @@ contract MockCoreMinimal is MockBase, ModularCore {
 }
 
 contract MockCore is MockBase, ModularCore {
-    constructor() ModularCore(msg.sender) {}
+    constructor() {
+        _initializeOwner(msg.sender);
+    }
 
     function getSupportedCallbackFunctions()
         public
