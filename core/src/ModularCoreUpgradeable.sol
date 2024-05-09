@@ -7,11 +7,14 @@ import {IModularExtension} from "./interface/IModularExtension.sol";
 import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 
 // Utils
+import {ModularExtension} from "./ModularExtension.sol";
+import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
+import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 
-abstract contract ModularCore is IModularCore, OwnableRoles {
-    using EnumerableSetLib for EnumerableSetLib.AddressSet;
+abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
+    using EnumerableSetLib for EnumerableSetLib.Bytes32Set;
 
     /*//////////////////////////////////////////////////////////////
                                 TYPES
@@ -29,10 +32,15 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when an extension is installed.
-    event ExtensionInstalled(address sender, address extension);
+    event ExtensionInstalled(address sender, address extensionImplementation, address extensionProxy);
+
+    /// notice Emitted when an extension is updated.
+    event ExtensionUpdated(
+        address sender, address oldExtensionImplementation, address newExtensionImplementation, address extensionProxy
+    );
 
     /// @notice Emitted when an extension is uninstalled.
-    event ExtensionUninstalled(address sender, address extension);
+    event ExtensionUninstalled(address sender, address extensionImplementation, address extensionProxy);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -45,8 +53,14 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev The set of addresses of installed extensions.
-    EnumerableSetLib.AddressSet private extensions;
+    /// @dev The seed used to generate the next salt for extension proxies.
+    bytes32 private extensionProxySaltSeed;
+
+    /// @dev The set of extension IDs corresponding to installed extensions.
+    EnumerableSetLib.Bytes32Set private extensionIDs;
+
+    /// @dev extesion implementation => extension ID.
+    mapping(address => bytes32) private extensionImplementationToID;
 
     /// @dev interface ID => counter of extensions supporting the interface.
     mapping(bytes4 => uint256) private supportedInterfaceRefCounter;
@@ -56,9 +70,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @dev extension function selector => extension function data.
     mapping(bytes4 => InstalledExtensionFunction) private extensionFunctionData_;
-
-    /// @dev extension => bytecodehash stored at installation time.
-    mapping(address => bytes32) private extensionBytecodehash;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -88,9 +99,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     fallback() external payable {
         // Get extension function data.
         InstalledExtensionFunction memory extensionFunction = extensionFunctionData_[msg.sig];
-
-        // Verify that extension works according to the extension config stored for it.
-        _verifyExtensionBytecodehash(extensionFunction.implementation);
 
         // Check: extension function data exists.
         if (extensionFunction.implementation == address(0)) {
@@ -124,11 +132,13 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @notice Returns a list of addresess and respective extension configs of all installed extensions.
     function getInstalledExtensions() external view returns (InstalledExtension[] memory _installedExtensions) {
-        uint256 totalInstalled = extensions.length();
+        uint256 totalInstalled = extensionIDs.length();
         _installedExtensions = new InstalledExtension[](totalInstalled);
 
+        ERC1967Factory proxyFactory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+
         for (uint256 i = 0; i < totalInstalled; i++) {
-            address implementation = extensions.at(i);
+            address implementation = proxyFactory.predictDeterministicAddress(extensionIDs.at(i));
             _installedExtensions[i] = InstalledExtension({
                 implementation: implementation,
                 config: IModularExtension(implementation).getExtensionConfig()
@@ -141,30 +151,69 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Installs an extension contract.
-    function installExtension(address _extension, bytes calldata _data)
+    function installExtension(address _extensionImplementation, bytes calldata _data)
         external
         payable
         onlyOwnerOrRoles(INSTALLER_ROLE)
     {
         // Install extension.
-        _installExtension(_extension, _data);
+        _installExtension(_extensionImplementation, _data);
     }
 
     /// @notice Uninstalls an extension contract.
-    function uninstallExtension(address _extension, bytes calldata _data)
+    function uninstallExtension(address _extensionImplementation, bytes calldata _data)
         external
         payable
         onlyOwnerOrRoles(INSTALLER_ROLE)
     {
         // Uninstall extension.
-        _uninstallExtension(_extension, _data);
+        _uninstallExtension(_extensionImplementation, _data);
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
         if (interfaceId == 0xffffffff) return false;
         if (supportedInterfaceRefCounter[interfaceId] > 0) return true;
         return false;
+    }
+
+    /// @notice Updates an extension contract.
+    function updateExtension(address _currentExtensionImplementation, address _newExtensionImplementation)
+        external
+        onlyOwnerOrRoles(INSTALLER_ROLE)
+    {
+        // Get extension ID.
+        bytes32 extensionID = extensionImplementationToID[_currentExtensionImplementation];
+
+        // Check: extension is installed.
+        if (extensionID == bytes32(0)) {
+            revert ExtensionNotInstalled();
+        }
+
+        // Map new extension implementation to extension ID.
+        delete extensionImplementationToID[_currentExtensionImplementation];
+        extensionImplementationToID[_newExtensionImplementation] = extensionID;
+
+        // Get extension proxy address from extension ID.
+        ERC1967Factory proxyFactory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+        address extensionProxyAddress = proxyFactory.predictDeterministicAddress(extensionID);
+
+        /**
+         *  We sandwich the upgrade of the proxy's implementation between an uninstallation and re-installation
+         *  of its extension config.
+         *
+         *  This is because an upgrade may include changes to the return values of getExtensionConfig, and the
+         *  core contract's storage must be in sync with the extension's new extension config.
+         */
+
+        // Uninstall the extension config of the proxy pre-upgrade
+        _unmapExtensionConfigFromProxy(extensionProxyAddress);
+
+        // Upgrade extension proxy implementation.
+        proxyFactory.upgrade(extensionProxyAddress, _newExtensionImplementation);
+
+        // Re-install the extension config of the proxy post-upgrade
+        _installExtension(_newExtensionImplementation, "");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -172,24 +221,117 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Installs an extension contract.
-    function _installExtension(address _extension, bytes memory _data) internal {
-        if (!extensions.add(_extension)) {
+    function _installExtension(address _extensionImplementation, bytes memory _data) internal {
+        /**
+         *  Check: extension is not already installed.
+         *
+         *  An extension ID is the representation of an Extension currently installed in the contract.
+         *
+         *  If an implementation is mapped to an extension ID, this means that an extension proxy contract
+         *  with the underlying implementation is already deployed, and installed in the contract.
+         */
+        if (extensionImplementationToID[_extensionImplementation] != bytes32(0)) {
             revert ExtensionAlreadyInstalled();
         }
 
-        // Store extension bytecodehash
-        bytes32 bytecodeHash;
-        assembly {
-            bytecodeHash := extcodehash(_extension)
-        }
-        extensionBytecodehash[_extension] = bytecodeHash;
+        /**
+         *  Generate an extension ID that is new and random for this specific core contract instance.
+         *
+         *  We use this extension ID as the salt for the deterministic deployment of the extension proxy contract.
+         *
+         *  We will continue to use this extension ID to identify the installed Extension construct across `n` number
+         *  of implementation upgrades of its extension proxy contract.
+         *
+         *  We discard this extension ID once the Extension is uninstalled.
+         */
+        bytes32 extensionID = keccak256(abi.encode(extensionProxySaltSeed, address(this)));
 
-        // Get extension config.
-        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
+        // Use the extension ID as a seed for whichever proxy contract contract is deployed next.
+        extensionProxySaltSeed = extensionID;
+
+        /**
+         *  Map the extension implementation to the extension ID.
+         *
+         *  Note: "extension ID" is an internal construct of this smart contract to uniquely identify an Extension (as a construct).
+         *
+         *  From the perspective of an end user of this contract, they are providing an implementation address as an extension to
+         *  install, and they will later provide a new implementation address to update their extension, or the existing
+         *  implementation address to uninstall their extension.
+         */
+        extensionImplementationToID[_extensionImplementation] = extensionID;
+
+        // Deploy a new extension proxy contract if one does not already exist.
+        ERC1967Factory proxyFactory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+        address extensionProxyAddress = proxyFactory.predictDeterministicAddress(extensionID);
+
+        if (extensionProxyAddress.code.length == 0) {
+            proxyFactory.deployDeterministic(_extensionImplementation, address(this), extensionID);
+        }
+
+        // Store the new extension ID. Conflicts are not possible since each new extension ID is derived from a hash of the previous ID.
+        extensionIDs.add(extensionID);
+
+        // Fetch extension config and map config functions to proxy as call destination.
+        bool registeredInstallationCallback = _mapExtensionConfigToProxy(extensionProxyAddress);
+
+        // Call `onInstall` callback function if extension has registered installation callback.
+        if (registeredInstallationCallback) {
+            (bool success, bytes memory returndata) = extensionProxyAddress.call{value: msg.value}(
+                abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data))
+            );
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
+            }
+        }
+
+        emit ExtensionInstalled(msg.sender, _extensionImplementation, extensionProxyAddress);
+    }
+
+    /// @notice Uninstalls an extension contract.
+    function _uninstallExtension(address _extensionImplementation, bytes memory _data) internal {
+        // Get extension ID.
+        bytes32 extensionID = extensionImplementationToID[_extensionImplementation];
+
+        // Check: extension is installed.
+        if (extensionID == bytes32(0)) {
+            revert ExtensionNotInstalled();
+        }
+
+        // Remove extension ID from storage.
+        extensionIDs.remove(extensionID);
+
+        // Remove map of extension implementation to extension ID.
+        delete extensionImplementationToID[_extensionImplementation];
+
+        // Get extension proxy address from extension ID.
+        ERC1967Factory proxyFactory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+        address extensionProxyAddress = proxyFactory.predictDeterministicAddress(extensionID);
+
+        // Fetch extension config and delete association of its functions with an extension proxy.
+        bool registeredInstallationCallback = _unmapExtensionConfigFromProxy(extensionProxyAddress);
+
+        if (registeredInstallationCallback) {
+            (bool success, bytes memory returndata) = extensionProxyAddress.call{value: msg.value}(
+                abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data))
+            );
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
+            }
+        }
+
+        emit ExtensionUninstalled(msg.sender, _extensionImplementation, extensionProxyAddress);
+    }
+
+    /// @notice Fetches an extension config and associates its functions with an extension proxy.
+    function _mapExtensionConfigToProxy(address _extensionProxyAddress)
+        private
+        returns (bool registeredInstallationCallback)
+    {
+        ExtensionConfig memory config = IModularExtension(_extensionProxyAddress).getExtensionConfig();
 
         // Check: ModularCore supports interface required by extension.
         if (config.requiredInterfaceId != bytes4(0)) {
-            if (!this.supportsInterface(config.requiredInterfaceId)) {
+            if (!supportsInterface(config.requiredInterfaceId)) {
                 revert ExtensionInterfaceNotCompatible(config.requiredInterfaceId);
             }
         }
@@ -223,7 +365,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
             if (!supported) revert CallbackFunctionNotSupported();
 
-            callbackFunctionImplementation_[callbackFunction] = _extension;
+            callbackFunctionImplementation_[callbackFunction] = _extensionProxyAddress;
         }
 
         // Store extension function data.
@@ -237,33 +379,21 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
 
             extensionFunctionData_[ext.selector] = InstalledExtensionFunction({
-                implementation: _extension,
+                implementation: _extensionProxyAddress,
                 callType: ext.callType,
                 permissionBits: ext.permissionBits
             });
         }
 
-        // Call `onInstall` callback function if extension has registered installation callback.
-        if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) =
-                _extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
-            if (!success) {
-                _revert(returndata, CallbackExecutionReverted.selector);
-            }
-        }
-
-        emit ExtensionInstalled(msg.sender, _extension);
+        registeredInstallationCallback = config.registerInstallationCallback;
     }
 
-    /// @notice Uninstalls an extension contract.
-    function _uninstallExtension(address _extension, bytes memory _data) internal {
-        // Check: remove and check if the extension is installed
-        if (!extensions.remove(_extension)) {
-            revert ExtensionNotInstalled();
-        }
-
-        // Get extension config.
-        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
+    /// @notice Fetches an extension config and deletes association of its functions with an extension proxy.
+    function _unmapExtensionConfigFromProxy(address _extensionProxyAddress)
+        private
+        returns (bool registeredInstallationCallback)
+    {
+        ExtensionConfig memory config = IModularExtension(_extensionProxyAddress).getExtensionConfig();
 
         uint256 supportedInterfaceLength = config.supportedInterfaces.length;
         for (uint256 i = 0; i < supportedInterfaceLength; i++) {
@@ -271,30 +401,19 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             supportedInterfaceRefCounter[config.supportedInterfaces[i]] -= 1;
         }
 
-        // Remove extension function data
         uint256 functionLength = config.extensionFunctions.length;
         for (uint256 i = 0; i < functionLength; i++) {
             ExtensionFunction memory ext = config.extensionFunctions[i];
             delete extensionFunctionData_[ext.selector];
         }
 
-        // Remove callback function data
         uint256 callbackLength = config.callbackFunctions.length;
         for (uint256 i = 0; i < callbackLength; i++) {
             bytes4 callbackFunction = config.callbackFunctions[i];
             delete callbackFunctionImplementation_[callbackFunction];
         }
 
-        if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) = _extension.call{value: msg.value}(
-                abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data))
-            );
-            if (!success) {
-                _revert(returndata, CallbackExecutionReverted.selector);
-            }
-        }
-
-        emit ExtensionUninstalled(msg.sender, _extension);
+        registeredInstallationCallback = config.registerInstallationCallback;
     }
 
     /// @dev Calls an extension callback function and checks whether it is optional or required.
@@ -316,9 +435,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         address extension = callbackFunctionImplementation_[_selector];
-
-        // Verify that extension works according to the extension config stored for it.
-        _verifyExtensionBytecodehash(extension);
 
         if (extension != address(0)) {
             (success, returndata) = extension.call{value: msg.value}(_abiEncodedCalldata);
@@ -352,9 +468,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         address extension = callbackFunctionImplementation_[_selector];
-
-        // Verify that extension works according to the extension config stored for it.
-        _verifyExtensionBytecodehash(extension);
 
         if (extension != address(0)) {
             (success, returndata) = extension.staticcall(_abiEncodedCalldata);
@@ -450,18 +563,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                 mstore(0x00, _errorSignature)
                 revert(0x1c, 0x04)
             }
-        }
-    }
-
-    /// @dev Verifies that the bytecode of the extension has not changed.
-    function _verifyExtensionBytecodehash(address _extension) internal view {
-        bytes32 bytecodeHash;
-        assembly {
-            bytecodeHash := extcodehash(_extension)
-        }
-
-        if (extensionBytecodehash[_extension] != bytecodeHash) {
-            revert ExtensionOutOfSync();
         }
     }
 }
