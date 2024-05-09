@@ -75,7 +75,6 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error ExtensionOutOfSync();
     error ExtensionNotInstalled();
     error ExtensionAlreadyInstalled();
 
