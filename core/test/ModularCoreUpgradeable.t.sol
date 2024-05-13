@@ -13,10 +13,11 @@ import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
 contract MockBase {
     uint256 internal constant NUMBER_OF_CALLBACK = 10;
 
-    function getFunctionSignature() internal pure virtual returns (bytes4[] memory functions) {
-        functions = new bytes4[](NUMBER_OF_CALLBACK);
+    function getCallbacks() internal pure virtual returns (IExtensionConfig.CallbackFunction[] memory functions) {
+        functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
-            functions[i] = bytes4(uint32(i));
+            functions[i].selector = bytes4(uint32(i));
+            functions[i].callType = IExtensionConfig.CallType.CALL;
         }
     }
 }
@@ -46,7 +47,7 @@ contract MockCore is MockBase, ModularCoreUpgradeable {
     }
 
     function callbackFunctionOne() external {
-        _callExtensionCallback(msg.sig, abi.encodeCall(this.callbackFunctionOne, ()));
+        _executeCallbackFunction(msg.sig, abi.encodeCall(this.callbackFunctionOne, ()));
     }
 }
 
@@ -62,16 +63,18 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
 
     function onUninstall(address sender, bytes memory data) external {}
 
-    function getFunctionSignature() internal pure override returns (bytes4[] memory functions) {
-        functions = new bytes4[](NUMBER_OF_CALLBACK + 1);
+    function getCallbacks() internal pure override returns (IExtensionConfig.CallbackFunction[] memory functions) {
+        functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK + 1);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
-            functions[i] = bytes4(uint32(i));
+            functions[i].selector = bytes4(uint32(i));
+            functions[i].callType = IExtensionConfig.CallType.CALL;
         }
-        functions[NUMBER_OF_CALLBACK] = this.callbackFunctionOne.selector;
+        functions[NUMBER_OF_CALLBACK].selector = this.callbackFunctionOne.selector;
+        functions[NUMBER_OF_CALLBACK].callType = IExtensionConfig.CallType.CALL;
     }
 
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = getFunctionSignature();
+        config.callbackFunctions = getCallbacks();
 
         FallbackFunction[] memory functions = new FallbackFunction[](8);
         functions[0] = FallbackFunction({
@@ -146,7 +149,7 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
 
 contract MockExtensionAlternate is MockExtensionWithFunctions {
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = getFunctionSignature();
+        config.callbackFunctions = getCallbacks();
 
         FallbackFunction[] memory functions = new FallbackFunction[](9);
         functions[0] = FallbackFunction({

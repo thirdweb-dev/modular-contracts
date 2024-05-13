@@ -17,11 +17,17 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                                 TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Internal representation of an extension function callable via fallback().
+    /// @dev Internal representation of a fallback function callable via fallback().
     struct InstalledFallbackFunction {
         address implementation;
         CallType callType;
         uint256 permissionBits;
+    }
+
+    /// @dev Internal representation of a callback function called during the execution of some fixed function.
+    struct InstalledCallbackFunction {
+        address implementation;
+        CallType callType;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -51,10 +57,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     /// @dev interface ID => counter of extensions supporting the interface.
     mapping(bytes4 => uint256) private supportedInterfaceRefCounter;
 
-    /// @dev callback function selector => call destination.
-    mapping(bytes4 => address) private callbackFunctionImplementation_;
+    /// @dev callback function selector => callback function data.
+    mapping(bytes4 => InstalledCallbackFunction) private callbackFunctionData_;
 
-    /// @dev extension function selector => extension function data.
+    /// @dev fallback function selector => extension function data.
     mapping(bytes4 => InstalledFallbackFunction) private fallbackFunctionData_;
 
     /// @dev extension => bytecodehash stored at installation time.
@@ -196,24 +202,25 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         uint256 callbackLength = config.callbackFunctions.length;
         for (uint256 i = 0; i < callbackLength; i++) {
-            bytes4 callbackFunction = config.callbackFunctions[i];
+            CallbackFunction memory callbackFunction = config.callbackFunctions[i];
 
             // Check: callback function data not already stored.
-            if (callbackFunctionImplementation_[callbackFunction] != address(0)) {
+            if (callbackFunctionData_[callbackFunction.selector].implementation != address(0)) {
                 revert CallbackFunctionAlreadyInstalled();
             }
 
             // Check: callback function is supported
             bool supported = false;
             for (uint256 j = 0; j < supportedCallbacksLength; j++) {
-                if (supportedCallbacks[j].selector == callbackFunction) {
+                if (supportedCallbacks[j].selector == callbackFunction.selector) {
                     supported = true;
                     break;
                 }
             }
             if (!supported) revert CallbackFunctionNotSupported();
 
-            callbackFunctionImplementation_[callbackFunction] = _extension;
+            callbackFunctionData_[callbackFunction.selector] =
+                InstalledCallbackFunction({implementation: _extension, callType: callbackFunction.callType});
         }
 
         // Store extension function data.
@@ -271,8 +278,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         // Remove callback function data
         uint256 callbackLength = config.callbackFunctions.length;
         for (uint256 i = 0; i < callbackLength; i++) {
-            bytes4 callbackFunction = config.callbackFunctions[i];
-            delete callbackFunctionImplementation_[callbackFunction];
+            CallbackFunction memory callbackFunction = config.callbackFunctions[i];
+            delete callbackFunctionData_[callbackFunction.selector];
         }
 
         if (config.registerInstallationCallback) {
@@ -288,7 +295,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     }
 
     /// @dev Calls an extension callback function and checks whether it is optional or required.
-    function _callExtensionCallback(bytes4 _selector, bytes memory _abiEncodedCalldata)
+    function _executeCallbackFunction(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
         returns (bool success, bytes memory returndata)
     {
@@ -305,12 +312,15 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
         }
 
-        address extension = callbackFunctionImplementation_[_selector];
+        InstalledCallbackFunction memory callbackFunction = callbackFunctionData_[_selector];
 
-        if (extension != address(0)) {
-            (success, returndata) = extension.call{value: msg.value}(_abiEncodedCalldata);
-            if (!success) {
-                _revert(returndata, CallbackExecutionReverted.selector);
+        if (callbackFunction.implementation != address(0)) {
+            if (callbackFunction.callType == CallType.CALL) {
+                (success, returndata) = callbackFunction.implementation.call{value: msg.value}(_abiEncodedCalldata);
+            } else if (callbackFunction.callType == CallType.DELEGATECALL) {
+                (success, returndata) = callbackFunction.implementation.delegatecall(_abiEncodedCalldata);
+            } else if (callbackFunction.callType == CallType.STATICCALL) {
+                (success, returndata) = callbackFunction.implementation.staticcall(_abiEncodedCalldata);
             }
         } else {
             if (callbackMode == CallbackMode.REQUIRED) {
@@ -319,8 +329,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
     }
 
-    /// @dev Staticcalls an extension callback function and checks whether it is optional or required.
-    function _staticcallExtensionCallback(bytes4 _selector, bytes memory _abiEncodedCalldata)
+    /// @dev Calls an extension callback function and checks whether it is optional or required.
+    function _executeCallbackFunctionView(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
         view
         returns (bool success, bytes memory returndata)
@@ -338,13 +348,14 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
         }
 
-        address extension = callbackFunctionImplementation_[_selector];
+        InstalledCallbackFunction memory callbackFunction = callbackFunctionData_[_selector];
 
-        if (extension != address(0)) {
-            (success, returndata) = extension.staticcall(_abiEncodedCalldata);
-            if (!success) {
-                _revert(returndata, CallbackExecutionReverted.selector);
-            }
+        if (callbackFunction.callType != CallType.STATICCALL) {
+            revert CallbackFunctionNotSupported();
+        }
+
+        if (callbackFunction.implementation != address(0)) {
+            (success, returndata) = callbackFunction.implementation.staticcall(_abiEncodedCalldata);
         } else {
             if (callbackMode == CallbackMode.REQUIRED) {
                 revert CallbackFunctionRequired();

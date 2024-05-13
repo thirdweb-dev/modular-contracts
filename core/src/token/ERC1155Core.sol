@@ -258,7 +258,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
 
     /// @dev Calls the beforeMint hook.
     function _beforeMint(address to, uint256 tokenId, uint256 value, bytes memory data) internal virtual {
-        _callExtensionCallback(
+        _executeCallbackFunction(
             BeforeMintCallbackERC1155.beforeMintERC1155.selector,
             abi.encodeCall(BeforeMintCallbackERC1155.beforeMintERC1155, (to, tokenId, value, data))
         );
@@ -266,7 +266,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address from, address to, uint256 tokenId, uint256 value) internal virtual {
-        _callExtensionCallback(
+        _executeCallbackFunction(
             BeforeTransferCallbackERC1155.beforeTransferERC1155.selector,
             abi.encodeCall(BeforeTransferCallbackERC1155.beforeTransferERC1155, (from, to, tokenId, value))
         );
@@ -277,7 +277,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         internal
         virtual
     {
-        _callExtensionCallback(
+        _executeCallbackFunction(
             BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155.selector,
             abi.encodeCall(BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155, (from, to, tokenIds, values))
         );
@@ -285,7 +285,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
 
     /// @dev Calls the beforeBurn hook, if installed.
     function _beforeBurn(address operator, uint256 tokenId, uint256 value, bytes memory data) internal virtual {
-        _callExtensionCallback(
+        _executeCallbackFunction(
             BeforeBurnCallbackERC1155.beforeBurnERC1155.selector,
             abi.encodeCall(BeforeBurnCallbackERC1155.beforeBurnERC1155, (operator, tokenId, value, data))
         );
@@ -293,7 +293,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
 
     /// @dev Calls the beforeApprove hook, if installed.
     function _beforeApproveForAll(address from, address to, bool approved) internal virtual {
-        _callExtensionCallback(
+        _executeCallbackFunction(
             BeforeApproveForAllCallback.beforeApproveForAll.selector,
             abi.encodeCall(BeforeApproveForAllCallback.beforeApproveForAll, (from, to, approved))
         );
@@ -301,7 +301,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
 
     /// @dev Fetches token URI from the token metadata hook.
     function _getTokenURI(uint256 tokenId) internal view virtual returns (string memory tokenUri) {
-        (, bytes memory returndata) = _staticcallExtensionCallback(
+        (, bytes memory returndata) = _executeCallbackFunctionView(
             OnTokenURICallback.onTokenURI.selector, abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
         );
         tokenUri = abi.decode(returndata, (string));
@@ -314,7 +314,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         virtual
         returns (address receiver, uint256 royaltyAmount)
     {
-        (, bytes memory returndata) = _staticcallExtensionCallback(
+        (, bytes memory returndata) = _executeCallbackFunctionView(
             OnRoyaltyInfoCallback.onRoyaltyInfo.selector,
             abi.encodeCall(OnRoyaltyInfoCallback.onRoyaltyInfo, (tokenId, salePrice))
         );

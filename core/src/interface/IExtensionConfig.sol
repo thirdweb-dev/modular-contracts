@@ -13,19 +13,25 @@ interface IExtensionConfig {
         DELEGATECALL
     }
 
-    /// @dev Struct for an extension function. Installing an extension in a core adds its extension functions to the core's ABI.
+    /// @dev Struct for a callback function. Called by a Core into an Extension during the execution of some fixed function.
+    struct CallbackFunction {
+        bytes4 selector;
+        CallType callType;
+    }
+
+    /// @dev Struct for a fallback function. Installing an extension in a core adds its fallback functions to the core's ABI.
     struct FallbackFunction {
         bytes4 selector;
         CallType callType;
         uint256 permissionBits;
     }
 
-    /// @notice All extension functions and supported callback functions of an extension contract.
+    /// @notice All fallback functions and callback functions of an extension contract.
     struct ExtensionConfig {
         bytes4 requiredInterfaceId; // Optional, can be bytes4(0), if there is no required interface id
         bool registerInstallationCallback; // Register onInstall / onUninstall callback
-        bytes4[] callbackFunctions;
         bytes4[] supportedInterfaces;
+        CallbackFunction[] callbackFunctions;
         FallbackFunction[] fallbackFunctions;
     }
 }

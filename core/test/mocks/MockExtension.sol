@@ -40,8 +40,8 @@ contract MockExtensionERC20 is BeforeMintCallbackERC20, IModularExtension, Initi
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](1);
-        config.callbackFunctions[0] = this.beforeMintERC20.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
     }
 
     function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
@@ -75,8 +75,8 @@ contract MockExtensionWithOnTokenURICallback is
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
-        bytes4[] memory callbackFunctions = new bytes4[](1);
-        callbackFunctions[0] = this.onTokenURI.selector;
+        CallbackFunction[] memory callbackFunctions = new CallbackFunction[](1);
+        callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
         FallbackFunction[] memory fallbackFunctions = new FallbackFunction[](0);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, fallbackFunctions);
     }
@@ -104,7 +104,7 @@ contract MockExtensionWithPermissionedFallback is IModularExtension, Initializab
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
-        bytes4[] memory callbackFunctions = new bytes4[](0);
+        CallbackFunction[] memory callbackFunctions = new CallbackFunction[](0);
         FallbackFunction[] memory fallbackFunctions = new FallbackFunction[](1);
         fallbackFunctions[0] = FallbackFunction(this.permissionedFunction.selector, CallType.CALL, CALLER_ROLE);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, fallbackFunctions);
@@ -136,8 +136,8 @@ contract MockExtensionWithOneCallbackERC20 is
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
-        bytes4[] memory callbackFunctions = new bytes4[](1);
-        callbackFunctions[0] = this.beforeMintERC20.selector;
+        CallbackFunction[] memory callbackFunctions = new CallbackFunction[](1);
+        callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
         FallbackFunction[] memory fallbackFunctions = new FallbackFunction[](0);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, fallbackFunctions);
     }
@@ -167,11 +167,11 @@ contract MockExtensionWithFourCallbacksERC20 is
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
-        bytes4[] memory callbackFunctions = new bytes4[](4);
-        callbackFunctions[0] = this.beforeMintERC20.selector;
-        callbackFunctions[1] = this.beforeTransferERC20.selector;
-        callbackFunctions[2] = this.beforeBurnERC20.selector;
-        callbackFunctions[3] = this.beforeApproveERC20.selector;
+        CallbackFunction[] memory callbackFunctions = new CallbackFunction[](4);
+        callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
+        callbackFunctions[1] = CallbackFunction(this.beforeTransferERC20.selector, CallType.CALL);
+        callbackFunctions[2] = CallbackFunction(this.beforeBurnERC20.selector, CallType.CALL);
+        callbackFunctions[3] = CallbackFunction(this.beforeApproveERC20.selector, CallType.CALL);
         FallbackFunction[] memory fallbackFunctions = new FallbackFunction[](0);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, fallbackFunctions);
     }
@@ -193,8 +193,8 @@ contract BuggyMockExtensionERC20 is BeforeMintCallbackERC20, IModularExtension, 
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](1);
-        config.callbackFunctions[0] = this.beforeMintERC20.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
     }
 
     error BuggyMinting();
@@ -228,8 +228,8 @@ contract MockExtensionERC721 is BeforeMintCallbackERC721, IModularExtension, Ini
     mapping(address => uint256) nextTokenIdToMint;
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](1);
-        config.callbackFunctions[0] = this.beforeMintERC721.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
     }
 
     function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
@@ -267,8 +267,8 @@ contract BuggyMockExtensionERC721 is BeforeMintCallbackERC721, IModularExtension
     mapping(address => uint256) nextTokenIdToMint;
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](1);
-        config.callbackFunctions[0] = this.beforeMintERC721.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
     }
 
     error BuggyMinting();
@@ -311,8 +311,8 @@ contract MockExtensionWithOneCallbackERC721 is
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](1);
-        config.callbackFunctions[0] = this.beforeMintERC721.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
     }
 }
 
@@ -340,11 +340,11 @@ contract MockExtensionWithFourCallbacksERC721 is
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](4);
-        config.callbackFunctions[0] = this.beforeMintERC721.selector;
-        config.callbackFunctions[1] = this.beforeTransferERC721.selector;
-        config.callbackFunctions[2] = this.beforeBurnERC721.selector;
-        config.callbackFunctions[3] = this.beforeApproveERC721.selector;
+        config.callbackFunctions = new CallbackFunction[](4);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeTransferERC721.selector, CallType.CALL);
+        config.callbackFunctions[2] = CallbackFunction(this.beforeBurnERC721.selector, CallType.CALL);
+        config.callbackFunctions[3] = CallbackFunction(this.beforeApproveERC721.selector, CallType.CALL);
     }
 }
 
@@ -366,8 +366,8 @@ contract MockExtensionERC1155 is BeforeMintCallbackERC1155, IModularExtension, I
     mapping(address => uint256) nextTokenIdToMint;
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](1);
-        config.callbackFunctions[0] = this.beforeMintERC1155.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
     }
 
     function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
@@ -404,8 +404,8 @@ contract BuggyMockExtensionERC1155 is BeforeMintCallbackERC1155, IModularExtensi
     mapping(address => uint256) nextTokenIdToMint;
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](1);
-        config.callbackFunctions[0] = this.beforeMintERC1155.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
     }
 
     error BuggyMinting();
@@ -447,8 +447,8 @@ contract MockExtensionWithOneCallbackERC1155 is
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](1);
-        config.callbackFunctions[0] = this.beforeMintERC1155.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
     }
 }
 
@@ -476,10 +476,10 @@ contract MockExtensionWithFourCallbacksERC1155 is
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new bytes4[](4);
-        config.callbackFunctions[0] = this.beforeMintERC1155.selector;
-        config.callbackFunctions[1] = this.beforeTransferERC1155.selector;
-        config.callbackFunctions[2] = this.beforeBurnERC1155.selector;
-        config.callbackFunctions[3] = this.beforeApproveForAll.selector;
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeTransferERC1155.selector, CallType.CALL);
+        config.callbackFunctions[2] = CallbackFunction(this.beforeBurnERC1155.selector, CallType.CALL);
+        config.callbackFunctions[3] = CallbackFunction(this.beforeApproveForAll.selector, CallType.CALL);
     }
 }
