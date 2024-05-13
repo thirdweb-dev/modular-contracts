@@ -114,7 +114,7 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: 0
         });
-        config.extensionFunctions = functions;
+        config.fallbackFunctions = functions;
     }
 
     function setNumber(uint256 _number) external {
@@ -194,7 +194,7 @@ contract MockExtensionAlternate is MockExtensionWithFunctions {
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: 0
         });
-        config.extensionFunctions = functions;
+        config.fallbackFunctions = functions;
     }
 
     event SomeNewEvent();

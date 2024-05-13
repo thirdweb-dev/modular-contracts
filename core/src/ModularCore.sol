@@ -217,9 +217,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         // Store extension function data.
-        uint256 functionLength = config.extensionFunctions.length;
+        uint256 functionLength = config.fallbackFunctions.length;
         for (uint256 i = 0; i < functionLength; i++) {
-            ExtensionFunction memory ext = config.extensionFunctions[i];
+            ExtensionFunction memory ext = config.fallbackFunctions[i];
 
             // Check: extension function data not already stored.
             if (extensionFunctionData_[ext.selector].implementation != address(0)) {
@@ -262,9 +262,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         // Remove extension function data
-        uint256 functionLength = config.extensionFunctions.length;
+        uint256 functionLength = config.fallbackFunctions.length;
         for (uint256 i = 0; i < functionLength; i++) {
-            ExtensionFunction memory ext = config.extensionFunctions[i];
+            ExtensionFunction memory ext = config.fallbackFunctions[i];
             delete extensionFunctionData_[ext.selector];
         }
 

@@ -130,7 +130,7 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: CALLER_ROLE
         });
-        config.extensionFunctions = functions;
+        config.fallbackFunctions = functions;
     }
 
     function callbackFunctionOne() external {
