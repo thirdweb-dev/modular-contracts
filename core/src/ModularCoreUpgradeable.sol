@@ -21,7 +21,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Internal representation of an extension function callable via fallback().
-    struct InstalledExtensionFunction {
+    struct InstalledFallbackFunction {
         address implementation;
         CallType callType;
         uint256 permissionBits;
@@ -69,7 +69,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     mapping(bytes4 => address) private callbackFunctionImplementation_;
 
     /// @dev extension function selector => extension function data.
-    mapping(bytes4 => InstalledExtensionFunction) private extensionFunctionData_;
+    mapping(bytes4 => InstalledFallbackFunction) private fallbackFunctionData_;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -83,8 +83,8 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     error CallbackFunctionNotSupported();
     error CallbackFunctionAlreadyInstalled();
 
-    error ExtensionFunctionAlreadyInstalled();
-    error ExtensionFunctionNotInstalled();
+    error FallbackFunctionAlreadyInstalled();
+    error FallbackFunctionNotInstalled();
 
     error ExtensionInterfaceNotCompatible(bytes4 requiredInterfaceId);
 
@@ -97,28 +97,28 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     /// @notice Routes a call to the appropriate extension contract.
     fallback() external payable {
         // Get extension function data.
-        InstalledExtensionFunction memory extensionFunction = extensionFunctionData_[msg.sig];
+        InstalledFallbackFunction memory fallbackFunction = fallbackFunctionData_[msg.sig];
 
         // Check: extension function data exists.
-        if (extensionFunction.implementation == address(0)) {
-            revert ExtensionFunctionNotInstalled();
+        if (fallbackFunction.implementation == address(0)) {
+            revert FallbackFunctionNotInstalled();
         }
 
         // Check: authorized to call permissioned extension function
-        if (extensionFunction.permissionBits > 0) {
-            _checkOwnerOrRoles(extensionFunction.permissionBits);
+        if (fallbackFunction.permissionBits > 0) {
+            _checkOwnerOrRoles(fallbackFunction.permissionBits);
         }
 
         // Call extension function.
-        CallType callType = extensionFunction.callType;
+        CallType callType = fallbackFunction.callType;
 
         // note: these code block needs to happen at the end of the function
         if (callType == CallType.CALL) {
-            _callAndReturn(extensionFunction.implementation);
+            _callAndReturn(fallbackFunction.implementation);
         } else if (callType == CallType.DELEGATECALL) {
-            _delegateAndReturn(extensionFunction.implementation);
+            _delegateAndReturn(fallbackFunction.implementation);
         } else if (callType == CallType.STATICCALL) {
-            _staticcallAndReturn(extensionFunction.implementation);
+            _staticcallAndReturn(fallbackFunction.implementation);
         }
     }
 
@@ -373,14 +373,14 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         // Store extension function data.
         uint256 functionLength = config.fallbackFunctions.length;
         for (uint256 i = 0; i < functionLength; i++) {
-            ExtensionFunction memory ext = config.fallbackFunctions[i];
+            FallbackFunction memory ext = config.fallbackFunctions[i];
 
             // Check: extension function data not already stored.
-            if (extensionFunctionData_[ext.selector].implementation != address(0)) {
-                revert ExtensionFunctionAlreadyInstalled();
+            if (fallbackFunctionData_[ext.selector].implementation != address(0)) {
+                revert FallbackFunctionAlreadyInstalled();
             }
 
-            extensionFunctionData_[ext.selector] = InstalledExtensionFunction({
+            fallbackFunctionData_[ext.selector] = InstalledFallbackFunction({
                 implementation: _extensionProxyAddress,
                 callType: ext.callType,
                 permissionBits: ext.permissionBits
@@ -405,8 +405,8 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
 
         uint256 functionLength = config.fallbackFunctions.length;
         for (uint256 i = 0; i < functionLength; i++) {
-            ExtensionFunction memory ext = config.fallbackFunctions[i];
-            delete extensionFunctionData_[ext.selector];
+            FallbackFunction memory ext = config.fallbackFunctions[i];
+            delete fallbackFunctionData_[ext.selector];
         }
 
         uint256 callbackLength = config.callbackFunctions.length;

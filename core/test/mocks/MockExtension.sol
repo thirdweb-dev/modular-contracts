@@ -77,7 +77,7 @@ contract MockExtensionWithOnTokenURICallback is
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
         bytes4[] memory callbackFunctions = new bytes4[](1);
         callbackFunctions[0] = this.onTokenURI.selector;
-        ExtensionFunction[] memory fallbackFunctions = new ExtensionFunction[](0);
+        FallbackFunction[] memory fallbackFunctions = new FallbackFunction[](0);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, fallbackFunctions);
     }
 
@@ -105,8 +105,8 @@ contract MockExtensionWithPermissionedFallback is IModularExtension, Initializab
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
         bytes4[] memory callbackFunctions = new bytes4[](0);
-        ExtensionFunction[] memory fallbackFunctions = new ExtensionFunction[](1);
-        fallbackFunctions[0] = ExtensionFunction(this.permissionedFunction.selector, CallType.CALL, CALLER_ROLE);
+        FallbackFunction[] memory fallbackFunctions = new FallbackFunction[](1);
+        fallbackFunctions[0] = FallbackFunction(this.permissionedFunction.selector, CallType.CALL, CALLER_ROLE);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, fallbackFunctions);
     }
 
@@ -138,7 +138,7 @@ contract MockExtensionWithOneCallbackERC20 is
     function getExtensionConfig() external pure override returns (ExtensionConfig memory) {
         bytes4[] memory callbackFunctions = new bytes4[](1);
         callbackFunctions[0] = this.beforeMintERC20.selector;
-        ExtensionFunction[] memory fallbackFunctions = new ExtensionFunction[](0);
+        FallbackFunction[] memory fallbackFunctions = new FallbackFunction[](0);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, fallbackFunctions);
     }
 }
@@ -172,7 +172,7 @@ contract MockExtensionWithFourCallbacksERC20 is
         callbackFunctions[1] = this.beforeTransferERC20.selector;
         callbackFunctions[2] = this.beforeBurnERC20.selector;
         callbackFunctions[3] = this.beforeApproveERC20.selector;
-        ExtensionFunction[] memory fallbackFunctions = new ExtensionFunction[](0);
+        FallbackFunction[] memory fallbackFunctions = new FallbackFunction[](0);
         return ExtensionConfig(bytes4(0), false, new bytes4[](0), callbackFunctions, fallbackFunctions);
     }
 }

@@ -99,33 +99,33 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getFunctionSignature();
 
-        ExtensionFunction[] memory functions = new ExtensionFunction[](6);
-        functions[0] = ExtensionFunction({
+        FallbackFunction[] memory functions = new FallbackFunction[](6);
+        functions[0] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: 0
         });
-        functions[1] = ExtensionFunction({
+        functions[1] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
             permissionBits: 0
         });
-        functions[2] = ExtensionFunction({
+        functions[2] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: 0
         });
-        functions[3] = ExtensionFunction({
+        functions[3] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: CALLER_ROLE
         });
-        functions[4] = ExtensionFunction({
+        functions[4] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
             permissionBits: CALLER_ROLE
         });
-        functions[5] = ExtensionFunction({
+        functions[5] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: CALLER_ROLE

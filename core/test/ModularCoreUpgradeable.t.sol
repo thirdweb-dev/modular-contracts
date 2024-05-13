@@ -52,7 +52,7 @@ contract MockCore is MockBase, ModularCoreUpgradeable {
 
 contract MockExtensionWithFunctions is MockBase, ModularExtension {
     event CallbackFunctionOne();
-    event ExtensionFunctionCalled();
+    event FallbackFunctionCalled();
 
     uint256 public constant CALLER_ROLE = 1 << 5;
 
@@ -73,43 +73,43 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getFunctionSignature();
 
-        ExtensionFunction[] memory functions = new ExtensionFunction[](8);
-        functions[0] = ExtensionFunction({
+        FallbackFunction[] memory functions = new FallbackFunction[](8);
+        functions[0] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: 0
         });
-        functions[1] = ExtensionFunction({
+        functions[1] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
             permissionBits: 0
         });
-        functions[2] = ExtensionFunction({
+        functions[2] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: 0
         });
-        functions[3] = ExtensionFunction({
+        functions[3] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: CALLER_ROLE
         });
-        functions[4] = ExtensionFunction({
+        functions[4] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
             permissionBits: CALLER_ROLE
         });
-        functions[5] = ExtensionFunction({
+        functions[5] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: CALLER_ROLE
         });
-        functions[6] = ExtensionFunction({
+        functions[6] = FallbackFunction({
             selector: bytes4(keccak256("setNumber(uint256)")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: CALLER_ROLE
         });
-        functions[7] = ExtensionFunction({
+        functions[7] = FallbackFunction({
             selector: bytes4(keccak256("getNumber()")),
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: 0
@@ -130,7 +130,7 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
     }
 
     function notPermissioned_call() external {
-        emit ExtensionFunctionCalled();
+        emit FallbackFunctionCalled();
     }
 
     function notPermissioned_delegatecall() external {}
@@ -148,48 +148,48 @@ contract MockExtensionAlternate is MockExtensionWithFunctions {
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getFunctionSignature();
 
-        ExtensionFunction[] memory functions = new ExtensionFunction[](9);
-        functions[0] = ExtensionFunction({
+        FallbackFunction[] memory functions = new FallbackFunction[](9);
+        functions[0] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: 0
         });
-        functions[1] = ExtensionFunction({
+        functions[1] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
             permissionBits: 0
         });
-        functions[2] = ExtensionFunction({
+        functions[2] = FallbackFunction({
             selector: bytes4(keccak256("notPermissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: 0
         });
-        functions[3] = ExtensionFunction({
+        functions[3] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_call()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: CALLER_ROLE
         });
-        functions[4] = ExtensionFunction({
+        functions[4] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_delegatecall()")),
             callType: IExtensionConfig.CallType.DELEGATECALL,
             permissionBits: CALLER_ROLE
         });
-        functions[5] = ExtensionFunction({
+        functions[5] = FallbackFunction({
             selector: bytes4(keccak256("permissioned_staticcall()")),
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: CALLER_ROLE
         });
-        functions[6] = ExtensionFunction({
+        functions[6] = FallbackFunction({
             selector: bytes4(keccak256("setNumber()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: CALLER_ROLE
         });
-        functions[7] = ExtensionFunction({
+        functions[7] = FallbackFunction({
             selector: bytes4(keccak256("getNumber()")),
             callType: IExtensionConfig.CallType.STATICCALL,
             permissionBits: 0
         });
-        functions[8] = ExtensionFunction({
+        functions[8] = FallbackFunction({
             selector: bytes4(keccak256("someNewFunction()")),
             callType: IExtensionConfig.CallType.CALL,
             permissionBits: 0
@@ -229,7 +229,7 @@ contract ModularCoreUpgradeableTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     event CallbackFunctionOne();
-    event ExtensionFunctionCalled();
+    event FallbackFunctionCalled();
 
     function test_installExtension() public {
         // 1. Install the extension in the core contract by providing an implementation address.
@@ -243,7 +243,7 @@ contract ModularCoreUpgradeableTest is Test {
 
         // 3. Extension functions now callable via the core contract fallback
         vm.expectEmit(true, false, false, false);
-        emit ExtensionFunctionCalled();
+        emit FallbackFunctionCalled();
         MockExtensionWithFunctions(address(core)).notPermissioned_call();
     }
 
@@ -268,7 +268,7 @@ contract ModularCoreUpgradeableTest is Test {
         //    This function is unavailable prior to the update, but crucial for the extension
         //    to work according to spec.
 
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionFunctionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.FallbackFunctionNotInstalled.selector));
         MockExtensionAlternate(address(core)).someNewFunction();
 
         // 2. Core contract owner updates the extension used by the core contract by updating
