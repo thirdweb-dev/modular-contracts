@@ -3,132 +3,424 @@
 <a href="https://thirdweb.com"><img src="https://github.com/thirdweb-dev/typescript-sdk/blob/main/logo.svg?raw=true" width="200" alt=""/></a>
 <br />
 </p>
-<h1 align="center">thirdweb Contracts-Next</h1>
-<p align="center"><strong>Next iteration of thirdweb smart contracts. Install hooks in core contracts.</strong></p>
+<h1 align="center">Design Document: Modular Contracts</h1>
 <br />
 
-> :mega: **Call for feedback**: These contracts are NOT AUDITED. This design update is WIP and we encourage opening an issue with feedback.
+# Technical Design
 
-# Run this repo
+## Abstract
 
-Clone the repo:
+This architecture standardizes how a router contract verifies that an implementation contract is safe and compatible as a call destination for a given set of functions.
 
-```bash
-git clone https://github.com/thirdweb-dev/contracts-next.git
+The architecture outlines interfaces for router contracts and implementation contracts that let them communicate and agree over compatibility with each other, and interfaces for ERC-165 compliance by router contracts.
+
+## Motivation
+
+Router contracts (i.e. contracts with a potentially different call destination per function) have gained adoption for their quality of being future-proof and upgradeable in parts.
+
+There are various different ways to write router or implementation contracts, which means using any given implementation contract as a call destination in any given router contract can lead to either contract not operating according to its specification.
+
+The goal of this architecture is to make all router and implementation contracts interoperable by creating a method where both contracts communicate and agree over compatibility before a router sets some implementation contract as the call destination for a set of functions.
+
+The ecosystem benefits from this standardization as
+
+- developers can safely re-use any self or third-party developed features (implementation contracts) across many projects (router contracts).
+- new feature innovations (implementation contracts) can explicitly break compatibility with older, already deployed projects (router contracts).
+
+## Specification
+
+> The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “NOT RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in RFC 2119 and RFC 8174.
+
+### Definitions
+
+- **Router**: a smart contract with a potentially different call destination per function
+- **Implementation**: a smart contract stored by a router contract as the call destination a given set of functions.
+- **Modular Core:** a router contract written in the Modular Contract architecture and expresses compatibility with certain implementation contracts. Also referenced as “Core”.
+- **Modular Extension**: an implementation contract written in the Modular Contract architecture and expresses compatibility with certain router contracts. Also referenced as “Extension”.
+
+### Extension Config
+
+The `ExtensionConfig` struct contains all information that a Core uses to check whether an Extension is compatible for installation.
+
+**`ExtensionConfig` struct**
+
+| Field                        | Type               | Description                                                                                                                           |
+| ---------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| requiredInterfaceId          | bytes4             | The ERC-165 interface that a Core MUST support to be compatible for installation. (OPTIONAL field)                                    |
+| registerInstallationCallback | bool               | Whether the Extension expects onInstall and onUninstall callback function calls at installation and uninstallation time, respectively |
+| supportedInterfaces          | bytes4[]           | The ERC-165 interfaces that a Core supports upon installing the Extension.                                                            |
+| callbackFunctions            | CallbackFunction[] | List of callback functions that the Core MUST call at some point in the execution of its fixed functions.                             |
+| fallbackFunction             | FallbackFunction[] | List of functions that the Core MUST call via its fallback function with the Extension as the call destination.                       |
+
+**`FallbackFunction` struct**
+
+| Field          | Type     | Description                                                                                                                           |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| selector       | bytes4   | The 4-byte selector of the function.                                                                                                  |
+| callType       | CallType | The type of call to make to the function.                                                                                             |
+| permissionBits | uint256  | Core’s fallback function MUST check that msg.sender has these permissions before performing a call on the Extension. (OPTIONAL field) |
+
+**`CallbackFunction` struct**
+
+| Field    | Type     | Description                               |
+| -------- | -------- | ----------------------------------------- |
+| selector | bytes4   | The 4-byte selector of the function.      |
+| callType | CallType | The type of call to make to the function. |
+
+**`CallType` enum**
+
+| Value        | Description                                                        |
+| ------------ | ------------------------------------------------------------------ |
+| CALL         | Perform a regular call on the specified function in the Extension. |
+| STATICCALL   | Perform a staticcall on the specified function in the Extension.   |
+| DELEGATECALL | Perform a delegateCall on the specified function in the Extension. |
+
+### Modular Core
+
+A router contract MUST implement `IModularCore` and ERC-165 interfaces to comply with the Modular Contract architecture.
+
+The `ERC165.supportsInterface` function MUST return true for all interfaces supported by the Core and the supported interfaces expressed in the ExtensionConfig of installed extensions.
+
+```solidity
+interface IModularCore is IExtensionConfig {
+    /**
+     *  @dev Whether execution reverts when the callback function is not implemented by any installed Extension.
+     *  @param OPTIONAL Execution does not revert when the callback function is not implemented.
+     *  @param REQUIRED Execution reverts when the callback function is not implemented.
+     */
+    enum CallbackMode {
+        OPTIONAL,
+        REQUIRED
+    }
+
+    /**
+     *  @dev Struct representing a callback function called on an Extension during some fixed function's execution.
+     *  @param selector The 4-byte function selector of the callback function.
+     *  @param mode Whether execution reverts when the callback function is not implemented by any installed Extension.
+     */
+    struct SupportedCallbackFunction {
+        bytes4 selector;
+        CallbackMode mode;
+    }
+
+    /**
+     *  @dev Struct representing an installed Extension.
+     *  @param implementation The address of the Extension contract.
+     *  @param config The Extension Config of the Extension contract.
+     */
+    struct InstalledExtension {
+        address implementation;
+        ExtensionConfig config;
+    }
+
+    /// @dev Returns all callback function calls made to Extensions at some point during a fixed function's execution.
+    function getSupportedCallbackFunctions() external pure returns (SupportedCallbackFunction[] memory);
+
+    /// @dev Returns all installed extensions and their respective extension configs.
+    function getInstalledExtensions() external view returns (InstalledExtension[] memory);
+
+    /**
+     *  @dev Installs an Extension in the Core.
+     *
+     *  @param extensionContract The address of the Extension contract to be installed.
+     *  @param data The data to be passed to the Extension's onInstall callback function.
+     *
+     *  MUST implement authorization control.
+     *  MUST call `onInstall` callback function if Extension Config has registerd for installation callbacks.
+     *  MUST revert if Core does not implement the interface required by the Extension, specified in the Extension Config.
+     *  MUST revert if any callback or fallback function in the Extension's ExtensionConfig is already registered in the Core with another Extension.
+     *
+     *  MAY interpret the provided address as the implementation address of the Extension contract to install as a proxy.
+     */
+    function installExtension(address extensionContract, bytes calldata data) external payable;
+
+    /**
+     *  @dev Uninstalls an Extension from the Core.
+     *
+     *  @param extensionContract The address of the Extension contract to be uninstalled.
+     *  @param data The data to be passed to the Extension's onUninstall callback function.
+     *
+     *  MUST implement authorization control.
+     *  MUST call `onUninstall` callback function if Extension Config has registerd for installation callbacks.
+     *
+     *  MAY interpret the provided address as the implementation address of the Extension contract which is installed as a proxy.
+     */
+    function uninstallExtension(address extensionContract, bytes calldata data) external payable;
+}
+
 ```
 
-Install dependencies:
+### Modular Extension
 
-```bash
-forge install
+Any given callback function in the ExtensionConfig of an installed Extension MUST be called by the Core during the function execution of some fixed function.
+
+Any given fallback function in the ExtensionConfig of an installed Extension MUST be called by the Core via its fallback, when called with the given fallback function’s calldata.
+
+```solidity
+interface IModularExtension is IExtensionConfig {
+    /**
+     *  @dev Returns the ExtensionConfig of the Extension contract.
+     */
+    function getExtensionConfig() external pure returns (ExtensionConfig memory);
+}
 ```
 
-Run benchmark comparison tests:
+## Rationale
 
-```bash
-# create a wallet for the benchmark (make sure there's enough gas funds)
-cast wallet import testnet -i
+### Callback and Fallback functions
 
-# deploy the benchmark contracts and perform the tests
-forge script script/benchmark-ext/erc721/BenchmarkERC721.s.sol --rpc-url "https://sepolia.rpc.thirdweb.com" --account testnet [--broadcast]
+We allow for a Core to be customized by Extension contracts in two different ways — callback functions and fallback functions.
+
+Callback functions are function calls made to an Extension at some point during the execution of a fixed function. They allow injecting custom logic to run within a Core’s fixed functions. This means a Core can have a foundational API of fixed functions which can nevertheless enjoy customizations.
+
+Fallback functions are functions that are callable on the Core as an entrypoint, whereon the Core calls an Extension from its fallback function with the calldata it receives. They allow additions to a Core’s foundational API of fixed functions.
+
+### CallType for Callback and Fallback functions
+
+An Extension expresses the call type for the callback and fallback functions specified in its ExtensionConfig.
+
+This means that an Extension tells a Core whether to perform a call, delegateCall or staticcall on a given callback or fallback function, based on how the Extension contract is written and meant to be used.
+
+For example, an Extension may be written a stateless logic contract, or a stateful shared contract where a Core — that has installed the Extension — is the msg.sender calling its relevant callback and fallback functions.
+
+### Core and Extension compatibility
+
+An Extension is compatible to install in a Core if:
+
+1. all of the Extension’s callback functions (specified in ExtensionConfig) are included in the Core’s supported callbacks (specified in IModularCore.getSupportedCallbackFunctions).
+
+   This is because we assume that an Extension only specifies a callback function in its ExtensionConfig when it expects a Core to call it.
+
+2. the Core implements the required interface (if any) specified by the ExtensionConfig
+
+   It is optional for an ExtensionConfig to specify an interface that a Core must implement. However, some Extensions may only be sensible to install in particular Core contracts, and the ExtensionConfig.requiredInterfaceId field encodes this requirement.
+
+### Pure getter functions
+
+Both IModularCore.getSupportedCallbackFunctions and IModularExtension.getExtensionConfig are pure functions, which means their return value does not change based on any storage.
+
+For a given Extension, it is important for the Core’s stored representation of an ExtensionConfig to not go out of sync with the actual return value of IModularExtension.getExtensionConfig at any time, since this may lead to unintended consequences such as the Core calling functions on the Extension that no longer exist or be called on the Extension contract.
+
+### Permissions in FallbackFunction and CallbackFunction structs
+
+The FallbackFunction struct contains a `uint256 permissions` field that allows expressing the permissions required by the msg.sender in the Core contract’s fallback to be authorized for calling the relevant function on the Extension contract.
+
+This is important because in case the fallback function’s call type is CALL, the Core contract itself is the msg.sender in the function called on the Extension contract and a caller should be authorized on the Core to use the Core contract itself as a caller.
+
+Also in case the fallback function’s call type is DELEGATECALL, a caller should be authorized for making the state updates to the Core contract that’ll result from a delegateCall to the relevant Extension contract function.
+
+The CallbackFunction struct does not contain a similar permissions struct field.
+
+This is because a callback function call is specified in the function body of a fixed function, and so, the authorization a caller is left to the Core contract itself since it is expected that the Core will perform authorization checks on callers in its fixed functions, wherever necessary.
+
+## Reference Implementation
+
+### IModularCore
+
+https://github.com/thirdweb-dev/modular-contracts/blob/jl/patch-7/core/src/ModularCore.sol
+
+### IModularExtension
+
+```solidity
+contract MockExtension is IModularExtension {
+    mapping(address => uint256) index;
+
+    function increment() external {
+			   index[msg.sender]++;
+    }
+
+    function getIndex() external view {
+		    return index[msg.sender];
+    }
+
+    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions[0] = CallbackFunction(this.increment.selector, CallType.CALL);
+
+        config.fallbackFunctions = new FallbackFunction()[1];
+        config.fallbackFunctions[0] = FallbackFunction(this.getIndex.selector, CallType.STATICCALL, 0);
+    }
+}
 ```
 
-Run formatter:
+## Security Considerations
 
-```bash
-forge fmt src test script
+### Upgradeability leading to Core out-of-sync with Extension
+
+There are 4 upgradeability models possible in the Modular Contracts architecture:
+
+| [Case-1] Immutable Core + Immutable Extension   | [Case-2] Upgradeable Core + Immutable Extension   |
+| ----------------------------------------------- | ------------------------------------------------- |
+| [Case-3] Immutable Core + Upgradeable Extension | [Case-4] Upgradeable Core + Upgradeable Extension |
+
+In all 4 models, a Core and _installed_ Extension must maintain the following property:
+
+> An installed Extension contract implements **_all and only_** the callback and fallback functions for which the Core has stored the Extension as the call destination.
+
+The Extension contract expresses the callback and fallback functions it implements via its ExtensionConfig.
+
+This property is important to avoid getting either of the two — Core or Extension — contracts into an “unintentional state” i.e. an update to contract storage that is not according to the contract’s intended specification.
+
+1. **[Case-1]**
+
+   This property is always satisfied since the return value of `getExtensionConfig` never changes in an immutable Extension contract, and the relevant storage of the Core only changes in expected ways in an `installExtension` or `uninstallExtension` call.
+
+2. **[Case-2]**
+
+   This property is at risk of not being satisfied when a Core contract with installed extensions is upgraded such that the `uninstallExtension` function updates state incorrectly, compared to its implementation prior to the upgrade.
+
+3. **[Case-3] & [Case-4]**
+
+   The property is at risk of not being satisfied whenever an Extension contract is upgradeable.
+
+   This is because the `getExtensionConfig` return value can change for an Extension already installed in a Core, resulting in the config stored by the Core to go out-of-sync with the new config of the Extension, post upgrade.
+
+   For example, an Extension contract upgrade may include an addition of a function that’s required to be called for the Extension to work according to its specification. This new function will be missing from a Core which installed the Extension contract pre upgrade.
+
+## Token Core and Extension contracts.
+
+thirdweb is rolling out the _Modular Contracts_ architecture with token Core contracts — ERC-20, ERC-721 and ERC-1155 Core contracts — and a set of commonly used features as Extensions.
+
+![Core-Extension-Flow-Example](../assets/core-extension-flow-example.png)
+
+All 3 token core contracts implement:
+
+- The token standard itself. ([ERC-20](https://eips.ethereum.org/EIPS/eip-20) + [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612) Permit / [ERC-721](https://eips.ethereum.org/EIPS/eip-721) / [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155)).
+- `ModularCore` interface
+- [EIP-7572](https://eips.ethereum.org/EIPS/eip-7572) Contract-level metadata via `contractURI()` standard
+- Multicall interface
+- External mint() and burn() functions.
+
+The token core contracts use the [solady implementations](https://github.com/Vectorized/solady) of the token standards, ownable and multicall contracts.
+
+### Mint, Burn and supported Callback functions per Token Standard
+
+All callback functions accept the same arguments as the fixed function in which they are called.
+
+The `mint` and `burn` functions in each Token Core Contract take in a bytes argument that is passed to their respective callback functions without mutating it.
+
+This allows for passing custom arguments to the callback function to suit the handling of whichever Extension implements the callback function.
+
+Additionally, the `mint` function passes any msg.value it receives in the function call.
+
+**ERC-20 Core**
+
+```solidity
+function mint(address to, uint256 amount, bytes calldata data) external payable;
+
+function burn(uint256 amount, bytes calldata data) external;
 ```
 
-Run gas snapshot:
+| Callback function   | Called in which ERC-20 Core function? | Required to be installed? |
+| ------------------- | ------------------------------------- | ------------------------- |
+| beforeMintERC20     | mint                                  | ✅                        |
+| beforeBurnERC20     | burn                                  | ❌                        |
+| beforeTransferERC20 | transferFrom                          | ❌                        |
+| beforeApproveERC20  | approve                               | ❌                        |
 
-```bash
-forge snapshot --isolate --mp 'test/benchmark/*'
+**ERC-721 Core**
+
+```solidity
+function mint(address to, uint256 quantity, bytes calldata data) external payable;
+
+function burn(uint256 tokenId, bytes calldata data) external;
 ```
 
-## Usage
+| Callback function    | Called in which ERC-721 Core function? | Required to be installed? |
+| -------------------- | -------------------------------------- | ------------------------- |
+| beforeMintERC721     | mint                                   | ✅                        |
+| beforeBurnERC721     | burn                                   | ❌                        |
+| beforeTransferERC721 | transferFrom                           | ❌                        |
+| beforeApproveERC721  | approve                                | ❌                        |
+| beforeApproveForAll  | setApprovalForAll                      | ❌                        |
+| onTokenURI           | tokenURI                               | ✅                        |
 
-You can find testnet deployments of this hooks design setup, and JS scripts to interact with an ERC-721 core contract and its hooks here: https://github.com/thirdweb-dev/contracts-next-scripts
+**ERC-1155 Core**
 
-# Benchmarks
+```solidity
+function mint(address to, uint256 tokenId, uint256 value, bytes memory data) external payable;
 
-### ERC-721 Core Benchmarks via transactions on Goerli
+function burn(address from, uint256 tokenId, uint256 value, bytes memory data) external;
+```
 
-| Action                                      | Gas consumption | Transaction                                                                                              |
-| ------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
-| Mint 1 token (token ID `0`)                 | 145_373         | [ref](https://goerli.etherscan.io/tx/0x1de1431200f6d39e9f4ddba3386e413078308a6eae1ebcc722884443b643d7d0) |
-| Mint 1 token (token ID `>0`)                | 116_173         | [ref](https://goerli.etherscan.io/tx/0xc38e82228a1f8cf877abfeeb28e3f294bb38b90f51cbb2df1c899f03fad4e355) |
-| Mint 10 tokens (including token ID `0`)     | 365_414         | [ref](https://goerli.etherscan.io/tx/0x1e8a79bd1806a3410a46f8d0ec0fcff099e3aeff6d4e64815c1f400ab092c77e) |
-| Mint 10 tokens (not including token ID `0`) | 331_214         | [ref](https://goerli.etherscan.io/tx/0xe4ab2650f8827d52d2ec15956da910915b2b08f67d3f59ac8091da2fbd0369a0) |
-| Transfer token                              | 64_389          | [ref](https://goerli.etherscan.io/tx/0x3ca2c4c74d6c8a4859fd78af5091c4dc4dc0fc0452202b18b611e4f0308c3673) |
-| Install 1 hook                              | 105_455         | [ref](https://goerli.etherscan.io/tx/0x8df68fefe6f0318220795f4c56aec81fdafea2a3d17da2d45a0a762aac6cf6d0) |
-| Install 5 hooks                             | 191_918         | [ref](https://goerli.etherscan.io/tx/0x184f59ce6f83a6927e2269879bdec9ccd29f8ed3fd98be9d4d359e34cfde4ce5) |
-| Uninstall 1 hook                            | 43_468          | [ref](https://goerli.etherscan.io/tx/0x30c678277603c80b1f412049b13ba6742712c64ef9973b00d8866169589ad40f) |
-| Uninstall 5 hooks                           | 57_839          | [ref](https://goerli.etherscan.io/tx/0xf1869d1b6fdc0f7e340cd30df2f0b57408cf0d752e4898ef14836a7672877050) |
+| Callback function          | Called in which ERC-1155 Core function? | Required to be installed? |
+| -------------------------- | --------------------------------------- | ------------------------- |
+| beforeMintERC1155          | mint                                    | ✅                        |
+| beforeBurnERC1155          | burn                                    | ❌                        |
+| beforeTransferERC1155      | safeTransferFrom                        | ❌                        |
+| beforeBatchTransferERC1155 | safeBatchTransferFrom                   | ❌                        |
+| beforeApproveForAll        | setApprovalForAll                       | ❌                        |
+| onTokenURI                 | tokenURI                                | ✅                        |
 
-**Note:**
+### Supported Token Extensions
 
-- 'Minting tokens' benchmarks use the `AllowlistMintHook` contract as the `beforeMint` hook. All token minting benchmarks include distributing non-zero primary sale value and platform fee.
-- All hooks used in these benchmarks are minimal clone proxy contracts pointing to hook contract implementations.
+thirdweb will roll out Token Core contracts with the following Extensions available for installation:
 
-### ERC-721 Contracts Benchmarks Comparison via transactions on Sepolia
+| Extension           | Category  | Description                                                                                                                             | Callback functions                                | Notable                                            | ERC-20 | ERC-721 | ERC-1155 |
+| ------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- | ------ | ------- | -------- |
+| ClaimPhaseMint      | Minting   | distribute tokens under claim phase criteria.                                                                                           | beforeMint                                        | Platform fees supported                            | ✅     | ✅      | ✅       |
+| SignatureMinting    | Minting   | mint tokens via a voucher issued by an authority.                                                                                       | beforeMint                                        | Platform fees supported                            | ✅     | ✅      | ✅       |
+| Soulbound           | Transfers | optionally set all tokens as non-transferrable                                                                                          | beforeTransfer and beforeBatchTransfer (ERC-1155) |                                                    | ✅     | ✅      | ✅       |
+| BatchUploadMetadata | Metadata  | single/batch upload NFT metadata                                                                                                        | onTokenURI                                        | Replaces legacy LazyMint extension contract.       | ❌     | ✅      | ✅       |
+| OpenEditionMetadata | Metadata  | shared metadata (except unique tokenId) across all NFTs                                                                                 | onTokenURI                                        | Replaces legacy SharedMetadata extension contract. | ❌     | ✅      | ✅       |
+| SimpleMetadata      | Metadata  | set metadata per NFT token ID                                                                                                           | onTokenURI                                        |                                                    | ❌     | ✅      | ✅       |
+| Royalty             | Royalty   | EIP-2981 royalty. Set a default royalty percentage and recipient across all NFTs, or specific royalty percentage and recipient per NFT. | -                                                 |                                                    | ❌     | ✅      | ✅       |
 
-| Action                    | Thirdweb (Hooks)                                                                                                 | Thirdweb Drop                                                                                                    | Zora                                                                                                             | Manifold                                                                                                         |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Deploy (developer-facing) | 213_434 [tx](https://sepolia.etherscan.io/tx/0x4899fd74e09b4994162f0ce4ea8783a93712825cb20373612263cbfcf83137dc) | 719_842 [tx](https://sepolia.etherscan.io/tx/0x69bf0d597b4db864d50b1c592451156e23a0eca598fd337f0888f3f0d45eda85) | 499_968 [tx](https://sepolia.etherscan.io/tx/0x1d3e653ab587f3203abdcb233ca3502f5a99b2ba38c62b9097b4d9cecac39016) | 232_917 [tx](https://sepolia.etherscan.io/tx/0x80fcff853e07bb99475e0258c315eaf4f91f6e954f9edc170e05a833568401d3) |
-| Claim 1 token             | 149_142 [tx](https://sepolia.etherscan.io/tx/0xce9155496a5e1705fd91e25fa5c4b6a2664ee8951010e0d236b8f1bc1bebb2a9) | 196_540 [tx](https://sepolia.etherscan.io/tx/0xd2d5eaa191ebe342f34a2647a253782795d93cecc90ae0e3de4bb6a6afe29d0a) | 160_447 [tx](https://sepolia.etherscan.io/tx/0xe1b431c28f0cc8d03489ea1a54fb6b70eea4dc0210cbf24f9cf6b22c3a68f99d) | 184_006 [tx](https://sepolia.etherscan.io/tx/0x149ac1f2aec78753f73a7b16bdea9dd81dc5823893a128422499ba49af3b07f4) |
-| Transfer token            | 59_587 [tx](https://sepolia.etherscan.io/tx/0x252311fc0ada4873d8fcc036ec7145b1dfb76bef7d974aae15111623cf4e889b)  | 76_102 [tx](https://sepolia.etherscan.io/tx/0xd5dd3f3f33e6755fd07617795a382e7e34005771a6374dacbfb686c6b4d981cc)  | 71_362 [tx](https://sepolia.etherscan.io/tx/0x4f3d79e1b5582ebab5ff6e1f343d640b2e47ded458223de4e1cf248f1c72776d)  | 69_042 [tx](https://sepolia.etherscan.io/tx/0xb3eb80ea9cf88d3a731490f6c9fd8c3f9d8b8283e5b376e4aaf001fb46e84ae2)  |
-| Setup token metadata      | 60_217 [tx](https://sepolia.etherscan.io/tx/0xfe99caf84e543f1b73055da7ef23f8071d3b8d893c838c12b9b3567f0a4cdcb8)  | 47_528 [tx](https://sepolia.etherscan.io/tx/0x6526f514b47d60785eb3951046dc1e30b175d2aa74aa2693932ea68ed2054d4d)  | 54_612 [tx](https://sepolia.etherscan.io/tx/0xd959c6dfc531994bca58df41c30952a04a6f1ab7e86b3ab3457ed4f4d5bd1846)  | 29_789 [tx](https://sepolia.etherscan.io/tx/0x1d3e653ab587f3203abdcb233ca3502f5a99b2ba38c62b9097b4d9cecac39016)  |
+## Handling Upgradeable Extensions
 
-# Design Overview
+thirdweb has implemented the Modular Contracts architecture with upgradeability and permissions in mind.
 
-Developers deploy non-upgradeable minimal clones of token core contracts e.g. the ERC-721 Core contract.
+`ModularCoreUpgradeable` is an implementation of the IModularCore interface that works with upgradeable Extension contracts, without compromising the security of the Core contract.
 
-- This contract is initializable, and meant to be used with proxy contracts.
-- Implements the token standard (and the respective token metadata standard).
-- Uses the role based permission model of the [`Permission`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/common/Permission.sol) contract.
-- Implements the [`HookInstaller`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/hook/HookInstaller.sol) interface.
+https://github.com/thirdweb-dev/modular-contracts/blob/jl/patch-7/core/src/ModularCoreUpgradeable.sol
 
-Core contracts are deliberately written as non-upgradeable foundations that contain minimal code with fixed behaviour. These contracts are meant to be extended by developers using hooks.
+1. The `ModularCoreUpgradeable.installExtension` function expects you to pass an address of an implementation/logic contract.
+2. The Core contract then uses the canonical ERC1967 Factory to deploy an ERC-1967 proxy pointing to the provided extension *implementation* address.
 
-## Hooks and Modularity
+   The "canonical ERC1967 Factory" is 0age's ImmutableCreate2Factory located at `0x0000000000FFe8B47B3e2130213B802212439497` on all EVM chains. Deployment instructions are [here on the Seaport github](https://github.com/ProjectOpenSea/seaport/blob/main/docs/Deployment.md).
 
-![mint tokens via hooks](https://ipfs.io/ipfs/QmXfN8GFsJNEgkwa9F44kRWFFnahPbyPb8yV2L9LmFomnj/contracts-next-mint-tokens.png)
+3. The ERC-1967 ‘Extension Proxy’ contract is deployed using a deterministic salt and this same proxy contract address is maintained throughout all future upgrades of the underlying implementation contract of the Extension Proxy.
 
-Hooks are an external call made to a contract that implements the [`IHook`](https://github.com/thirdweb-dev/contracts-next/blob/main/src/interface/IHook.sol) interface.
+   This means that if the Extension Proxy contract is stateful (and not just a logic contract for the Core), its storage is not lost all throughout the time it is installed in the Core.
 
-The purpose of hooks is to allow developers to extend their contract's functionality by running custom logic right before a token is minted, transferred, burned, or approved, or for returning a token's metadata or royalty info.
+4. The upgrade admin of the Extension Proxy is the core contract, which means all implementation upgrades of the Extension Proxy happen via a call to the core contract (`updateExtension`, below) by a caller authorized on the core contract.
+5. An upgrade of the Extension Proxy is performed by calling the `upgradeExtension` function:
 
-For example, there is a fixed, defined set of 6 ERC-721 hooks:
+   ```solidity
+   /// @notice Updates the implementation of an Extension.
+   function updateExtension(
+   		address currentExtensionImplementation,
+   		address newExtensionImplementation
+   ) external;
+   ```
 
-- **BeforeMint**: called before a token is minted in the ERC721Core.mint call.
-- **BeforeTransfer**: called before a token is transferred in the ERC721.transferFrom call.
-- **BeforeBurn**: called before a token is burned in the ERC721.burn call.
-- **BeforeApprove**: called before the ERC721.approve and ERC721.setApprovalForAll call.
-- **Token URI**: called when the ERC721Metadata.tokenURI function is called.
-- **Royalty**: called when the ERC2981.royaltyInfo function is called.
+   The Core contract requires an Extension’s implementation contract address to retrieve the Extension Proxy address, after which it can upgrade the Extension Proxy’s implementation to the provided new implementation address. After the upgrade, the Extension is identified on the Core via the new implementation address.
 
-Developers can install hooks into their core contracts, and uninstall hooks at any time. On installation, a hook contract tells the hook consumer which hook functions it implements -- the hook consumer maps all these hook functions to the mentioned hook contract as their implemention.
+   This upgrade is sandwiched between:
 
-## Upgradeability
+   - BEFORE upgrade: Fetch the extension config from the Extension Proxy and delete all associated storage from the Core, as in uninstallation time.
+   - AFTER upgrade: Re-fetch the extension config from the Extension Proxy and update the associated storage in Core, as in installation time.
 
-![beacon upgrade](https://ipfs.io/ipfs/QmS1zU629FoDZM1X3oRmMZyxi7ThW2UiFybK7mkpZ2DzBS/contracts-next-beacon-upgrade.png)
+   We do this because an upgrade may include changes to the return values of the `getExtensionConfig` function, and the Core contract's storage must be in sync with the Extension's new extension config.
 
-thirdweb will publish upgradeable, 'shared state' hooks for developers (see [src/hooks](https://github.com/thirdweb-dev/contracts-next/tree/main/src/hook)).
+So, from the perspective of an end user of the contract, they are providing an implementation address as an Extension to install, and they will later provide a new implementation address to update their extension, or the existing implementation address to uninstall their extension.
 
-These hook contracts are designed to be used by developers as a shared resource, and are upgradeable by thirdweb. This allows thirdweb to make beacon upgrades to developer contracts using these hooks.
+The end user / developer is always dealing with implementation contract addresses. This means that there is no "extension name", "extension ID" or "version" to identify a given Extension construct on the Core contract.
 
-At any point, developers can opt to use any custom, non-thirdweb hooks along with their core contract. Without the involvement on delegateCall based upgradeability, writing hooks should be accessible for more developers, and we expect to form a vibrant hooks ecosystem.
+## Permission Model
 
-That said, opting out of using hooks where thirdweb has upgrade authority also means that thirdweb will not be able to perform beacon upgrades to those hooks in the event of a security incident.
+`ModularCoreUpgradeable` uses role based permissions implementation of Solady’s [OwnableRoles](https://github.com/Vectorized/solady/blob/main/src/auth/OwnableRoles.sol), and follows [EIP-173: Contract Ownership Standard](https://eips.ethereum.org/EIPS/eip-173).
 
-## Feedback
+The contract owner can grant and revoke roles from other addresses.
 
-If you have any feedback, please create an issue or reach out to us at support@thirdweb.com.
+In addition to the owner status, the contract contains `INSTALLER_ROLE`:
 
-## Authors
+```solidity
+uint256 public constant INSTALLER_ROLE = 1 << 0;
+```
 
-- [thirdweb](https://thirdweb.com)
+Either the contract owner, or a holder of this role is authorized to manage extension installation i.e. call `installExtension`, `updatedExtension` and `uninstallExtension`.
 
-## License
+---
 
-[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)
+thirdweb is excited to bring developers the Modular Contract framework and take a step towards building an ecosystem of third-party developer smart contracts that lets developers earn money through code and lets builders discover and use the right smart contracts to build their use case.
