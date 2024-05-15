@@ -15,6 +15,37 @@ A developer writes a **_Core_** smart contract as the foundation that can be cus
 
 Both `/core` and `/extension` directories are their own forge projects where we develop the Core API of the architecture independently from the Extensions that use this Core API as a dependency.
 
+# Install and Use
+
+This project can currently be installed as a dependency in [foundry](https://book.getfoundry.sh/) projects. To install, run:
+
+```bash
+forge install https://github.com/thirdweb-dev/modular-contracts
+```
+
+Add the following in a `remappings.txt` file:
+
+```
+@core-contracts/=lib/modular-contracts/core/src/
+```
+
+Import `ModularCore` inherit to build a Modular Core contract (e.g. ERC-721 Core):
+
+```solidity
+import {ModularCore} from "@core-contracts/ModularCore.sol";
+import {ERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
+
+contract ModularNFTCollection is ERC721A, ModularCore {}
+```
+
+Import `ModularExtension` to create an Extension for your Core contract (e.g. `Soulbound`):
+
+```solidity
+import {ModularExtension} from "@core-contracts/ModularExtension.sol";
+
+contract SoulboundERC721 is ModularExtension {}
+```
+
 # Run this repo
 
 Clone the repo:
