@@ -9,7 +9,6 @@ import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 // Utils
 import {ModularExtension} from "./ModularExtension.sol";
 import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
-import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 
@@ -59,6 +58,9 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev The address of the ERC1967Factory contract.
+    address public immutable erc1967FactoryAddress;
+
     /// @dev The seed used to generate the next salt for extension proxies.
     bytes32 private extensionProxySaltSeed;
 
@@ -93,6 +95,14 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     error FallbackFunctionNotInstalled();
 
     error ExtensionInterfaceNotCompatible(bytes4 requiredInterfaceId);
+
+    /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(address _erc1967FactoryAddress) {
+        erc1967FactoryAddress = _erc1967FactoryAddress;
+    }
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTION
@@ -140,7 +150,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         uint256 totalInstalled = extensionIDs.length();
         _installedExtensions = new InstalledExtension[](totalInstalled);
 
-        ERC1967Factory proxyFactory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+        ERC1967Factory proxyFactory = ERC1967Factory(erc1967FactoryAddress);
 
         for (uint256 i = 0; i < totalInstalled; i++) {
             address implementation = proxyFactory.predictDeterministicAddress(extensionIDs.at(i));
@@ -200,7 +210,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         extensionImplementationToID[_newExtensionImplementation] = extensionID;
 
         // Get extension proxy address from extension ID.
-        ERC1967Factory proxyFactory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+        ERC1967Factory proxyFactory = ERC1967Factory(erc1967FactoryAddress);
         address extensionProxyAddress = proxyFactory.predictDeterministicAddress(extensionID);
 
         /**
@@ -269,7 +279,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         extensionImplementationToID[_extensionImplementation] = extensionID;
 
         // Deploy a new extension proxy contract if one does not already exist.
-        ERC1967Factory proxyFactory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+        ERC1967Factory proxyFactory = ERC1967Factory(erc1967FactoryAddress);
         address extensionProxyAddress = proxyFactory.predictDeterministicAddress(extensionID);
 
         if (extensionProxyAddress.code.length == 0) {
@@ -312,7 +322,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         delete extensionImplementationToID[_extensionImplementation];
 
         // Get extension proxy address from extension ID.
-        ERC1967Factory proxyFactory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+        ERC1967Factory proxyFactory = ERC1967Factory(erc1967FactoryAddress);
         address extensionProxyAddress = proxyFactory.predictDeterministicAddress(extensionID);
 
         // Fetch extension config and delete association of its functions with an extension proxy.

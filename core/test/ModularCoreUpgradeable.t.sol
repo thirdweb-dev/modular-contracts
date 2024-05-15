@@ -23,7 +23,7 @@ contract MockBase {
 }
 
 contract MockCore is MockBase, ModularCoreUpgradeable {
-    constructor(address _owner) {
+    constructor(address _erc1967FactoryAddress, address _owner) ModularCoreUpgradeable(_erc1967FactoryAddress) {
         _initializeOwner(_owner);
     }
 
@@ -221,7 +221,7 @@ contract ModularCoreUpgradeableTest is Test {
         // Deterministic, canonical ERC1967Factory contract
         vm.etch(ERC1967FactoryConstants.ADDRESS, ERC1967FactoryConstants.BYTECODE);
 
-        core = new MockCore(owner);
+        core = new MockCore(ERC1967FactoryConstants.ADDRESS, owner);
 
         extensionImplementation = new MockExtensionWithFunctions();
         newExtensionImplementation = new MockExtensionAlternate();
