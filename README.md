@@ -51,14 +51,14 @@ From within `/contracts`, run gas snapshot:
 forge snapshot --isolate --mp 'test/benchmark/*'
 ``` -->
 
-## Feedback
+# Feedback
 
 If you have any feedback, please create an issue or reach out to us at support@thirdweb.com.
 
-## Authors
+# Authors
 
 - [thirdweb](https://thirdweb.com)
 
-## License
+# License
 
 [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0.txt)
