@@ -62,7 +62,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     address public immutable erc1967FactoryAddress;
 
     /// @dev The seed used to generate the next salt for extension proxies.
-    bytes32 private extensionProxySaltSeed;
+    uint256 private extensionProxySaltSeed;
 
     /// @dev The set of extension IDs corresponding to installed extensions.
     EnumerableSetLib.Bytes32Set private extensionIDs;
@@ -259,13 +259,10 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
          *
          *  We discard this extension ID once the Extension is uninstalled.
          */
-        bytes32 saltHash = keccak256(abi.encode(extensionProxySaltSeed, address(this)));
+        bytes32 saltHash = keccak256(abi.encode(++extensionProxySaltSeed, msg.sender));
         bytes20 addressBytes = bytes20(address(this));
 
         bytes32 extensionID = bytes32(addressBytes) | (saltHash & bytes32(uint256(0xFFFFFFFFFFFFFFFFFFFFFFFF)));
-
-        // Use the extension ID as a seed for whichever proxy contract contract is deployed next.
-        extensionProxySaltSeed = extensionID;
 
         /**
          *  Map the extension implementation to the extension ID.
