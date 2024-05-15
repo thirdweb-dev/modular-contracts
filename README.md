@@ -4,7 +4,7 @@
 <br />
 </p>
 <h1 align="center">Modular Contracts</h1>
-<p align="center"><strong>A framework for writing highly composable smart contracts for which you can add, remove, upgrade or switch out the exact parts you want</strong></p>
+<p align="center"><strong>Write smart contracts for which you can add, remove, upgrade or switch out the exact parts you want.</strong></p>
 <br />
 
 A Modular Contract is built of two kinds of parts: a _Modular Core_ and its _Modular Extensions_.
