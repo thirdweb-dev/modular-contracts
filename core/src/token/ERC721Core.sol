@@ -12,7 +12,6 @@ import {BeforeBurnCallbackERC721} from "../callback/BeforeBurnCallbackERC721.sol
 import {BeforeApproveCallbackERC721} from "../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../callback/OnTokenURICallback.sol";
-import {OnRoyaltyInfoCallback} from "../callback/OnRoyaltyInfoCallback.sol";
 
 contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
@@ -72,17 +71,6 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      */
     function tokenURI(uint256 id) public view override(ERC721A, IERC721A) returns (string memory) {
         return _getTokenURI(id);
-    }
-
-    /**
-     *  @notice Returns the royalty amount for a given NFT and sale price.
-     *  @param tokenId The token ID of the NFT
-     *  @param salePrice The sale price of the NFT
-     *  @return recipient The royalty recipient address
-     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
-     */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice) external view returns (address, uint256) {
-        return _getRoyaltyInfo(tokenId, salePrice);
     }
 
     /**
@@ -262,19 +250,5 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
             OnTokenURICallback.onTokenURI.selector, abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
         );
         uri = abi.decode(returndata, (string));
-    }
-
-    /// @dev Fetches royalty info from the royalty hook.
-    function _getRoyaltyInfo(uint256 tokenId, uint256 salePrice)
-        internal
-        view
-        virtual
-        returns (address receiver, uint256 royaltyAmount)
-    {
-        (, bytes memory returndata) = _executeCallbackFunctionView(
-            OnRoyaltyInfoCallback.onRoyaltyInfo.selector,
-            abi.encodeCall(OnRoyaltyInfoCallback.onRoyaltyInfo, (tokenId, salePrice))
-        );
-        (receiver, royaltyAmount) = abi.decode(returndata, (address, uint256));
     }
 }

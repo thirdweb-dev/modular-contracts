@@ -12,7 +12,6 @@ import {BeforeBatchTransferCallbackERC1155} from "../callback/BeforeBatchTransfe
 import {BeforeBurnCallbackERC1155} from "../callback/BeforeBurnCallbackERC1155.sol";
 import {BeforeApproveForAllCallback} from "../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../callback/OnTokenURICallback.sol";
-import {OnRoyaltyInfoCallback} from "../callback/OnRoyaltyInfoCallback.sol";
 
 contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
@@ -97,17 +96,6 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
      */
     function uri(uint256 tokenId) public view override returns (string memory) {
         return _getTokenURI(tokenId);
-    }
-
-    /**
-     *  @notice Returns the royalty amount for a given NFT and sale price.
-     *  @param tokenId The token ID of the NFT
-     *  @param salePrice The sale price of the NFT
-     *  @return recipient The royalty recipient address
-     *  @return royaltyAmount The royalty amount to send to the recipient as part of a sale
-     */
-    function royaltyInfo(uint256 tokenId, uint256 salePrice) external view returns (address, uint256) {
-        return _getRoyaltyInfo(tokenId, salePrice);
     }
 
     /**
@@ -305,19 +293,5 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
             OnTokenURICallback.onTokenURI.selector, abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
         );
         tokenUri = abi.decode(returndata, (string));
-    }
-
-    /// @dev Fetches royalty info from the royalty hook.
-    function _getRoyaltyInfo(uint256 tokenId, uint256 salePrice)
-        internal
-        view
-        virtual
-        returns (address receiver, uint256 royaltyAmount)
-    {
-        (, bytes memory returndata) = _executeCallbackFunctionView(
-            OnRoyaltyInfoCallback.onRoyaltyInfo.selector,
-            abi.encodeCall(OnRoyaltyInfoCallback.onRoyaltyInfo, (tokenId, salePrice))
-        );
-        (receiver, royaltyAmount) = abi.decode(returndata, (address, uint256));
     }
 }
