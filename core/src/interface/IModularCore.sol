@@ -5,6 +5,10 @@ import {IExtensionConfig} from "./IExtensionConfig.sol";
 import {IERC165} from "./IERC165.sol";
 
 interface IModularCore is IExtensionConfig, IERC165 {
+    /*//////////////////////////////////////////////////////////////
+                            STRUCTS & ENUMS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      *  @dev Whether execution reverts when the callback function is not implemented by any installed Extension.
      *  @param OPTIONAL Execution does not revert when the callback function is not implemented.

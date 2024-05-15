@@ -2,6 +2,10 @@
 pragma solidity ^0.8.23;
 
 interface IInstallationCallback {
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      *  @dev Called by a Core into an Extension during the installation of the Extension.
      *
