@@ -29,10 +29,10 @@ contract Royalty is IExtensionContract {
     //////////////////////////////////////////////////////////////*/
 
     /**
-    *   @notice RoyaltyInfo struct to store royalty information.
-    *   @param recipient The address that will receive the royalty payment.
-    *   @param bps The percentage of a secondary sale that will be paid as royalty.
-    */
+     *   @notice RoyaltyInfo struct to store royalty information.
+     *   @param recipient The address that will receive the royalty payment.
+     *   @param bps The percentage of a secondary sale that will be paid as royalty.
+     */
     struct RoyaltyInfo {
         address recipient;
         uint256 bps;

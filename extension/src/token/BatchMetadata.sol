@@ -34,11 +34,11 @@ contract BatchMetadata is IExtensionContract {
     //////////////////////////////////////////////////////////////*/
 
     /**
-    *   @notice MetadataBatch struct to store metadata for a range of tokenIds.
-    *   @param startTokenIdInclusive The first tokenId in the range.
-    *   @param endTokenIdNonInclusive The last tokenId in the range.
-    *   @param baseURI The base URI for the range.
-    */
+     *   @notice MetadataBatch struct to store metadata for a range of tokenIds.
+     *   @param startTokenIdInclusive The first tokenId in the range.
+     *   @param endTokenIdNonInclusive The last tokenId in the range.
+     *   @param baseURI The base URI for the range.
+     */
     struct MetadataBatch {
         uint256 startTokenIdInclusive;
         uint256 endTokenIdInclusive;
@@ -60,7 +60,12 @@ contract BatchMetadata is IExtensionContract {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Emitted when a new metadata batch is uploaded.
-    event NewMetadataBatch(address indexed token, uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI);
+    event NewMetadataBatch(
+        address indexed token,
+        uint256 indexed startTokenIdInclusive,
+        uint256 indexed endTokenIdNonInclusive,
+        string baseURI
+    );
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
@@ -120,10 +125,7 @@ contract BatchMetadata is IExtensionContract {
     }
 
     /// @notice Uploads metadata for a range of tokenIds.
-    function uploadMetadata(uint256 _amount, string calldata _baseURI)
-        public
-        virtual
-    {
+    function uploadMetadata(uint256 _amount, string calldata _baseURI) public virtual {
         address token = msg.sender;
         if (_amount == 0) {
             revert BatchMetadataZeroAmount();

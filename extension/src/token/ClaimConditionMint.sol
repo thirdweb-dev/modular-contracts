@@ -204,7 +204,11 @@ contract ClaimConditionMint is IExtensionContract {
     }
 
     /// @notice Returns the claim condition for a token and a specific token ID.
-    function getClaimConditionByTokenId(address _token, uint256 _id) external view returns (ClaimCondition memory claimCondition) {
+    function getClaimConditionByTokenId(address _token, uint256 _id)
+        external
+        view
+        returns (ClaimCondition memory claimCondition)
+    {
         return _claimConditionMintStorage().claimConditionByTokenId[_token][_id];
     }
 
@@ -230,8 +234,10 @@ contract ClaimConditionMint is IExtensionContract {
 
         ClaimCondition memory claimCondition = _claimConditionMintStorage().claimCondition[token];
 
-        if (claimCondition.currency != _params.expectedCurrency || claimCondition.pricePerUnit != _params.expectedPricePerUnit)
-        {
+        if (
+            claimCondition.currency != _params.expectedCurrency
+                || claimCondition.pricePerUnit != _params.expectedPricePerUnit
+        ) {
             revert ClaimConditionMintPriceMismatch();
         }
 
@@ -264,8 +270,10 @@ contract ClaimConditionMint is IExtensionContract {
 
         ClaimCondition memory claimCondition = _claimConditionMintStorage().claimCondition[token];
 
-        if (claimCondition.currency != _params.expectedCurrency || claimCondition.pricePerUnit != _params.expectedPricePerUnit)
-        {
+        if (
+            claimCondition.currency != _params.expectedCurrency
+                || claimCondition.pricePerUnit != _params.expectedPricePerUnit
+        ) {
             revert ClaimConditionMintPriceMismatch();
         }
 
@@ -300,8 +308,10 @@ contract ClaimConditionMint is IExtensionContract {
 
         ClaimCondition memory claimCondition = _claimConditionMintStorage().claimConditionByTokenId[token][_id];
 
-        if (claimCondition.currency != _params.expectedCurrency || claimCondition.pricePerUnit != _params.expectedPricePerUnit)
-        {
+        if (
+            claimCondition.currency != _params.expectedCurrency
+                || claimCondition.pricePerUnit != _params.expectedPricePerUnit
+        ) {
             revert ClaimConditionMintPriceMismatch();
         }
 
