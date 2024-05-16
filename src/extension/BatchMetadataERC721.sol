@@ -26,7 +26,7 @@ library BatchMetadataStorage {
     }
 }
 
-contract BatchMetadata is ModularExtension {
+contract BatchMetadataERC721 is ModularExtension {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ contract BatchMetadata is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](2);
 
@@ -93,6 +93,8 @@ contract BatchMetadata is ModularExtension {
             callType: CallType.STATICCALL,
             permissionBits: 0
         });
+
+        config.requiredInterfaceId = 0x80ac58cd; // ERC721.
     }
 
     /*//////////////////////////////////////////////////////////////
