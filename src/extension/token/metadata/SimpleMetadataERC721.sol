@@ -10,7 +10,7 @@ library SimpleMetadataStorage {
         keccak256(abi.encode(uint256(keccak256("simple.metadata.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        /// @notice Mapping from token => base URI
+        /// token => base URI
         mapping(address => mapping(uint256 => string)) uris;
     }
 

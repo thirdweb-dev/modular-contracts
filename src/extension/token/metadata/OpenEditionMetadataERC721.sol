@@ -11,7 +11,7 @@ library OpenEditionMetadataStorage {
         keccak256(abi.encode(uint256(keccak256("open.edition.metadata.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        /// @notice Token metadata information
+        /// @notice token => shared token metadata
         mapping(address => OpenEditionMetadataERC721.SharedMetadata) sharedMetadata;
     }
 
@@ -121,6 +121,7 @@ contract OpenEditionMetadataERC721 is ModularExtension {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Generates open edition metadata as base64-json blob
     function _createMetadataEdition(
         string memory name,
         string memory description,

@@ -9,9 +9,9 @@ library RoyaltyStorage {
         keccak256(abi.encode(uint256(keccak256("royalty.storage")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        /// @notice token => default royalty info
+        // token => default royalty info
         mapping(address => RoyaltyERC721.RoyaltyInfo) defaultRoyaltyInfo;
-        /// @notice token => tokenId => royalty info
+        // token => tokenId => royalty info
         mapping(address => mapping(uint256 => RoyaltyERC721.RoyaltyInfo)) royaltyInfoForToken;
     }
 

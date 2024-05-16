@@ -32,6 +32,19 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     *  @notice The request struct signed by an authorized party to mint tokens.
+     *
+     *  @param tokenId The ID of the token being minted.
+     *  @param token The address of the token being minted.
+     *  @param startTimestamp The timestamp at which the minting request is valid.
+     *  @param endTimestamp The timestamp at which the minting request expires.
+     *  @param recipient The address that will receive the minted tokens.
+     *  @param quantity The quantity of tokens to mint.
+     *  @param currency The address of the currency used to pay for the minted tokens.
+     *  @param pricePerUnit The price per unit of the minted tokens.
+     *  @param uid A unique identifier for the minting request.
+     */
     struct SignatureMintRequestERC1155 {
         uint256 tokenId;
         address token;
@@ -44,11 +57,24 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
         bytes32 uid;
     }
 
+    /**
+     *  @notice The parameters sent to the `beforeMintERC20` callback function.
+     *
+     *  @param request The minting request.
+     *  @param signature The signature produced from signing the minting request.
+     */
     struct SignatureMintParamsERC1155 {
         SignatureMintRequestERC1155 request;
         bytes signature;
     }
 
+    /**
+     *  @notice The configuration of a token's sale value distribution.
+     *
+     *  @param primarySaleRecipient The address that receives the primary sale value.
+     *  @param platformFeeRecipient The address that receives the platform fee.
+     *  @param platformFeeBps The basis points of the platform fee. 10_000 = 100%.
+     */
     struct SaleConfig {
         address primarySaleRecipient;
         address platformFeeRecipient;
@@ -59,11 +85,22 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Emitted when an incorrect amount of native token is sent.
     error SignatureMintIncorrectNativeTokenSent();
+
+    /// @dev Emitted when the minting request has expired.
     error SigantureMintRequestExpired();
+
+    /// @dev Emitted when the minting request UID has been reused.
     error SignatureMintRequestUidReused();
+
+    /// @dev Emitted when the minting request token is invalid.
     error SignatureMintRequestInvalidToken();
+
+    /// @dev Emitted when the minting request does not match the expected values.
     error SignatureMintRequestMismatch();
+
+    /// @dev Emitted when the minting request signature is unauthorized.
     error SignatureMintRequestUnauthorizedSignature();
 
     /*//////////////////////////////////////////////////////////////
@@ -82,6 +119,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](2);
@@ -103,6 +141,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Callback function for the ERC1155Core.mint function.
     function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
         external
         payable
@@ -117,6 +156,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns the sale configuration for a token.
     function getSaleConfig(address _token)
         external
         view
@@ -126,6 +166,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
         return (saleConfig.primarySaleRecipient, saleConfig.platformFeeRecipient, saleConfig.platformFeeBps);
     }
 
+    /// @notice Sets the sale configuration for a token.
     function setSaleConfig(address _primarySaleRecipient, address _platformFeeRecipient, uint16 _platformFeeBps)
         external
     {
@@ -138,6 +179,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Mints tokens on verifying a signature from an authorized party.
     function _mintWithSignatureERC1155(
         address _expectedRecipient,
         uint256 _expectedAmount,
@@ -189,6 +231,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
         _distributeMintPrice(_req.recipient, _req.currency, _req.quantity * _req.pricePerUnit);
     }
 
+    /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
     function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {
@@ -213,6 +256,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
         }
     }
 
+    /// @dev Returns the domain name and version for EIP712.
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
         name = "SignatureMintERC1155";
         version = "1";
