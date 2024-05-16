@@ -10,9 +10,9 @@ library RoyaltyStorage {
 
     struct Data {
         /// @notice token => default royalty info
-        mapping(address => Royalty.RoyaltyInfo) defaultRoyaltyInfo;
+        mapping(address => RoyaltyERC721.RoyaltyInfo) defaultRoyaltyInfo;
         /// @notice token => tokenId => royalty info
-        mapping(address => mapping(uint256 => Royalty.RoyaltyInfo)) royaltyInfoForToken;
+        mapping(address => mapping(uint256 => RoyaltyERC721.RoyaltyInfo)) royaltyInfoForToken;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -23,7 +23,7 @@ library RoyaltyStorage {
     }
 }
 
-contract Royalty is ModularExtension {
+contract RoyaltyERC721 is ModularExtension {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -66,7 +66,7 @@ contract Royalty is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](0);
         config.fallbackFunctions = new FallbackFunction[](5);
 
@@ -92,6 +92,11 @@ contract Royalty is ModularExtension {
             callType: CallType.CALL,
             permissionBits: TOKEN_ADMIN_ROLE
         });
+
+        config.requiredInterfaceId = 0x80ac58cd; // ERC721.
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
     }
 
     /*//////////////////////////////////////////////////////////////
