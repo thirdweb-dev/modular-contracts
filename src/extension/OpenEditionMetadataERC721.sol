@@ -12,7 +12,7 @@ library OpenEditionMetadataStorage {
 
     struct Data {
         /// @notice Token metadata information
-        mapping(address => OpenEditionMetadata.SharedMetadata) sharedMetadata;
+        mapping(address => OpenEditionMetadataERC721.SharedMetadata) sharedMetadata;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -23,7 +23,7 @@ library OpenEditionMetadataStorage {
     }
 }
 
-contract OpenEditionMetadata is ModularExtension {
+contract OpenEditionMetadataERC721 is ModularExtension {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -64,7 +64,7 @@ contract OpenEditionMetadata is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 
@@ -74,6 +74,8 @@ contract OpenEditionMetadata is ModularExtension {
             callType: CallType.CALL,
             permissionBits: TOKEN_ADMIN_ROLE
         });
+
+        config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -126,8 +128,8 @@ contract OpenEditionMetadata is ModularExtension {
         string memory animationURI,
         uint256 tokenOfEdition
     ) internal pure returns (string memory) {
-        string memory _tokenMediaData = _tokenMediaData(imageURI, animationURI);
-        bytes memory json = _createMetadataJSON(name, description, _tokenMediaData, tokenOfEdition);
+        string memory tokenMediaData = _tokenMediaData(imageURI, animationURI);
+        bytes memory json = _createMetadataJSON(name, description, tokenMediaData, tokenOfEdition);
         return _encodeMetadataJSON(json);
     }
 
