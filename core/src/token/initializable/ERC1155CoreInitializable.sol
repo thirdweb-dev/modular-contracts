@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import {Initializable} from "@solady/utils/Initializable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
-import {ModularCoreUpgradeable} from "../ModularCoreUpgradeable.sol";
+import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
 
-import {BeforeMintCallbackERC1155} from "../callback/BeforeMintCallbackERC1155.sol";
-import {BeforeTransferCallbackERC1155} from "../callback/BeforeTransferCallbackERC1155.sol";
-import {BeforeBatchTransferCallbackERC1155} from "../callback/BeforeBatchTransferCallbackERC1155.sol";
-import {BeforeBurnCallbackERC1155} from "../callback/BeforeBurnCallbackERC1155.sol";
-import {BeforeApproveForAllCallback} from "../callback/BeforeApproveForAllCallback.sol";
-import {OnTokenURICallback} from "../callback/OnTokenURICallback.sol";
+import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC1155.sol";
+import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
+import {BeforeBatchTransferCallbackERC1155} from "../../callback/BeforeBatchTransferCallbackERC1155.sol";
+import {BeforeBurnCallbackERC1155} from "../../callback/BeforeBurnCallbackERC1155.sol";
+import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC1155Core is ERC1155, ModularCoreUpgradeable, Multicallable {
+contract ERC1155CoreInitializable is ERC1155, ModularCoreUpgradeable, Multicallable, Initializable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -38,25 +39,28 @@ contract ERC1155Core is ERC1155, ModularCoreUpgradeable, Multicallable {
     event ContractURIUpdated();
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTRUCTOR
+                        CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
-        address _erc1967Factory,
+    constructor(address _erc1967Factory) ModularCoreUpgradeable(_erc1967Factory) {
+        _disableInitializers();
+    }
+
+    function initialize(
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ModularCoreUpgradeable(_erc1967Factory) {
+    ) external payable initializer {
         // Set contract metadata
-        _name = _name;
-        _symbol = _symbol;
+        _name = name;
+        _symbol = symbol;
         _setupContractURI(contractURI);
         _initializeOwner(owner);
 
-        // Install and initialize extensions
+        // Install and initialize hooks
         require(extensions.length == extensions.length);
         for (uint256 i = 0; i < extensions.length; i++) {
             _installExtension(extensions[i], extensionInstallData[i]);

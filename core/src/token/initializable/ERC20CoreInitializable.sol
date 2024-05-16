@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {ModularCoreUpgradeable} from "../ModularCoreUpgradeable.sol";
+import {Initializable} from "@solady/utils/Initializable.sol";
+
+import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import {BeforeMintCallbackERC20} from "../callback/BeforeMintCallbackERC20.sol";
-import {BeforeBurnCallbackERC20} from "../callback/BeforeBurnCallbackERC20.sol";
-import {BeforeApproveCallbackERC20} from "../callback/BeforeApproveCallbackERC20.sol";
-import {BeforeTransferCallbackERC20} from "../callback/BeforeTransferCallbackERC20.sol";
+import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
+import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
+import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
+import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
+contract ERC20CoreInitializable is ERC20, ModularCoreUpgradeable, Multicallable, Initializable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -33,21 +35,24 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     event ContractURIUpdated();
 
     /*//////////////////////////////////////////////////////////////
-                            CONSTRUCTOR
+                        CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
-        address _erc1967Factory,
+    constructor(address _erc1967Factory) ModularCoreUpgradeable(_erc1967Factory) {
+        _disableInitializers();
+    }
+
+    function initialize(
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ModularCoreUpgradeable(_erc1967Factory) {
+    ) external payable initializer {
         // Set contract metadata
-        _name = _name;
-        _symbol = _symbol;
+        _name = name;
+        _symbol = symbol;
         _setupContractURI(contractURI);
         _initializeOwner(owner);
 

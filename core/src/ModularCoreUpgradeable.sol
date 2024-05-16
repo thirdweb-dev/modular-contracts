@@ -454,7 +454,6 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         InstalledCallbackFunction memory callbackFunction = callbackFunctionData_[_selector];
 
         if (callbackFunction.implementation != address(0)) {
-            // note: these code block needs to happen at the end of the function
             if (callbackFunction.callType == CallType.CALL) {
                 (success, returndata) = callbackFunction.implementation.call{value: msg.value}(_abiEncodedCalldata);
             } else if (callbackFunction.callType == CallType.DELEGATECALL) {
@@ -462,6 +461,40 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
             } else if (callbackFunction.callType == CallType.STATICCALL) {
                 (success, returndata) = callbackFunction.implementation.staticcall(_abiEncodedCalldata);
             }
+        } else {
+            if (callbackMode == CallbackMode.REQUIRED) {
+                revert CallbackFunctionRequired();
+            }
+        }
+    }
+
+    /// @dev Calls an extension callback function and checks whether it is optional or required.
+    function _executeCallbackFunctionView(bytes4 _selector, bytes memory _abiEncodedCalldata)
+        internal
+        view
+        returns (bool success, bytes memory returndata)
+    {
+        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
+        uint256 len = functions.length;
+
+        CallbackMode callbackMode;
+
+        // TODO: optimize
+        for (uint256 i = 0; i < len; i++) {
+            if (functions[i].selector == _selector) {
+                callbackMode = functions[i].mode;
+                break;
+            }
+        }
+
+        InstalledCallbackFunction memory callbackFunction = callbackFunctionData_[_selector];
+
+        if (callbackFunction.callType != CallType.STATICCALL) {
+            revert CallbackFunctionNotSupported();
+        }
+
+        if (callbackFunction.implementation != address(0)) {
+            (success, returndata) = callbackFunction.implementation.staticcall(_abiEncodedCalldata);
         } else {
             if (callbackMode == CallbackMode.REQUIRED) {
                 revert CallbackFunctionRequired();

@@ -1,19 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import {Initializable} from "@solady/utils/Initializable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
+import {
+    IERC721AUpgradeable,
+    ERC721AUpgradeable,
+    ERC721AQueryableUpgradeable
+} from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
 
-import {ModularCoreUpgradeable} from "../ModularCoreUpgradeable.sol";
+import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
 
-import {BeforeMintCallbackERC721} from "../callback/BeforeMintCallbackERC721.sol";
-import {BeforeTransferCallbackERC721} from "../callback/BeforeTransferCallbackERC721.sol";
-import {BeforeBurnCallbackERC721} from "../callback/BeforeBurnCallbackERC721.sol";
-import {BeforeApproveCallbackERC721} from "../callback/BeforeApproveCallbackERC721.sol";
-import {BeforeApproveForAllCallback} from "../callback/BeforeApproveForAllCallback.sol";
-import {OnTokenURICallback} from "../callback/OnTokenURICallback.sol";
+import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
+import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
+import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
+import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
+contract ERC721CoreInitializable is
+    ERC721AQueryableUpgradeable,
+    ModularCoreUpgradeable,
+    Multicallable,
+    Initializable
+{
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -29,19 +39,23 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
     event ContractURIUpdated();
 
     /*//////////////////////////////////////////////////////////////
-                            CONSTRUCTOR
+                            CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
-        address _erc1967Factory,
+    constructor(address _erc1967Factory) ModularCoreUpgradeable(_erc1967Factory) {
+        _disableInitializers();
+    }
+
+    function initialize(
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ERC721A(name, symbol) ModularCoreUpgradeable(_erc1967Factory) {
+    ) external payable initializer initializerERC721A {
         // Set contract metadata
+        __ERC721A_init(name, symbol);
         _setupContractURI(contractURI);
         _initializeOwner(owner);
 
@@ -70,7 +84,12 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
      *  @param id The token ID of the NFT.
      *  @return metadata The URI to fetch metadata from.
      */
-    function tokenURI(uint256 id) public view override(ERC721A, IERC721A) returns (string memory) {
+    function tokenURI(uint256 id)
+        public
+        view
+        override(ERC721AUpgradeable, IERC721AUpgradeable)
+        returns (string memory)
+    {
         return _getTokenURI(id);
     }
 
@@ -81,7 +100,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721A, IERC721A, ModularCoreUpgradeable)
+        override(ERC721AUpgradeable, IERC721AUpgradeable, ModularCoreUpgradeable)
         returns (bool)
     {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
@@ -165,7 +184,11 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
      *  @param to The address to transfer to
      *  @param id The token ID of the NFT
      */
-    function transferFrom(address from, address to, uint256 id) public payable override(ERC721A, IERC721A) {
+    function transferFrom(address from, address to, uint256 id)
+        public
+        payable
+        override(ERC721AUpgradeable, IERC721AUpgradeable)
+    {
         _beforeTransfer(from, to, id);
         super.transferFrom(from, to, id);
     }
@@ -176,7 +199,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
      *  @param spender The address to approve
      *  @param id The token ID of the NFT
      */
-    function approve(address spender, uint256 id) public payable override(ERC721A, IERC721A) {
+    function approve(address spender, uint256 id) public payable override(ERC721AUpgradeable, IERC721AUpgradeable) {
         _beforeApprove(msg.sender, spender, id, true);
         super.approve(spender, id);
     }
@@ -186,7 +209,10 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
      *  @param operator The address to approve or revoke approval from
      *  @param approved Whether the operator is approved
      */
-    function setApprovalForAll(address operator, bool approved) public override(ERC721A, IERC721A) {
+    function setApprovalForAll(address operator, bool approved)
+        public
+        override(ERC721AUpgradeable, IERC721AUpgradeable)
+    {
         _beforeApproveForAll(msg.sender, operator, approved);
         super.setApprovalForAll(operator, approved);
     }
