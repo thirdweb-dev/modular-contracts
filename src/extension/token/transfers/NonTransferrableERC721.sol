@@ -61,6 +61,8 @@ contract NonTransferableERC721 is ModularExtension {
             callType: CallType.CALL,
             permissionBits: TOKEN_ADMIN_ROLE
         });
+
+        config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
 
     /*//////////////////////////////////////////////////////////////

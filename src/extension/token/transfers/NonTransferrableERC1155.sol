@@ -62,6 +62,8 @@ contract NonTransferableERC1155 is ModularExtension {
             callType: CallType.CALL,
             permissionBits: TOKEN_ADMIN_ROLE
         });
+
+        config.requiredInterfaceId = 0xd9b67a26; // ERC1155
     }
 
     /*//////////////////////////////////////////////////////////////

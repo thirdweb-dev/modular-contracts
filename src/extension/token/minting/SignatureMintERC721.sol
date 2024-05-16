@@ -93,6 +93,8 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
             callType: CallType.CALL,
             permissionBits: TOKEN_ADMIN_ROLE
         });
+
+        config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
