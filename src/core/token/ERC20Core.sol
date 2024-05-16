@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {ModularCoreUpgradeable} from "../ModularCoreUpgradeable.sol";
+import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import {BeforeMintCallbackERC20} from "../callback/BeforeMintCallbackERC20.sol";
-import {BeforeBurnCallbackERC20} from "../callback/BeforeBurnCallbackERC20.sol";
-import {BeforeApproveCallbackERC20} from "../callback/BeforeApproveCallbackERC20.sol";
-import {BeforeTransferCallbackERC20} from "../callback/BeforeTransferCallbackERC20.sol";
+import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
+import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
+import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
+import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
 contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     /*//////////////////////////////////////////////////////////////

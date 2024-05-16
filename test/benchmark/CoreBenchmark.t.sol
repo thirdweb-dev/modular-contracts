@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {IModularExtension, IExtensionConfig} from "src/interface/IModularExtension.sol";
 import {ModularCore} from "src/ModularCore.sol";
-import {ERC20Core} from "src/token/ERC20Core.sol";
+import {ERC20Core} from "src/core/token/ERC20Core.sol";
 
 contract MockBase {
     uint256 internal constant NUMBER_OF_CALLBACK = 10;

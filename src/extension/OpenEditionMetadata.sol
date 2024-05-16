@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../ModularExtension.sol";
-import {NFTMetadataRenderer} from "../lib/NFTMetadataRenderer.sol";
+import {LibString} from "@solady/utils/LibString.sol";
+import {Base64} from "@solady/utils/Base64.sol";
 
 library OpenEditionMetadataStorage {
     /// @custom:storage-location erc7201:open.edition.metadata.storage
@@ -83,7 +84,7 @@ contract OpenEditionMetadata is ModularExtension {
     function onTokenURI(uint256 _id) external view returns (string memory) {
         address token = msg.sender;
         SharedMetadata memory info = OpenEditionMetadataStorage.data().sharedMetadata[token];
-        return NFTMetadataRenderer.createMetadataEdition({
+        return _createMetadataEdition({
             name: info.name,
             description: info.description,
             imageURI: info.imageURI,
@@ -93,7 +94,7 @@ contract OpenEditionMetadata is ModularExtension {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        EXTENSION FUNCTIONS
+                           FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set shared metadata for NFTs
@@ -112,5 +113,81 @@ contract OpenEditionMetadata is ModularExtension {
         emit SharedMetadataUpdated(
             token, _metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _createMetadataEdition(
+        string memory name,
+        string memory description,
+        string memory imageURI,
+        string memory animationURI,
+        uint256 tokenOfEdition
+    ) internal pure returns (string memory) {
+        string memory _tokenMediaData = _tokenMediaData(imageURI, animationURI);
+        bytes memory json = _createMetadataJSON(name, description, _tokenMediaData, tokenOfEdition);
+        return _encodeMetadataJSON(json);
+    }
+
+    /**
+     * @param name Name of NFT in metadata
+     * @param description Description of NFT in metadata
+     * @param mediaData Data for media to include in json object
+     * @param tokenOfEdition Token ID for specific token
+     */
+    function _createMetadataJSON(
+        string memory name,
+        string memory description,
+        string memory mediaData,
+        uint256 tokenOfEdition
+    ) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            '{"name": "',
+            name,
+            " ",
+            LibString.toString(tokenOfEdition),
+            '", "',
+            'description": "',
+            description,
+            '", "',
+            mediaData,
+            'properties": {"number": ',
+            LibString.toString(tokenOfEdition),
+            ', "name": "',
+            name,
+            '"}}'
+        );
+    }
+
+    /// Encodes the argument json bytes into base64-data uri format
+    /// @param json Raw json to base64 and turn into a data-uri
+    function _encodeMetadataJSON(bytes memory json) internal pure returns (string memory) {
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(json)));
+    }
+
+    /// Generates edition metadata from storage information as base64-json blob
+    /// Combines the media data and metadata
+    /// @param imageUrl URL of image to render for edition
+    /// @param animationUrl URL of animation to render for edition
+    function _tokenMediaData(string memory imageUrl, string memory animationUrl)
+        internal
+        pure
+        returns (string memory)
+    {
+        bool hasImage = bytes(imageUrl).length > 0;
+        bool hasAnimation = bytes(animationUrl).length > 0;
+        if (hasImage && hasAnimation) {
+            return string(abi.encodePacked('image": "', imageUrl, '", "animation_url": "', animationUrl, '", "'));
+        }
+        if (hasImage) {
+            return string(abi.encodePacked('image": "', imageUrl, '", "'));
+        }
+        if (hasAnimation) {
+            return string(abi.encodePacked('animation_url": "', animationUrl, '", "'));
+        }
+
+        return "";
     }
 }
