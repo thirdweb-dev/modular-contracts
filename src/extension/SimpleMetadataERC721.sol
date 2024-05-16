@@ -22,7 +22,7 @@ library SimpleMetadataStorage {
     }
 }
 
-contract SimpleMetadata is ModularExtension {
+contract SimpleMetadataERC721 is ModularExtension {
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -43,13 +43,15 @@ contract SimpleMetadata is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector, CallType.CALL);
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.setTokenURI.selector, callType: CallType.CALL, permissionBits: 0});
+
+        config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
