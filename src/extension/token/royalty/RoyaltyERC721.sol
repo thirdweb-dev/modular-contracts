@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {ModularExtension} from "../ModularExtension.sol";
+import {ModularExtension} from "../../../ModularExtension.sol";
 
 library RoyaltyStorage {
     /// @custom:storage-location erc7201:royalty.storage
