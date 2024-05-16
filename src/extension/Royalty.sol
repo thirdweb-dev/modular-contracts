@@ -95,7 +95,7 @@ contract Royalty is ModularExtension {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION FUNCTIONS
+                            FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the royalty recipient and amount for a given sale.

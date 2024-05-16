@@ -108,7 +108,7 @@ contract BatchMetadata is ModularExtension {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION FUNCTIONS
+                            FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all metadata batches for a token.

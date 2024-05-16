@@ -174,7 +174,7 @@ contract SignatureMint is ModularExtension, EIP712 {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION FUNCTIONS
+                            FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     function getSaleConfig(address _token)

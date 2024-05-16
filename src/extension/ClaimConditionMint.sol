@@ -181,7 +181,7 @@ contract ClaimConditionMint is ModularExtension {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION FUNCTIONS
+                            FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.

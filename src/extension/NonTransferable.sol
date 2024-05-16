@@ -94,7 +94,7 @@ contract NonTransferable is ModularExtension {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION FUNCTIONS
+                            FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns whether transfers are disabled for a token.

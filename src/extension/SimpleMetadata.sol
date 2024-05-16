@@ -62,7 +62,7 @@ contract SimpleMetadata is ModularExtension {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION FUNCTIONS
+                            FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Sets the metadata URI for a token.
