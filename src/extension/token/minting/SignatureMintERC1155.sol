@@ -83,10 +83,10 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
     //////////////////////////////////////////////////////////////*/
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](3);
+        config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](2);
 
-        config.callbackFunctions[2] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});

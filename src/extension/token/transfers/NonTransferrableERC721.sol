@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {ModularExtension} from "../ModularExtension.sol";
+import {ModularExtension} from "../../../ModularExtension.sol";
 
 library NonTransferableStorage {
     /// @custom:storage-location erc7201:non.transferable.storage
@@ -21,7 +21,7 @@ library NonTransferableStorage {
     }
 }
 
-contract NonTransferable is ModularExtension {
+contract NonTransferableERC721 is ModularExtension {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -41,12 +41,10 @@ contract NonTransferable is ModularExtension {
 
     /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](3);
+        config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](3);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC20.selector, CallType.CALL);
-        config.callbackFunctions[1] = CallbackFunction(this.beforeTransferERC721.selector, CallType.CALL);
-        config.callbackFunctions[2] = CallbackFunction(this.beforeTransferERC1155.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC721.selector, CallType.CALL);
 
         config.fallbackFunctions[0] = FallbackFunction({
             selector: this.isTransfersDisabled.selector,
@@ -69,24 +67,8 @@ contract NonTransferable is ModularExtension {
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Callback function for ERC20.transfer
-    function beforeTransferERC20(address, address, uint256) external virtual returns (bytes memory) {
-        address token = msg.sender;
-        if (_nonTransferableStorage().transferDisabled[token]) {
-            revert TransfersDisabled();
-        }
-    }
-
     /// @notice Callback function for ERC721.transferFrom/safeTransferFrom
     function beforeTransferERC721(address, address, uint256) external virtual returns (bytes memory) {
-        address token = msg.sender;
-        if (_nonTransferableStorage().transferDisabled[token]) {
-            revert TransfersDisabled();
-        }
-    }
-
-    /// @notice Callback function for ERC1155.safeTransferFrom
-    function beforeTransferERC1155(address, address, uint256, uint256) external virtual returns (bytes memory result) {
         address token = msg.sender;
         if (_nonTransferableStorage().transferDisabled[token]) {
             revert TransfersDisabled();
