@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {ModularExtension} from "../ModularExtension.sol";
+import {ModularExtension} from "../../../ModularExtension.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
@@ -12,11 +12,9 @@ library ClaimConditionMintStorage {
 
     struct Data {
         // token address => sale config: primary sale recipient, and platform fee recipient + BPS.
-        mapping(address => ClaimConditionMint.SaleConfig) saleConfig;
-        // token => claim condition
-        mapping(address => ClaimConditionMint.ClaimCondition) claimCondition;
+        mapping(address => ClaimConditionMint1155.SaleConfig) saleConfig;
         // token => token ID => claim condition
-        mapping(address => mapping(uint256 => ClaimConditionMint.ClaimCondition)) claimConditionByTokenId;
+        mapping(address => mapping(uint256 => ClaimConditionMint1155.ClaimCondition)) claimConditionByTokenId;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -27,7 +25,7 @@ library ClaimConditionMintStorage {
     }
 }
 
-contract ClaimConditionMint is ModularExtension {
+contract ClaimConditionMint1155 is ModularExtension {
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -107,11 +105,9 @@ contract ClaimConditionMint is ModularExtension {
 
     /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](3);
-        config.fallbackFunctions = new FallbackFunction[](6);
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
-        config.callbackFunctions[1] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
         config.callbackFunctions[2] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
 
         config.fallbackFunctions[0] =
@@ -122,21 +118,11 @@ contract ClaimConditionMint is ModularExtension {
             permissionBits: TOKEN_ADMIN_ROLE
         });
         config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.getClaimCondition.selector,
-            callType: CallType.STATICCALL,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
             selector: this.getClaimConditionByTokenId.selector,
             callType: CallType.STATICCALL,
             permissionBits: 0
         });
-        config.fallbackFunctions[4] = FallbackFunction({
-            selector: this.setClaimCondition.selector,
-            callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
-        });
-        config.fallbackFunctions[5] = FallbackFunction({
+        config.fallbackFunctions[3] = FallbackFunction({
             selector: this.setClaimConditionByTokenId.selector,
             callType: CallType.CALL,
             permissionBits: TOKEN_ADMIN_ROLE
@@ -146,28 +132,6 @@ contract ClaimConditionMint is ModularExtension {
     /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Callback function for the ERC20Core.mint function.
-    function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
-        external
-        payable
-        virtual
-        returns (bytes memory)
-    {
-        ClaimParams memory _params = abi.decode(_data, (ClaimParams));
-        _allowlistedMintERC20(_to, _quantity, _params);
-    }
-
-    /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
-        external
-        payable
-        virtual
-        returns (bytes memory)
-    {
-        ClaimParams memory _params = abi.decode(_data, (ClaimParams));
-        _allowlistedMintERC721(_to, _quantity, _params);
-    }
 
     /// @notice Callback function for the ERC1155Core.mint function.
     function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
@@ -203,11 +167,6 @@ contract ClaimConditionMint is ModularExtension {
             SaleConfig(_primarySaleRecipient, _platformFeeRecipient, _platformFeeBps);
     }
 
-    /// @notice Returns the claim condition for a token.
-    function getClaimCondition(address _token) external view returns (ClaimCondition memory claimCondition) {
-        return _claimConditionMintStorage().claimCondition[_token];
-    }
-
     /// @notice Returns the claim condition for a token and a specific token ID.
     function getClaimConditionByTokenId(address _token, uint256 _id)
         external
@@ -215,12 +174,6 @@ contract ClaimConditionMint is ModularExtension {
         returns (ClaimCondition memory claimCondition)
     {
         return _claimConditionMintStorage().claimConditionByTokenId[_token][_id];
-    }
-
-    /// @notice Sets the claim condition for a token.
-    function setClaimCondition(ClaimCondition memory _claimCondition) external {
-        address token = msg.sender;
-        _claimConditionMintStorage().claimCondition[token] = _claimCondition;
     }
 
     /// @notice Sets the claim condition for a token and a specific token ID.
@@ -232,78 +185,6 @@ contract ClaimConditionMint is ModularExtension {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @dev Processes a mint for an ERC20 token against the claim condition set for it.
-    function _allowlistedMintERC20(address _recipient, uint256 _quantity, ClaimParams memory _params) internal {
-        address token = msg.sender;
-
-        ClaimCondition memory claimCondition = _claimConditionMintStorage().claimCondition[token];
-
-        if (
-            claimCondition.currency != _params.expectedCurrency
-                || claimCondition.pricePerUnit != _params.expectedPricePerUnit
-        ) {
-            revert ClaimConditionMintPriceMismatch();
-        }
-
-        if (block.timestamp < claimCondition.startTimestamp || claimCondition.endTimestamp <= block.timestamp) {
-            revert ClaimConditionMintOutOfTimeWindow();
-        }
-
-        if (_quantity > claimCondition.availableSupply) {
-            revert ClaimConditionMintOutOfSupply();
-        }
-
-        if (claimCondition.allowlistMerkleRoot != bytes32(0)) {
-            bool isAllowlisted = MerkleProofLib.verify(
-                _params.allowlistProof, claimCondition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
-            );
-
-            if (!isAllowlisted) {
-                revert ClaimConditionMintNotInAllowlist();
-            }
-        }
-
-        _claimConditionMintStorage().claimCondition[token].availableSupply -= _quantity;
-
-        _distributeMintPrice(_recipient, _params.expectedCurrency, (_quantity * _params.expectedPricePerUnit) / 1e18);
-    }
-
-    /// @dev Processes a mint for an ERC721 token against the claim condition set for it.
-    function _allowlistedMintERC721(address _recipient, uint256 _quantity, ClaimParams memory _params) internal {
-        address token = msg.sender;
-
-        ClaimCondition memory claimCondition = _claimConditionMintStorage().claimCondition[token];
-
-        if (
-            claimCondition.currency != _params.expectedCurrency
-                || claimCondition.pricePerUnit != _params.expectedPricePerUnit
-        ) {
-            revert ClaimConditionMintPriceMismatch();
-        }
-
-        if (block.timestamp < claimCondition.startTimestamp || claimCondition.endTimestamp <= block.timestamp) {
-            revert ClaimConditionMintOutOfTimeWindow();
-        }
-
-        if (_quantity > claimCondition.availableSupply) {
-            revert ClaimConditionMintOutOfSupply();
-        }
-
-        if (claimCondition.allowlistMerkleRoot != bytes32(0)) {
-            bool isAllowlisted = MerkleProofLib.verify(
-                _params.allowlistProof, claimCondition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
-            );
-
-            if (!isAllowlisted) {
-                revert ClaimConditionMintNotInAllowlist();
-            }
-        }
-
-        _claimConditionMintStorage().claimCondition[token].availableSupply -= _quantity;
-
-        _distributeMintPrice(_recipient, _params.expectedCurrency, _quantity * _params.expectedPricePerUnit);
-    }
 
     /// @dev Processes a mint for an ERC1155 token against the claim condition set for it.
     function _allowlistedMintERC1155(address _recipient, uint256 _id, uint256 _quantity, ClaimParams memory _params)
