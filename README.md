@@ -13,8 +13,6 @@ A Modular Contract is built of two kinds of parts: a _Modular Core_ and its _Mod
 
 A developer writes a **_Core_** smart contract as the foundation that can be customized by adding new parts and updating or removing these parts over time. These ‘parts’ are **_Extension_** smart contracts which any third-party developer can independently develop with reference to the **_Core_** smart contract as the known foundation to build around.
 
-Both `/core` and `/extension` directories are their own forge projects where we develop the Core API of the architecture independently from the Extensions that use this Core API as a dependency.
-
 # Install and Use
 
 This project can currently be installed as a dependency in [foundry](https://book.getfoundry.sh/) projects. To install, run:
@@ -26,13 +24,13 @@ forge install https://github.com/thirdweb-dev/modular-contracts
 Add the following in a `remappings.txt` file:
 
 ```
-@core-contracts/=lib/modular-contracts/core/src/
+@modular-contracts/=lib/modular-contracts/src/
 ```
 
 Import `ModularCore` inherit to build a Modular Core contract (e.g. ERC-721 Core):
 
 ```solidity
-import {ModularCore} from "@core-contracts/ModularCore.sol";
+import {ModularCore} from "@modular-contracts/ModularCore.sol";
 import {ERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
 
 contract ModularNFTCollection is ERC721A, ModularCore {}
@@ -41,7 +39,7 @@ contract ModularNFTCollection is ERC721A, ModularCore {}
 Import `ModularExtension` to create an Extension for your Core contract (e.g. `Soulbound`):
 
 ```solidity
-import {ModularExtension} from "@core-contracts/ModularExtension.sol";
+import {ModularExtension} from "@modular-contracts/ModularExtension.sol";
 
 contract SoulboundERC721 is ModularExtension {}
 ```
@@ -56,14 +54,9 @@ git clone https://github.com/thirdweb-dev/modular-contracts.git
 
 Install dependencies:
 
-If you are in the root directory of the project, run:
-
 ```bash
-# Install dependecies for core contracts
-forge install --root ./core
-
-# Install dependecies for extension contracts
-forge install --root ./extension
+# Install dependecies
+forge install
 ```
 
 <!-- From within `/contracts`, run benchmark comparison tests:

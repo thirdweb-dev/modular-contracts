@@ -41,5 +41,5 @@ jobs:
 
       - name: Create Forge Gas Report
         run: |
-          cd core && forge test --isolate --mp 'test/benchmark/*'
+          forge test --isolate --mp 'test/benchmark/*'
         id: benchmark
