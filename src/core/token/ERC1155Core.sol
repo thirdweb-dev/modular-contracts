@@ -251,7 +251,7 @@ contract ERC1155Core is ERC1155, ModularCoreUpgradeable, Multicallable {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        HOOKS INTERNAL FUNCTIONS
+                        CALLBACK INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.

@@ -202,7 +202,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        HOOKS INTERNAL FUNCTIONS
+                        CALLBACK INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.

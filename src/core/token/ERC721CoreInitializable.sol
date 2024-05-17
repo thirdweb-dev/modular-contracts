@@ -228,7 +228,7 @@ contract ERC721CoreInitializable is
     }
 
     /*//////////////////////////////////////////////////////////////
-                        HOOKS INTERNAL FUNCTIONS
+                        CALLBACK INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
