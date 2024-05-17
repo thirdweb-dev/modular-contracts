@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Initializable} from "@solady/utils/Initializable.sol";
-import {Multicallable} from "@solady/utils/Multicallable.sol";
+// import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {
     IERC721AUpgradeable,
     ERC721AUpgradeable,
@@ -18,12 +18,7 @@ import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackE
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721CoreInitializable is
-    ERC721AQueryableUpgradeable,
-    ModularCoreUpgradeable,
-    Multicallable,
-    Initializable
-{
+contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCoreUpgradeable, Initializable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
