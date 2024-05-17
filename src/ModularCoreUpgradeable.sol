@@ -229,6 +229,10 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
 
         // Re-install the extension config of the proxy post-upgrade
         _mapExtensionConfigToProxy(extensionProxyAddress);
+
+        emit ExtensionUpdated(
+            msg.sender, _currentExtensionImplementation, _newExtensionImplementation, extensionProxyAddress
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
