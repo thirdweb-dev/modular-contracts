@@ -109,16 +109,10 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
             callType: CallType.CALL,
             permissionBits: TOKEN_ADMIN_ROLE
         });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.getRevealURI.selector,
-            callType: CallType.STATICCALL,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[4] = FallbackFunction({
-            selector: this.encryptDecrypt.selector,
-            callType: CallType.STATICCALL,
-            permissionBits: 0
-        });
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.getRevealURI.selector, callType: CallType.STATICCALL, permissionBits: 0});
+        config.fallbackFunctions[4] =
+            FallbackFunction({selector: this.encryptDecrypt.selector, callType: CallType.STATICCALL, permissionBits: 0});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721.
     }
@@ -132,7 +126,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         address token = msg.sender;
         (string memory batchUri, bool isEncrypted) = _getBaseURI(token, _id);
 
-        if(isEncrypted) {
+        if (isEncrypted) {
             return string(abi.encodePacked(batchUri, "0"));
         } else {
             return string(abi.encodePacked(batchUri, _id.toString()));
@@ -190,10 +184,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     }
 
     /// @notice reveals the URI for a range of 'delayed-reveal' tokens.
-    function reveal(
-        uint256 _index,
-        bytes calldata _key
-    ) public returns (string memory revealedURI) {
+    function reveal(uint256 _index, bytes calldata _key) public returns (string memory revealedURI) {
         address token = msg.sender;
         uint256 _rangeEndNonInclusive = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[token][_index];
         revealedURI = _getRevealURI(token, _rangeEndNonInclusive, _key);
@@ -273,7 +264,11 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     }
 
     /// @notice unencrypted URI for a range of 'delayed-reveal' tokens.
-    function _getRevealURI(address _token, uint256 _rangeEndNonInclusive, bytes calldata _key) internal view returns (string memory revealedURI) {
+    function _getRevealURI(address _token, uint256 _rangeEndNonInclusive, bytes calldata _key)
+        internal
+        view
+        returns (string memory revealedURI)
+    {
         bytes memory data = _delayedRevealBatchMetadataStorage().encryptedData[_token][_rangeEndNonInclusive];
         if (data.length == 0) {
             revert DelayedRevealNothingToReveal();
@@ -285,13 +280,16 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
 
         if (keccak256(abi.encodePacked(revealedURI, _key, block.chainid)) != provenanceHash) {
             revert DelayedRevealIncorrectResultHash(
-                provenanceHash,
-                keccak256(abi.encodePacked(revealedURI, _key, block.chainid))
+                provenanceHash, keccak256(abi.encodePacked(revealedURI, _key, block.chainid))
             );
         }
     }
 
-    function _delayedRevealBatchMetadataStorage() internal pure returns (DelayedRevealBatchMetadataStorage.Data storage) {
+    function _delayedRevealBatchMetadataStorage()
+        internal
+        pure
+        returns (DelayedRevealBatchMetadataStorage.Data storage)
+    {
         return DelayedRevealBatchMetadataStorage.data();
     }
 }
