@@ -232,7 +232,7 @@ contract MockExtensionERC721 is BeforeMintCallbackERC721, IModularExtension, Ini
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
     }
 
-    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
+    function beforeMintERC721(address _caller, address _to, uint256 _quantity, bytes memory _data)
         external
         payable
         override
@@ -273,7 +273,7 @@ contract BuggyMockExtensionERC721 is BeforeMintCallbackERC721, IModularExtension
 
     error BuggyMinting();
 
-    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
+    function beforeMintERC721(address _caller, address _to, uint256 _quantity, bytes memory _data)
         external
         payable
         override
