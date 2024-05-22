@@ -37,15 +37,15 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when an extension is installed.
-    event ExtensionInstalled(address sender, address extensionImplementation, address extensionProxy);
+    event ExtensionInstalled(address sender, address implementation, address installedExtension);
+
+    /// @notice Emitted when an extension is uninstalled.
+    event ExtensionUninstalled(address sender, address implementation, address installedExtension);
 
     /// notice Emitted when an extension is updated.
     event ExtensionUpdated(
         address sender, address oldExtensionImplementation, address newExtensionImplementation, address extensionProxy
     );
-
-    /// @notice Emitted when an extension is uninstalled.
-    event ExtensionUninstalled(address sender, address extensionImplementation, address extensionProxy);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -446,8 +446,6 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
-
-        // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
             if (functions[i].selector == _selector) {
                 callbackMode = functions[i].mode;
@@ -482,8 +480,6 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
-
-        // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
             if (functions[i].selector == _selector) {
                 callbackMode = functions[i].mode;
