@@ -3,10 +3,12 @@ pragma solidity ^0.8.0;
 
 // Test utils
 import {Test} from "forge-std/Test.sol";
+import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
 import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 
 // Target contract
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
 import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
 
@@ -59,9 +61,9 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
 
     uint256 private number;
 
-    function onInstall(address sender, bytes memory data) external {}
+    function onInstall(address sender, bytes memory data) external virtual {}
 
-    function onUninstall(address sender, bytes memory data) external {}
+    function onUninstall(address sender, bytes memory data) external virtual {}
 
     function getCallbacks() internal pure override returns (IExtensionConfig.CallbackFunction[] memory functions) {
         functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK + 1);
@@ -118,6 +120,8 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
             permissionBits: 0
         });
         config.fallbackFunctions = functions;
+
+        config.registerInstallationCallback = true;
     }
 
     function setNumber(uint256 _number) external {
@@ -145,6 +149,76 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
     function permissioned_delegatecall() external {}
 
     function permissioned_staticcall() external view {}
+}
+
+contract MockExtensionOnInstallFails is MockExtensionWithFunctions {
+    error OnInstallFailed();
+
+    function onInstall(address sender, bytes memory data) external override {
+        revert OnInstallFailed();
+    }
+}
+
+contract MockExtensionOnUninstallFails is MockExtensionWithFunctions {
+    error OnUninstallFailed();
+
+    function onUninstall(address sender, bytes memory data) external override {
+        revert OnUninstallFailed();
+    }
+}
+
+contract MockExtensionNoCallbacks is MockExtensionWithFunctions {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new IExtensionConfig.CallbackFunction[](0);
+
+        FallbackFunction[] memory functions = new FallbackFunction[](1);
+        functions[0] = FallbackFunction({
+            selector: bytes4(keccak256("notPermissioned_call()")),
+            callType: IExtensionConfig.CallType.CALL,
+            permissionBits: 0
+        });
+    }
+}
+
+contract MockExtensionNoFallbackFunctions is MockExtensionWithFunctions {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = getCallbacks();
+    }
+}
+
+contract MockExtensionRequiresSomeInterface is MockExtensionWithFunctions {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = getCallbacks();
+
+        config.requiredInterfaceId = bytes4(0x12345678);
+    }
+}
+
+contract MockExtensionOverlappingCallbacks is MockExtensionWithFunctions {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = getCallbacks();
+    }
+}
+
+contract MockExtensionUnsupportedCallbacks is MockExtensionWithFunctions {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+        config.callbackFunctions = new IExtensionConfig.CallbackFunction[](1);
+        config.callbackFunctions[0].selector = bytes4(0x12345678);
+        config.callbackFunctions[0].callType = IExtensionConfig.CallType.CALL;
+    }
+}
+
+contract MockExtensionOverlappingFallbackFunction is MockExtensionWithFunctions {
+    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+        FallbackFunction[] memory functions = new FallbackFunction[](1);
+        functions[0] = FallbackFunction({
+            selector: bytes4(keccak256("notPermissioned_call()")),
+            callType: IExtensionConfig.CallType.CALL,
+            permissionBits: 0
+        });
+
+        config.fallbackFunctions = functions;
+    }
 }
 
 contract MockExtensionAlternate is MockExtensionWithFunctions {
@@ -319,5 +393,375 @@ contract ModularCoreUpgradeableTest is Test {
         // 2. E.g. required callback function no longer has a call destination
         vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionRequired.selector));
         core.callbackFunctionOne();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    Unit tests: installExtension
+    //////////////////////////////////////////////////////////////*/
+
+    function test_installExtension_state() public {
+        // Check: no extensions installed
+        IModularCore.InstalledExtension[] memory extensionsBefore = core.getInstalledExtensions();
+        assertEq(extensionsBefore.length, 0);
+
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        // Now 1 extension installed
+        IModularCore.InstalledExtension[] memory extensionsAfter = core.getInstalledExtensions();
+        assertEq(extensionsAfter.length, 1);
+
+        // Check underlying extension proxy address
+        ERC1967Factory factory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+
+        bytes32 saltHash = keccak256(abi.encode(1, owner));
+        bytes20 addressBytes = bytes20(address(core));
+        bytes32 extensionID = bytes32(addressBytes) | (saltHash & bytes32(uint256(0xFFFFFFFFFFFFFFFFFFFFFFFF)));
+
+        address predictedExtensionProxyAddress = factory.predictDeterministicAddress(extensionID);
+
+        assertEq(extensionsAfter[0].implementation, predictedExtensionProxyAddress);
+
+        // Check installed config matches config returned by extension proxy
+        IExtensionConfig.ExtensionConfig memory installedConfig = extensionsAfter[0].config;
+        IExtensionConfig.ExtensionConfig memory expectedConfig =
+            ModularExtension(predictedExtensionProxyAddress).getExtensionConfig();
+
+        assertEq(installedConfig.requiredInterfaceId, expectedConfig.requiredInterfaceId);
+        assertEq(installedConfig.registerInstallationCallback, expectedConfig.registerInstallationCallback);
+
+        assertEq(installedConfig.supportedInterfaces.length, expectedConfig.supportedInterfaces.length);
+        uint256 len = installedConfig.supportedInterfaces.length;
+        for (uint256 i = 0; i < len; i++) {
+            assertEq(installedConfig.supportedInterfaces[i], expectedConfig.supportedInterfaces[i]);
+        }
+
+        assertEq(installedConfig.callbackFunctions.length, expectedConfig.callbackFunctions.length);
+        len = installedConfig.callbackFunctions.length;
+        for (uint256 i = 0; i < len; i++) {
+            assertEq(installedConfig.callbackFunctions[i].selector, expectedConfig.callbackFunctions[i].selector);
+            assertEq(
+                uint256(installedConfig.callbackFunctions[i].callType),
+                uint256(expectedConfig.callbackFunctions[i].callType)
+            );
+        }
+
+        assertEq(installedConfig.fallbackFunctions.length, expectedConfig.fallbackFunctions.length);
+        len = installedConfig.fallbackFunctions.length;
+        for (uint256 i = 0; i < len; i++) {
+            assertEq(installedConfig.fallbackFunctions[i].selector, expectedConfig.fallbackFunctions[i].selector);
+            assertEq(
+                uint256(installedConfig.fallbackFunctions[i].callType),
+                uint256(expectedConfig.fallbackFunctions[i].callType)
+            );
+            assertEq(
+                installedConfig.fallbackFunctions[i].permissionBits, expectedConfig.fallbackFunctions[i].permissionBits
+            );
+        }
+
+        // Check callback function is now callable
+        vm.expectEmit(true, false, false, false);
+        emit CallbackFunctionOne();
+        core.callbackFunctionOne();
+
+        // Check fallback function is now callable
+        vm.expectEmit(true, false, false, false);
+        emit FallbackFunctionCalled();
+        MockExtensionWithFunctions(address(core)).notPermissioned_call();
+    }
+
+    function test_installExtension_revert_unauthorizedCaller() public {
+        vm.expectRevert(abi.encodeWithSelector(0x82b42900)); // OwnableRoles.Unauthorized()
+        vm.prank(unpermissionedActor);
+        core.installExtension(address(extensionImplementation), "");
+    }
+
+    function test_installExtension_revert_extensionAlreadyInstalled() public {
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionAlreadyInstalled.selector));
+        core.installExtension(address(extensionImplementation), "");
+    }
+
+    function test_installExtension_revert_onInstallCallbackFailed() public {
+        // Deploy extension
+        MockExtensionOnInstallFails ext = new MockExtensionOnInstallFails();
+
+        // Install extension
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(MockExtensionOnInstallFails.OnInstallFailed.selector));
+        core.installExtension(address(ext), "");
+    }
+
+    function test_installExtension_revert_requiredInterfaceNotImplemented() public {
+        // Deploy extension
+        MockExtensionRequiresSomeInterface ext = new MockExtensionRequiresSomeInterface();
+
+        // Install extension
+        vm.prank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionInterfaceNotCompatible.selector, bytes4(0x12345678))
+        );
+        core.installExtension(address(ext), "");
+    }
+
+    function test_installExtension_revert_callbackFunctionAlreadyInstalled() public {
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        // Deploy conflicting extension
+        MockExtensionOverlappingCallbacks ext = new MockExtensionOverlappingCallbacks();
+
+        // Install conflicting extension
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionAlreadyInstalled.selector));
+        core.installExtension(address(ext), "");
+    }
+
+    function test_installExtension_revert_callbackFunctionNotSupported() public {
+        // Deploy extension
+        MockExtensionUnsupportedCallbacks ext = new MockExtensionUnsupportedCallbacks();
+
+        // Install extension
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionNotSupported.selector));
+        core.installExtension(address(ext), "");
+    }
+
+    function test_installExtension_revert_fallbackFunctionAlreadyInstalled() public {
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        // Deploy conflicting extension
+        MockExtensionOverlappingFallbackFunction ext = new MockExtensionOverlappingFallbackFunction();
+
+        // Install conflicting extension
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.FallbackFunctionAlreadyInstalled.selector));
+        core.installExtension(address(ext), "");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    Unit tests: uninstallExtension
+    //////////////////////////////////////////////////////////////*/
+
+    function test_uninstallExtension_state() public {
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        IModularCore.InstalledExtension[] memory extensionsBefore = core.getInstalledExtensions();
+        assertEq(extensionsBefore.length, 1);
+
+        vm.expectEmit(true, false, false, false);
+        emit CallbackFunctionOne();
+        core.callbackFunctionOne();
+
+        // Uninstall extension
+        vm.prank(owner);
+        core.uninstallExtension(address(extensionImplementation), "");
+
+        // Check no extensions installed
+        IModularCore.InstalledExtension[] memory extensionsAfter = core.getInstalledExtensions();
+        assertEq(extensionsAfter.length, 0);
+
+        // No callback function installed
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionRequired.selector));
+        core.callbackFunctionOne();
+
+        // No fallback function installed
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.FallbackFunctionNotInstalled.selector));
+        MockExtensionWithFunctions(address(core)).notPermissioned_call();
+    }
+
+    function test_uninstallExtension_revert_unauthorizedCaller() public {
+        vm.expectRevert(abi.encodeWithSelector(0x82b42900)); // OwnableRoles.Unauthorized()
+        vm.prank(unpermissionedActor);
+        core.uninstallExtension(address(extensionImplementation), "");
+    }
+
+    function test_uninstallExtension_revert_extensionNotInstalled() public {
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionNotInstalled.selector));
+        core.uninstallExtension(address(extensionImplementation), "");
+    }
+
+    function test_uninstallExtension_revert_onUninstallCallbackFailed() public {
+        // Deploy extension
+        MockExtensionOnUninstallFails ext = new MockExtensionOnUninstallFails();
+
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(ext), "");
+
+        // Uninstall extension
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(MockExtensionOnUninstallFails.OnUninstallFailed.selector));
+        core.uninstallExtension(address(ext), "");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    Unit tests: updateExtension
+    //////////////////////////////////////////////////////////////*/
+
+    function test_updateExtension_state() public {
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        IModularCore.InstalledExtension[] memory extensionsBefore = core.getInstalledExtensions();
+        assertEq(extensionsBefore.length, 1);
+
+        ERC1967Factory factory = ERC1967Factory(ERC1967FactoryConstants.ADDRESS);
+
+        bytes32 saltHash = keccak256(abi.encode(1, owner));
+        bytes20 addressBytes = bytes20(address(core));
+        bytes32 extensionID = bytes32(addressBytes) | (saltHash & bytes32(uint256(0xFFFFFFFFFFFFFFFFFFFFFFFF)));
+
+        address predictedExtensionProxyAddress = factory.predictDeterministicAddress(extensionID);
+
+        assertEq(extensionsBefore[0].implementation, predictedExtensionProxyAddress);
+
+        // Setup: Update extension implementation to include new function.
+        vm.prank(owner);
+        core.updateExtension(address(extensionImplementation), address(newExtensionImplementation));
+
+        // Check still one extension installed
+        IModularCore.InstalledExtension[] memory extensionsAfter = core.getInstalledExtensions();
+        assertEq(extensionsAfter.length, 1);
+
+        // Check underlying extension proxy address remains the same
+        assertEq(extensionsAfter[0].implementation, predictedExtensionProxyAddress);
+
+        // Check installed config matches config returned by extension proxy
+        IExtensionConfig.ExtensionConfig memory installedConfig = extensionsAfter[0].config;
+        IExtensionConfig.ExtensionConfig memory expectedConfig =
+            ModularExtension(predictedExtensionProxyAddress).getExtensionConfig();
+
+        assertEq(installedConfig.requiredInterfaceId, expectedConfig.requiredInterfaceId);
+        assertEq(installedConfig.registerInstallationCallback, expectedConfig.registerInstallationCallback);
+
+        assertEq(installedConfig.supportedInterfaces.length, expectedConfig.supportedInterfaces.length);
+        uint256 len = installedConfig.supportedInterfaces.length;
+        for (uint256 i = 0; i < len; i++) {
+            assertEq(installedConfig.supportedInterfaces[i], expectedConfig.supportedInterfaces[i]);
+        }
+
+        assertEq(installedConfig.callbackFunctions.length, expectedConfig.callbackFunctions.length);
+        len = installedConfig.callbackFunctions.length;
+        for (uint256 i = 0; i < len; i++) {
+            assertEq(installedConfig.callbackFunctions[i].selector, expectedConfig.callbackFunctions[i].selector);
+            assertEq(
+                uint256(installedConfig.callbackFunctions[i].callType),
+                uint256(expectedConfig.callbackFunctions[i].callType)
+            );
+        }
+
+        assertEq(installedConfig.fallbackFunctions.length, expectedConfig.fallbackFunctions.length);
+
+        bool includesSomeNewFunction = false;
+        len = installedConfig.fallbackFunctions.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (installedConfig.fallbackFunctions[i].selector == bytes4(keccak256("someNewFunction()"))) {
+                includesSomeNewFunction = true;
+            }
+            assertEq(installedConfig.fallbackFunctions[i].selector, expectedConfig.fallbackFunctions[i].selector);
+            assertEq(
+                uint256(installedConfig.fallbackFunctions[i].callType),
+                uint256(expectedConfig.fallbackFunctions[i].callType)
+            );
+            assertEq(
+                installedConfig.fallbackFunctions[i].permissionBits, expectedConfig.fallbackFunctions[i].permissionBits
+            );
+        }
+        assertTrue(includesSomeNewFunction);
+    }
+
+    function test_updateExtension_revert_unauthorizedCaller() public {
+        vm.expectRevert(abi.encodeWithSelector(0x82b42900)); // OwnableRoles.Unauthorized()
+        vm.prank(unpermissionedActor);
+        core.updateExtension(address(extensionImplementation), address(newExtensionImplementation));
+    }
+
+    function test_updateExtension_revert_extensionNotInstalled() public {
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionNotInstalled.selector));
+        core.updateExtension(address(extensionImplementation), address(newExtensionImplementation));
+    }
+
+    function test_updateExtension_revert_requiredInterfaceNotImplemented() public {
+        // Deploy extension
+        MockExtensionRequiresSomeInterface ext = new MockExtensionRequiresSomeInterface();
+
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        // Update extension
+        vm.prank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionInterfaceNotCompatible.selector, bytes4(0x12345678))
+        );
+        core.updateExtension(address(extensionImplementation), address(ext));
+    }
+
+    function test_updateExtension_revert_callbackFunctionAlreadyInstalled() public {
+        // Deploy extensions
+        MockExtensionNoCallbacks extWithoutCallbacks = new MockExtensionNoCallbacks();
+        MockExtensionOverlappingCallbacks extWithCallbacks = new MockExtensionOverlappingCallbacks();
+
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extWithoutCallbacks), "");
+
+        vm.prank(owner);
+        core.installExtension(address(extWithCallbacks), "");
+
+        assertEq(core.getInstalledExtensions().length, 2);
+
+        // Update extension
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionAlreadyInstalled.selector));
+        core.updateExtension(address(extWithoutCallbacks), address(extensionImplementation));
+    }
+
+    function test_updateExtension_revert_callbackFunctionNotSupported() public {
+        // Deploy extension
+        MockExtensionUnsupportedCallbacks ext = new MockExtensionUnsupportedCallbacks();
+
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extensionImplementation), "");
+
+        // Update extension
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionNotSupported.selector));
+        core.updateExtension(address(extensionImplementation), address(ext));
+    }
+
+    function test_updateExtension_revert_fallbackFunctionAlreadyInstalled() public {
+        // Deploy extensions
+        MockExtensionNoFallbackFunctions extWithoutFallbacks = new MockExtensionNoFallbackFunctions();
+        MockExtensionOverlappingFallbackFunction extWithFallbacks = new MockExtensionOverlappingFallbackFunction();
+
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(extWithoutFallbacks), "");
+
+        vm.prank(owner);
+        core.installExtension(address(extWithFallbacks), "");
+
+        assertEq(core.getInstalledExtensions().length, 2);
+
+        // Update extension
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.FallbackFunctionAlreadyInstalled.selector));
+        core.updateExtension(address(extWithoutFallbacks), address(extensionImplementation));
     }
 }

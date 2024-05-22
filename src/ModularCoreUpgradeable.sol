@@ -283,9 +283,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         ERC1967Factory proxyFactory = ERC1967Factory(erc1967FactoryAddress);
         address extensionProxyAddress = proxyFactory.predictDeterministicAddress(extensionID);
 
-        if (extensionProxyAddress.code.length == 0) {
-            proxyFactory.deployDeterministic(_extensionImplementation, address(this), extensionID);
-        }
+        proxyFactory.deployDeterministic(_extensionImplementation, address(this), extensionID);
 
         // Store the new extension ID. Conflicts are not possible since each new extension ID is derived from a hash of the previous ID.
         extensionIDs.add(extensionID);
