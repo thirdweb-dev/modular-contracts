@@ -37,15 +37,15 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when an extension is installed.
-    event ExtensionInstalled(address sender, address extensionImplementation, address extensionProxy);
+    event ExtensionInstalled(address sender, address implementation, address installedExtension);
+
+    /// @notice Emitted when an extension is uninstalled.
+    event ExtensionUninstalled(address sender, address implementation, address installedExtension);
 
     /// notice Emitted when an extension is updated.
     event ExtensionUpdated(
         address sender, address oldExtensionImplementation, address newExtensionImplementation, address extensionProxy
     );
-
-    /// @notice Emitted when an extension is uninstalled.
-    event ExtensionUninstalled(address sender, address extensionImplementation, address extensionProxy);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS

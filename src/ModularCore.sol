@@ -35,10 +35,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when an extension is installed.
-    event ExtensionInstalled(address sender, address extension);
+    event ExtensionInstalled(address sender, address implementation, address installedExtension);
 
     /// @notice Emitted when an extension is uninstalled.
-    event ExtensionUninstalled(address sender, address extension);
+    event ExtensionUninstalled(address sender, address implementation, address installedExtension);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -249,7 +249,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
         }
 
-        emit ExtensionInstalled(msg.sender, _extension);
+        emit ExtensionInstalled(msg.sender, _extension, _extension);
     }
 
     /// @notice Uninstalls an extension contract.
@@ -291,7 +291,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
         }
 
-        emit ExtensionUninstalled(msg.sender, _extension);
+        emit ExtensionUninstalled(msg.sender, _extension, _extension);
     }
 
     /// @dev Calls an extension callback function and checks whether it is optional or required.
