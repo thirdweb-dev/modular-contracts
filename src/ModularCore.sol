@@ -303,8 +303,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
-
-        // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
             if (functions[i].selector == _selector) {
                 callbackMode = functions[i].mode;
@@ -339,8 +337,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
-
-        // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
             if (functions[i].selector == _selector) {
                 callbackMode = functions[i].mode;
