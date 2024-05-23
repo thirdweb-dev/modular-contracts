@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {RoyaltyERC721} from "./RoyaltyERC721.sol";
+import {Role} from "../../../Role.sol";
 
 contract RoyaltyERC1155 is RoyaltyERC721 {
     /// @notice Returns all implemented callback and extension functions.
@@ -24,12 +25,12 @@ contract RoyaltyERC1155 is RoyaltyERC721 {
         config.fallbackFunctions[3] = FallbackFunction({
             selector: this.setDefaultRoyaltyInfo.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MANAGER_ROLE
         });
         config.fallbackFunctions[4] = FallbackFunction({
             selector: this.setRoyaltyInfoForToken.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MANAGER_ROLE
         });
 
         config.supportedInterfaces = new bytes4[](1);

@@ -7,6 +7,7 @@ import {IModularExtension} from "./interface/IModularExtension.sol";
 import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 
 // Utils
+import {Role} from "./Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 
@@ -41,13 +42,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     event ExtensionUninstalled(address sender, address implementation, address installedExtension);
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The role required to install or uninstall extensions.
-    uint256 public constant INSTALLER_ROLE = _ROLE_0;
-
-    /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -62,9 +56,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @dev fallback function selector => extension function data.
     mapping(bytes4 => InstalledFallbackFunction) private fallbackFunctionData_;
-
-    /// @dev extension => bytecodehash stored at installation time.
-    mapping(address => bytes32) private extensionBytecodehash;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -147,7 +138,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     function installExtension(address _extension, bytes calldata _data)
         external
         payable
-        onlyOwnerOrRoles(INSTALLER_ROLE)
+        onlyOwnerOrRoles(Role._INSTALLER_ROLE)
     {
         // Install extension.
         _installExtension(_extension, _data);
@@ -157,7 +148,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     function uninstallExtension(address _extension, bytes calldata _data)
         external
         payable
-        onlyOwnerOrRoles(INSTALLER_ROLE)
+        onlyOwnerOrRoles(Role._INSTALLER_ROLE)
     {
         // Uninstall extension.
         _uninstallExtension(_extension, _data);

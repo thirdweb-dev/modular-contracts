@@ -2,12 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library DelayedRevealBatchMetadataStorage {
-    /// @custom:storage-location erc7201:delayed.reveal.batch.metadata.storage
+    /// @custom:storage-location erc7201:token.metadata.batch.delayed.reveal
     bytes32 public constant DELAYED_REVEAL_BATCH_METADATA_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("delayed.reveal.batch.metadata.storage")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.metadata.batch.delayed.reveal")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // token => tokenId range end
@@ -79,12 +80,6 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     event TokenURIRevealed(uint256 indexed index, string revealedURI);
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    uint256 public constant TOKEN_ADMIN_ROLE = 1 << 1;
-
-    /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -97,7 +92,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         config.fallbackFunctions[0] = FallbackFunction({
             selector: this.uploadMetadata.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MINTER_ROLE
         });
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.getAllMetadataBatches.selector,
@@ -107,7 +102,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         config.fallbackFunctions[2] = FallbackFunction({
             selector: this.reveal.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MINTER_ROLE
         });
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.getRevealURI.selector, callType: CallType.STATICCALL, permissionBits: 0});

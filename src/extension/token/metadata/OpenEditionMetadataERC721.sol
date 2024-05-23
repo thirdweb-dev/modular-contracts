@@ -2,13 +2,14 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 import {Base64} from "@solady/utils/Base64.sol";
 
 library OpenEditionMetadataStorage {
-    /// @custom:storage-location erc7201:open.edition.metadata.storage
+    /// @custom:storage-location erc7201:token.metadata.openedition
     bytes32 public constant OPEN_EDITION_METADATA_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("open.edition.metadata.storage")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.metadata.openedition")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         /// @notice token => shared token metadata
@@ -54,12 +55,6 @@ contract OpenEditionMetadataERC721 is ModularExtension {
     event BatchMetadataUpdate(address indexed token, uint256 _fromTokenId, uint256 _toTokenId);
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    uint256 public constant TOKEN_ADMIN_ROLE = 1 << 1;
-
-    /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -72,7 +67,7 @@ contract OpenEditionMetadataERC721 is ModularExtension {
         config.fallbackFunctions[0] = FallbackFunction({
             selector: this.setSharedMetadata.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MINTER_ROLE
         });
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721

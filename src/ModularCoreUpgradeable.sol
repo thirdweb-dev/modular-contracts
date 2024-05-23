@@ -8,6 +8,7 @@ import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 
 // Utils
 import {ModularExtension} from "./ModularExtension.sol";
+import {Role} from "./Role.sol";
 import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
@@ -46,13 +47,6 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     event ExtensionUpdated(
         address sender, address oldExtensionImplementation, address newExtensionImplementation, address extensionProxy
     );
-
-    /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The role required to install or uninstall extensions.
-    uint256 public constant INSTALLER_ROLE = _ROLE_0;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -169,7 +163,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     function installExtension(address _extensionImplementation, bytes calldata _data)
         external
         payable
-        onlyOwnerOrRoles(INSTALLER_ROLE)
+        onlyOwnerOrRoles(Role._INSTALLER_ROLE)
     {
         // Install extension.
         _installExtension(_extensionImplementation, _data);
@@ -179,7 +173,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     function uninstallExtension(address _extensionImplementation, bytes calldata _data)
         external
         payable
-        onlyOwnerOrRoles(INSTALLER_ROLE)
+        onlyOwnerOrRoles(Role._INSTALLER_ROLE)
     {
         // Uninstall extension.
         _uninstallExtension(_extensionImplementation, _data);
@@ -195,7 +189,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     /// @notice Updates an extension contract.
     function updateExtension(address _currentExtensionImplementation, address _newExtensionImplementation)
         external
-        onlyOwnerOrRoles(INSTALLER_ROLE)
+        onlyOwnerOrRoles(Role._INSTALLER_ROLE)
     {
         // Get extension ID.
         bytes32 extensionID = extensionImplementationToID[_currentExtensionImplementation];
