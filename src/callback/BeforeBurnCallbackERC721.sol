@@ -14,12 +14,12 @@ contract BeforeBurnCallbackERC721 {
 
     /**
      *  @notice The beforeBurnERC721 hook that is called by a core token before burning a token.
-     *  @param _operator The address that is burning tokens.
+     *  @param _caller The address of the caller.
      *  @param _tokenId The token ID being burned.
      *  @param _data The encoded arguments for the beforeBurn hook.
      *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeBurnERC721(address _operator, uint256 _tokenId, bytes memory _data)
+    function beforeBurnERC721(address _caller, uint256 _tokenId, bytes memory _data)
         external
         payable
         virtual
