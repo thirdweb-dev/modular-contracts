@@ -37,15 +37,15 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when an extension is installed.
-    event ExtensionInstalled(address sender, address extensionImplementation, address extensionProxy);
+    event ExtensionInstalled(address sender, address implementation, address installedExtension);
+
+    /// @notice Emitted when an extension is uninstalled.
+    event ExtensionUninstalled(address sender, address implementation, address installedExtension);
 
     /// notice Emitted when an extension is updated.
     event ExtensionUpdated(
         address sender, address oldExtensionImplementation, address newExtensionImplementation, address extensionProxy
     );
-
-    /// @notice Emitted when an extension is uninstalled.
-    event ExtensionUninstalled(address sender, address extensionImplementation, address extensionProxy);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -283,9 +283,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         ERC1967Factory proxyFactory = ERC1967Factory(erc1967FactoryAddress);
         address extensionProxyAddress = proxyFactory.predictDeterministicAddress(extensionID);
 
-        if (extensionProxyAddress.code.length == 0) {
-            proxyFactory.deployDeterministic(_extensionImplementation, address(this), extensionID);
-        }
+        proxyFactory.deployDeterministic(_extensionImplementation, address(this), extensionID);
 
         // Store the new extension ID. Conflicts are not possible since each new extension ID is derived from a hash of the previous ID.
         extensionIDs.add(extensionID);
@@ -446,8 +444,6 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
-
-        // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
             if (functions[i].selector == _selector) {
                 callbackMode = functions[i].mode;
@@ -482,8 +478,6 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
-
-        // TODO: optimize
         for (uint256 i = 0; i < len; i++) {
             if (functions[i].selector == _selector) {
                 callbackMode = functions[i].mode;
