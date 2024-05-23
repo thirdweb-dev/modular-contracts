@@ -74,13 +74,9 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
      *  @notice The configuration of a token's sale value distribution.
      *
      *  @param primarySaleRecipient The address that receives the primary sale value.
-     *  @param platformFeeRecipient The address that receives the platform fee.
-     *  @param platformFeeBps The basis points of the platform fee. 10_000 = 100%.
      */
     struct SaleConfig {
         address primarySaleRecipient;
-        address platformFeeRecipient;
-        uint16 platformFeeBps;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -131,7 +127,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.setSaleConfig.selector,
             callType: CallType.CALL,
-            permissionBits: Role._MINTER_ROLE
+            permissionBits: Role._MANAGER_ROLE
         });
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
@@ -157,22 +153,15 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig(address _token)
-        external
-        view
-        returns (address primarySaleRecipient, address platformFeeRecipient, uint16 platformFeeBps)
-    {
+    function getSaleConfig(address _token) external view returns (address primarySaleRecipient) {
         SaleConfig memory saleConfig = _signatureMintStorage().saleConfig[_token];
-        return (saleConfig.primarySaleRecipient, saleConfig.platformFeeRecipient, saleConfig.platformFeeBps);
+        return (saleConfig.primarySaleRecipient);
     }
 
     /// @notice Sets the sale configuration for a token.
-    function setSaleConfig(address _primarySaleRecipient, address _platformFeeRecipient, uint16 _platformFeeBps)
-        external
-    {
+    function setSaleConfig(address _primarySaleRecipient) external {
         address token = msg.sender;
-        _signatureMintStorage().saleConfig[token] =
-            SaleConfig(_primarySaleRecipient, _platformFeeRecipient, _platformFeeBps);
+        _signatureMintStorage().saleConfig[token] = SaleConfig(_primarySaleRecipient);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -242,17 +231,13 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
 
         SaleConfig memory saleConfig = _signatureMintStorage().saleConfig[msg.sender];
 
-        uint256 platformFee = (_price * saleConfig.platformFeeBps) / 10_000;
-
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
                 revert SignatureMintIncorrectNativeTokenSent();
             }
-            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price - platformFee);
-            SafeTransferLib.safeTransferETH(saleConfig.platformFeeRecipient, platformFee);
+            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
-            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price - platformFee);
-            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.platformFeeRecipient, platformFee);
+            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }
 

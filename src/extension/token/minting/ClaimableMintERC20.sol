@@ -66,13 +66,9 @@ contract ClaimableMintERC20 is ModularExtension {
     /**
      *  @notice Details for distributing the proceeds of a mint.
      *  @param primarySaleRecipient The address to which the total proceeds minus fees are sent.
-     *  @param platformFeeRecipient The address to which the platform fee is sent.
-     *  @param platformFeeBps The platform fee in basis points. 10_000 BPS = 100%.
      */
     struct SaleConfig {
         address primarySaleRecipient;
-        address platformFeeRecipient;
-        uint16 platformFeeBps;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -116,7 +112,7 @@ contract ClaimableMintERC20 is ModularExtension {
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.setSaleConfig.selector,
             callType: CallType.CALL,
-            permissionBits: Role._MINTER_ROLE
+            permissionBits: Role._MANAGER_ROLE
         });
         config.fallbackFunctions[2] = FallbackFunction({
             selector: this.getClaimCondition.selector,
@@ -150,22 +146,15 @@ contract ClaimableMintERC20 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig(address _token)
-        external
-        view
-        returns (address primarySaleRecipient, address platformFeeRecipient, uint16 platformFeeBps)
-    {
+    function getSaleConfig(address _token) external view returns (address primarySaleRecipient) {
         SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig[_token];
-        return (saleConfig.primarySaleRecipient, saleConfig.platformFeeRecipient, saleConfig.platformFeeBps);
+        return (saleConfig.primarySaleRecipient);
     }
 
     /// @notice Sets the sale configuration for a token.
-    function setSaleConfig(address _primarySaleRecipient, address _platformFeeRecipient, uint16 _platformFeeBps)
-        external
-    {
+    function setSaleConfig(address _primarySaleRecipient) external {
         address token = msg.sender;
-        _claimConditionMintStorage().saleConfig[token] =
-            SaleConfig(_primarySaleRecipient, _platformFeeRecipient, _platformFeeBps);
+        _claimConditionMintStorage().saleConfig[token] = SaleConfig(_primarySaleRecipient);
     }
 
     /// @notice Returns the claim condition for a token.
@@ -230,17 +219,13 @@ contract ClaimableMintERC20 is ModularExtension {
 
         SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig[msg.sender];
 
-        uint256 platformFee = (_price * saleConfig.platformFeeBps) / 10_000;
-
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
                 revert ClaimableMintIncorrectNativeTokenSent();
             }
-            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price - platformFee);
-            SafeTransferLib.safeTransferETH(saleConfig.platformFeeRecipient, platformFee);
+            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
-            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price - platformFee);
-            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.platformFeeRecipient, platformFee);
+            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }
 
