@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {BatchMetadataERC721} from "./BatchMetadataERC721.sol";
+import {Role} from "../../../Role.sol";
 
 contract BatchMetadataERC1155 is BatchMetadataERC721 {
     /// @notice Returns all implemented callback and extension functions.
@@ -13,7 +14,7 @@ contract BatchMetadataERC1155 is BatchMetadataERC721 {
         config.fallbackFunctions[0] = FallbackFunction({
             selector: this.uploadMetadata.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MINTER_ROLE
         });
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.getAllMetadataBatches.selector,

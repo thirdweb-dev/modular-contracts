@@ -2,12 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library SimpleMetadataStorage {
-    /// @custom:storage-location erc7201:simple.metadata.storage
+    /// @custom:storage-location erc7201:token.metadata.simple
     bytes32 public constant SIMPLE_METADATA_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("simple.metadata.storage")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.metadata.simple")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         /// token => base URI
@@ -33,12 +34,6 @@ contract SimpleMetadataERC721 is ModularExtension {
     event MetadataUpdate(address indexed token, uint256 id);
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    uint256 public constant TOKEN_ADMIN_ROLE = 1 << 1;
-
-    /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -48,8 +43,11 @@ contract SimpleMetadataERC721 is ModularExtension {
         config.fallbackFunctions = new FallbackFunction[](1);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector, CallType.CALL);
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.setTokenURI.selector, callType: CallType.CALL, permissionBits: 0});
+        config.fallbackFunctions[0] = FallbackFunction({
+            selector: this.setTokenURI.selector,
+            callType: CallType.CALL,
+            permissionBits: Role._MINTER_ROLE
+        });
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }

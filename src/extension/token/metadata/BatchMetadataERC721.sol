@@ -2,12 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library BatchMetadataStorage {
-    /// @custom:storage-location erc7201:batch.metadata.storage
+    /// @custom:storage-location erc7201:token.metadata.batch
     bytes32 public constant BATCH_METADATA_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("batch.metadata.storage")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.metadata.batch")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // token => tokenId range end
@@ -68,12 +69,6 @@ contract BatchMetadataERC721 is ModularExtension {
     );
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    uint256 public constant TOKEN_ADMIN_ROLE = 1 << 1;
-
-    /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -83,10 +78,11 @@ contract BatchMetadataERC721 is ModularExtension {
         config.fallbackFunctions = new FallbackFunction[](2);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
+
         config.fallbackFunctions[0] = FallbackFunction({
             selector: this.uploadMetadata.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MINTER_ROLE
         });
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.getAllMetadataBatches.selector,

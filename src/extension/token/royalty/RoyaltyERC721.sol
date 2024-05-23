@@ -2,11 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {Role} from "../../../Role.sol";
 
 library RoyaltyStorage {
-    /// @custom:storage-location erc7201:royalty.storage
+    /// @custom:storage-location erc7201:token.royalty
     bytes32 public constant ROYALTY_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("royalty.storage")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.royalty")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // token => default royalty info
@@ -56,12 +57,6 @@ contract RoyaltyERC721 is ModularExtension {
     error RoyaltyExceedsMaxBps();
 
     /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    uint256 public constant TOKEN_ADMIN_ROLE = 1 << 1;
-
-    /*//////////////////////////////////////////////////////////////
                                EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -85,12 +80,12 @@ contract RoyaltyERC721 is ModularExtension {
         config.fallbackFunctions[3] = FallbackFunction({
             selector: this.setDefaultRoyaltyInfo.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MANAGER_ROLE
         });
         config.fallbackFunctions[4] = FallbackFunction({
             selector: this.setRoyaltyInfoForToken.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MANAGER_ROLE
         });
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721.

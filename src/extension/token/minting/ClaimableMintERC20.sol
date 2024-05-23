@@ -2,30 +2,31 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {Role} from "../../../Role.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
-library ClaimConditionMintStorage {
+library ClaimableMintStorage {
     /// @custom:storage-location erc7201:claim.condition.mint.storage
-    bytes32 public constant CLAIM_CONDITION_MINT_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("claim.condition.mint.storage")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 public constant CLAIMABLE_MINT_STORAGE_POSITION =
+        keccak256(abi.encode(uint256(keccak256("token.minting.claimable")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // token address => sale config: primary sale recipient, and platform fee recipient + BPS.
-        mapping(address => ClaimConditionMintERC20.SaleConfig) saleConfig;
+        mapping(address => ClaimableMintERC20.SaleConfig) saleConfig;
         // token => claim condition
-        mapping(address => ClaimConditionMintERC20.ClaimCondition) claimCondition;
+        mapping(address => ClaimableMintERC20.ClaimCondition) claimCondition;
     }
 
     function data() internal pure returns (Data storage data_) {
-        bytes32 position = CLAIM_CONDITION_MINT_STORAGE_POSITION;
+        bytes32 position = CLAIMABLE_MINT_STORAGE_POSITION;
         assembly {
             data_.slot := position
         }
     }
 }
 
-contract ClaimConditionMintERC20 is ModularExtension {
+contract ClaimableMintERC20 is ModularExtension {
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -77,27 +78,25 @@ contract ClaimConditionMintERC20 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Emitted when incorrect amount of native token is sent.
-    error ClaimConditionMintIncorrectNativeTokenSent();
+    error ClaimableMintIncorrectNativeTokenSent();
 
     /// @dev Emitted when the mint price or currency does not match the expected price or currency.
-    error ClaimConditionMintPriceMismatch();
+    error ClaimableMintPriceMismatch();
 
     /// @dev Emitted when the mint is attempted outside the minting window.
-    error ClaimConditionMintOutOfTimeWindow();
+    error ClaimableMintOutOfTimeWindow();
 
     /// @dev Emitted when the mint is out of supply.
-    error ClaimConditionMintOutOfSupply();
+    error ClaimableMintOutOfSupply();
 
     /// @dev Emitted when the minter is not in the allowlist.
-    error ClaimConditionMintNotInAllowlist();
+    error ClaimableMintNotInAllowlist();
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    uint256 public constant TOKEN_ADMIN_ROLE = 1 << 1;
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
@@ -115,7 +114,7 @@ contract ClaimConditionMintERC20 is ModularExtension {
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.setSaleConfig.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MINTER_ROLE
         });
         config.fallbackFunctions[2] = FallbackFunction({
             selector: this.getClaimCondition.selector,
@@ -125,7 +124,7 @@ contract ClaimConditionMintERC20 is ModularExtension {
         config.fallbackFunctions[3] = FallbackFunction({
             selector: this.setClaimCondition.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MINTER_ROLE
         });
     }
 
@@ -192,15 +191,15 @@ contract ClaimConditionMintERC20 is ModularExtension {
             claimCondition.currency != _params.expectedCurrency
                 || claimCondition.pricePerUnit != _params.expectedPricePerUnit
         ) {
-            revert ClaimConditionMintPriceMismatch();
+            revert ClaimableMintPriceMismatch();
         }
 
         if (block.timestamp < claimCondition.startTimestamp || claimCondition.endTimestamp <= block.timestamp) {
-            revert ClaimConditionMintOutOfTimeWindow();
+            revert ClaimableMintOutOfTimeWindow();
         }
 
         if (_quantity > claimCondition.availableSupply) {
-            revert ClaimConditionMintOutOfSupply();
+            revert ClaimableMintOutOfSupply();
         }
 
         if (claimCondition.allowlistMerkleRoot != bytes32(0)) {
@@ -209,7 +208,7 @@ contract ClaimConditionMintERC20 is ModularExtension {
             );
 
             if (!isAllowlisted) {
-                revert ClaimConditionMintNotInAllowlist();
+                revert ClaimableMintNotInAllowlist();
             }
         }
 
@@ -222,7 +221,7 @@ contract ClaimConditionMintERC20 is ModularExtension {
     function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {
-                revert ClaimConditionMintIncorrectNativeTokenSent();
+                revert ClaimableMintIncorrectNativeTokenSent();
             }
             return;
         }
@@ -233,7 +232,7 @@ contract ClaimConditionMintERC20 is ModularExtension {
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
-                revert ClaimConditionMintIncorrectNativeTokenSent();
+                revert ClaimableMintIncorrectNativeTokenSent();
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price - platformFee);
             SafeTransferLib.safeTransferETH(saleConfig.platformFeeRecipient, platformFee);
@@ -243,7 +242,7 @@ contract ClaimConditionMintERC20 is ModularExtension {
         }
     }
 
-    function _claimConditionMintStorage() internal pure returns (ClaimConditionMintStorage.Data storage) {
-        return ClaimConditionMintStorage.data();
+    function _claimConditionMintStorage() internal pure returns (ClaimableMintStorage.Data storage) {
+        return ClaimableMintStorage.data();
     }
 }

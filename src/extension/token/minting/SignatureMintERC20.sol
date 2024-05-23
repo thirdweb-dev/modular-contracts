@@ -2,16 +2,16 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-
-import {Ownable} from "@solady/auth/Ownable.sol";
+import {Role} from "../../../Role.sol";
+import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 library SignatureMintStorage {
-    /// @custom:storage-location erc7201:signature.mint.storage
+    /// @custom:storage-location erc7201:token.minting.signature
     bytes32 public constant SIGNATURE_MINT_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("signature.mint.storage")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.minting.signature")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // UID => whether it has been used
@@ -114,8 +114,6 @@ contract SignatureMintERC20 is ModularExtension, EIP712 {
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    uint256 public constant TOKEN_ADMIN_ROLE = 1 << 1;
-
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
@@ -132,7 +130,7 @@ contract SignatureMintERC20 is ModularExtension, EIP712 {
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.setSaleConfig.selector,
             callType: CallType.CALL,
-            permissionBits: TOKEN_ADMIN_ROLE
+            permissionBits: Role._MINTER_ROLE
         });
     }
 
@@ -217,7 +215,7 @@ contract SignatureMintERC20 is ModularExtension, EIP712 {
             )
         ).recover(_signature);
 
-        if (Ownable(_req.token).owner() != signer) {
+        if (!OwnableRoles(_req.token).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert SignatureMintRequestUnauthorizedSignature();
         }
 
