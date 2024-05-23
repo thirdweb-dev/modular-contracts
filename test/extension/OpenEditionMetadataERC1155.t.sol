@@ -13,9 +13,7 @@ import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
 import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {
-    OpenEditionMetadataERC1155
-} from "src/extension/token/metadata/OpenEditionMetadataERC1155.sol";
+import {OpenEditionMetadataERC1155} from "src/extension/token/metadata/OpenEditionMetadataERC1155.sol";
 import {
     OpenEditionMetadataERC721,
     OpenEditionMetadataStorage
