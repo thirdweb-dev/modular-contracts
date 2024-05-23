@@ -39,6 +39,7 @@ contract ClaimableMintERC721 is ModularExtension {
      *  @param currency The currency in which the price is denominated.
      *  @param startTimestamp The timestamp at which the minting window opens.
      *  @param endTimestamp The timestamp after which the minting window closes.
+     *  @param auxData Use to store arbitrary data. i.e: merkle snapshot url
      */
     struct ClaimCondition {
         uint256 availableSupply;
@@ -47,6 +48,7 @@ contract ClaimableMintERC721 is ModularExtension {
         address currency;
         uint48 startTimestamp;
         uint48 endTimestamp;
+        string auxData;
     }
 
     /**
@@ -174,7 +176,6 @@ contract ClaimableMintERC721 is ModularExtension {
     }
 
     /// @notice Sets the claim condition for a token.
-
     function setClaimCondition(ClaimCondition memory _claimCondition) external {
         address token = msg.sender;
         _claimConditionMintStorage().claimCondition[token] = _claimCondition;

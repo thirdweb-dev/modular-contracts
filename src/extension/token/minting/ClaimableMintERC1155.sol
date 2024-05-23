@@ -39,6 +39,7 @@ contract ClaimableMint1155 is ModularExtension {
      *  @param currency The currency in which the price is denominated.
      *  @param startTimestamp The timestamp at which the minting window opens.
      *  @param endTimestamp The timestamp after which the minting window closes.
+     *  @param auxData Use to store arbitrary data. i.e: merkle snapshot url
      */
     struct ClaimCondition {
         uint256 availableSupply;
@@ -47,6 +48,7 @@ contract ClaimableMint1155 is ModularExtension {
         address currency;
         uint48 startTimestamp;
         uint48 endTimestamp;
+        string auxData;
     }
 
     /**

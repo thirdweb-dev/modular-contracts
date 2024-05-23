@@ -14,7 +14,8 @@ library SignatureMintStorage {
         keccak256(abi.encode(uint256(keccak256("token.minting.signature")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        mapping(bytes32 => bool) uidUsed;
+        // token => UID => whether it has been used
+        mapping(address => mapping(bytes32 => bool)) uidUsed;
         mapping(address => SignatureMintERC1155.SaleConfig) saleConfig;
     }
 
@@ -200,7 +201,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
             revert SigantureMintRequestExpired();
         }
 
-        if (_signatureMintStorage().uidUsed[_req.uid]) {
+        if (_signatureMintStorage().uidUsed[_req.token][_req.uid]) {
             revert SignatureMintRequestUidReused();
         }
 
@@ -225,7 +226,7 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
             revert SignatureMintRequestUnauthorizedSignature();
         }
 
-        _signatureMintStorage().uidUsed[_req.uid] = true;
+        _signatureMintStorage().uidUsed[_req.token][_req.uid] = true;
 
         _distributeMintPrice(_req.recipient, _req.currency, _req.quantity * _req.pricePerUnit);
     }
