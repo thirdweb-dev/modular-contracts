@@ -44,7 +44,7 @@ contract MockExtensionERC20 is BeforeMintCallbackERC20, IModularExtension, Initi
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
     }
 
-    function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
+    function beforeMintERC20(address _caller, address _to, uint256 _amount, bytes memory _data)
         external
         payable
         override
@@ -199,7 +199,7 @@ contract BuggyMockExtensionERC20 is BeforeMintCallbackERC20, IModularExtension, 
 
     error BuggyMinting();
 
-    function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
+    function beforeMintERC20(address _caller, address _to, uint256 _amount, bytes memory _data)
         external
         payable
         override
@@ -232,7 +232,7 @@ contract MockExtensionERC721 is BeforeMintCallbackERC721, IModularExtension, Ini
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
     }
 
-    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
+    function beforeMintERC721(address _caller, address _to, uint256 _quantity, bytes memory _data)
         external
         payable
         override
@@ -273,7 +273,7 @@ contract BuggyMockExtensionERC721 is BeforeMintCallbackERC721, IModularExtension
 
     error BuggyMinting();
 
-    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
+    function beforeMintERC721(address _caller, address _to, uint256 _quantity, bytes memory _data)
         external
         payable
         override
@@ -370,7 +370,7 @@ contract MockExtensionERC1155 is BeforeMintCallbackERC1155, IModularExtension, I
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
     }
 
-    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+    function beforeMintERC1155(address _caller, address _to, uint256 _id, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
@@ -410,7 +410,7 @@ contract BuggyMockExtensionERC1155 is BeforeMintCallbackERC1155, IModularExtensi
 
     error BuggyMinting();
 
-    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+    function beforeMintERC1155(address _caller, address _to, uint256 _id, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual

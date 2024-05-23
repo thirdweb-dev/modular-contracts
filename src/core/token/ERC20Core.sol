@@ -133,12 +133,15 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     /**
      *  @notice Burns tokens.
      *  @dev Calls the beforeBurn hook. Skips calling the hook if it doesn't exist.
+     *  @param from The address to burn tokens from.
      *  @param amount The amount of tokens to burn.
      *  @param data ABI encoded arguments to pass to the beforeBurnERC20 hook.
      */
-    function burn(uint256 amount, bytes calldata data) external {
-        _beforeBurn(msg.sender, amount, data);
-        _burn(msg.sender, amount);
+    function burn(address from, uint256 amount, bytes calldata data) external {
+        _beforeBurn(from, amount, data);
+
+        _spendAllowance(from, msg.sender, amount);
+        _burn(from, amount);
     }
 
     /**
@@ -198,7 +201,7 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     function _beforeMint(address to, uint256 amount, bytes calldata data) internal virtual {
         _executeCallbackFunction(
             BeforeMintCallbackERC20.beforeMintERC20.selector,
-            abi.encodeCall(BeforeMintCallbackERC20.beforeMintERC20, (to, amount, data))
+            abi.encodeCall(BeforeMintCallbackERC20.beforeMintERC20, (msg.sender, to, amount, data))
         );
     }
 
@@ -206,7 +209,7 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     function _beforeTransfer(address from, address to, uint256 amount) internal virtual {
         _executeCallbackFunction(
             BeforeTransferCallbackERC20.beforeTransferERC20.selector,
-            abi.encodeCall(BeforeTransferCallbackERC20.beforeTransferERC20, (from, to, amount))
+            abi.encodeCall(BeforeTransferCallbackERC20.beforeTransferERC20, (msg.sender, from, to, amount))
         );
     }
 
@@ -214,7 +217,7 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     function _beforeBurn(address from, uint256 amount, bytes calldata data) internal virtual {
         _executeCallbackFunction(
             BeforeBurnCallbackERC20.beforeBurnERC20.selector,
-            abi.encodeCall(BeforeBurnCallbackERC20.beforeBurnERC20, (from, amount, data))
+            abi.encodeCall(BeforeBurnCallbackERC20.beforeBurnERC20, (msg.sender, from, amount, data))
         );
     }
 
@@ -222,7 +225,7 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     function _beforeApprove(address from, address to, uint256 amount) internal virtual {
         _executeCallbackFunction(
             BeforeApproveCallbackERC20.beforeApproveERC20.selector,
-            abi.encodeCall(BeforeApproveCallbackERC20.beforeApproveERC20, (from, to, amount))
+            abi.encodeCall(BeforeApproveCallbackERC20.beforeApproveERC20, (msg.sender, from, to, amount))
         );
     }
 }
