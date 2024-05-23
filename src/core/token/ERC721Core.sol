@@ -154,7 +154,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
      *  @param data ABI encoded data to pass to the beforeBurn hook.
      */
     function burn(uint256 tokenId, bytes calldata data) external {
-        _beforeBurn(msg.sender, tokenId, data);
+        _beforeBurn(tokenId, data);
         _burn(tokenId, true);
     }
 
@@ -209,7 +209,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
     function _beforeMint(address to, uint256 quantity, bytes calldata data) internal virtual {
         _executeCallbackFunction(
             BeforeMintCallbackERC721.beforeMintERC721.selector,
-            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (to, quantity, data))
+            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (msg.sender, to, quantity, data))
         );
     }
 
@@ -217,15 +217,15 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
     function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
         _executeCallbackFunction(
             BeforeTransferCallbackERC721.beforeTransferERC721.selector,
-            abi.encodeCall(BeforeTransferCallbackERC721.beforeTransferERC721, (from, to, tokenId))
+            abi.encodeCall(BeforeTransferCallbackERC721.beforeTransferERC721, (msg.sender, from, to, tokenId))
         );
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(address operator, uint256 tokenId, bytes calldata data) internal virtual {
+    function _beforeBurn(uint256 tokenId, bytes calldata data) internal virtual {
         _executeCallbackFunction(
             BeforeBurnCallbackERC721.beforeBurnERC721.selector,
-            abi.encodeCall(BeforeBurnCallbackERC721.beforeBurnERC721, (operator, tokenId, data))
+            abi.encodeCall(BeforeBurnCallbackERC721.beforeBurnERC721, (msg.sender, tokenId, data))
         );
     }
 
@@ -233,7 +233,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
     function _beforeApprove(address from, address to, uint256 tokenId, bool approved) internal virtual {
         _executeCallbackFunction(
             BeforeApproveCallbackERC721.beforeApproveERC721.selector,
-            abi.encodeCall(BeforeApproveCallbackERC721.beforeApproveERC721, (from, to, tokenId, approved))
+            abi.encodeCall(BeforeApproveCallbackERC721.beforeApproveERC721, (msg.sender, from, to, tokenId, approved))
         );
     }
 
@@ -241,7 +241,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
     function _beforeApproveForAll(address from, address to, bool approved) internal virtual {
         _executeCallbackFunction(
             BeforeApproveForAllCallback.beforeApproveForAll.selector,
-            abi.encodeCall(BeforeApproveForAllCallback.beforeApproveForAll, (from, to, approved))
+            abi.encodeCall(BeforeApproveForAllCallback.beforeApproveForAll, (msg.sender, from, to, approved))
         );
     }
 
