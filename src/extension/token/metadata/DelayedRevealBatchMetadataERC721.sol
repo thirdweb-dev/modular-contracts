@@ -61,7 +61,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     error DelayedRevealNothingToReveal();
 
     /// @dev The result of the returned an incorrect hash
-    error DelayedRevealIncorrectResultHash(bytes32 expected, bytes32 actual);
+    error DelayedRevealIncorrectDecryptionKey(bytes32 expected, bytes32 actual);
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -279,7 +279,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         revealedURI = string(encryptDecrypt(encryptedURI, _key));
 
         if (keccak256(abi.encodePacked(revealedURI, _key, block.chainid)) != provenanceHash) {
-            revert DelayedRevealIncorrectResultHash(
+            revert DelayedRevealIncorrectDecryptionKey(
                 provenanceHash, keccak256(abi.encodePacked(revealedURI, _key, block.chainid))
             );
         }
