@@ -129,10 +129,12 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         CallType callType = fallbackFunction.callType;
 
         // note: these code block needs to happen at the end of the function
-        if (callType == CallType.CALL || callType == CallType.STATICCALL) {
+        if (callType == CallType.CALL) {
             _callAndReturn(fallbackFunction.implementation);
         } else if (callType == CallType.DELEGATECALL) {
             _delegateAndReturn(fallbackFunction.implementation);
+        } else if (callType == CallType.STATICCALL) {
+            _staticcallAndReturn(fallbackFunction.implementation);
         }
     }
 
@@ -511,7 +513,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := delegatecall(gas(), _implementation, 0, calldatasize(), 0, 0)
+            let success := delegatecall(gas(), _implementation, calldataPtr, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
@@ -557,7 +559,7 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := staticcall(gas(), _implementation, 0, calldatasize(), 0, 0)
+            let success := staticcall(gas(), _implementation, calldataPtr, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
