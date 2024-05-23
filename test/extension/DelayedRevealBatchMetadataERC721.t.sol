@@ -102,4 +102,85 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         assertEq(installedExtension.encryptedData(address(core), 100), "");
         assertEq(installedExtension.encryptedData(address(core), 200), "");
     }
+
+    function test_state_uploadMetadata_encrypted() public {
+        string memory originalURI = "ipfs://original/";
+        string memory tempURI = "ipfs://temp/";
+        bytes memory encryptionKey = "key123";
+
+        bytes32 provenanceHash = keccak256(abi.encodePacked(originalURI, encryptionKey, block.chainid));
+        bytes memory encryptedURI = installedExtension.encryptDecrypt(bytes(originalURI), encryptionKey);
+        bytes memory encryptedData = abi.encode(encryptedURI, provenanceHash);
+
+        vm.prank(owner);
+        DelayedRevealExt(address(core)).uploadMetadata(100, tempURI, encryptedData);
+
+        // read state from core
+        assertEq(core.tokenURI(1), "ipfs://temp/0");
+        assertEq(core.tokenURI(99), "ipfs://temp/0");
+
+        // read state from the installed extension
+        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd(address(core));
+        assertEq(rangeEnds.length, 1);
+        assertEq(rangeEnds[0], 100);
+        assertEq(installedExtension.nextTokenIdRangeStart(address(core)), 100);
+        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 100), tempURI);
+        assertEq(installedExtension.encryptedData(address(core), 100), encryptedData);
+    }
+
+    function test_state_reveal() public {
+        string memory originalURI = "ipfs://original/";
+        string memory tempURI = "ipfs://temp/";
+        bytes memory encryptionKey = "key123";
+
+        bytes32 provenanceHash = keccak256(abi.encodePacked(originalURI, encryptionKey, block.chainid));
+        bytes memory encryptedURI = installedExtension.encryptDecrypt(bytes(originalURI), encryptionKey);
+        bytes memory encryptedData = abi.encode(encryptedURI, provenanceHash);
+
+        vm.prank(owner);
+        DelayedRevealExt(address(core)).uploadMetadata(100, tempURI, encryptedData);
+
+        // reveal
+        vm.prank(owner);
+        DelayedRevealExt(address(core)).reveal(0, encryptionKey);
+
+        // read state from core
+        assertEq(core.tokenURI(1), "ipfs://original/1");
+        assertEq(core.tokenURI(99), "ipfs://original/99");
+
+        // read state from the installed extension
+        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd(address(core));
+        assertEq(rangeEnds.length, 1);
+        assertEq(rangeEnds[0], 100);
+        assertEq(installedExtension.nextTokenIdRangeStart(address(core)), 100);
+        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 100), originalURI);
+        assertEq(installedExtension.encryptedData(address(core), 100), "");
+    }
+
+    function test_getRevealURI() public {
+        string memory originalURI = "ipfs://original/";
+        string memory tempURI = "ipfs://temp/";
+        bytes memory encryptionKey = "key123";
+
+        bytes32 provenanceHash = keccak256(abi.encodePacked(originalURI, encryptionKey, block.chainid));
+        bytes memory encryptedURI = DelayedRevealExt(address(core)).encryptDecrypt(bytes(originalURI), encryptionKey);
+        bytes memory encryptedData = abi.encode(encryptedURI, provenanceHash);
+
+        vm.prank(owner);
+        DelayedRevealExt(address(core)).uploadMetadata(100, tempURI, encryptedData);
+
+        // get reveal URI
+        string memory revealURI = DelayedRevealExt(address(core)).getRevealURI(0, encryptionKey);
+        assertEq(revealURI, originalURI);
+
+        // state unchanged
+        assertEq(core.tokenURI(1), "ipfs://temp/0");
+        assertEq(core.tokenURI(99), "ipfs://temp/0");
+        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd(address(core));
+        assertEq(rangeEnds.length, 1);
+        assertEq(rangeEnds[0], 100);
+        assertEq(installedExtension.nextTokenIdRangeStart(address(core)), 100);
+        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 100), tempURI);
+        assertEq(installedExtension.encryptedData(address(core), 100), encryptedData);
+    }
 }

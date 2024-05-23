@@ -129,12 +129,10 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
         CallType callType = fallbackFunction.callType;
 
         // note: these code block needs to happen at the end of the function
-        if (callType == CallType.CALL) {
+        if (callType == CallType.CALL || callType == CallType.STATICCALL) {
             _callAndReturn(fallbackFunction.implementation);
         } else if (callType == CallType.DELEGATECALL) {
             _delegateAndReturn(fallbackFunction.implementation);
-        } else if (callType == CallType.STATICCALL) {
-            _staticcallAndReturn(fallbackFunction.implementation);
         }
     }
 
