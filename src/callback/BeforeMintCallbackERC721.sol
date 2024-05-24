@@ -20,12 +20,13 @@ contract BeforeMintCallbackERC721 {
      *  @param _data Optional extra data passed to the hook.
      *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeMintERC721(address _caller, address _to, uint256 _quantity, bytes memory _data)
-        external
-        payable
-        virtual
-        returns (bytes memory result)
-    {
+    function beforeMintERC721(
+        address _caller,
+        address _to,
+        uint256 _startTokenId,
+        uint256 _quantity,
+        bytes memory _data
+    ) external payable virtual returns (bytes memory result) {
         revert BeforeMintCallbackERC721NotImplemented();
     }
 }
