@@ -42,14 +42,13 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        address _erc1967Factory,
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ModularCore(_erc1967Factory) {
+    ) payable {
         // Set contract metadata
         _name = _name;
         _symbol = _symbol;

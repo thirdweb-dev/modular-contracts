@@ -33,14 +33,13 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        address _erc1967Factory,
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ERC721A(name, symbol) ModularCore(_erc1967Factory) {
+    ) payable ERC721A(name, symbol) {
         // Set contract metadata
         _setupContractURI(contractURI);
         _initializeOwner(owner);
