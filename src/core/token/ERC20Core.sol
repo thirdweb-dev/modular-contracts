@@ -145,6 +145,16 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     }
 
     /**
+     *  @notice Transfers tokens to a recipient.
+     *  @param to The address to transfer tokens to.
+     *  @param amount The quantity of tokens to transfer.
+     */
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        _beforeTransfer(msg.sender, to, amount);
+        return super.transfer(to, amount);
+    }
+
+    /**
      *  @notice Transfers tokens from a sender to a recipient.
      *  @param from The address to transfer tokens from.
      *  @param to The address to transfer tokens to.
