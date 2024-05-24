@@ -11,14 +11,14 @@ library DelayedRevealBatchMetadataStorage {
         keccak256(abi.encode(uint256(keccak256("token.metadata.batch.delayed.reveal")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // token => tokenId range end
-        mapping(address => uint256[]) tokenIdRangeEnd;
-        // token => next tokenId as range start
-        mapping(address => uint256) nextTokenIdRangeStart;
-        // token => tokenId range end => baseURI of range
-        mapping(address => mapping(uint256 => string)) baseURIOfTokenIdRange;
-        ///  token => tokenId range end => encrypted data for that range
-        mapping(address => mapping(uint256 => bytes)) encryptedData;
+        // tokenId range end
+        uint256[] tokenIdRangeEnd;
+        // next tokenId as range start
+        uint256 nextTokenIdRangeStart;
+        // tokenId range end => baseURI of range
+        mapping(uint256 => string) baseURIOfTokenIdRange;
+        // tokenId range end => encrypted data for that range
+        mapping(uint256 => bytes) encryptedData;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -88,26 +88,23 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](5);
 
-        config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
+        config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
         config.fallbackFunctions[0] = FallbackFunction({
             selector: this.uploadMetadata.selector,
-            callType: CallType.CALL,
             permissionBits: Role._MINTER_ROLE
         });
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.getAllMetadataBatches.selector,
-            callType: CallType.STATICCALL,
             permissionBits: 0
         });
         config.fallbackFunctions[2] = FallbackFunction({
             selector: this.reveal.selector,
-            callType: CallType.CALL,
             permissionBits: Role._MINTER_ROLE
         });
         config.fallbackFunctions[3] =
-            FallbackFunction({selector: this.getRevealURI.selector, callType: CallType.STATICCALL, permissionBits: 0});
+            FallbackFunction({selector: this.getRevealURI.selector, permissionBits: 0});
         config.fallbackFunctions[4] =
-            FallbackFunction({selector: this.encryptDecrypt.selector, callType: CallType.STATICCALL, permissionBits: 0});
+            FallbackFunction({selector: this.encryptDecrypt.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721.
     }
@@ -118,8 +115,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
 
     /// @notice Callback function for ERC721Metadata.tokenURI
     function onTokenURI(uint256 _id) public view returns (string memory) {
-        address token = msg.sender;
-        (string memory batchUri, bool isEncrypted) = _getBaseURI(token, _id);
+        (string memory batchUri, bool isEncrypted) = _getBaseURI(_id);
 
         if (isEncrypted) {
             return string(abi.encodePacked(batchUri, "0"));
@@ -134,9 +130,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
 
     /// @notice Returns all metadata batches for a token.
     function getAllMetadataBatches() external view returns (MetadataBatch[] memory) {
-        address token = msg.sender;
-
-        uint256[] memory rangeEnds = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[token];
+        uint256[] memory rangeEnds = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd;
         uint256 numOfBatches = rangeEnds.length;
 
         MetadataBatch[] memory batches = new MetadataBatch[](rangeEnds.length);
@@ -146,7 +140,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
             batches[i] = MetadataBatch({
                 startTokenIdInclusive: rangeStart,
                 endTokenIdInclusive: rangeEnds[i] - 1,
-                baseURI: _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[token][rangeEnds[i]]
+                baseURI: _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]]
             });
             rangeStart = rangeEnds[i];
         }
@@ -156,46 +150,43 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
 
     /// @notice Uploads metadata for a range of tokenIds.
     function uploadMetadata(uint256 _amount, string calldata _baseURI, bytes memory _data) public virtual {
-        address token = msg.sender;
         if (_amount == 0) {
             revert BatchMetadataZeroAmount();
         }
 
-        uint256 rangeStart = _delayedRevealBatchMetadataStorage().nextTokenIdRangeStart[token];
+        uint256 rangeStart = _delayedRevealBatchMetadataStorage().nextTokenIdRangeStart;
         uint256 rangeEndNonInclusive = rangeStart + _amount;
 
         if (_data.length > 0) {
             (bytes memory encryptedURI, bytes32 provenanceHash) = abi.decode(_data, (bytes, bytes32));
             if (encryptedURI.length != 0 && provenanceHash != "") {
-                _delayedRevealBatchMetadataStorage().encryptedData[token][rangeEndNonInclusive] = _data;
+                _delayedRevealBatchMetadataStorage().encryptedData[rangeEndNonInclusive] = _data;
             }
         }
 
-        _delayedRevealBatchMetadataStorage().nextTokenIdRangeStart[token] = rangeEndNonInclusive;
-        _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[token].push(rangeEndNonInclusive);
-        _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[token][rangeEndNonInclusive] = _baseURI;
+        _delayedRevealBatchMetadataStorage().nextTokenIdRangeStart = rangeEndNonInclusive;
+        _delayedRevealBatchMetadataStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
+        _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
-        emit NewMetadataBatch(token, rangeStart, rangeEndNonInclusive, _baseURI);
+        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
     }
 
     /// @notice reveals the URI for a range of 'delayed-reveal' tokens.
     function reveal(uint256 _index, bytes calldata _key) public returns (string memory revealedURI) {
-        address token = msg.sender;
-        uint256 _rangeEndNonInclusive = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[token][_index];
-        revealedURI = _getRevealURI(token, _rangeEndNonInclusive, _key);
+        uint256 _rangeEndNonInclusive = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[_index];
+        revealedURI = _getRevealURI(_rangeEndNonInclusive, _key);
 
-        _delayedRevealBatchMetadataStorage().encryptedData[token][_rangeEndNonInclusive] = "";
-        _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[token][_rangeEndNonInclusive] = revealedURI;
+        _delayedRevealBatchMetadataStorage().encryptedData[_rangeEndNonInclusive] = "";
+        _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[_rangeEndNonInclusive] = revealedURI;
 
         emit TokenURIRevealed(_index, revealedURI);
     }
 
     /// @notice unencrypted URI for a range of 'delayed-reveal' tokens.
     function getRevealURI(uint256 _index, bytes calldata _key) public view returns (string memory) {
-        address token = msg.sender;
-        uint256 _rangeEndNonInclusive = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[token][_index];
+        uint256 _rangeEndNonInclusive = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[_index];
 
-        return _getRevealURI(token, _rangeEndNonInclusive, _key);
+        return _getRevealURI(_rangeEndNonInclusive, _key);
     }
 
     /**
@@ -243,28 +234,28 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
-    function _getBaseURI(address _token, uint256 _tokenId) internal view returns (string memory, bool) {
-        uint256[] memory rangeEnds = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[_token];
+    function _getBaseURI(uint256 _tokenId) internal view returns (string memory, bool) {
+        uint256[] memory rangeEnds = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd;
         uint256 numOfBatches = rangeEnds.length;
 
         for (uint256 i = 0; i < numOfBatches; i += 1) {
             if (_tokenId < rangeEnds[i]) {
-                bytes memory encryptedData = _delayedRevealBatchMetadataStorage().encryptedData[_token][rangeEnds[i]];
+                bytes memory encryptedData = _delayedRevealBatchMetadataStorage().encryptedData[rangeEnds[i]];
                 bool isEncrypted = encryptedData.length > 0;
 
-                return (_delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[_token][rangeEnds[i]], isEncrypted);
+                return (_delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]], isEncrypted);
             }
         }
         revert BatchMetadataNoMetadataForTokenId();
     }
 
     /// @notice unencrypted URI for a range of 'delayed-reveal' tokens.
-    function _getRevealURI(address _token, uint256 _rangeEndNonInclusive, bytes calldata _key)
+    function _getRevealURI(uint256 _rangeEndNonInclusive, bytes calldata _key)
         internal
         view
         returns (string memory revealedURI)
     {
-        bytes memory data = _delayedRevealBatchMetadataStorage().encryptedData[_token][_rangeEndNonInclusive];
+        bytes memory data = _delayedRevealBatchMetadataStorage().encryptedData[_rangeEndNonInclusive];
         if (data.length == 0) {
             revert DelayedRevealNothingToReveal();
         }

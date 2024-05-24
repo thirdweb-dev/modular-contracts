@@ -14,9 +14,9 @@ library SignatureMintStorage {
         keccak256(abi.encode(uint256(keccak256("token.minting.signature")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // token => UID => whether it has been used
-        mapping(address => mapping(bytes32 => bool)) uidUsed;
-        mapping(address => SignatureMintERC721.SaleConfig) saleConfig;
+        // UID => whether it has been used
+        mapping(bytes32 => bool) uidUsed;
+        SignatureMintERC721.SaleConfig saleConfig;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -37,7 +37,6 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
     /**
      *  @notice The request struct signed by an authorized party to mint tokens.
      *
-     *  @param token The address of the token being minted.
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
@@ -47,7 +46,6 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
      *  @param uid A unique identifier for the minting request.
      */
     struct SignatureMintRequestERC721 {
-        address token;
         uint48 startTimestamp;
         uint48 endTimestamp;
         address recipient;
@@ -118,13 +116,12 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](2);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
 
         config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
+            FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.setSaleConfig.selector,
-            callType: CallType.CALL,
             permissionBits: Role._MANAGER_ROLE
         });
 
@@ -151,15 +148,14 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig(address _token) external view returns (address primarySaleRecipient) {
-        SaleConfig memory saleConfig = _signatureMintStorage().saleConfig[_token];
+    function getSaleConfig() external view returns (address primarySaleRecipient) {
+        SaleConfig memory saleConfig = _signatureMintStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
 
     /// @notice Sets the sale configuration for a token.
     function setSaleConfig(address _primarySaleRecipient) external {
-        address token = msg.sender;
-        _signatureMintStorage().saleConfig[token] = SaleConfig(_primarySaleRecipient);
+        _signatureMintStorage().saleConfig = SaleConfig(_primarySaleRecipient);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -173,10 +169,6 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
         SignatureMintRequestERC721 memory _req,
         bytes memory _signature
     ) internal {
-        if (_req.token != msg.sender) {
-            revert SignatureMintRequestInvalidToken();
-        }
-
         if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
             revert SignatureMintRequestMismatch();
         }
@@ -185,7 +177,7 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
             revert SigantureMintRequestExpired();
         }
 
-        if (_signatureMintStorage().uidUsed[_req.token][_req.uid]) {
+        if (_signatureMintStorage().uidUsed[_req.uid]) {
             revert SignatureMintRequestUidReused();
         }
 
@@ -193,7 +185,6 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
             keccak256(
                 abi.encode(
                     TYPEHASH_SIGNATURE_MINT_ERC721,
-                    _req.token,
                     _req.startTimestamp,
                     _req.endTimestamp,
                     _req.recipient,
@@ -205,11 +196,11 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
             )
         ).recover(_signature);
 
-        if (!OwnableRoles(_req.token).hasAllRoles(signer, Role._MINTER_ROLE)) {
+        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert SignatureMintRequestUnauthorizedSignature();
         }
 
-        _signatureMintStorage().uidUsed[_req.token][_req.uid] = true;
+        _signatureMintStorage().uidUsed[_req.uid] = true;
 
         _distributeMintPrice(_req.recipient, _req.currency, _req.quantity * _req.pricePerUnit);
     }
@@ -223,7 +214,7 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
             return;
         }
 
-        SaleConfig memory saleConfig = _signatureMintStorage().saleConfig[msg.sender];
+        SaleConfig memory saleConfig = _signatureMintStorage().saleConfig;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {

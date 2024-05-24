@@ -11,25 +11,21 @@ contract RoyaltyERC1155 is RoyaltyERC721 {
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.royaltyInfo.selector, callType: CallType.STATICCALL, permissionBits: 0});
+            FallbackFunction({selector: this.royaltyInfo.selector, permissionBits: 0});
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.getDefaultRoyaltyInfo.selector,
-            callType: CallType.STATICCALL,
             permissionBits: 0
         });
         config.fallbackFunctions[2] = FallbackFunction({
             selector: this.getRoyaltyInfoForToken.selector,
-            callType: CallType.STATICCALL,
             permissionBits: 0
         });
         config.fallbackFunctions[3] = FallbackFunction({
             selector: this.setDefaultRoyaltyInfo.selector,
-            callType: CallType.CALL,
             permissionBits: Role._MANAGER_ROLE
         });
         config.fallbackFunctions[4] = FallbackFunction({
             selector: this.setRoyaltyInfoForToken.selector,
-            callType: CallType.CALL,
             permissionBits: Role._MANAGER_ROLE
         });
 

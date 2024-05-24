@@ -12,10 +12,10 @@ library ClaimableMintStorage {
         keccak256(abi.encode(uint256(keccak256("token.minting.claimable")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // token address => sale config: primary sale recipient, and platform fee recipient + BPS.
-        mapping(address => ClaimableMint1155.SaleConfig) saleConfig;
-        // token => token ID => claim condition
-        mapping(address => mapping(uint256 => ClaimableMint1155.ClaimCondition)) claimConditionByTokenId;
+        // sale config: primary sale recipient, and platform fee recipient + BPS.
+        ClaimableMint1155.SaleConfig saleConfig;
+        // token ID => claim condition
+        mapping(uint256 => ClaimableMint1155.ClaimCondition) claimConditionByTokenId;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -105,23 +105,20 @@ contract ClaimableMint1155 is ModularExtension {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](4);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
 
         config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
+            FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] = FallbackFunction({
             selector: this.setSaleConfig.selector,
-            callType: CallType.CALL,
             permissionBits: Role._MANAGER_ROLE
         });
         config.fallbackFunctions[2] = FallbackFunction({
             selector: this.getClaimConditionByTokenId.selector,
-            callType: CallType.STATICCALL,
             permissionBits: 0
         });
         config.fallbackFunctions[3] = FallbackFunction({
             selector: this.setClaimConditionByTokenId.selector,
-            callType: CallType.CALL,
             permissionBits: Role._MINTER_ROLE
         });
 
@@ -149,29 +146,27 @@ contract ClaimableMint1155 is ModularExtension {
 
     /// @notice Returns the sale configuration for a token.
     function getSaleConfig(address _token) external view returns (address primarySaleRecipient) {
-        SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig[_token];
+        SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
 
     /// @notice Sets the sale configuration for a token.
     function setSaleConfig(address _primarySaleRecipient) external {
-        address token = msg.sender;
-        _claimConditionMintStorage().saleConfig[token] = SaleConfig(_primarySaleRecipient);
+        _claimConditionMintStorage().saleConfig = SaleConfig(_primarySaleRecipient);
     }
 
     /// @notice Returns the claim condition for a token and a specific token ID.
-    function getClaimConditionByTokenId(address _token, uint256 _id)
+    function getClaimConditionByTokenId(uint256 _id)
         external
         view
         returns (ClaimCondition memory claimCondition)
     {
-        return _claimConditionMintStorage().claimConditionByTokenId[_token][_id];
+        return _claimConditionMintStorage().claimConditionByTokenId[_id];
     }
 
     /// @notice Sets the claim condition for a token and a specific token ID.
     function setClaimConditionByTokenId(uint256 _id, ClaimCondition memory _claimCondition) external {
-        address token = msg.sender;
-        _claimConditionMintStorage().claimConditionByTokenId[token][_id] = _claimCondition;
+        _claimConditionMintStorage().claimConditionByTokenId[_id] = _claimCondition;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -182,9 +177,7 @@ contract ClaimableMint1155 is ModularExtension {
     function _allowlistedMintERC1155(address _recipient, uint256 _id, uint256 _quantity, ClaimParams memory _params)
         internal
     {
-        address token = msg.sender;
-
-        ClaimCondition memory claimCondition = _claimConditionMintStorage().claimConditionByTokenId[token][_id];
+        ClaimCondition memory claimCondition = _claimConditionMintStorage().claimConditionByTokenId[_id];
 
         if (
             claimCondition.currency != _params.expectedCurrency
@@ -211,7 +204,7 @@ contract ClaimableMint1155 is ModularExtension {
             }
         }
 
-        _claimConditionMintStorage().claimConditionByTokenId[token][_id].availableSupply -= _quantity;
+        _claimConditionMintStorage().claimConditionByTokenId[_id].availableSupply -= _quantity;
 
         _distributeMintPrice(_recipient, _params.expectedCurrency, _quantity * _params.expectedPricePerUnit);
     }
@@ -225,7 +218,7 @@ contract ClaimableMint1155 is ModularExtension {
             return;
         }
 
-        SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig[msg.sender];
+        SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {

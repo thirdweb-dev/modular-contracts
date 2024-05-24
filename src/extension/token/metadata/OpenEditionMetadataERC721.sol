@@ -49,10 +49,10 @@ contract OpenEditionMetadataERC721 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Emittted when shared metadata is updated
-    event SharedMetadataUpdated(address token, string name, string description, string imageURI, string animationURI);
+    event SharedMetadataUpdated(string name, string description, string imageURI, string animationURI);
 
     /// @dev EIP-4906: Emitted when shared metadata is updated
-    event BatchMetadataUpdate(address indexed token, uint256 _fromTokenId, uint256 _toTokenId);
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
@@ -63,10 +63,9 @@ contract OpenEditionMetadataERC721 is ModularExtension {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 
-        config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
+        config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
         config.fallbackFunctions[0] = FallbackFunction({
             selector: this.setSharedMetadata.selector,
-            callType: CallType.CALL,
             permissionBits: Role._MINTER_ROLE
         });
 
@@ -79,8 +78,7 @@ contract OpenEditionMetadataERC721 is ModularExtension {
 
     /// @notice Callback function for ERC721Metadata.tokenURI
     function onTokenURI(uint256 _id) external view returns (string memory) {
-        address token = msg.sender;
-        SharedMetadata memory info = OpenEditionMetadataStorage.data().sharedMetadata[token];
+        SharedMetadata memory info = OpenEditionMetadataStorage.data().sharedMetadata;
         return _createMetadataEdition({
             name: info.name,
             description: info.description,
@@ -98,17 +96,17 @@ contract OpenEditionMetadataERC721 is ModularExtension {
     function setSharedMetadata(SharedMetadata calldata _metadata) external {
         address token = msg.sender;
 
-        OpenEditionMetadataStorage.data().sharedMetadata[token] = SharedMetadata({
+        OpenEditionMetadataStorage.data().sharedMetadata = SharedMetadata({
             name: _metadata.name,
             description: _metadata.description,
             imageURI: _metadata.imageURI,
             animationURI: _metadata.animationURI
         });
 
-        emit BatchMetadataUpdate(token, 0, type(uint256).max);
+        emit BatchMetadataUpdate(0, type(uint256).max);
 
         emit SharedMetadataUpdated(
-            token, _metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI
+            _metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI
         );
     }
 
