@@ -11,7 +11,7 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 library MintableStorage {
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.minting.mintable")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc1155")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // token => UID => whether it has been used

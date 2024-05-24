@@ -11,15 +11,13 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 library MintableStorage {
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc721")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc20")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // token => UID => whether it has been used
         mapping(address => mapping(bytes32 => bool)) uidUsed;
         // token => sale config
-        mapping(address => MintableERC721.SaleConfig) saleConfig;
-        // token => tokenID => tokenURI
-        mapping(address => mapping(uint256 => string)) tokenURI;
+        mapping(address => MintableERC20.SaleConfig) saleConfig;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -30,7 +28,7 @@ library MintableStorage {
     }
 }
 
-contract MintableERC721 is ModularExtension, EIP712 {
+contract MintableERC20 is ModularExtension, EIP712 {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -47,10 +45,9 @@ contract MintableERC721 is ModularExtension, EIP712 {
      *  @param quantity The quantity of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
-     *  @param metadataURIs The URIs of the metadata for each minted token.
      *  @param uid A unique identifier for the minting request.
      */
-    struct MintRequestERC721 {
+    struct MintRequestERC20 {
         address token;
         uint48 startTimestamp;
         uint48 endTimestamp;
@@ -58,7 +55,6 @@ contract MintableERC721 is ModularExtension, EIP712 {
         uint256 quantity;
         address currency;
         uint256 pricePerUnit;
-        string[] metadataURIs;
         bytes32 uid;
     }
 
@@ -68,8 +64,8 @@ contract MintableERC721 is ModularExtension, EIP712 {
      *  @param request The minting request.
      *  @param signature The signature produced from signing the minting request.
      */
-    struct MintParamsERC721 {
-        MintRequestERC721 request;
+    struct MintParamsERC20 {
+        MintRequestERC20 request;
         bytes signature;
     }
 
@@ -90,7 +86,7 @@ contract MintableERC721 is ModularExtension, EIP712 {
     error MintableIncorrectNativeTokenSent();
 
     /// @dev Emitted when the minting request has expired.
-    error MintableableRequestExpired();
+    error MintableRequestExpired();
 
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
@@ -105,18 +101,11 @@ contract MintableERC721 is ModularExtension, EIP712 {
     error MintableRequestUnauthorizedSignature();
 
     /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev Emitted when a token's metadata URI is updated.
-    event MintableTokenURIUpdated(uint256 tokenId, string tokenURI);
-
-    /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 private constant TYPEHASH_MINTABLE_ERC721 = keccak256(
-        "MintRequestERC721(address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string[] metadataURIs,bytes32 uid)"
+    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC20 = keccak256(
+        "MintRequestERC20(address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -127,11 +116,10 @@ contract MintableERC721 is ModularExtension, EIP712 {
 
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.fallbackFunctions = new FallbackFunction[](2);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
-        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
@@ -140,35 +128,24 @@ contract MintableERC721 is ModularExtension, EIP712 {
             callType: CallType.CALL,
             permissionBits: Role._MANAGER_ROLE
         });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.setTokenURI.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MINTER_ROLE
-        });
-
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
 
     /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Callback function for the ERC721Core.tokenURI function.
-    function onTokenURI(uint256 _tokenId) external view returns (string memory) {
-        return _mintableStorage().tokenURI[msg.sender][_tokenId];
-    }
-
-    /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(
-        address _caller,
-        address _to,
-        uint256 _startTokenId,
-        uint256 _quantity,
-        bytes memory _data
-    ) external payable virtual returns (bytes memory) {
-        MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
-        _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
-        _distributeMintPrice(_caller, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit);
+    /// @notice Callback function for the ERC20Core.mint function.
+    function beforeMintERC20(address _caller, address _to, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        returns (bytes memory)
+    {
+        MintParamsERC20 memory _params = abi.decode(_data, (MintParamsERC20));
+        _mintWithSignatureERC20(_to, _quantity, _params.request, _params.signature);
+        _distributeMintPrice(
+            _caller, _params.request.currency, (_params.request.quantity * _params.request.pricePerUnit) / 1e18
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -187,37 +164,27 @@ contract MintableERC721 is ModularExtension, EIP712 {
         _mintableStorage().saleConfig[token] = SaleConfig(_primarySaleRecipient);
     }
 
-    /// @notice Sets the token URI for a token.
-    function setTokenURI(uint256 _tokenId, string memory _tokenURI) public {
-        _mintableStorage().tokenURI[msg.sender][_tokenId] = _tokenURI;
-        emit MintableTokenURIUpdated(_tokenId, _tokenURI);
-    }
-
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _mintWithSignatureERC721(
+    function _mintWithSignatureERC20(
         address _expectedRecipient,
         uint256 _expectedAmount,
-        uint256 _startTokenId,
-        MintRequestERC721 memory _req,
+        MintRequestERC20 memory _req,
         bytes memory _signature
     ) internal {
         if (_req.token != msg.sender) {
             revert MintableRequestInvalidToken();
         }
 
-        if (
-            _req.recipient != _expectedRecipient || _req.quantity != _expectedAmount
-                || _req.metadataURIs.length != _expectedAmount
-        ) {
+        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
             revert MintableRequestMismatch();
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintableableRequestExpired();
+            revert MintableRequestExpired();
         }
 
         if (_mintableStorage().uidUsed[_req.token][_req.uid]) {
@@ -227,7 +194,7 @@ contract MintableERC721 is ModularExtension, EIP712 {
         address signer = _hashTypedData(
             keccak256(
                 abi.encode(
-                    TYPEHASH_MINTABLE_ERC721,
+                    TYPEHASH_SIGNATURE_MINT_ERC20,
                     _req.token,
                     _req.startTimestamp,
                     _req.endTimestamp,
@@ -235,7 +202,6 @@ contract MintableERC721 is ModularExtension, EIP712 {
                     _req.quantity,
                     _req.currency,
                     _req.pricePerUnit,
-                    _hashMetadataURIs(_req.metadataURIs),
                     _req.uid
                 )
             )
@@ -246,12 +212,6 @@ contract MintableERC721 is ModularExtension, EIP712 {
         }
 
         _mintableStorage().uidUsed[_req.token][_req.uid] = true;
-
-        uint256 len = _req.metadataURIs.length;
-        uint256 tokenId = _startTokenId;
-        for (uint256 i = 0; i < len; i++) {
-            setTokenURI(tokenId + i, _req.metadataURIs[i]);
-        }
     }
 
     /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
@@ -275,20 +235,9 @@ contract MintableERC721 is ModularExtension, EIP712 {
         }
     }
 
-    /// @dev Hashes an array of metadata URIs.
-    function _hashMetadataURIs(string[] memory metadataURIs) internal pure returns (bytes32) {
-        bytes32[] memory hashes = new bytes32[](metadataURIs.length);
-
-        for (uint256 i = 0; i < metadataURIs.length; i++) {
-            hashes[i] = keccak256(bytes(metadataURIs[i]));
-        }
-
-        return keccak256(abi.encodePacked(hashes));
-    }
-
     /// @dev Returns the domain name and version for EIP712.
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "MintableERC721";
+        name = "MintableERC20";
         version = "1";
     }
 
