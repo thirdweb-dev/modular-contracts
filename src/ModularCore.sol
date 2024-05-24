@@ -21,14 +21,12 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     /// @dev Internal representation of a fallback function callable via fallback().
     struct InstalledFallbackFunction {
         address implementation;
-        CallType callType;
         uint256 permissionBits;
     }
 
     /// @dev Internal representation of a callback function called during the execution of some fixed function.
     struct InstalledCallbackFunction {
         address implementation;
-        CallType callType;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -96,17 +94,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             _checkOwnerOrRoles(fallbackFunction.permissionBits);
         }
 
-        // Call extension function.
-        CallType callType = fallbackFunction.callType;
-
-        // note: these code block needs to happen at the end of the function
-        if (callType == CallType.CALL) {
-            _callAndReturn(fallbackFunction.implementation);
-        } else if (callType == CallType.DELEGATECALL) {
-            _delegateAndReturn(fallbackFunction.implementation);
-        } else if (callType == CallType.STATICCALL) {
-            _staticcallAndReturn(fallbackFunction.implementation);
-        }
+        _delegateAndReturn(fallbackFunction.implementation);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -211,7 +199,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             if (!supported) revert CallbackFunctionNotSupported();
 
             callbackFunctionData_[callbackFunction.selector] =
-                InstalledCallbackFunction({implementation: _extension, callType: callbackFunction.callType});
+                InstalledCallbackFunction({implementation: _extension});
         }
 
         // Store extension function data.
@@ -226,7 +214,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
             fallbackFunctionData_[ext.selector] = InstalledFallbackFunction({
                 implementation: _extension,
-                callType: ext.callType,
                 permissionBits: ext.permissionBits
             });
         }
@@ -304,49 +291,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         InstalledCallbackFunction memory callbackFunction = callbackFunctionData_[_selector];
 
         if (callbackFunction.implementation != address(0)) {
-            if (callbackFunction.callType == CallType.CALL) {
-                (success, returndata) = callbackFunction.implementation.call{value: msg.value}(_abiEncodedCalldata);
-            } else if (callbackFunction.callType == CallType.DELEGATECALL) {
-                (success, returndata) = callbackFunction.implementation.delegatecall(_abiEncodedCalldata);
-            } else if (callbackFunction.callType == CallType.STATICCALL) {
-                (success, returndata) = callbackFunction.implementation.staticcall(_abiEncodedCalldata);
-            }
-        } else {
-            if (callbackMode == CallbackMode.REQUIRED) {
-                revert CallbackFunctionRequired();
-            }
-        }
-
-        if (!success) {
-            _revert(returndata, CallbackExecutionReverted.selector);
-        }
-    }
-
-    /// @dev Calls an extension callback function and checks whether it is optional or required.
-    function _executeCallbackFunctionView(bytes4 _selector, bytes memory _abiEncodedCalldata)
-        internal
-        view
-        returns (bool success, bytes memory returndata)
-    {
-        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
-        uint256 len = functions.length;
-
-        CallbackMode callbackMode;
-        for (uint256 i = 0; i < len; i++) {
-            if (functions[i].selector == _selector) {
-                callbackMode = functions[i].mode;
-                break;
-            }
-        }
-
-        InstalledCallbackFunction memory callbackFunction = callbackFunctionData_[_selector];
-
-        if (callbackFunction.callType != CallType.STATICCALL) {
-            revert CallbackFunctionNotSupported();
-        }
-
-        if (callbackFunction.implementation != address(0)) {
-            (success, returndata) = callbackFunction.implementation.staticcall(_abiEncodedCalldata);
+            (success, returndata) = callbackFunction.implementation.delegatecall(_abiEncodedCalldata);
         } else {
             if (callbackMode == CallbackMode.REQUIRED) {
                 revert CallbackFunctionRequired();
@@ -372,52 +317,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             calldatacopy(calldataPtr, 0, calldatasize())
 
             let success := delegatecall(gas(), _implementation, 0, calldatasize(), 0, 0)
-
-            let returnDataPtr := allocate(returndatasize())
-            returndatacopy(returnDataPtr, 0, returndatasize())
-            if iszero(success) { revert(returnDataPtr, returndatasize()) }
-            return(returnDataPtr, returndatasize())
-        }
-    }
-
-    /// @dev calls an `implementation` smart contract and returns data.
-    /// @notice Only use this at the end of the function as it reverts or returns the result
-    function _callAndReturn(address _implementation) private {
-        uint256 value = msg.value;
-
-        /// @solidity memory-safe-assembly
-        assembly {
-            function allocate(length) -> pos {
-                pos := mload(0x40)
-                mstore(0x40, add(pos, length))
-            }
-
-            let calldataPtr := allocate(calldatasize())
-            calldatacopy(calldataPtr, 0, calldatasize())
-
-            let success := call(gas(), _implementation, value, calldataPtr, calldatasize(), 0, 0)
-
-            let returnDataPtr := allocate(returndatasize())
-            returndatacopy(returnDataPtr, 0, returndatasize())
-            if iszero(success) { revert(returnDataPtr, returndatasize()) }
-            return(returnDataPtr, returndatasize())
-        }
-    }
-
-    /// @dev calls an `implementation` smart contract and returns data.
-    /// @notice Only use this at the end of the function as it reverts or returns the result
-    function _staticcallAndReturn(address _implementation) private view {
-        /// @solidity memory-safe-assembly
-        assembly {
-            function allocate(length) -> pos {
-                pos := mload(0x40)
-                mstore(0x40, add(pos, length))
-            }
-
-            let calldataPtr := allocate(calldatasize())
-            calldatacopy(calldataPtr, 0, calldatasize())
-
-            let success := staticcall(gas(), _implementation, 0, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
