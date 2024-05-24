@@ -12,13 +12,13 @@ import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
 import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {RoyaltyERC721} from "src/extension/token/royalty/RoyaltyERC721.sol";
+import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
+import {RoyaltyERC1155} from "src/extension/token/royalty/RoyaltyERC1155.sol";
 
-contract RoyaltyExt is RoyaltyERC721 {}
+contract RoyaltyExt is RoyaltyERC1155 {}
 
-contract RoyaltyERC721Test is Test {
-    ERC721Core public core;
+contract RoyaltyERC1155Test is Test {
+    ERC1155Core public core;
 
     RoyaltyExt public extensionImplementation;
     RoyaltyExt public installedExtension;
@@ -34,7 +34,7 @@ contract RoyaltyERC721Test is Test {
         address[] memory extensions;
         bytes[] memory extensionData;
 
-        core = new ERC721Core(ERC1967FactoryConstants.ADDRESS, "test", "TEST", "", owner, extensions, extensionData);
+        core = new ERC1155Core(ERC1967FactoryConstants.ADDRESS, "test", "TEST", "", owner, extensions, extensionData);
         extensionImplementation = new RoyaltyExt();
 
         // install extension
