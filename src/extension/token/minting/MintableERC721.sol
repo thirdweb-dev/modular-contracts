@@ -8,6 +8,9 @@ import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
+import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
+import {OnTokenURICallback} from "../../../callback/OnTokenURICallback.sol";
+
 library MintableStorage {
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
@@ -30,7 +33,7 @@ library MintableStorage {
     }
 }
 
-contract MintableERC721 is ModularExtension, EIP712 {
+contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, OnTokenURICallback {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -154,7 +157,7 @@ contract MintableERC721 is ModularExtension, EIP712 {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.tokenURI function.
-    function onTokenURI(uint256 _tokenId) external view returns (string memory) {
+    function onTokenURI(uint256 _tokenId) external view virtual override returns (string memory) {
         return _mintableStorage().tokenURI[msg.sender][_tokenId];
     }
 
@@ -165,7 +168,7 @@ contract MintableERC721 is ModularExtension, EIP712 {
         uint256 _startTokenId,
         uint256 _quantity,
         bytes memory _data
-    ) external payable virtual returns (bytes memory) {
+    ) external payable virtual override returns (bytes memory) {
         MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
         _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
         _distributeMintPrice(_caller, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit);

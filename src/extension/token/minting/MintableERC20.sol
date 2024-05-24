@@ -8,6 +8,8 @@ import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
+import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
+
 library MintableStorage {
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
@@ -28,7 +30,7 @@ library MintableStorage {
     }
 }
 
-contract MintableERC20 is ModularExtension, EIP712 {
+contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -139,6 +141,7 @@ contract MintableERC20 is ModularExtension, EIP712 {
         external
         payable
         virtual
+        override
         returns (bytes memory)
     {
         MintParamsERC20 memory _params = abi.decode(_data, (MintParamsERC20));
