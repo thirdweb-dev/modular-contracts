@@ -136,7 +136,7 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
         config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
-        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector, CallType.CALL);
+        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});

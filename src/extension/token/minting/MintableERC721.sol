@@ -93,7 +93,7 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
     error MintableIncorrectNativeTokenSent();
 
     /// @dev Emitted when the minting request has expired.
-    error MintableableRequestExpired();
+    error MintableRequestExpired();
 
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
@@ -134,7 +134,7 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
         config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
-        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector, CallType.CALL);
+        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
@@ -220,7 +220,7 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintableableRequestExpired();
+            revert MintableRequestExpired();
         }
 
         if (_mintableStorage().uidUsed[_req.token][_req.uid]) {
