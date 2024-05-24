@@ -198,8 +198,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             }
             if (!supported) revert CallbackFunctionNotSupported();
 
-            callbackFunctionData_[callbackFunction.selector] =
-                InstalledCallbackFunction({implementation: _extension});
+            callbackFunctionData_[callbackFunction.selector] = InstalledCallbackFunction({implementation: _extension});
         }
 
         // Store extension function data.
@@ -212,10 +211,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                 revert FallbackFunctionAlreadyInstalled();
             }
 
-            fallbackFunctionData_[ext.selector] = InstalledFallbackFunction({
-                implementation: _extension,
-                permissionBits: ext.permissionBits
-            });
+            fallbackFunctionData_[ext.selector] =
+                InstalledFallbackFunction({implementation: _extension, permissionBits: ext.permissionBits});
         }
 
         // Call `onInstall` callback function if extension has registered installation callback.
@@ -303,6 +300,37 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
     }
 
+    /// @dev Calls an extension callback function and checks whether it is optional or required.
+    function _executeCallbackFunctionView(bytes4 _selector, bytes memory _abiEncodedCalldata)
+        internal
+        view
+        returns (bool success, bytes memory returndata)
+    {
+        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
+        uint256 len = functions.length;
+
+        CallbackMode callbackMode;
+        for (uint256 i = 0; i < len; i++) {
+            if (functions[i].selector == _selector) {
+                callbackMode = functions[i].mode;
+                break;
+            }
+        }
+
+        InstalledCallbackFunction memory callbackFunction = callbackFunctionData_[_selector];
+
+        if (callbackFunction.implementation != address(0)) {
+            (success, returndata) = callbackFunction.implementation.staticcall(_abiEncodedCalldata);
+        } else {
+            if (callbackMode == CallbackMode.REQUIRED) {
+                revert CallbackFunctionRequired();
+            }
+        }
+        if (!success) {
+            _revert(returndata, CallbackExecutionReverted.selector);
+        }
+    }
+
     /// @dev delegateCalls an `implementation` smart contract.
     /// @notice Only use this at the end of the function as it reverts or returns the result
     function _delegateAndReturn(address _implementation) private {
@@ -316,7 +344,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := delegatecall(gas(), _implementation, 0, calldatasize(), 0, 0)
+            let success := delegatecall(gas(), _implementation, calldataPtr, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())

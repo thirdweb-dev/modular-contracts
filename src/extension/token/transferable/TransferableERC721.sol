@@ -43,22 +43,13 @@ contract TransferableERC721 is ModularExtension {
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC721.selector);
 
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.isTransferEnabled.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.isTransferEnabledFor.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.setTransferable.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.setTransferableFor.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.isTransferEnabled.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.isTransferEnabledFor.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.setTransferable.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setTransferableFor.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
@@ -93,7 +84,6 @@ contract TransferableERC721 is ModularExtension {
 
     /// @notice Set transferability for a token.
     function setTransferable(bool enableTransfer) external {
-        address token = msg.sender;
         _transferableStorage().transferEnabled = enableTransfer;
     }
 

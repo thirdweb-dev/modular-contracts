@@ -119,12 +119,9 @@ contract SignatureMintERC20 is ModularExtension, EIP712 {
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
 
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
     }
 
     /*//////////////////////////////////////////////////////////////

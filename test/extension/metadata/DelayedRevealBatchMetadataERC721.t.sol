@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 import "lib/forge-std/src/console.sol";
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
-import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 
 // Target contract
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
@@ -16,20 +14,20 @@ import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {DelayedRevealBatchMetadataERC721} from "src/extension/token/metadata/DelayedRevealBatchMetadataERC721.sol";
 
 contract DelayedRevealExt is DelayedRevealBatchMetadataERC721 {
-    function tokenIdRangeEnd(address token) external view returns (uint256[] memory) {
-        return _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[token];
+    function tokenIdRangeEnd() external view returns (uint256[] memory) {
+        return _delayedRevealBatchMetadataStorage().tokenIdRangeEnd;
     }
 
-    function nextTokenIdRangeStart(address token) external view returns (uint256) {
-        return _delayedRevealBatchMetadataStorage().nextTokenIdRangeStart[token];
+    function nextTokenIdRangeStart() external view returns (uint256) {
+        return _delayedRevealBatchMetadataStorage().nextTokenIdRangeStart;
     }
 
-    function baseURIOfTokenIdRange(address token, uint256 rangeEnd) external view returns (string memory) {
-        return _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[token][rangeEnd];
+    function baseURIOfTokenIdRange(uint256 rangeEnd) external view returns (string memory) {
+        return _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEnd];
     }
 
-    function encryptedData(address token, uint256 rangeEnd) external view returns (bytes memory) {
-        return _delayedRevealBatchMetadataStorage().encryptedData[token][rangeEnd];
+    function encryptedData(uint256 rangeEnd) external view returns (bytes memory) {
+        return _delayedRevealBatchMetadataStorage().encryptedData[rangeEnd];
     }
 }
 
@@ -44,13 +42,10 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
     address public unpermissionedActor = address(0x3);
 
     function setUp() public {
-        // Deterministic, canonical ERC1967Factory contract
-        vm.etch(ERC1967FactoryConstants.ADDRESS, ERC1967FactoryConstants.BYTECODE);
-
         address[] memory extensions;
         bytes[] memory extensionData;
 
-        core = new ERC721Core(ERC1967FactoryConstants.ADDRESS, "test", "TEST", "", owner, extensions, extensionData);
+        core = new ERC721Core("test", "TEST", "", owner, extensions, extensionData);
         extensionImplementation = new DelayedRevealExt();
 
         // install extension
@@ -74,12 +69,12 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         assertEq(core.tokenURI(99), "ipfs://base/99");
 
         // read state from the installed extension
-        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd(address(core));
+        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd();
         assertEq(rangeEnds.length, 1);
         assertEq(rangeEnds[0], 100);
-        assertEq(installedExtension.nextTokenIdRangeStart(address(core)), 100);
-        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 100), "ipfs://base/");
-        assertEq(installedExtension.encryptedData(address(core), 100), "");
+        assertEq(installedExtension.nextTokenIdRangeStart(), 100);
+        assertEq(installedExtension.baseURIOfTokenIdRange(100), "ipfs://base/");
+        assertEq(installedExtension.encryptedData(100), "");
 
         // upload another batch
         vm.prank(owner);
@@ -92,15 +87,15 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         assertEq(core.tokenURI(199), "ipfs://base2/199");
 
         // read state from the installed extension
-        rangeEnds = installedExtension.tokenIdRangeEnd(address(core));
+        rangeEnds = installedExtension.tokenIdRangeEnd();
         assertEq(rangeEnds.length, 2);
         assertEq(rangeEnds[0], 100);
         assertEq(rangeEnds[1], 200);
-        assertEq(installedExtension.nextTokenIdRangeStart(address(core)), 200);
-        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 100), "ipfs://base/");
-        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 200), "ipfs://base2/");
-        assertEq(installedExtension.encryptedData(address(core), 100), "");
-        assertEq(installedExtension.encryptedData(address(core), 200), "");
+        assertEq(installedExtension.nextTokenIdRangeStart(), 200);
+        assertEq(installedExtension.baseURIOfTokenIdRange(100), "ipfs://base/");
+        assertEq(installedExtension.baseURIOfTokenIdRange(200), "ipfs://base2/");
+        assertEq(installedExtension.encryptedData(100), "");
+        assertEq(installedExtension.encryptedData(200), "");
     }
 
     function test_state_uploadMetadata_encrypted() public {
@@ -120,12 +115,12 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         assertEq(core.tokenURI(99), "ipfs://temp/0");
 
         // read state from the installed extension
-        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd(address(core));
+        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd();
         assertEq(rangeEnds.length, 1);
         assertEq(rangeEnds[0], 100);
-        assertEq(installedExtension.nextTokenIdRangeStart(address(core)), 100);
-        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 100), tempURI);
-        assertEq(installedExtension.encryptedData(address(core), 100), encryptedData);
+        assertEq(installedExtension.nextTokenIdRangeStart(), 100);
+        assertEq(installedExtension.baseURIOfTokenIdRange(100), tempURI);
+        assertEq(installedExtension.encryptedData(100), encryptedData);
     }
 
     function test_state_reveal() public {
@@ -149,12 +144,12 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         assertEq(core.tokenURI(99), "ipfs://original/99");
 
         // read state from the installed extension
-        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd(address(core));
+        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd();
         assertEq(rangeEnds.length, 1);
         assertEq(rangeEnds[0], 100);
-        assertEq(installedExtension.nextTokenIdRangeStart(address(core)), 100);
-        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 100), originalURI);
-        assertEq(installedExtension.encryptedData(address(core), 100), "");
+        assertEq(installedExtension.nextTokenIdRangeStart(), 100);
+        assertEq(installedExtension.baseURIOfTokenIdRange(100), originalURI);
+        assertEq(installedExtension.encryptedData(100), "");
     }
 
     function test_getRevealURI() public {
@@ -176,11 +171,11 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         // state unchanged
         assertEq(core.tokenURI(1), "ipfs://temp/0");
         assertEq(core.tokenURI(99), "ipfs://temp/0");
-        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd(address(core));
+        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd();
         assertEq(rangeEnds.length, 1);
         assertEq(rangeEnds[0], 100);
-        assertEq(installedExtension.nextTokenIdRangeStart(address(core)), 100);
-        assertEq(installedExtension.baseURIOfTokenIdRange(address(core), 100), tempURI);
-        assertEq(installedExtension.encryptedData(address(core), 100), encryptedData);
+        assertEq(installedExtension.nextTokenIdRangeStart(), 100);
+        assertEq(installedExtension.baseURIOfTokenIdRange(100), tempURI);
+        assertEq(installedExtension.encryptedData(100), encryptedData);
     }
 }

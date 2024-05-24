@@ -107,20 +107,13 @@ contract ClaimableMint1155 is ModularExtension {
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
 
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.getClaimConditionByTokenId.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.setClaimConditionByTokenId.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.getClaimConditionByTokenId.selector, permissionBits: 0});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setClaimConditionByTokenId.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
     }
@@ -156,11 +149,7 @@ contract ClaimableMint1155 is ModularExtension {
     }
 
     /// @notice Returns the claim condition for a token and a specific token ID.
-    function getClaimConditionByTokenId(uint256 _id)
-        external
-        view
-        returns (ClaimCondition memory claimCondition)
-    {
+    function getClaimConditionByTokenId(uint256 _id) external view returns (ClaimCondition memory claimCondition) {
         return _claimConditionMintStorage().claimConditionByTokenId[_id];
     }
 

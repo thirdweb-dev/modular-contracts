@@ -109,9 +109,9 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function supportsInterface(bytes4 interfaceID) public view override returns (bool) {
-        return interfaceID == type(IERC20).interfaceId || super.supportsInterface(interfaceID);
-    }
+    // function supportsInterface(bytes4 interfaceID) public view override returns (bool) {
+    //     return interfaceID == type(IERC20).interfaceId || super.supportsInterface(interfaceID);
+    // }
 
     /*//////////////////////////////////////////////////////////////
                           EXTERNAL FUNCTIONS

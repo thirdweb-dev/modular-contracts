@@ -62,9 +62,7 @@ contract BatchMetadataERC721 is ModularExtension {
 
     /// @dev Emitted when a new metadata batch is uploaded.
     event NewMetadataBatch(
-        uint256 indexed startTokenIdInclusive,
-        uint256 indexed endTokenIdNonInclusive,
-        string baseURI
+        uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -78,14 +76,10 @@ contract BatchMetadataERC721 is ModularExtension {
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
 
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.uploadMetadata.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.getAllMetadataBatches.selector,
-            permissionBits: 0
-        });
+        config.fallbackFunctions[0] =
+            FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721.
     }

@@ -44,22 +44,13 @@ contract TransferableERC1155 is ModularExtension {
         config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC1155.selector);
         config.callbackFunctions[1] = CallbackFunction(this.beforeBatchTransferERC1155.selector);
 
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.isTransferEnabled.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.isTransferEnabledFor.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.setTransferable.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.setTransferableFor.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.isTransferEnabled.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.isTransferEnabledFor.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.setTransferable.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setTransferableFor.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
     }
@@ -74,7 +65,6 @@ contract TransferableERC1155 is ModularExtension {
         virtual
         returns (bytes memory)
     {
-        address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
         bool isOperatorAllowed = data.transferrerAllowed[from] || data.transferrerAllowed[to];
 

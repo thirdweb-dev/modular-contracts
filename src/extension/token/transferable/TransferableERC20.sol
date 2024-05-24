@@ -43,22 +43,13 @@ contract TransferableERC20 is ModularExtension {
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC20.selector);
 
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.isTransferEnabled.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.isTransferEnabledFor.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.setTransferable.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.setTransferableFor.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.isTransferEnabled.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.isTransferEnabledFor.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.setTransferable.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setTransferableFor.selector, permissionBits: Role._MANAGER_ROLE});
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -67,7 +58,6 @@ contract TransferableERC20 is ModularExtension {
 
     /// @notice Callback function for ERC20.transfer
     function beforeTransferERC20(address from, address to, uint256) external virtual returns (bytes memory) {
-        address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
         bool isOperatorAllowed = data.transferrerAllowed[from] || data.transferrerAllowed[to];
 

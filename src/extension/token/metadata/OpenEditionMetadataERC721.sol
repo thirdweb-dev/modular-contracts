@@ -12,8 +12,8 @@ library OpenEditionMetadataStorage {
         keccak256(abi.encode(uint256(keccak256("token.metadata.openedition")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        /// @notice token => shared token metadata
-        mapping(address => OpenEditionMetadataERC721.SharedMetadata) sharedMetadata;
+        /// @notice shared token metadata
+        OpenEditionMetadataERC721.SharedMetadata sharedMetadata;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -64,10 +64,8 @@ contract OpenEditionMetadataERC721 is ModularExtension {
         config.fallbackFunctions = new FallbackFunction[](1);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.setSharedMetadata.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
+        config.fallbackFunctions[0] =
+            FallbackFunction({selector: this.setSharedMetadata.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
@@ -94,8 +92,6 @@ contract OpenEditionMetadataERC721 is ModularExtension {
 
     /// @notice Set shared metadata for NFTs
     function setSharedMetadata(SharedMetadata calldata _metadata) external {
-        address token = msg.sender;
-
         OpenEditionMetadataStorage.data().sharedMetadata = SharedMetadata({
             name: _metadata.name,
             description: _metadata.description,
@@ -105,9 +101,7 @@ contract OpenEditionMetadataERC721 is ModularExtension {
 
         emit BatchMetadataUpdate(0, type(uint256).max);
 
-        emit SharedMetadataUpdated(
-            _metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI
-        );
+        emit SharedMetadataUpdated(_metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI);
     }
 
     /*//////////////////////////////////////////////////////////////

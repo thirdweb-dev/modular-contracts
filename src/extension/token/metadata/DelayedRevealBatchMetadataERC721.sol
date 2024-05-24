@@ -70,10 +70,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
 
     /// @dev Emitted when a new metadata batch is uploaded.
     event NewMetadataBatch(
-        address indexed token,
-        uint256 indexed startTokenIdInclusive,
-        uint256 indexed endTokenIdNonInclusive,
-        string baseURI
+        uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
     );
 
     /// @dev Emitted when tokens are revealed.
@@ -89,22 +86,14 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.uploadMetadata.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.getAllMetadataBatches.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.reveal.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
-        config.fallbackFunctions[3] =
-            FallbackFunction({selector: this.getRevealURI.selector, permissionBits: 0});
-        config.fallbackFunctions[4] =
-            FallbackFunction({selector: this.encryptDecrypt.selector, permissionBits: 0});
+        config.fallbackFunctions[0] =
+            FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.reveal.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.getRevealURI.selector, permissionBits: 0});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.encryptDecrypt.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721.
     }

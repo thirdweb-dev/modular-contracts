@@ -43,10 +43,8 @@ contract SimpleMetadataERC721 is ModularExtension {
         config.fallbackFunctions = new FallbackFunction[](1);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.setTokenURI.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
+        config.fallbackFunctions[0] =
+            FallbackFunction({selector: this.setTokenURI.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }

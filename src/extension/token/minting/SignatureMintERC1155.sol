@@ -120,12 +120,9 @@ contract SignatureMintERC1155 is ModularExtension, EIP712 {
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
 
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
     }

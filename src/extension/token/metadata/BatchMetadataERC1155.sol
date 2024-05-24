@@ -11,14 +11,10 @@ contract BatchMetadataERC1155 is BatchMetadataERC721 {
         config.fallbackFunctions = new FallbackFunction[](2);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.uploadMetadata.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.getAllMetadataBatches.selector,
-            permissionBits: 0
-        });
+        config.fallbackFunctions[0] =
+            FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
     }

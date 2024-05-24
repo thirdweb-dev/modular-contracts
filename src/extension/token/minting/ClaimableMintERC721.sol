@@ -107,20 +107,12 @@ contract ClaimableMintERC721 is ModularExtension {
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
 
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.getClaimCondition.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.setClaimCondition.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.getClaimCondition.selector, permissionBits: 0});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
@@ -212,7 +204,7 @@ contract ClaimableMintERC721 is ModularExtension {
             return;
         }
 
-        SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig[msg.sender];
+        SaleConfig memory saleConfig = _claimConditionMintStorage().saleConfig;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
