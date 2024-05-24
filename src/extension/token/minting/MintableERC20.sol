@@ -130,6 +130,8 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
             callType: CallType.CALL,
             permissionBits: Role._MANAGER_ROLE
         });
+
+        config.requiredInterfaceId = 0x36372b07; // ERC20
     }
 
     /*//////////////////////////////////////////////////////////////
