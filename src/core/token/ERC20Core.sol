@@ -6,6 +6,8 @@ import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
+import {IERC20} from "../../interface/IERC20.sol";
+
 import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
 import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
@@ -103,6 +105,11 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
             selector: BeforeApproveCallbackERC20.beforeApproveERC20.selector,
             mode: CallbackMode.OPTIONAL
         });
+    }
+
+    /// @notice Returns whether a given interface is implemented by the contract.
+    function supportsInterface(bytes4 interfaceID) public view override returns (bool) {
+        return interfaceID == type(IERC20).interfaceId || super.supportsInterface(interfaceID);
     }
 
     /*//////////////////////////////////////////////////////////////
