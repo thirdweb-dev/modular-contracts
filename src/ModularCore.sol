@@ -316,6 +316,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                 revert CallbackFunctionRequired();
             }
         }
+
+        if (!success) {
+            _revert(returndata, CallbackExecutionReverted.selector);
+        }
     }
 
     /// @dev Calls an extension callback function and checks whether it is optional or required.
@@ -347,6 +351,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             if (callbackMode == CallbackMode.REQUIRED) {
                 revert CallbackFunctionRequired();
             }
+        }
+
+        if (!success) {
+            _revert(returndata, CallbackExecutionReverted.selector);
         }
     }
 
