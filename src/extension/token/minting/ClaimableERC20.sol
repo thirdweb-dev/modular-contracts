@@ -8,18 +8,18 @@ import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
-import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
 
 library ClaimableStorage {
-    /// @custom:storage-location erc7201:token.minting.claimable.erc721
+    /// @custom:storage-location erc7201:token.minting.claimable.erc20
     bytes32 public constant CLAIMABLE_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.minting.claimable.erc721")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.minting.claimable.erc20")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // token address => sale config: primary sale recipient, and platform fee recipient + BPS.
-        mapping(address => ClaimableERC721.SaleConfig) saleConfig;
+        mapping(address => ClaimableERC20.SaleConfig) saleConfig;
         // token => claim condition
-        mapping(address => ClaimableERC721.ClaimCondition) claimCondition;
+        mapping(address => ClaimableERC20.ClaimCondition) claimCondition;
         // token => UID => whether it has been used
         mapping(address => mapping(bytes32 => bool)) uidUsed;
     }
@@ -32,7 +32,7 @@ library ClaimableStorage {
     }
 }
 
-contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
+contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
-    struct ClaimRequestERC721 {
+    struct ClaimRequestERC20 {
         address token;
         uint48 startTimestamp;
         uint48 endTimestamp;
@@ -95,8 +95,8 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
      *  @param request The minting request.
      *  @param signature The signature produced from signing the minting request.
      */
-    struct ClaimParamsERC721 {
-        ClaimRequestERC721 request;
+    struct ClaimParamsERC20 {
+        ClaimRequestERC20 request;
         bytes signature;
     }
 
@@ -132,8 +132,8 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 private constant TYPEHASH_CLAIMABLE_ERC721 = keccak256(
-        "ClaimRequestERC721(address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+    bytes32 private constant TYPEHASH_CLAIMABLE_ERC20 = keccak256(
+        "ClaimRequestERC20(address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -147,7 +147,7 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](4);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
@@ -167,30 +167,30 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
             permissionBits: Role._MINTER_ROLE
         });
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721
+        config.requiredInterfaceId = 0x80ac58cd; // ERC20
     }
 
     /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(
-        address _caller,
-        address _to,
-        uint256 _startTokenId,
-        uint256 _quantity,
-        bytes memory _data
-    ) external payable virtual override returns (bytes memory) {
-        ClaimParamsERC721 memory _params = abi.decode(_data, (ClaimParamsERC721));
+    /// @notice Callback function for the ERC20Core.mint function.
+    function beforeMintERC20(address _caller, address _to, uint256 _amount, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
+        ClaimParamsERC20 memory _params = abi.decode(_data, (ClaimParamsERC20));
 
-        ClaimCondition memory condition = _claimWithSignatureERC721(_to, _quantity, _params.request, _params.signature);
+        ClaimCondition memory condition = _claimWithSignatureERC20(_to, _amount, _params.request, _params.signature);
 
         address currency = _params.request.currency != address(0) ? _params.request.currency : condition.currency;
         uint256 pricePerUnit =
             _params.request.pricePerUnit != type(uint256).max ? _params.request.pricePerUnit : condition.pricePerUnit;
 
-        _distributeMintPrice(_caller, currency, _quantity * pricePerUnit);
+        _distributeMintPrice(_caller, currency, _amount * pricePerUnit / 1e18);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -225,10 +225,10 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _claimWithSignatureERC721(
+    function _claimWithSignatureERC20(
         address _expectedRecipient,
         uint256 _expectedAmount,
-        ClaimRequestERC721 memory _req,
+        ClaimRequestERC20 memory _req,
         bytes memory _signature
     ) internal returns (ClaimCondition memory condition) {
         condition = _claimableStorage().claimCondition[_req.token];
@@ -260,7 +260,7 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
         address signer = _hashTypedData(
             keccak256(
                 abi.encode(
-                    TYPEHASH_CLAIMABLE_ERC721,
+                    TYPEHASH_CLAIMABLE_ERC20,
                     _req.token,
                     _req.startTimestamp,
                     _req.endTimestamp,
@@ -303,7 +303,7 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
 
     /// @dev Returns the domain name and version for EIP712.
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "ClaimableERC721";
+        name = "ClaimableERC20";
         version = "1";
     }
 

@@ -190,10 +190,10 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             _claimWithSignatureERC1155(_to, _quantity, _id, _params.request, _params.signature);
 
         address currency = _params.request.currency != address(0) ? _params.request.currency : condition.currency;
-        uint256 price =
+        uint256 pricePerUnit =
             _params.request.pricePerUnit != type(uint256).max ? _params.request.pricePerUnit : condition.pricePerUnit;
 
-        _distributeMintPrice(_caller, currency, price);
+        _distributeMintPrice(_caller, currency, _quantity * pricePerUnit);
     }
 
     /*//////////////////////////////////////////////////////////////
