@@ -496,6 +496,10 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
                 revert CallbackFunctionRequired();
             }
         }
+
+        if (!success) {
+            _revert(returndata, CallbackExecutionReverted.selector);
+        }
     }
 
     /// @dev delegateCalls an `implementation` smart contract.
