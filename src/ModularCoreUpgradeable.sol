@@ -460,6 +460,10 @@ abstract contract ModularCoreUpgradeable is IModularCore, OwnableRoles {
                 revert CallbackFunctionRequired();
             }
         }
+
+        if (!success) {
+            _revert(returndata, CallbackExecutionReverted.selector);
+        }
     }
 
     /// @dev Calls an extension callback function and checks whether it is optional or required.
