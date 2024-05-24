@@ -6,6 +6,8 @@ import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
+import {IERC20} from "../../interface/IERC20.sol";
+
 import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
 import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
@@ -105,6 +107,11 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
         });
     }
 
+    /// @notice Returns whether a given interface is implemented by the contract.
+    function supportsInterface(bytes4 interfaceID) public view override returns (bool) {
+        return interfaceID == type(IERC20).interfaceId || super.supportsInterface(interfaceID);
+    }
+
     /*//////////////////////////////////////////////////////////////
                           EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -142,6 +149,16 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
 
         _spendAllowance(from, msg.sender, amount);
         _burn(from, amount);
+    }
+
+    /**
+     *  @notice Transfers tokens to a recipient.
+     *  @param to The address to transfer tokens to.
+     *  @param amount The quantity of tokens to transfer.
+     */
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        _beforeTransfer(msg.sender, to, amount);
+        return super.transfer(to, amount);
     }
 
     /**
