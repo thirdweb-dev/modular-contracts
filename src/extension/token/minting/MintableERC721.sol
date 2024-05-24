@@ -158,14 +158,16 @@ contract MintableERC721 is ModularExtension, EIP712 {
     }
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
-        external
-        payable
-        virtual
-        returns (bytes memory)
-    {
+    function beforeMintERC721(
+        address _caller,
+        address _to,
+        uint256 _startTokenId,
+        uint256 _quantity,
+        bytes memory _data
+    ) external payable virtual returns (bytes memory) {
         MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
         _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
+        _distributeMintPrice(_caller, _req.currency, _req.quantity * _req.pricePerUnit);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -249,8 +251,6 @@ contract MintableERC721 is ModularExtension, EIP712 {
         for (uint256 i = 0; i < len; i++) {
             setTokenURI(tokenId + i, _req.metadataURIs[i]);
         }
-
-        _distributeMintPrice(_req.recipient, _req.currency, _req.quantity * _req.pricePerUnit);
     }
 
     /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
