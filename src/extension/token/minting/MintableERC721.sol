@@ -61,7 +61,7 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
         uint256 quantity;
         address currency;
         uint256 pricePerUnit;
-        string[] metadataURIs;
+        string[] metadataURIs; // baseURI/{tokenId}
         bytes32 uid;
     }
 
@@ -74,6 +74,7 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
     struct MintParamsERC721 {
         MintRequestERC721 request;
         bytes signature;
+        string baseURI;
     }
 
     /**
@@ -163,11 +164,11 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
 
     /// @notice Callback function for the ERC721Core.mint function.
     function beforeMintERC721(
-        address _caller,
-        address _to,
-        uint256 _startTokenId,
-        uint256 _quantity,
-        bytes memory _data
+        address _caller, // PermissionedJake
+        address _to, // Anyone
+        uint256 _startTokenId, // 0
+        uint256 _quantity, // 10
+        bytes memory _data // MintParamsERC721 payload
     ) external payable virtual override returns (bytes memory) {
         MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
         _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
