@@ -7,6 +7,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
 import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
+import {ERC20} from "@solady/tokens/ERC20.sol";
 
 // Target contract
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
@@ -16,6 +17,22 @@ import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {MintableERC20, MintableStorage} from "src/extension/token/minting/MintableERC20.sol";
 import {Role} from "src/Role.sol";
+
+contract MockCurrency is ERC20 {
+    function mintTo(address _recipient, uint256 _amount) public {
+        _mint(_recipient, _amount);
+    }
+
+    /// @dev Returns the name of the token.
+    function name() public view virtual override returns (string memory) {
+        return "MockCurrency";
+    }
+
+    /// @dev Returns the symbol of the token.
+    function symbol() public view virtual override returns (string memory) {
+        return "MOCK";
+    }
+}
 
 contract MintableERC20Test is Test {
     ERC20Core public core;
@@ -134,13 +151,18 @@ contract MintableERC20Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_mint_state() public {
+        address saleRecipient = address(0x987);
+
+        vm.prank(owner);
+        MintableERC20(address(core)).setSaleConfig(saleRecipient);
+
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
             token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
-            recipient: address(0x123),
+            recipient: tokenRecipient,
             quantity: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
@@ -152,6 +174,7 @@ contract MintableERC20Test is Test {
 
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);
+        assertEq(saleRecipient.balance, 0);
 
         vm.prank(tokenRecipient);
         core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
@@ -161,18 +184,285 @@ contract MintableERC20Test is Test {
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), 100 ether);
 
-        assertEq(tokenRecipient.balance, balBefore - (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether);
+        uint256 salePrice = (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether;
+        assertEq(tokenRecipient.balance, balBefore - salePrice);
+        assertEq(saleRecipient.balance, salePrice);
     }
 
-    function test_mint_revert_unableToDecodeArgs() public {}
-    function test_mint_revert_requestInvalidToken() public {}
-    function test_mint_revert_requestInvalidRecipient() public {}
-    function test_mint_revert_requestInvalidAmount() public {}
-    function test_mint_revert_requestBeforeValidityStart() public {}
-    function test_mint_revert_requestAfterValidityEnd() public {}
-    function test_mint_revert_requestUidReused() public {}
-    function test_mint_revert_requestUnauthorizedSigner() public {}
-    function test_mint_revert_noPriceButNativeTokensSent() public {}
-    function test_mint_revert_incorrectNativeTokenSent() public {}
-    function test_mint_revert_insufficientERC20CurrencyBalance() public {}
+    function test_mint_revert_unableToDecodeArgs() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert();
+        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.quantity, abi.encode(bytes("random mixer"), params)
+        );
+    }
+
+    function test_mint_revert_requestInvalidToken() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(0x456), // incorrect token address
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestInvalidToken.selector));
+        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        );
+    }
+
+    function test_mint_revert_requestInvalidRecipient() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestMismatch.selector));
+        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+            address(0x456), // recipient mismatch
+            mintRequest.quantity,
+            abi.encode(params)
+        );
+    }
+
+    function test_mint_revert_requestInvalidAmount() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestMismatch.selector));
+        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient,
+            mintRequest.quantity - 1, // quantity mismatch
+            abi.encode(params)
+        );
+    }
+
+    function test_mint_revert_requestBeforeValidityStart() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp + 100), // tx before validity start
+            endTimestamp: uint48(block.timestamp + 200),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestExpired.selector));
+        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        );
+    }
+
+    function test_mint_revert_requestAfterValidityEnd() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.warp(mintRequest.endTimestamp);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestExpired.selector));
+        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        );
+    }
+
+    function test_mint_revert_requestUidReused() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        );
+        assertEq(core.balanceOf(mintRequest.recipient), mintRequest.quantity);
+
+        MintableERC20.MintRequestERC20 memory mintRequestTwo = mintRequest;
+        mintRequestTwo.recipient = address(0x786);
+        mintRequestTwo.pricePerUnit = 0;
+
+        bytes memory sigTwo = signMintRequest(mintRequestTwo, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory paramsTwo = MintableERC20.MintParamsERC20(mintRequestTwo, sigTwo);
+
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestUidReused.selector));
+        core.mint(mintRequestTwo.recipient, mintRequestTwo.quantity, abi.encode(paramsTwo));
+    }
+
+    function test_mint_revert_requestUnauthorizedSigner() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 200),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey); // is owner but not MINTER_ROLE holder
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestUnauthorizedSignature.selector));
+        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        );
+    }
+
+    function test_mint_revert_noPriceButNativeTokensSent() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 200),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableIncorrectNativeTokenSent.selector));
+        core.mint{value: 1 ether}(mintRequest.recipient, mintRequest.quantity, abi.encode(params));
+    }
+
+    function test_mint_revert_incorrectNativeTokenSent() public {
+        vm.deal(tokenRecipient, 100 ether);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 200),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableIncorrectNativeTokenSent.selector));
+        core.mint{value: 1 ether}(mintRequest.recipient, mintRequest.quantity, abi.encode(params));
+    }
+
+    function test_mint_revert_insufficientERC20CurrencyBalance() public {
+        MockCurrency currency = new MockCurrency();
+
+        assertEq(currency.balanceOf(tokenRecipient), 0);
+
+        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+            token: address(core),
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 200),
+            recipient: tokenRecipient,
+            quantity: 100 ether,
+            currency: address(currency),
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
+
+        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()
+        core.mint(mintRequest.recipient, mintRequest.quantity, abi.encode(params));
+    }
 }
