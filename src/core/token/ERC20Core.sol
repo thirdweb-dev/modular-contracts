@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
+import {ModularCore} from "../../ModularCore.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
@@ -13,7 +13,7 @@ import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.so
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
+contract ERC20Core is ERC20, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -46,7 +46,7 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ModularCoreUpgradeable(_erc1967Factory) {
+    ) payable ModularCore(_erc1967Factory) {
         // Set contract metadata
         _name = _name;
         _symbol = _symbol;

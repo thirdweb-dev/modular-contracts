@@ -10,7 +10,7 @@ import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
+import {ModularCore} from "src/ModularCore.sol";
 
 contract MockBase {
     uint256 internal constant NUMBER_OF_CALLBACK = 10;
@@ -24,8 +24,8 @@ contract MockBase {
     }
 }
 
-contract MockCore is MockBase, ModularCoreUpgradeable {
-    constructor(address _erc1967FactoryAddress, address _owner) ModularCoreUpgradeable(_erc1967FactoryAddress) {
+contract MockCore is MockBase, ModularCore {
+    constructor(address _erc1967FactoryAddress, address _owner) ModularCore(_erc1967FactoryAddress) {
         _initializeOwner(_owner);
     }
 
@@ -281,7 +281,7 @@ contract MockExtensionAlternate is MockExtensionWithFunctions {
     }
 }
 
-contract ModularCoreUpgradeableTest is Test {
+contract ModularCoreTest is Test {
     MockCore public core;
 
     MockExtensionWithFunctions public extensionImplementation;
@@ -345,7 +345,7 @@ contract ModularCoreUpgradeableTest is Test {
         //    This function is unavailable prior to the update, but crucial for the extension
         //    to work according to spec.
 
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.FallbackFunctionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.FallbackFunctionNotInstalled.selector));
         MockExtensionAlternate(address(core)).someNewFunction();
 
         // 2. Core contract owner updates the extension used by the core contract by updating
@@ -383,7 +383,7 @@ contract ModularCoreUpgradeableTest is Test {
 
         // 1. Uninstall the extension from the core contract by providing the current implementation address.
 
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionNotInstalled.selector));
         vm.prank(owner);
         core.uninstallExtension(address(extensionImplementation), "");
 
@@ -391,7 +391,7 @@ contract ModularCoreUpgradeableTest is Test {
         core.uninstallExtension(address(newExtensionImplementation), "");
 
         // 2. E.g. required callback function no longer has a call destination
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionRequired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionRequired.selector));
         core.callbackFunctionOne();
     }
 
@@ -483,7 +483,7 @@ contract ModularCoreUpgradeableTest is Test {
         core.installExtension(address(extensionImplementation), "");
 
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionAlreadyInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionAlreadyInstalled.selector));
         core.installExtension(address(extensionImplementation), "");
     }
 
@@ -504,7 +504,7 @@ contract ModularCoreUpgradeableTest is Test {
         // Install extension
         vm.prank(owner);
         vm.expectRevert(
-            abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionInterfaceNotCompatible.selector, bytes4(0x12345678))
+            abi.encodeWithSelector(ModularCore.ExtensionInterfaceNotCompatible.selector, bytes4(0x12345678))
         );
         core.installExtension(address(ext), "");
     }
@@ -519,7 +519,7 @@ contract ModularCoreUpgradeableTest is Test {
 
         // Install conflicting extension
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionAlreadyInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionAlreadyInstalled.selector));
         core.installExtension(address(ext), "");
     }
 
@@ -529,7 +529,7 @@ contract ModularCoreUpgradeableTest is Test {
 
         // Install extension
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionNotSupported.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionNotSupported.selector));
         core.installExtension(address(ext), "");
     }
 
@@ -543,7 +543,7 @@ contract ModularCoreUpgradeableTest is Test {
 
         // Install conflicting extension
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.FallbackFunctionAlreadyInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.FallbackFunctionAlreadyInstalled.selector));
         core.installExtension(address(ext), "");
     }
 
@@ -572,11 +572,11 @@ contract ModularCoreUpgradeableTest is Test {
         assertEq(extensionsAfter.length, 0);
 
         // No callback function installed
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionRequired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionRequired.selector));
         core.callbackFunctionOne();
 
         // No fallback function installed
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.FallbackFunctionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.FallbackFunctionNotInstalled.selector));
         MockExtensionWithFunctions(address(core)).notPermissioned_call();
     }
 
@@ -588,7 +588,7 @@ contract ModularCoreUpgradeableTest is Test {
 
     function test_uninstallExtension_revert_extensionNotInstalled() public {
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionNotInstalled.selector));
         core.uninstallExtension(address(extensionImplementation), "");
     }
 
@@ -691,7 +691,7 @@ contract ModularCoreUpgradeableTest is Test {
 
     function test_updateExtension_revert_extensionNotInstalled() public {
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionNotInstalled.selector));
         core.updateExtension(address(extensionImplementation), address(newExtensionImplementation));
     }
 
@@ -706,7 +706,7 @@ contract ModularCoreUpgradeableTest is Test {
         // Update extension
         vm.prank(owner);
         vm.expectRevert(
-            abi.encodeWithSelector(ModularCoreUpgradeable.ExtensionInterfaceNotCompatible.selector, bytes4(0x12345678))
+            abi.encodeWithSelector(ModularCore.ExtensionInterfaceNotCompatible.selector, bytes4(0x12345678))
         );
         core.updateExtension(address(extensionImplementation), address(ext));
     }
@@ -727,7 +727,7 @@ contract ModularCoreUpgradeableTest is Test {
 
         // Update extension
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionAlreadyInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionAlreadyInstalled.selector));
         core.updateExtension(address(extWithoutCallbacks), address(extensionImplementation));
     }
 
@@ -741,7 +741,7 @@ contract ModularCoreUpgradeableTest is Test {
 
         // Update extension
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.CallbackFunctionNotSupported.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionNotSupported.selector));
         core.updateExtension(address(extensionImplementation), address(ext));
     }
 
@@ -761,7 +761,7 @@ contract ModularCoreUpgradeableTest is Test {
 
         // Update extension
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCoreUpgradeable.FallbackFunctionAlreadyInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.FallbackFunctionAlreadyInstalled.selector));
         core.updateExtension(address(extWithoutFallbacks), address(extensionImplementation));
     }
 }

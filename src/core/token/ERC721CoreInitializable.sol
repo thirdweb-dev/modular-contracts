@@ -9,7 +9,7 @@ import {
     ERC721AQueryableUpgradeable
 } from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
 
-import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
+import {ModularCore} from "../../ModularCore.sol";
 
 import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
@@ -18,12 +18,7 @@ import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackE
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721CoreInitializable is
-    ERC721AQueryableUpgradeable,
-    ModularCoreUpgradeable,
-    Multicallable,
-    Initializable
-{
+contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Multicallable, Initializable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -42,7 +37,7 @@ contract ERC721CoreInitializable is
                             CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _erc1967Factory) ModularCoreUpgradeable(_erc1967Factory) {
+    constructor(address _erc1967Factory) ModularCore(_erc1967Factory) {
         _disableInitializers();
     }
 
@@ -100,7 +95,7 @@ contract ERC721CoreInitializable is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721AUpgradeable, IERC721AUpgradeable, ModularCoreUpgradeable)
+        override(ERC721AUpgradeable, IERC721AUpgradeable, ModularCore)
         returns (bool)
     {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165

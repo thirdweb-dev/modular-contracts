@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
-import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
+import {ModularCore} from "../../ModularCore.sol";
 
 import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
@@ -13,7 +13,7 @@ import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackE
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
+contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -40,7 +40,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ERC721A(name, symbol) ModularCoreUpgradeable(_erc1967Factory) {
+    ) payable ERC721A(name, symbol) ModularCore(_erc1967Factory) {
         // Set contract metadata
         _setupContractURI(contractURI);
         _initializeOwner(owner);
@@ -81,7 +81,7 @@ contract ERC721Core is ERC721AQueryable, ModularCoreUpgradeable, Multicallable {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721A, IERC721A, ModularCoreUpgradeable)
+        override(ERC721A, IERC721A, ModularCore)
         returns (bool)
     {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165

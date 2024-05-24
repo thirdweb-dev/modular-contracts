@@ -11,7 +11,7 @@ import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
+import {ModularCore} from "src/ModularCore.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {SimpleMetadataERC1155} from "src/extension/token/metadata/SimpleMetadataERC1155.sol";
 import {SimpleMetadataERC721, SimpleMetadataStorage} from "src/extension/token/metadata/SimpleMetadataERC721.sol";
