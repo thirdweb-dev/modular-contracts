@@ -10,10 +10,10 @@ library TransferableStorage {
         keccak256(abi.encode(uint256(keccak256("token.transferable")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // token => whether transfers are enabled
-        mapping(address => bool) transferEnabled;
-        // token => from/to/operator address => bool, whether transfer is enabled
-        mapping(address => mapping(address => bool)) transferrerAllowed;
+        // whether transfers are enabled
+        bool transferEnabled;
+        // from/to/operator address => bool, whether transfer is enabled
+        mapping(address => bool) transferrerAllowed;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -41,29 +41,16 @@ contract TransferableERC1155 is ModularExtension {
         config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](4);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC1155.selector, CallType.CALL);
-        config.callbackFunctions[1] = CallbackFunction(this.beforeBatchTransferERC1155.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC1155.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeBatchTransferERC1155.selector);
 
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.isTransferEnabled.selector,
-            callType: CallType.STATICCALL,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.isTransferEnabledFor.selector,
-            callType: CallType.STATICCALL,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.setTransferable.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.setTransferableFor.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MANAGER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.isTransferEnabled.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.isTransferEnabledFor.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.setTransferable.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setTransferableFor.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
     }
@@ -78,11 +65,10 @@ contract TransferableERC1155 is ModularExtension {
         virtual
         returns (bytes memory)
     {
-        address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
-        bool isOperatorAllowed = data.transferrerAllowed[token][from] || data.transferrerAllowed[token][to];
+        bool isOperatorAllowed = data.transferrerAllowed[from] || data.transferrerAllowed[to];
 
-        if (!isOperatorAllowed && !data.transferEnabled[token]) {
+        if (!isOperatorAllowed && !data.transferEnabled) {
             revert TransferDisabled();
         }
     }
@@ -93,11 +79,10 @@ contract TransferableERC1155 is ModularExtension {
         virtual
         returns (bytes memory)
     {
-        address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
-        bool isOperatorAllowed = data.transferrerAllowed[token][from] || data.transferrerAllowed[token][to];
+        bool isOperatorAllowed = data.transferrerAllowed[from] || data.transferrerAllowed[to];
 
-        if (!isOperatorAllowed && !data.transferEnabled[token]) {
+        if (!isOperatorAllowed && !data.transferEnabled) {
             revert TransferDisabled();
         }
     }
@@ -108,24 +93,22 @@ contract TransferableERC1155 is ModularExtension {
 
     /// @notice Returns whether transfers is enabled for the token.
     function isTransferEnabled() external view returns (bool) {
-        return _transferableStorage().transferEnabled[msg.sender];
+        return _transferableStorage().transferEnabled;
     }
 
     /// @notice Returns whether transfers is enabled for the transferrer for the token.
     function isTransferEnabledFor(address transferrer) external view returns (bool) {
-        return _transferableStorage().transferrerAllowed[msg.sender][transferrer];
+        return _transferableStorage().transferrerAllowed[transferrer];
     }
 
     /// @notice Set transferability for a token.
     function setTransferable(bool enableTransfer) external {
-        address token = msg.sender;
-        _transferableStorage().transferEnabled[token] = enableTransfer;
+        _transferableStorage().transferEnabled = enableTransfer;
     }
 
     /// @notice Set transferability for an operator for a token.
     function setTransferableFor(address transferrer, bool enableTransfer) external {
-        address token = msg.sender;
-        _transferableStorage().transferrerAllowed[token][transferrer] = enableTransfer;
+        _transferableStorage().transferrerAllowed[transferrer] = enableTransfer;
     }
 
     /*//////////////////////////////////////////////////////////////

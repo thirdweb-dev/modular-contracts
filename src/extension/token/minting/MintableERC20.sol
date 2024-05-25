@@ -40,7 +40,6 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
     /**
      *  @notice The request struct signed by an authorized party to mint tokens.
      *
-     *  @param token The address of the token being minted.
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
@@ -121,7 +120,7 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](2);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
@@ -200,7 +199,6 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
             keccak256(
                 abi.encode(
                     TYPEHASH_SIGNATURE_MINT_ERC20,
-                    _req.token,
                     _req.startTimestamp,
                     _req.endTimestamp,
                     _req.recipient,

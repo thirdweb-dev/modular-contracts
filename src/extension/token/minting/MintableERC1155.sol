@@ -44,7 +44,6 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
      *  @notice The request struct signed by an authorized party to mint tokens.
      *
      *  @param tokenId The ID of the token being minted.
-     *  @param token The address of the token being minted.
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
@@ -56,7 +55,6 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
      */
     struct MintRequestERC1155 {
         uint256 tokenId;
-        address token;
         uint48 startTimestamp;
         uint48 endTimestamp;
         address recipient;
@@ -233,7 +231,6 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
                 abi.encode(
                     TYPEHASH_SIGNATURE_MINT_ERC1155,
                     _req.tokenId,
-                    _req.token,
                     _req.startTimestamp,
                     _req.endTimestamp,
                     _req.recipient,

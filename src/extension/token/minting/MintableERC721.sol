@@ -43,7 +43,6 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
     /**
      *  @notice The request struct signed by an authorized party to mint tokens.
      *
-     *  @param token The address of the token being minted.
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
