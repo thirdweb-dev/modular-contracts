@@ -69,8 +69,8 @@ contract TransferableERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
         returns (bytes memory)
     {
         TransferableStorage.Data storage data = _transferableStorage();
-        bool isOperatorAllowed = data.transferEnabledFor[caller] || data.transferEnabledFor[from]
-            || data.transferEnabledFor[to];
+        bool isOperatorAllowed =
+            data.transferEnabledFor[caller] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
 
         if (!isOperatorAllowed && !data.transferEnabled) {
             revert TransferDisabled();
@@ -87,8 +87,8 @@ contract TransferableERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
     ) external virtual override returns (bytes memory) {
         address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
-        bool isOperatorAllowed = data.transferEnabledFor[caller] || data.transferEnabledFor[from]
-            || data.transferEnabledFor[to];
+        bool isOperatorAllowed =
+            data.transferEnabledFor[caller] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
 
         if (!isOperatorAllowed && !data.transferEnabled) {
             revert TransferDisabled();
