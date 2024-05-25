@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
 import {Role} from "../../../Role.sol";
+import {BeforeTransferCallbackERC20} from "../../../callback/BeforeTransferCallbackERC20.sol";
 
 library TransferableStorage {
     /// @custom:storage-location erc7201:token.transferable
@@ -13,7 +14,7 @@ library TransferableStorage {
         // token => whether transfers are enabled
         mapping(address => bool) transferEnabled;
         // token => from/to/operator address => bool, whether transfer is enabled
-        mapping(address => mapping(address => bool)) transferrerAllowed;
+        mapping(address => mapping(address => bool)) transferEnabledFor;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -24,7 +25,7 @@ library TransferableStorage {
     }
 }
 
-contract TransferableERC20 is ModularExtension {
+contract TransferableERC20 is ModularExtension, BeforeTransferCallbackERC20 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -70,10 +71,16 @@ contract TransferableERC20 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for ERC20.transfer
-    function beforeTransferERC20(address from, address to, uint256) external virtual returns (bytes memory) {
+    function beforeTransferERC20(address caller, address from, address to, uint256)
+        external
+        virtual
+        override
+        returns (bytes memory)
+    {
         address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
-        bool isOperatorAllowed = data.transferrerAllowed[token][from] || data.transferrerAllowed[token][to];
+        bool isOperatorAllowed = data.transferEnabledFor[token][caller] || data.transferEnabledFor[token][from]
+            || data.transferEnabledFor[token][to];
 
         if (!isOperatorAllowed && !data.transferEnabled[token]) {
             revert TransferDisabled();
@@ -89,9 +96,9 @@ contract TransferableERC20 is ModularExtension {
         return _transferableStorage().transferEnabled[msg.sender];
     }
 
-    /// @notice Returns whether transfers is enabled for the transferrer for the token.
-    function isTransferEnabledFor(address transferrer) external view returns (bool) {
-        return _transferableStorage().transferrerAllowed[msg.sender][transferrer];
+    /// @notice Returns whether transfers is enabled for the target address for the token.
+    function isTransferEnabledFor(address target) external view returns (bool) {
+        return _transferableStorage().transferEnabledFor[msg.sender][target];
     }
 
     /// @notice Set transferability for a token.
@@ -100,10 +107,10 @@ contract TransferableERC20 is ModularExtension {
         _transferableStorage().transferEnabled[token] = enableTransfer;
     }
 
-    /// @notice Set transferability for an operator for a token.
-    function setTransferableFor(address transferrer, bool enableTransfer) external {
+    /// @notice Set transferability for an address for a token.
+    function setTransferableFor(address target, bool enableTransfer) external {
         address token = msg.sender;
-        _transferableStorage().transferrerAllowed[token][transferrer] = enableTransfer;
+        _transferableStorage().transferEnabledFor[token][target] = enableTransfer;
     }
 
     /*//////////////////////////////////////////////////////////////
