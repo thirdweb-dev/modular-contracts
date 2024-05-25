@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 import "lib/forge-std/src/console.sol";
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
-import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
@@ -13,7 +11,7 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
+import {ModularCore} from "src/ModularCore.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {MintableERC721, MintableStorage} from "src/extension/token/minting/MintableERC721.sol";
 import {Role} from "src/Role.sol";
@@ -71,7 +69,6 @@ contract MintableERC721Test is Test {
     {
         bytes memory encodedRequest = abi.encode(
             typehashMintRequest,
-            _req.token,
             _req.startTimestamp,
             _req.endTimestamp,
             _req.recipient,
@@ -113,31 +110,24 @@ contract MintableERC721Test is Test {
         permissionedActor = vm.addr(permissionedActorPrivateKey);
         unpermissionedActor = vm.addr(unpermissionedActorPrivateKey);
 
-        // Deterministic, canonical ERC1967Factory contract
-        vm.etch(ERC1967FactoryConstants.ADDRESS, ERC1967FactoryConstants.BYTECODE);
-
         address[] memory extensions;
         bytes[] memory extensionData;
 
-        core = new ERC721Core(ERC1967FactoryConstants.ADDRESS, "test", "TEST", "", owner, extensions, extensionData);
+        core = new ERC721Core("test", "TEST", "", owner, extensions, extensionData);
         extensionImplementation = new MintableERC721();
 
         // install extension
         vm.prank(owner);
         core.installExtension(address(extensionImplementation), "");
 
-        IModularCore.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
-        installedExtension = MintableERC721(installedExtensions[0].implementation);
-
         // Setup signature vars
         typehashMintRequest = keccak256(
-            "MintRequestERC721(address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string[] metadataURIs,bytes32 uid)"
+            "MintRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string[] metadataURIs,bytes32 uid)"
         );
         nameHash = keccak256(bytes("MintableERC721"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-        domainSeparator =
-            keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(installedExtension)));
+        domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(core)));
 
         // Give permissioned actor minter role
         vm.prank(owner);
@@ -154,7 +144,7 @@ contract MintableERC721Test is Test {
         vm.prank(owner);
         MintableERC721(address(core)).setSaleConfig(saleRecipient);
 
-        address recipient = MintableERC721(address(core)).getSaleConfig(address(core));
+        address recipient = MintableERC721(address(core)).getSaleConfig();
 
         assertEq(recipient, saleRecipient);
     }
@@ -178,7 +168,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -215,7 +204,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -236,36 +224,10 @@ contract MintableERC721Test is Test {
         );
     }
 
-    function test_mint_revert_requestInvalidToken() public {
-        vm.deal(tokenRecipient, 100 ether);
-
-        MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(0x456), // incorrect token address
-            startTimestamp: uint48(block.timestamp),
-            endTimestamp: uint48(block.timestamp + 100),
-            recipient: tokenRecipient,
-            quantity: 1,
-            currency: NATIVE_TOKEN_ADDRESS,
-            pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURIs: getMetadataURIs(1)
-        });
-        bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
-
-        MintableERC721.MintParamsERC721 memory params = MintableERC721.MintParamsERC721(mintRequest, sig);
-
-        vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableRequestInvalidToken.selector));
-        core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
-        );
-    }
-
     function test_mint_revert_requestInvalidRecipient() public {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -292,7 +254,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -319,7 +280,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -346,7 +306,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp + 100), // tx before validity start
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
@@ -371,7 +330,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             recipient: tokenRecipient,
@@ -398,7 +356,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             recipient: tokenRecipient,
@@ -434,7 +391,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
@@ -459,7 +415,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
@@ -482,7 +437,6 @@ contract MintableERC721Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
@@ -507,7 +461,6 @@ contract MintableERC721Test is Test {
         assertEq(currency.balanceOf(tokenRecipient), 0);
 
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,

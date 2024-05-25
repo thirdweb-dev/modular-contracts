@@ -16,10 +16,10 @@ library MintableStorage {
         keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc20")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // token => UID => whether it has been used
-        mapping(address => mapping(bytes32 => bool)) uidUsed;
-        // token => sale config
-        mapping(address => MintableERC20.SaleConfig) saleConfig;
+        // UID => whether it has been used
+        mapping(bytes32 => bool) uidUsed;
+        // sale config
+        MintableERC20.SaleConfig saleConfig;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -49,7 +49,6 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
      *  @param uid A unique identifier for the minting request.
      */
     struct MintRequestERC20 {
-        address token;
         uint48 startTimestamp;
         uint48 endTimestamp;
         address recipient;
@@ -92,9 +91,6 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
 
-    /// @dev Emitted when the minting request token is invalid.
-    error MintableRequestInvalidToken();
-
     /// @dev Emitted when the minting request does not match the expected values.
     error MintableRequestMismatch();
 
@@ -106,7 +102,7 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
     //////////////////////////////////////////////////////////////*/
 
     bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC20 = keccak256(
-        "MintRequestERC20(address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+        "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -122,13 +118,9 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
 
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MANAGER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0x36372b07; // ERC20
     }
@@ -157,15 +149,14 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig(address _token) external view returns (address primarySaleRecipient) {
-        SaleConfig memory saleConfig = _mintableStorage().saleConfig[_token];
+    function getSaleConfig() external view returns (address primarySaleRecipient) {
+        SaleConfig memory saleConfig = _mintableStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
 
     /// @notice Sets the sale configuration for a token.
     function setSaleConfig(address _primarySaleRecipient) external {
-        address token = msg.sender;
-        _mintableStorage().saleConfig[token] = SaleConfig(_primarySaleRecipient);
+        _mintableStorage().saleConfig = SaleConfig(_primarySaleRecipient);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -179,10 +170,6 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
         MintRequestERC20 memory _req,
         bytes memory _signature
     ) internal {
-        if (_req.token != msg.sender) {
-            revert MintableRequestInvalidToken();
-        }
-
         if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
             revert MintableRequestMismatch();
         }
@@ -191,7 +178,7 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
             revert MintableRequestExpired();
         }
 
-        if (_mintableStorage().uidUsed[_req.token][_req.uid]) {
+        if (_mintableStorage().uidUsed[_req.uid]) {
             revert MintableRequestUidReused();
         }
 
@@ -210,11 +197,11 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
             )
         ).recover(_signature);
 
-        if (!OwnableRoles(_req.token).hasAllRoles(signer, Role._MINTER_ROLE)) {
+        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert MintableRequestUnauthorizedSignature();
         }
 
-        _mintableStorage().uidUsed[_req.token][_req.uid] = true;
+        _mintableStorage().uidUsed[_req.uid] = true;
     }
 
     /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
@@ -226,7 +213,7 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
             return;
         }
 
-        SaleConfig memory saleConfig = _mintableStorage().saleConfig[msg.sender];
+        SaleConfig memory saleConfig = _mintableStorage().saleConfig;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {

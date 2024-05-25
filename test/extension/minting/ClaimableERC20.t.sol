@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 import "lib/forge-std/src/console.sol";
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
-import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
@@ -13,7 +11,7 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
+import {ModularCore} from "src/ModularCore.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {ClaimableERC20, ClaimableStorage} from "src/extension/token/minting/ClaimableERC20.sol";
 import {Role} from "src/Role.sol";
@@ -72,7 +70,6 @@ contract ClaimableERC20Test is Test {
     {
         bytes memory encodedRequest = abi.encode(
             typehashClaimRequest,
-            _req.token,
             _req.startTimestamp,
             _req.endTimestamp,
             _req.recipient,
@@ -95,31 +92,24 @@ contract ClaimableERC20Test is Test {
         permissionedActor = vm.addr(permissionedActorPrivateKey);
         unpermissionedActor = vm.addr(unpermissionedActorPrivateKey);
 
-        // Deterministic, canonical ERC1967Factory contract
-        vm.etch(ERC1967FactoryConstants.ADDRESS, ERC1967FactoryConstants.BYTECODE);
-
         address[] memory extensions;
         bytes[] memory extensionData;
 
-        core = new ERC20Core(ERC1967FactoryConstants.ADDRESS, "test", "TEST", "", owner, extensions, extensionData);
+        core = new ERC20Core("test", "TEST", "", owner, extensions, extensionData);
         extensionImplementation = new ClaimableERC20();
 
         // install extension
         vm.prank(owner);
         core.installExtension(address(extensionImplementation), "");
 
-        IModularCore.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
-        installedExtension = ClaimableERC20(installedExtensions[0].implementation);
-
         // Setup signature vars
         typehashClaimRequest = keccak256(
-            "ClaimRequestERC20(address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+            "ClaimRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
         );
         nameHash = keccak256(bytes("ClaimableERC20"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-        domainSeparator =
-            keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(installedExtension)));
+        domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(core)));
 
         // Give permissioned actor minter role
         vm.prank(owner);
@@ -143,8 +133,7 @@ contract ClaimableERC20Test is Test {
         vm.prank(owner);
         ClaimableERC20(address(core)).setClaimCondition(condition);
 
-        ClaimableERC20.ClaimCondition memory storedCondition =
-            ClaimableERC20(address(core)).getClaimCondition(address(core));
+        ClaimableERC20.ClaimCondition memory storedCondition = ClaimableERC20(address(core)).getClaimCondition();
 
         assertEq(storedCondition.availableSupply, condition.availableSupply);
         assertEq(storedCondition.pricePerUnit, condition.pricePerUnit);
@@ -179,7 +168,7 @@ contract ClaimableERC20Test is Test {
         vm.prank(owner);
         ClaimableERC20(address(core)).setSaleConfig(saleRecipient);
 
-        address recipient = ClaimableERC20(address(core)).getSaleConfig(address(core));
+        address recipient = ClaimableERC20(address(core)).getSaleConfig();
 
         assertEq(recipient, saleRecipient);
     }
@@ -215,7 +204,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -266,7 +254,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -325,7 +312,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -352,11 +338,8 @@ contract ClaimableERC20Test is Test {
 
         uint256 salePrice = (claimRequest.quantity * condition.pricePerUnit) / 1 ether;
 
-        ModularCoreUpgradeable.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
-        address installedExtension = installedExtensions[0].implementation;
-
         vm.prank(tokenRecipient);
-        currency.approve(address(installedExtension), salePrice);
+        currency.approve(address(core), salePrice);
 
         vm.prank(tokenRecipient);
         core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
@@ -384,7 +367,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -404,42 +386,6 @@ contract ClaimableERC20Test is Test {
         );
     }
 
-    function test_mint_revert_requestInvalidToken() public {
-        ClaimableERC20.ClaimCondition memory condition = ClaimableERC20.ClaimCondition({
-            availableSupply: 1000 ether,
-            pricePerUnit: 0.1 ether,
-            currency: NATIVE_TOKEN_ADDRESS,
-            startTimestamp: uint48(block.timestamp),
-            endTimestamp: uint48(block.timestamp + 100),
-            auxData: ""
-        });
-
-        vm.prank(owner);
-        ClaimableERC20(address(core)).setClaimCondition(condition);
-
-        vm.deal(tokenRecipient, 100 ether);
-
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(0x456), // incorrect token address
-            startTimestamp: uint48(block.timestamp),
-            endTimestamp: uint48(block.timestamp + 100),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
-            currency: address(0),
-            pricePerUnit: type(uint256).max,
-            uid: bytes32("1")
-        });
-        bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
-
-        ClaimableERC20.ClaimParamsERC20 memory params = ClaimableERC20.ClaimParamsERC20(claimRequest, sig);
-
-        vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestInvalidToken.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
-        );
-    }
-
     function test_mint_revert_requestInvalidRecipient() public {
         ClaimableERC20.ClaimCondition memory condition = ClaimableERC20.ClaimCondition({
             availableSupply: 1000 ether,
@@ -456,7 +402,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -494,7 +439,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
@@ -532,7 +476,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp + 100), // tx before validity start
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
@@ -568,7 +511,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             recipient: tokenRecipient,
@@ -606,7 +548,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             recipient: tokenRecipient,
@@ -653,7 +594,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
@@ -689,7 +629,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
@@ -723,7 +662,6 @@ contract ClaimableERC20Test is Test {
         vm.deal(tokenRecipient, 100 ether);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
@@ -759,7 +697,6 @@ contract ClaimableERC20Test is Test {
         assertEq(currency.balanceOf(tokenRecipient), 0);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            token: address(core),
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,

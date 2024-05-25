@@ -17,12 +17,12 @@ library MintableStorage {
         keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc1155")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // token => UID => whether it has been used
-        mapping(address => mapping(bytes32 => bool)) uidUsed;
-        // token => sale config
-        mapping(address => MintableERC1155.SaleConfig) saleConfig;
-        // token => tokenID => tokenURI
-        mapping(address => mapping(uint256 => string)) tokenURI;
+        // UID => whether it has been used
+        mapping(bytes32 => bool) uidUsed;
+        // sale config
+        MintableERC1155.SaleConfig saleConfig;
+        // tokenID => tokenURI
+        mapping(uint256 => string) tokenURI;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -98,9 +98,6 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
 
-    /// @dev Emitted when the minting request token is invalid.
-    error MintableRequestInvalidToken();
-
     /// @dev Emitted when the minting request does not match the expected values.
     error MintableRequestMismatch();
 
@@ -119,7 +116,7 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
     //////////////////////////////////////////////////////////////*/
 
     bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC1155 = keccak256(
-        "MintRequestERC1155(uint256 tokenId,address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string metadataURI,bytes32 uid)"
+        "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string metadataURI,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -133,21 +130,14 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
         config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](3);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
-        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector);
 
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.setTokenURI.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MINTER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.setTokenURI.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
     }
@@ -158,7 +148,7 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
 
     /// @notice Callback function for the ERC721Core.tokenURI function.
     function onTokenURI(uint256 _tokenId) external view virtual override returns (string memory) {
-        return _mintableStorage().tokenURI[msg.sender][_tokenId];
+        return _mintableStorage().tokenURI[_tokenId];
     }
 
     /// @notice Callback function for the ERC1155Core.mint function.
@@ -179,20 +169,19 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig(address _token) external view returns (address primarySaleRecipient) {
-        SaleConfig memory saleConfig = _mintableStorage().saleConfig[_token];
+    function getSaleConfig() external view returns (address primarySaleRecipient) {
+        SaleConfig memory saleConfig = _mintableStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
 
     /// @notice Sets the sale configuration for a token.
     function setSaleConfig(address _primarySaleRecipient) external {
-        address token = msg.sender;
-        _mintableStorage().saleConfig[token] = SaleConfig(_primarySaleRecipient);
+        _mintableStorage().saleConfig = SaleConfig(_primarySaleRecipient);
     }
 
     /// @notice Sets the token URI for a token.
     function setTokenURI(uint256 _tokenId, string memory _tokenURI) public {
-        _mintableStorage().tokenURI[msg.sender][_tokenId] = _tokenURI;
+        _mintableStorage().tokenURI[_tokenId] = _tokenURI;
         emit MintableTokenURIUpdated(_tokenId, _tokenURI);
     }
 
@@ -208,10 +197,6 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
         MintRequestERC1155 memory _req,
         bytes memory _signature
     ) internal {
-        if (_req.token != msg.sender) {
-            revert MintableRequestInvalidToken();
-        }
-
         if (
             _req.recipient != _expectedRecipient || _req.quantity != _expectedAmount || _req.tokenId != _expectedTokenId
         ) {
@@ -222,7 +207,7 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
             revert MintableRequestExpired();
         }
 
-        if (_mintableStorage().uidUsed[_req.token][_req.uid]) {
+        if (_mintableStorage().uidUsed[_req.uid]) {
             revert MintableRequestUidReused();
         }
 
@@ -243,11 +228,11 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
             )
         ).recover(_signature);
 
-        if (!OwnableRoles(_req.token).hasAllRoles(signer, Role._MINTER_ROLE)) {
+        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert MintableRequestUnauthorizedSignature();
         }
 
-        _mintableStorage().uidUsed[_req.token][_req.uid] = true;
+        _mintableStorage().uidUsed[_req.uid] = true;
 
         if (bytes(_req.metadataURI).length > 0) {
             setTokenURI(_req.tokenId, _req.metadataURI);
@@ -263,7 +248,7 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
             return;
         }
 
-        SaleConfig memory saleConfig = _mintableStorage().saleConfig[msg.sender];
+        SaleConfig memory saleConfig = _mintableStorage().saleConfig;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {

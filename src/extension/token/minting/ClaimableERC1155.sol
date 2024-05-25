@@ -16,12 +16,12 @@ library ClaimableStorage {
         keccak256(abi.encode(uint256(keccak256("token.minting.claimable.erc1155")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // token address => sale config: primary sale recipient, and platform fee recipient + BPS.
-        mapping(address => ClaimableERC1155.SaleConfig) saleConfig;
-        // token => token ID => claim condition
-        mapping(address => mapping(uint256 => ClaimableERC1155.ClaimCondition)) claimConditionByTokenId;
-        // token => UID => whether it has been used
-        mapping(address => mapping(bytes32 => bool)) uidUsed;
+        // sale config: primary sale recipient, and platform fee recipient + BPS.
+        ClaimableERC1155.SaleConfig saleConfig;
+        // token ID => claim condition
+        mapping(uint256 => ClaimableERC1155.ClaimCondition) claimConditionByTokenId;
+        // UID => whether it has been used
+        mapping(bytes32 => bool) uidUsed;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -70,7 +70,6 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
      *  @notice The request struct signed by an authorized party to mint tokens.
      *
      *  @param tokenId The ID of the token being minted.
-     *  @param token The address of the token being minted.
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
@@ -81,7 +80,6 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
      */
     struct ClaimRequestERC1155 {
         uint256 tokenId;
-        address token;
         uint48 startTimestamp;
         uint48 endTimestamp;
         address recipient;
@@ -135,7 +133,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
     //////////////////////////////////////////////////////////////*/
 
     bytes32 private constant TYPEHASH_CLAIMABLE_ERC1155 = keccak256(
-        "ClaimRequestERC1155(uint256 tokenId,address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+        "ClaimRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -149,25 +147,15 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](4);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector, CallType.CALL);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
 
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getSaleConfig.selector, callType: CallType.STATICCALL, permissionBits: 0});
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.getClaimConditionByTokenId.selector,
-            callType: CallType.STATICCALL,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.setClaimConditionByTokenId.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MINTER_ROLE
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.getClaimConditionByTokenId.selector, permissionBits: 0});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setClaimConditionByTokenId.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
@@ -201,30 +189,24 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig(address _token) external view returns (address primarySaleRecipient) {
-        SaleConfig memory saleConfig = _claimableStorage().saleConfig[_token];
+    function getSaleConfig() external view returns (address primarySaleRecipient) {
+        SaleConfig memory saleConfig = _claimableStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
 
     /// @notice Sets the sale configuration for a token.
     function setSaleConfig(address _primarySaleRecipient) external {
-        address token = msg.sender;
-        _claimableStorage().saleConfig[token] = SaleConfig(_primarySaleRecipient);
+        _claimableStorage().saleConfig = SaleConfig(_primarySaleRecipient);
     }
 
     /// @notice Returns the claim condition for a token and a specific token ID.
-    function getClaimConditionByTokenId(address _token, uint256 _id)
-        external
-        view
-        returns (ClaimCondition memory claimCondition)
-    {
-        return _claimableStorage().claimConditionByTokenId[_token][_id];
+    function getClaimConditionByTokenId(uint256 _id) external view returns (ClaimCondition memory claimCondition) {
+        return _claimableStorage().claimConditionByTokenId[_id];
     }
 
     /// @notice Sets the claim condition for a token and a specific token ID.
     function setClaimConditionByTokenId(uint256 _id, ClaimCondition memory _claimCondition) external {
-        address token = msg.sender;
-        _claimableStorage().claimConditionByTokenId[token][_id] = _claimCondition;
+        _claimableStorage().claimConditionByTokenId[_id] = _claimCondition;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -239,11 +221,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
         ClaimRequestERC1155 memory _req,
         bytes memory _signature
     ) internal returns (ClaimCondition memory condition) {
-        condition = _claimableStorage().claimConditionByTokenId[_req.token][_expectedTokenId];
-
-        if (_req.token != msg.sender) {
-            revert ClaimableRequestInvalidToken();
-        }
+        condition = _claimableStorage().claimConditionByTokenId[_expectedTokenId];
 
         if (
             _req.recipient != _expectedRecipient || _req.quantity != _expectedAmount || _req.tokenId != _expectedTokenId
@@ -255,7 +233,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             revert ClaimableRequestExpired();
         }
 
-        if (_claimableStorage().uidUsed[_req.token][_req.uid]) {
+        if (_claimableStorage().uidUsed[_req.uid]) {
             revert ClaimableRequestUidReused();
         }
 
@@ -271,8 +249,6 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             keccak256(
                 abi.encode(
                     TYPEHASH_CLAIMABLE_ERC1155,
-                    _req.tokenId,
-                    _req.token,
                     _req.startTimestamp,
                     _req.endTimestamp,
                     _req.recipient,
@@ -284,11 +260,11 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             )
         ).recover(_signature);
 
-        if (!OwnableRoles(_req.token).hasAllRoles(signer, Role._MINTER_ROLE)) {
+        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert ClaimableRequestUnauthorizedSignature();
         }
 
-        _claimableStorage().uidUsed[_req.token][_req.uid] = true;
+        _claimableStorage().uidUsed[_req.uid] = true;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.
@@ -300,7 +276,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             return;
         }
 
-        SaleConfig memory saleConfig = _claimableStorage().saleConfig[msg.sender];
+        SaleConfig memory saleConfig = _claimableStorage().saleConfig;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
