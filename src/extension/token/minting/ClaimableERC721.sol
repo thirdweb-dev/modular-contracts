@@ -6,6 +6,7 @@ import {Role} from "../../../Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
+import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
@@ -59,6 +60,7 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
      */
     struct ClaimCondition {
         uint256 availableSupply;
+        bytes32 allowlistMerkleRoot;
         uint256 pricePerUnit;
         address currency;
         uint48 startTimestamp;
@@ -96,6 +98,7 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
     struct ClaimParamsERC721 {
         ClaimRequestERC721 request;
         bytes signature;
+        bytes32[] recipientAllowlistProof;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -122,6 +125,9 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
 
     /// @dev Emitted when the mint is out of supply.
     error ClaimableOutOfSupply();
+
+    /// @dev Emitted when the minter is not in the allowlist.
+    error ClaimableNotInAllowlist();
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -168,11 +174,18 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
     ) external payable virtual override returns (bytes memory) {
         ClaimParamsERC721 memory _params = abi.decode(_data, (ClaimParamsERC721));
 
-        ClaimCondition memory condition = _claimWithSignatureERC721(_to, _quantity, _params.request, _params.signature);
+        address currency;
+        uint256 pricePerUnit;
 
-        address currency = _params.request.currency != address(0) ? _params.request.currency : condition.currency;
-        uint256 pricePerUnit =
-            _params.request.pricePerUnit != type(uint256).max ? _params.request.pricePerUnit : condition.pricePerUnit;
+        if (_params.signature.length == 0) {
+            ClaimCondition memory condition = _validateClaimCondition(_to, _quantity, _params.recipientAllowlistProof);
+            currency = condition.currency;
+            pricePerUnit = condition.pricePerUnit;
+        } else {
+            _validateClaimRequest(_to, _quantity, _params.request, _params.signature);
+            currency = _params.request.currency;
+            pricePerUnit = _params.request.pricePerUnit;
+        }
 
         _distributeMintPrice(_caller, currency, _quantity * pricePerUnit);
     }
@@ -206,15 +219,41 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _claimWithSignatureERC721(
+    /// @dev Verifies a claim against the active claim condition.
+    function _validateClaimCondition(address _recipient, uint256 _amount, bytes32[] memory _allowlistProof)
+        internal
+        returns (ClaimCondition memory condition)
+    {
+        condition = _claimableStorage().claimCondition;
+
+        if (block.timestamp < condition.startTimestamp || condition.endTimestamp <= block.timestamp) {
+            revert ClaimableOutOfTimeWindow();
+        }
+
+        if (_amount > condition.availableSupply) {
+            revert ClaimableOutOfSupply();
+        }
+
+        if (condition.allowlistMerkleRoot != bytes32(0)) {
+            bool isAllowlisted = MerkleProofLib.verify(
+                _allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
+            );
+
+            if (!isAllowlisted) {
+                revert ClaimableNotInAllowlist();
+            }
+        }
+
+        _claimableStorage().claimCondition.availableSupply -= _amount;
+    }
+
+    /// @dev Verifies the claim request and signature.
+    function _validateClaimRequest(
         address _expectedRecipient,
         uint256 _expectedAmount,
         ClaimRequestERC721 memory _req,
         bytes memory _signature
-    ) internal returns (ClaimCondition memory condition) {
-        condition = _claimableStorage().claimCondition;
-
+    ) internal {
         if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
             revert ClaimableRequestMismatch();
         }
@@ -225,14 +264,6 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
 
         if (_claimableStorage().uidUsed[_req.uid]) {
             revert ClaimableRequestUidReused();
-        }
-
-        if (block.timestamp < condition.startTimestamp || condition.endTimestamp <= block.timestamp) {
-            revert ClaimableOutOfTimeWindow();
-        }
-
-        if (_req.quantity > condition.availableSupply) {
-            revert ClaimableOutOfSupply();
         }
 
         address signer = _hashTypedData(
@@ -255,6 +286,7 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
         }
 
         _claimableStorage().uidUsed[_req.uid] = true;
+        _claimableStorage().claimCondition.availableSupply -= _req.quantity;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.

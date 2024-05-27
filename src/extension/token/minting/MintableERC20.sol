@@ -30,7 +30,7 @@ library MintableStorage {
     }
 }
 
-contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
+contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCallbackERC20 {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
