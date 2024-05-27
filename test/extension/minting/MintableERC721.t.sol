@@ -190,7 +190,7 @@ contract MintableERC721Test is Test {
             mintRequest.recipient, mintRequest.quantity, abi.encode(params)
         );
 
-        assertEq(core.tokenURI(0), "https://example.com");
+        assertEq(core.tokenURI(0), "https://example.com/0");
 
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), mintRequest.quantity);
