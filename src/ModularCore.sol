@@ -81,36 +81,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @notice Routes a call to the appropriate extension contract.
     fallback() external payable {
-        // This case is meant to handle calling `view` callback functions.
-        //
-        // All calls to extension contracts are delegateCall. A `view` callback function on
-        // an extension cannot be called via delegateCall inside a view function of the core contract.
-        // (see `_executeCallbackFunctionView` for more details)
-        //
-        // So, we route `view` callback function calls via the core's fallback, which permits calling
-        // the `view` callback function via delegateCall.
-        if (msg.sender == address(this)) {
-            (address impl, bytes memory decoded) = abi.decode(msg.data, (address, bytes));
-
-            (bool success, bytes memory returndata) = impl.delegatecall(decoded);
-
-            uint256 returnDataSize = returndata.length;
-            // Always returns or reverts.
-            assembly {
-                function allocate(length) -> pos {
-                    pos := mload(0x40)
-                    mstore(0x40, add(pos, length))
-                }
-
-                let returnDataPtr := allocate(returnDataSize)
-                returndatacopy(returnDataPtr, 0, returnDataSize)
-
-                if iszero(success) { revert(returnDataPtr, returnDataSize) }
-
-                return(returnDataPtr, returnDataSize)
-            }
-        }
-
         // Get extension function data.
         InstalledFallbackFunction memory fallbackFunction = fallbackFunctionData_[msg.sig];
 
@@ -358,7 +328,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         if (callbackFunction.implementation != address(0)) {
             bytes memory encodedWithImpl = abi.encode(callbackFunction.implementation, _abiEncodedCalldata);
-            (success, returndata) = address(this).staticcall(encodedWithImpl);
+            (success, returndata) = address(this).staticcall(_abiEncodedCalldata);
         } else {
             if (callbackMode == CallbackMode.REQUIRED) {
                 revert CallbackFunctionRequired();
