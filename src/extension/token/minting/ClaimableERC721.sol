@@ -306,6 +306,9 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
+            if (msg.value > 0) {
+                revert ClaimableIncorrectNativeTokenSent();
+            }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }
