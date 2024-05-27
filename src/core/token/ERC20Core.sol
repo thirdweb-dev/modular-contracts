@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.23;
 
-import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
+import {ModularCore} from "../../ModularCore.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
@@ -13,7 +13,7 @@ import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.so
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
+contract ERC20Core is ERC20, Multicallable, ModularCore {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -39,14 +39,13 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        address _erc1967Factory,
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ModularCoreUpgradeable(_erc1967Factory) {
+    ) payable {
         // Set contract metadata
         _name = _name;
         _symbol = _symbol;
@@ -108,8 +107,8 @@ contract ERC20Core is ERC20, ModularCoreUpgradeable, Multicallable {
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function supportsInterface(bytes4 interfaceID) public view override returns (bool) {
-        return interfaceID == type(IERC20).interfaceId || super.supportsInterface(interfaceID);
+    function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {
+        return interfaceId == type(IERC20).interfaceId || _supportsInterfaceViaExtensions(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

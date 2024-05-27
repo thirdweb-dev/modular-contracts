@@ -14,7 +14,6 @@ contract MockBase {
         functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
             functions[i].selector = bytes4(uint32(i));
-            functions[i].callType = IExtensionConfig.CallType.CALL;
         }
     }
 }
@@ -93,46 +92,25 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
         functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK + 1);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
             functions[i].selector = bytes4(uint32(i));
-            functions[i].callType = IExtensionConfig.CallType.CALL;
         }
         functions[NUMBER_OF_CALLBACK].selector = this.callbackFunctionOne.selector;
-        functions[NUMBER_OF_CALLBACK].callType = IExtensionConfig.CallType.CALL;
     }
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getCallbacks();
 
         FallbackFunction[] memory functions = new FallbackFunction[](6);
-        functions[0] = FallbackFunction({
-            selector: bytes4(keccak256("notPermissioned_call()")),
-            callType: IExtensionConfig.CallType.CALL,
-            permissionBits: 0
-        });
-        functions[1] = FallbackFunction({
-            selector: bytes4(keccak256("notPermissioned_delegatecall()")),
-            callType: IExtensionConfig.CallType.DELEGATECALL,
-            permissionBits: 0
-        });
-        functions[2] = FallbackFunction({
-            selector: bytes4(keccak256("notPermissioned_staticcall()")),
-            callType: IExtensionConfig.CallType.STATICCALL,
-            permissionBits: 0
-        });
-        functions[3] = FallbackFunction({
-            selector: bytes4(keccak256("permissioned_call()")),
-            callType: IExtensionConfig.CallType.CALL,
-            permissionBits: CALLER_ROLE
-        });
-        functions[4] = FallbackFunction({
-            selector: bytes4(keccak256("permissioned_delegatecall()")),
-            callType: IExtensionConfig.CallType.DELEGATECALL,
-            permissionBits: CALLER_ROLE
-        });
-        functions[5] = FallbackFunction({
-            selector: bytes4(keccak256("permissioned_staticcall()")),
-            callType: IExtensionConfig.CallType.STATICCALL,
-            permissionBits: CALLER_ROLE
-        });
+        functions[0] = FallbackFunction({selector: bytes4(keccak256("notPermissioned_call()")), permissionBits: 0});
+        functions[1] =
+            FallbackFunction({selector: bytes4(keccak256("notPermissioned_delegatecall()")), permissionBits: 0});
+        functions[2] =
+            FallbackFunction({selector: bytes4(keccak256("notPermissioned_staticcall()")), permissionBits: 0});
+        functions[3] =
+            FallbackFunction({selector: bytes4(keccak256("permissioned_call()")), permissionBits: CALLER_ROLE});
+        functions[4] =
+            FallbackFunction({selector: bytes4(keccak256("permissioned_delegatecall()")), permissionBits: CALLER_ROLE});
+        functions[5] =
+            FallbackFunction({selector: bytes4(keccak256("permissioned_staticcall()")), permissionBits: CALLER_ROLE});
         config.fallbackFunctions = functions;
     }
 

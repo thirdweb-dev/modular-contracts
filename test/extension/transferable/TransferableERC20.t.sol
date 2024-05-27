@@ -4,14 +4,11 @@ pragma solidity ^0.8.0;
 import "lib/forge-std/src/console.sol";
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
-import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 
 // Target contract
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {TransferableERC20} from "src/extension/token/transferable/TransferableERC20.sol";
 
@@ -19,14 +16,13 @@ contract TransferableExt is TransferableERC20 {}
 
 contract Core is ERC20Core {
     constructor(
-        address _erc1967Factory,
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ERC20Core(_erc1967Factory, name, symbol, contractURI, owner, extensions, extensionInstallData) {}
+    ) payable ERC20Core(name, symbol, contractURI, owner, extensions, extensionInstallData) {}
 
     // disable mint and approve callbacks for these tests
     function _beforeMint(address to, uint256 amount, bytes calldata data) internal override {}
@@ -45,13 +41,10 @@ contract TransferableERC20Test is Test {
     address public actorThree = address(0x4);
 
     function setUp() public {
-        // Deterministic, canonical ERC1967Factory contract
-        vm.etch(ERC1967FactoryConstants.ADDRESS, ERC1967FactoryConstants.BYTECODE);
-
         address[] memory extensions;
         bytes[] memory extensionData;
 
-        core = new Core(ERC1967FactoryConstants.ADDRESS, "test", "TEST", "", owner, extensions, extensionData);
+        core = new Core("test", "TEST", "", owner, extensions, extensionData);
         extensionImplementation = new TransferableExt();
 
         // install extension

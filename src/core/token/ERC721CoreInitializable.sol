@@ -9,7 +9,7 @@ import {
     ERC721AQueryableUpgradeable
 } from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
 
-import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
+import {ModularCore} from "../../ModularCore.sol";
 
 import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
@@ -18,12 +18,7 @@ import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackE
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721CoreInitializable is
-    ERC721AQueryableUpgradeable,
-    ModularCoreUpgradeable,
-    Multicallable,
-    Initializable
-{
+contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Multicallable, Initializable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -41,10 +36,6 @@ contract ERC721CoreInitializable is
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
-
-    constructor(address _erc1967Factory) ModularCoreUpgradeable(_erc1967Factory) {
-        _disableInitializers();
-    }
 
     function initialize(
         string memory name,
@@ -100,7 +91,7 @@ contract ERC721CoreInitializable is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721AUpgradeable, IERC721AUpgradeable, ModularCoreUpgradeable)
+        override(ERC721AUpgradeable, IERC721AUpgradeable, ModularCore)
         returns (bool)
     {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
@@ -162,7 +153,7 @@ contract ERC721CoreInitializable is
      *  @param data ABI encoded data to pass to the beforeMint hook.
      */
     function mint(address to, uint256 quantity, bytes calldata data) external payable {
-        _beforeMint(to, quantity, data);
+        _beforeMint(to, _nextTokenId(), quantity, data);
         _mint(to, quantity);
     }
 
@@ -232,10 +223,10 @@ contract ERC721CoreInitializable is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address to, uint256 quantity, bytes calldata data) internal virtual {
+    function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal virtual {
         _executeCallbackFunction(
             BeforeMintCallbackERC721.beforeMintERC721.selector,
-            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (msg.sender, to, quantity, data))
+            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (msg.sender, to, startTokenId, quantity, data))
         );
     }
 

@@ -11,8 +11,8 @@ library SimpleMetadataStorage {
         keccak256(abi.encode(uint256(keccak256("token.metadata.simple")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        /// token => base URI
-        mapping(address => mapping(uint256 => string)) uris;
+        // base URI
+        mapping(uint256 => string) uris;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -31,7 +31,7 @@ contract SimpleMetadataERC721 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when the metadata URI for a token is updated.
-    event MetadataUpdate(address indexed token, uint256 id);
+    event MetadataUpdate(uint256 id);
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
@@ -42,12 +42,9 @@ contract SimpleMetadataERC721 is ModularExtension {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 
-        config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.setTokenURI.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MINTER_ROLE
-        });
+        config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
+        config.fallbackFunctions[0] =
+            FallbackFunction({selector: this.setTokenURI.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
     }
@@ -58,7 +55,7 @@ contract SimpleMetadataERC721 is ModularExtension {
 
     /// @notice Callback function for ERC721Metadata.tokenURI
     function onTokenURI(uint256 _id) public view returns (string memory) {
-        return SimpleMetadataStorage.data().uris[msg.sender][_id];
+        return SimpleMetadataStorage.data().uris[_id];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -67,9 +64,7 @@ contract SimpleMetadataERC721 is ModularExtension {
 
     /// @notice Sets the metadata URI for a token.
     function setTokenURI(uint256 _id, string calldata _uri) external {
-        address token = msg.sender;
-
-        SimpleMetadataStorage.data().uris[token][_id] = _uri;
-        emit MetadataUpdate(token, _id);
+        SimpleMetadataStorage.data().uris[_id] = _uri;
+        emit MetadataUpdate(_id);
     }
 }

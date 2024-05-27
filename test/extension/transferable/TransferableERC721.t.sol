@@ -4,14 +4,11 @@ pragma solidity ^0.8.0;
 import "lib/forge-std/src/console.sol";
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
-import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 
 // Target contract
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {TransferableERC721} from "src/extension/token/transferable/TransferableERC721.sol";
 
@@ -19,17 +16,16 @@ contract TransferableExt is TransferableERC721 {}
 
 contract Core is ERC721Core {
     constructor(
-        address _erc1967Factory,
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) ERC721Core(_erc1967Factory, name, symbol, contractURI, owner, extensions, extensionInstallData) {}
+    ) ERC721Core(name, symbol, contractURI, owner, extensions, extensionInstallData) {}
 
     // disable mint and approve callbacks for these tests
-    function _beforeMint(address to, uint256 quantity, bytes calldata data) internal override {}
+    function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal override {}
     function _beforeApproveForAll(address from, address to, bool approved) internal override {}
 }
 
@@ -45,13 +41,10 @@ contract TransferableERC721Test is Test {
     address public actorThree = address(0x4);
 
     function setUp() public {
-        // Deterministic, canonical ERC1967Factory contract
-        vm.etch(ERC1967FactoryConstants.ADDRESS, ERC1967FactoryConstants.BYTECODE);
-
         address[] memory extensions;
         bytes[] memory extensionData;
 
-        core = new Core(ERC1967FactoryConstants.ADDRESS, "test", "TEST", "", owner, extensions, extensionData);
+        core = new Core("test", "TEST", "", owner, extensions, extensionData);
         extensionImplementation = new TransferableExt();
 
         // install extension

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
-import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
+import {ModularCore} from "../../ModularCore.sol";
 
 import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC1155.sol";
 import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
@@ -13,7 +13,7 @@ import {BeforeBurnCallbackERC1155} from "../../callback/BeforeBurnCallbackERC115
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC1155Core is ERC1155, ModularCoreUpgradeable, Multicallable {
+contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -42,14 +42,13 @@ contract ERC1155Core is ERC1155, ModularCoreUpgradeable, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        address _erc1967Factory,
         string memory name,
         string memory symbol,
         string memory contractURI,
         address owner,
         address[] memory extensions,
         bytes[] memory extensionInstallData
-    ) payable ModularCoreUpgradeable(_erc1967Factory) {
+    ) payable {
         // Set contract metadata
         _name = _name;
         _symbol = _symbol;
@@ -107,12 +106,7 @@ contract ERC1155Core is ERC1155, ModularCoreUpgradeable, Multicallable {
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC1155, ModularCoreUpgradeable)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC1155, ModularCore) returns (bool) {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0xd9b67a26 // ERC165 Interface ID for ERC1155
             || interfaceId == 0x0e89341c // ERC165 Interface ID for ERC1155MetadataURI

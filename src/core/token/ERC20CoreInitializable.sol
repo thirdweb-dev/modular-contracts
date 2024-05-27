@@ -3,7 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Initializable} from "@solady/utils/Initializable.sol";
 
-import {ModularCoreUpgradeable} from "../../ModularCoreUpgradeable.sol";
+import {ModularCore} from "../../ModularCore.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
@@ -15,7 +15,7 @@ import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.so
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20CoreInitializable is ERC20, ModularCoreUpgradeable, Multicallable, Initializable {
+contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializable {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -39,10 +39,6 @@ contract ERC20CoreInitializable is ERC20, ModularCoreUpgradeable, Multicallable,
     /*//////////////////////////////////////////////////////////////
                         CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
-
-    constructor(address _erc1967Factory) ModularCoreUpgradeable(_erc1967Factory) {
-        _disableInitializers();
-    }
 
     function initialize(
         string memory name,
@@ -113,8 +109,8 @@ contract ERC20CoreInitializable is ERC20, ModularCoreUpgradeable, Multicallable,
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function supportsInterface(bytes4 interfaceID) public view override returns (bool) {
-        return interfaceID == type(IERC20).interfaceId || super.supportsInterface(interfaceID);
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(IERC20).interfaceId || _supportsInterfaceViaExtensions(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

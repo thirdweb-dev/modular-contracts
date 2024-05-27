@@ -11,12 +11,12 @@ library BatchMetadataStorage {
         keccak256(abi.encode(uint256(keccak256("token.metadata.batch")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // token => tokenId range end
-        mapping(address => uint256[]) tokenIdRangeEnd;
-        // token => next tokenId as range start
-        mapping(address => uint256) nextTokenIdRangeStart;
-        // token => tokenId range end => baseURI of range
-        mapping(address => mapping(uint256 => string)) baseURIOfTokenIdRange;
+        // tokenId range end
+        uint256[] tokenIdRangeEnd;
+        // next tokenId as range start
+        uint256 nextTokenIdRangeStart;
+        // tokenId range end => baseURI of range
+        mapping(uint256 => string) baseURIOfTokenIdRange;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -62,10 +62,7 @@ contract BatchMetadataERC721 is ModularExtension {
 
     /// @dev Emitted when a new metadata batch is uploaded.
     event NewMetadataBatch(
-        address indexed token,
-        uint256 indexed startTokenIdInclusive,
-        uint256 indexed endTokenIdNonInclusive,
-        string baseURI
+        uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -77,18 +74,12 @@ contract BatchMetadataERC721 is ModularExtension {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](2);
 
-        config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector, CallType.STATICCALL);
+        config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
 
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.uploadMetadata.selector,
-            callType: CallType.CALL,
-            permissionBits: Role._MINTER_ROLE
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.getAllMetadataBatches.selector,
-            callType: CallType.STATICCALL,
-            permissionBits: 0
-        });
+        config.fallbackFunctions[0] =
+            FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721.
     }
@@ -99,8 +90,7 @@ contract BatchMetadataERC721 is ModularExtension {
 
     /// @notice Callback function for ERC721Metadata.tokenURI
     function onTokenURI(uint256 _id) public view returns (string memory) {
-        address token = msg.sender;
-        string memory batchUri = _getBaseURI(token, _id);
+        string memory batchUri = _getBaseURI(_id);
 
         return string(abi.encodePacked(batchUri, _id.toString()));
     }
@@ -111,9 +101,7 @@ contract BatchMetadataERC721 is ModularExtension {
 
     /// @notice Returns all metadata batches for a token.
     function getAllMetadataBatches() external view returns (MetadataBatch[] memory) {
-        address token = msg.sender;
-
-        uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd[token];
+        uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd;
         uint256 numOfBatches = rangeEnds.length;
 
         MetadataBatch[] memory batches = new MetadataBatch[](rangeEnds.length);
@@ -123,7 +111,7 @@ contract BatchMetadataERC721 is ModularExtension {
             batches[i] = MetadataBatch({
                 startTokenIdInclusive: rangeStart,
                 endTokenIdInclusive: rangeEnds[i] - 1,
-                baseURI: _batchMetadataStorage().baseURIOfTokenIdRange[token][rangeEnds[i]]
+                baseURI: _batchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]]
             });
             rangeStart = rangeEnds[i];
         }
@@ -133,19 +121,18 @@ contract BatchMetadataERC721 is ModularExtension {
 
     /// @notice Uploads metadata for a range of tokenIds.
     function uploadMetadata(uint256 _amount, string calldata _baseURI) public virtual {
-        address token = msg.sender;
         if (_amount == 0) {
             revert BatchMetadataZeroAmount();
         }
 
-        uint256 rangeStart = _batchMetadataStorage().nextTokenIdRangeStart[token];
+        uint256 rangeStart = _batchMetadataStorage().nextTokenIdRangeStart;
         uint256 rangeEndNonInclusive = rangeStart + _amount;
 
-        _batchMetadataStorage().nextTokenIdRangeStart[token] = rangeEndNonInclusive;
-        _batchMetadataStorage().tokenIdRangeEnd[token].push(rangeEndNonInclusive);
-        _batchMetadataStorage().baseURIOfTokenIdRange[token][rangeEndNonInclusive] = _baseURI;
+        _batchMetadataStorage().nextTokenIdRangeStart = rangeEndNonInclusive;
+        _batchMetadataStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
+        _batchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
-        emit NewMetadataBatch(token, rangeStart, rangeEndNonInclusive, _baseURI);
+        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -153,13 +140,13 @@ contract BatchMetadataERC721 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
-    function _getBaseURI(address _token, uint256 _tokenId) internal view returns (string memory) {
-        uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd[_token];
+    function _getBaseURI(uint256 _tokenId) internal view returns (string memory) {
+        uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd;
         uint256 numOfBatches = rangeEnds.length;
 
         for (uint256 i = 0; i < numOfBatches; i += 1) {
             if (_tokenId < rangeEnds[i]) {
-                return _batchMetadataStorage().baseURIOfTokenIdRange[_token][rangeEnds[i]];
+                return _batchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]];
             }
         }
         revert BatchMetadataNoMetadataForTokenId();

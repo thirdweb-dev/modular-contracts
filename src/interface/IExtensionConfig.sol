@@ -7,19 +7,6 @@ interface IExtensionConfig {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @dev Enum for the type of call to be made to a function of an Extension.
-     *
-     *  @param CALL Perform a regular call on the specified function in the Extension.
-     *  @param STATICCALL Perform a static call on the specified function in the Extension.
-     *  @param DELEGATECALL Perform a delegate call on the specified function in the Extension.
-     */
-    enum CallType {
-        CALL,
-        STATICCALL,
-        DELEGATECALL
-    }
-
-    /**
      *  @dev Struct for a callback function. Called by a Core into an Extension during the execution of some fixed function.
      *
      *  @param selector The 4-byte selector of the function.
@@ -27,7 +14,6 @@ interface IExtensionConfig {
      */
     struct CallbackFunction {
         bytes4 selector;
-        CallType callType;
     }
 
     /**
@@ -40,7 +26,6 @@ interface IExtensionConfig {
      */
     struct FallbackFunction {
         bytes4 selector;
-        CallType callType;
         uint256 permissionBits;
     }
 

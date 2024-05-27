@@ -4,14 +4,11 @@ pragma solidity ^0.8.0;
 import "lib/forge-std/src/console.sol";
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Factory} from "@solady/utils/ERC1967Factory.sol";
-import {ERC1967FactoryConstants} from "@solady/utils/ERC1967FactoryConstants.sol";
 
 // Target contract
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCoreUpgradeable} from "src/ModularCoreUpgradeable.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {RoyaltyERC1155} from "src/extension/token/royalty/RoyaltyERC1155.sol";
 
@@ -28,13 +25,10 @@ contract RoyaltyERC1155Test is Test {
     address public unpermissionedActor = address(0x3);
 
     function setUp() public {
-        // Deterministic, canonical ERC1967Factory contract
-        vm.etch(ERC1967FactoryConstants.ADDRESS, ERC1967FactoryConstants.BYTECODE);
-
         address[] memory extensions;
         bytes[] memory extensionData;
 
-        core = new ERC1155Core(ERC1967FactoryConstants.ADDRESS, "test", "TEST", "", owner, extensions, extensionData);
+        core = new ERC1155Core("test", "TEST", "", owner, extensions, extensionData);
         extensionImplementation = new RoyaltyExt();
 
         // install extension
@@ -61,10 +55,10 @@ contract RoyaltyERC1155Test is Test {
         uint16 bps;
 
         // read state from extension
-        (receiver, bps) = RoyaltyExt(address(core)).getDefaultRoyaltyInfo(address(core));
+        (receiver, bps) = RoyaltyExt(address(core)).getDefaultRoyaltyInfo();
         assertEq(receiver, royaltyRecipient);
         assertEq(bps, royaltyBps);
-        (receiver, bps) = RoyaltyExt(address(core)).getRoyaltyInfoForToken(address(core), 1);
+        (receiver, bps) = RoyaltyExt(address(core)).getRoyaltyInfoForToken(1);
         assertEq(receiver, address(0));
         assertEq(bps, 0);
 
@@ -98,13 +92,13 @@ contract RoyaltyERC1155Test is Test {
         uint16 bps;
 
         // read state from extension
-        (receiver, bps) = RoyaltyExt(address(core)).getDefaultRoyaltyInfo(address(core));
+        (receiver, bps) = RoyaltyExt(address(core)).getDefaultRoyaltyInfo();
         assertEq(receiver, defaultRoyaltyRecipient);
         assertEq(bps, defaultRoyaltyBps);
-        (receiver, bps) = RoyaltyExt(address(core)).getRoyaltyInfoForToken(address(core), 1);
+        (receiver, bps) = RoyaltyExt(address(core)).getRoyaltyInfoForToken(1);
         assertEq(receiver, address(0));
         assertEq(bps, 0);
-        (receiver, bps) = RoyaltyExt(address(core)).getRoyaltyInfoForToken(address(core), 10);
+        (receiver, bps) = RoyaltyExt(address(core)).getRoyaltyInfoForToken(10);
         assertEq(receiver, customRoyaltyRecipient);
         assertEq(bps, customRoyaltyBps);
 
