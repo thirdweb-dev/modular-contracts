@@ -97,7 +97,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                 returndatacopy(returnDataPtr, 0, returnDataSize)
 
                 if iszero(success) { revert(returnDataPtr, returnDataSize) }
-                
+
                 return(returnDataPtr, returnDataSize)
             }
         } else {
