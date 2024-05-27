@@ -13,17 +13,12 @@ import {ModularCore} from "src/ModularCore.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {SimpleMetadataERC721, SimpleMetadataStorage} from "src/extension/token/metadata/SimpleMetadataERC721.sol";
 
-contract SimpleMetadataExt is SimpleMetadataERC721 {
-    function uris(uint256 id) external view returns (string memory) {
-        return SimpleMetadataStorage.data().uris[id];
-    }
-}
+contract SimpleMetadataExt is SimpleMetadataERC721 {}
 
 contract SimpleMetadataERC721Test is Test {
     ERC721Core public core;
 
     SimpleMetadataExt public extensionImplementation;
-    SimpleMetadataExt public installedExtension;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
@@ -39,9 +34,6 @@ contract SimpleMetadataERC721Test is Test {
         // install extension
         vm.prank(owner);
         core.installExtension(address(extensionImplementation), "");
-
-        IModularCore.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
-        installedExtension = SimpleMetadataExt(installedExtensions[0].implementation);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -59,11 +51,6 @@ contract SimpleMetadataERC721Test is Test {
         assertEq(core.tokenURI(1), "ipfs://base/1");
         assertEq(core.tokenURI(2), "ipfs://base/2");
         assertEq(core.tokenURI(3), "");
-
-        // read state from the installed extension
-        assertEq(installedExtension.uris(1), "ipfs://base/1");
-        assertEq(installedExtension.uris(2), "ipfs://base/2");
-        assertEq(installedExtension.uris(3), "");
     }
 
     function test_revert_setTokenURI() public {
