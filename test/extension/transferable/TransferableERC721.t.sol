@@ -25,7 +25,7 @@ contract Core is ERC721Core {
     ) ERC721Core(name, symbol, contractURI, owner, extensions, extensionInstallData) {}
 
     // disable mint and approve callbacks for these tests
-    function _beforeMint(address to, uint256 quantity, bytes calldata data) internal override {}
+    function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal override {}
     function _beforeApproveForAll(address from, address to, bool approved) internal override {}
 }
 

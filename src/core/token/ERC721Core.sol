@@ -142,7 +142,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @param data ABI encoded data to pass to the beforeMint hook.
      */
     function mint(address to, uint256 quantity, bytes calldata data) external payable {
-        _beforeMint(to, quantity, data);
+        _beforeMint(to, _nextTokenId(), quantity, data);
         _mint(to, quantity);
     }
 
@@ -205,10 +205,10 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address to, uint256 quantity, bytes calldata data) internal virtual {
+    function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal virtual {
         _executeCallbackFunction(
             BeforeMintCallbackERC721.beforeMintERC721.selector,
-            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (msg.sender, to, quantity, data))
+            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (msg.sender, to, startTokenId, quantity, data))
         );
     }
 

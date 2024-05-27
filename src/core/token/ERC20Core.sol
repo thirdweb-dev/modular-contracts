@@ -13,7 +13,7 @@ import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.so
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20Core is ERC20, ModularCore, Multicallable {
+contract ERC20Core is ERC20, Multicallable, ModularCore {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -107,9 +107,9 @@ contract ERC20Core is ERC20, ModularCore, Multicallable {
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    // function supportsInterface(bytes4 interfaceID) public view override returns (bool) {
-    //     return interfaceID == type(IERC20).interfaceId || super.supportsInterface(interfaceID);
-    // }
+    function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {
+        return interfaceId == type(IERC20).interfaceId || _supportsInterfaceViaExtensions(interfaceId);
+    }
 
     /*//////////////////////////////////////////////////////////////
                           EXTERNAL FUNCTIONS

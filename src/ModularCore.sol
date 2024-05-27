@@ -174,6 +174,13 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns whether a given interface is implemented by the contract.
+    function _supportsInterfaceViaExtensions(bytes4 interfaceId) internal view virtual returns (bool) {
+        if (interfaceId == 0xffffffff) return false;
+        if (supportedInterfaceRefCounter[interfaceId] > 0) return true;
+        return false;
+    }
+
     /// @dev Installs an extension contract.
     function _installExtension(address _extension, bytes memory _data) internal {
         if (!extensions.add(_extension)) {

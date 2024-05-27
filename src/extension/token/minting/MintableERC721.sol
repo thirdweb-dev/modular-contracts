@@ -7,28 +7,38 @@ import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+import {LibString} from "@solady/utils/LibString.sol";
 
-library SignatureMintStorage {
-    /// @custom:storage-location erc7201:token.minting.signature
-    bytes32 public constant SIGNATURE_MINT_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.minting.signature")) - 1)) & ~bytes32(uint256(0xff));
+import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
+import {OnTokenURICallback} from "../../../callback/OnTokenURICallback.sol";
+
+library MintableStorage {
+    /// @custom:storage-location erc7201:token.minting.mintable
+    bytes32 public constant MINTABLE_STORAGE_POSITION =
+        keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc721")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // UID => whether it has been used
         mapping(bytes32 => bool) uidUsed;
-        SignatureMintERC721.SaleConfig saleConfig;
+        // sale config
+        MintableERC721.SaleConfig saleConfig;
+        // tokenId range end
+        uint256[] tokenIdRangeEnd;
+        // tokenId range end => baseURI of range
+        mapping(uint256 => string) baseURIOfTokenIdRange;
     }
 
     function data() internal pure returns (Data storage data_) {
-        bytes32 position = SIGNATURE_MINT_STORAGE_POSITION;
+        bytes32 position = MINTABLE_STORAGE_POSITION;
         assembly {
             data_.slot := position
         }
     }
 }
 
-contract SignatureMintERC721 is ModularExtension, EIP712 {
+contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, OnTokenURICallback {
     using ECDSA for bytes32;
+    using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -43,15 +53,17 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
      *  @param quantity The quantity of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
+     *  @param baseURI The base URI for the range of minted token IDs.
      *  @param uid A unique identifier for the minting request.
      */
-    struct SignatureMintRequestERC721 {
+    struct MintRequestERC721 {
         uint48 startTimestamp;
         uint48 endTimestamp;
         address recipient;
         uint256 quantity;
         address currency;
         uint256 pricePerUnit;
+        string baseURI;
         bytes32 uid;
     }
 
@@ -61,9 +73,10 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
      *  @param request The minting request.
      *  @param signature The signature produced from signing the minting request.
      */
-    struct SignatureMintParamsERC721 {
-        SignatureMintRequestERC721 request;
+    struct MintParamsERC721 {
+        MintRequestERC721 request;
         bytes signature;
+        string baseURI;
     }
 
     /**
@@ -75,34 +88,58 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
         address primarySaleRecipient;
     }
 
+    /**
+     *   @notice MetadataBatch struct to store metadata for a range of tokenIds.
+     *   @param startTokenIdInclusive The first tokenId in the range.
+     *   @param endTokenIdNonInclusive The last tokenId in the range.
+     *   @param baseURI The base URI for the range.
+     */
+    struct MetadataBatch {
+        uint256 startTokenIdInclusive;
+        uint256 endTokenIdInclusive;
+        string baseURI;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Emitted when an incorrect amount of native token is sent.
-    error SignatureMintIncorrectNativeTokenSent();
+    error MintableIncorrectNativeTokenSent();
 
     /// @dev Emitted when the minting request has expired.
-    error SigantureMintRequestExpired();
+    error MintableRequestExpired();
 
     /// @dev Emitted when the minting request UID has been reused.
-    error SignatureMintRequestUidReused();
+    error MintableRequestUidReused();
 
     /// @dev Emitted when the minting request token is invalid.
-    error SignatureMintRequestInvalidToken();
+    error MintableRequestInvalidToken();
 
     /// @dev Emitted when the minting request does not match the expected values.
-    error SignatureMintRequestMismatch();
+    error MintableRequestMismatch();
 
     /// @dev Emitted when the minting request signature is unauthorized.
-    error SignatureMintRequestUnauthorizedSignature();
+    error MintableRequestUnauthorized();
+
+    /// @dev Emitted when trying to fetch metadata for a token that has no metadata.
+    error MintableNoMetadataForTokenId();
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Emitted when a new metadata batch is uploaded.
+    event NewMetadataBatch(
+        uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
+    );
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC721 = keccak256(
-        "SignatureMintRequestERC721(address token,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+    bytes32 private constant TYPEHASH_MINTABLE_ERC721 = keccak256(
+        "MintRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string baseURI,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -113,10 +150,11 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
 
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](2);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
@@ -129,15 +167,38 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Callback function for ERC721Metadata.tokenURI
+    function onTokenURI(uint256 _id) public view override returns (string memory) {
+        string memory batchUri = _getBaseURI(_id);
+        return string(abi.encodePacked(batchUri, _id.toString()));
+    }
+
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _quantity, bytes memory _data)
-        external
-        payable
-        virtual
-        returns (bytes memory)
-    {
-        SignatureMintParamsERC721 memory _params = abi.decode(_data, (SignatureMintParamsERC721));
-        _mintWithSignatureERC721(_to, _quantity, _params.request, _params.signature);
+    function beforeMintERC721(
+        address _caller,
+        address _to,
+        uint256 _startTokenId,
+        uint256 _quantity,
+        bytes memory _data
+    ) external payable virtual override returns (bytes memory) {
+        MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
+
+        // If the signature is empty, the caller must have the MINTER_ROLE.
+        if (_params.signature.length == 0) {
+            if (!OwnableRoles(address(this)).hasAllRoles(_caller, Role._MINTER_ROLE)) {
+                revert MintableRequestUnauthorized();
+            }
+
+            _setBaseURI(_startTokenId, _quantity, _params.baseURI);
+
+            // Else read and verify the payload and signature.
+        } else {
+            _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
+            _setBaseURI(_startTokenId, _quantity, _params.request.baseURI);
+            _distributeMintPrice(
+                _caller, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
+            );
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -146,76 +207,100 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
 
     /// @notice Returns the sale configuration for a token.
     function getSaleConfig() external view returns (address primarySaleRecipient) {
-        SaleConfig memory saleConfig = _signatureMintStorage().saleConfig;
+        SaleConfig memory saleConfig = _mintableStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
 
     /// @notice Sets the sale configuration for a token.
     function setSaleConfig(address _primarySaleRecipient) external {
-        _signatureMintStorage().saleConfig = SaleConfig(_primarySaleRecipient);
+        _mintableStorage().saleConfig = SaleConfig(_primarySaleRecipient);
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Sets the metadata for a range of tokenIds.
+    function _setBaseURI(uint256 _startTokenId, uint256 _amount, string memory _baseURI) internal {
+        uint256 rangeStart = _startTokenId;
+        uint256 rangeEndNonInclusive = rangeStart + _amount;
+
+        _mintableStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
+        _mintableStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
+
+        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
+    }
+
+    /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
+    function _getBaseURI(uint256 _tokenId) internal view returns (string memory) {
+        uint256[] memory rangeEnds = _mintableStorage().tokenIdRangeEnd;
+        uint256 numOfBatches = rangeEnds.length;
+
+        for (uint256 i = 0; i < numOfBatches; i += 1) {
+            if (_tokenId < rangeEnds[i]) {
+                return _mintableStorage().baseURIOfTokenIdRange[rangeEnds[i]];
+            }
+        }
+        revert MintableNoMetadataForTokenId();
+    }
+
     /// @dev Mints tokens on verifying a signature from an authorized party.
     function _mintWithSignatureERC721(
         address _expectedRecipient,
         uint256 _expectedAmount,
-        SignatureMintRequestERC721 memory _req,
+        uint256 _startTokenId,
+        MintRequestERC721 memory _req,
         bytes memory _signature
     ) internal {
         if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
-            revert SignatureMintRequestMismatch();
+            revert MintableRequestMismatch();
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert SigantureMintRequestExpired();
+            revert MintableRequestExpired();
         }
 
-        if (_signatureMintStorage().uidUsed[_req.uid]) {
-            revert SignatureMintRequestUidReused();
+        if (_mintableStorage().uidUsed[_req.uid]) {
+            revert MintableRequestUidReused();
         }
 
         address signer = _hashTypedData(
             keccak256(
                 abi.encode(
-                    TYPEHASH_SIGNATURE_MINT_ERC721,
+                    TYPEHASH_MINTABLE_ERC721,
                     _req.startTimestamp,
                     _req.endTimestamp,
                     _req.recipient,
                     _req.quantity,
                     _req.currency,
                     _req.pricePerUnit,
+                    keccak256(bytes(_req.baseURI)),
                     _req.uid
                 )
             )
         ).recover(_signature);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert SignatureMintRequestUnauthorizedSignature();
+            revert MintableRequestUnauthorized();
         }
 
-        _signatureMintStorage().uidUsed[_req.uid] = true;
-
-        _distributeMintPrice(_req.recipient, _req.currency, _req.quantity * _req.pricePerUnit);
+        _mintableStorage().uidUsed[_req.uid] = true;
     }
 
     /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
     function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {
-                revert SignatureMintIncorrectNativeTokenSent();
+                revert MintableIncorrectNativeTokenSent();
             }
             return;
         }
 
-        SaleConfig memory saleConfig = _signatureMintStorage().saleConfig;
+        SaleConfig memory saleConfig = _mintableStorage().saleConfig;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
-                revert SignatureMintIncorrectNativeTokenSent();
+                revert MintableIncorrectNativeTokenSent();
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
@@ -225,11 +310,11 @@ contract SignatureMintERC721 is ModularExtension, EIP712 {
 
     /// @dev Returns the domain name and version for EIP712.
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "SignatureMintERC721";
+        name = "MintableERC721";
         version = "1";
     }
 
-    function _signatureMintStorage() internal pure returns (SignatureMintStorage.Data storage) {
-        return SignatureMintStorage.data();
+    function _mintableStorage() internal pure returns (MintableStorage.Data storage) {
+        return MintableStorage.data();
     }
 }
