@@ -95,6 +95,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             (bool success, bytes memory returndata) = impl.delegatecall(decoded);
 
             uint256 returnDataSize = returndata.length;
+            // Always returns or reverts.
             assembly {
                 function allocate(length) -> pos {
                     pos := mload(0x40)
@@ -108,22 +109,22 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
                 return(returnDataPtr, returnDataSize)
             }
-        } else {
-            // Get extension function data.
-            InstalledFallbackFunction memory fallbackFunction = fallbackFunctionData_[msg.sig];
-
-            // Check: extension function data exists.
-            if (fallbackFunction.implementation == address(0)) {
-                revert FallbackFunctionNotInstalled();
-            }
-
-            // Check: authorized to call permissioned extension function
-            if (fallbackFunction.permissionBits > 0) {
-                _checkOwnerOrRoles(fallbackFunction.permissionBits);
-            }
-
-            _delegateAndReturn(fallbackFunction.implementation);
         }
+
+        // Get extension function data.
+        InstalledFallbackFunction memory fallbackFunction = fallbackFunctionData_[msg.sig];
+
+        // Check: extension function data exists.
+        if (fallbackFunction.implementation == address(0)) {
+            revert FallbackFunctionNotInstalled();
+        }
+
+        // Check: authorized to call permissioned extension function
+        if (fallbackFunction.permissionBits > 0) {
+            _checkOwnerOrRoles(fallbackFunction.permissionBits);
+        }
+
+        _delegateAndReturn(fallbackFunction.implementation);
     }
 
     /*//////////////////////////////////////////////////////////////
