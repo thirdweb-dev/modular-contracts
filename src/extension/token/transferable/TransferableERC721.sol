@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
 import {Role} from "../../../Role.sol";
+import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
 
 library TransferableStorage {
     /// @custom:storage-location erc7201:token.transferable
@@ -13,7 +14,7 @@ library TransferableStorage {
         // whether transfer is enabled
         bool transferEnabled;
         // from/to/operator address => bool, whether transfer is enabled
-        mapping(address => bool) transferrerAllowed;
+        mapping(address => bool) transferEnabledFor;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -24,7 +25,7 @@ library TransferableStorage {
     }
 }
 
-contract TransferableERC721 is ModularExtension {
+contract TransferableERC721 is ModularExtension, BeforeTransferCallbackERC721 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -59,9 +60,16 @@ contract TransferableERC721 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for ERC721.transferFrom/safeTransferFrom
-    function beforeTransferERC721(address from, address to, uint256) external virtual returns (bytes memory) {
+    function beforeTransferERC721(address caller, address from, address to, uint256)
+        external
+        virtual
+        override
+        returns (bytes memory)
+    {
+        address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
-        bool isOperatorAllowed = data.transferrerAllowed[from] || data.transferrerAllowed[to];
+        bool isOperatorAllowed =
+            data.transferEnabledFor[caller] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
 
         if (!isOperatorAllowed && !data.transferEnabled) {
             revert TransferDisabled();
@@ -77,9 +85,9 @@ contract TransferableERC721 is ModularExtension {
         return _transferableStorage().transferEnabled;
     }
 
-    /// @notice Returns whether transfers is enabled for the transferrer for the token.
-    function isTransferEnabledFor(address transferrer) external view returns (bool) {
-        return _transferableStorage().transferrerAllowed[transferrer];
+    /// @notice Returns whether transfers is enabled for the target address for the token.
+    function isTransferEnabledFor(address target) external view returns (bool) {
+        return _transferableStorage().transferEnabledFor[target];
     }
 
     /// @notice Set transferability for a token.
@@ -87,9 +95,10 @@ contract TransferableERC721 is ModularExtension {
         _transferableStorage().transferEnabled = enableTransfer;
     }
 
-    /// @notice Set transferability for an operator for a token.
-    function setTransferableFor(address transferrer, bool enableTransfer) external {
-        _transferableStorage().transferrerAllowed[transferrer] = enableTransfer;
+    /// @notice Set transferability for an address for a token.
+    function setTransferableFor(address target, bool enableTransfer) external {
+        address token = msg.sender;
+        _transferableStorage().transferEnabledFor[target] = enableTransfer;
     }
 
     /*//////////////////////////////////////////////////////////////

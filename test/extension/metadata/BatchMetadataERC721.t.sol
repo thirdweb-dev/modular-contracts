@@ -13,25 +13,12 @@ import {ModularCore} from "src/ModularCore.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {BatchMetadataERC721} from "src/extension/token/metadata/BatchMetadataERC721.sol";
 
-contract BatchMetadataExt is BatchMetadataERC721 {
-    function tokenIdRangeEnd() external view returns (uint256[] memory) {
-        return _batchMetadataStorage().tokenIdRangeEnd;
-    }
-
-    function nextTokenIdRangeStart() external view returns (uint256) {
-        return _batchMetadataStorage().nextTokenIdRangeStart;
-    }
-
-    function baseURIOfTokenIdRange(uint256 rangeEnd) external view returns (string memory) {
-        return _batchMetadataStorage().baseURIOfTokenIdRange[rangeEnd];
-    }
-}
+contract BatchMetadataExt is BatchMetadataERC721 {}
 
 contract BatchMetadataERC721Test is Test {
     ERC721Core public core;
 
     BatchMetadataExt public extensionImplementation;
-    BatchMetadataExt public installedExtension;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
@@ -47,29 +34,19 @@ contract BatchMetadataERC721Test is Test {
         // install extension
         vm.prank(owner);
         core.installExtension(address(extensionImplementation), "");
-
-        IModularCore.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
-        installedExtension = BatchMetadataExt(installedExtensions[0].implementation);
     }
 
     /*///////////////////////////////////////////////////////////////
                         Unit tests: `uploadMetadata`
     //////////////////////////////////////////////////////////////*/
 
-    function test_state_uploadMetadata() public {
+    function test_state_uploadMetadata_t() public {
         vm.prank(owner);
         BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
 
         // read state from core
         assertEq(core.tokenURI(1), "ipfs://base/1");
         assertEq(core.tokenURI(99), "ipfs://base/99");
-
-        // read state from the installed extension
-        uint256[] memory rangeEnds = installedExtension.tokenIdRangeEnd();
-        assertEq(rangeEnds.length, 1);
-        assertEq(rangeEnds[0], 100);
-        assertEq(installedExtension.nextTokenIdRangeStart(), 100);
-        assertEq(installedExtension.baseURIOfTokenIdRange(100), "ipfs://base/");
 
         // upload another batch
         vm.prank(owner);
@@ -80,15 +57,6 @@ contract BatchMetadataERC721Test is Test {
         assertEq(core.tokenURI(99), "ipfs://base/99");
         assertEq(core.tokenURI(100), "ipfs://base2/100");
         assertEq(core.tokenURI(199), "ipfs://base2/199");
-
-        // read state from the installed extension
-        rangeEnds = installedExtension.tokenIdRangeEnd();
-        assertEq(rangeEnds.length, 2);
-        assertEq(rangeEnds[0], 100);
-        assertEq(rangeEnds[1], 200);
-        assertEq(installedExtension.nextTokenIdRangeStart(), 200);
-        assertEq(installedExtension.baseURIOfTokenIdRange(100), "ipfs://base/");
-        assertEq(installedExtension.baseURIOfTokenIdRange(200), "ipfs://base2/");
     }
 
     function test_revert_uploadMetadata() public {

@@ -81,20 +81,41 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @notice Routes a call to the appropriate extension contract.
     fallback() external payable {
-        // Get extension function data.
-        InstalledFallbackFunction memory fallbackFunction = fallbackFunctionData_[msg.sig];
+        if (msg.sender == address(this)) {
+            (address impl, bytes memory decoded) = abi.decode(msg.data, (address, bytes));
 
-        // Check: extension function data exists.
-        if (fallbackFunction.implementation == address(0)) {
-            revert FallbackFunctionNotInstalled();
+            (bool success, bytes memory returndata) = impl.delegatecall(decoded);
+
+            uint256 returnDataSize = returndata.length;
+            assembly {
+                function allocate(length) -> pos {
+                    pos := mload(0x40)
+                    mstore(0x40, add(pos, length))
+                }
+
+                let returnDataPtr := allocate(returnDataSize)
+                returndatacopy(returnDataPtr, 0, returnDataSize)
+
+                if iszero(success) { revert(returnDataPtr, returnDataSize) }
+
+                return(returnDataPtr, returnDataSize)
+            }
+        } else {
+            // Get extension function data.
+            InstalledFallbackFunction memory fallbackFunction = fallbackFunctionData_[msg.sig];
+
+            // Check: extension function data exists.
+            if (fallbackFunction.implementation == address(0)) {
+                revert FallbackFunctionNotInstalled();
+            }
+
+            // Check: authorized to call permissioned extension function
+            if (fallbackFunction.permissionBits > 0) {
+                _checkOwnerOrRoles(fallbackFunction.permissionBits);
+            }
+
+            _delegateAndReturn(fallbackFunction.implementation);
         }
-
-        // Check: authorized to call permissioned extension function
-        if (fallbackFunction.permissionBits > 0) {
-            _checkOwnerOrRoles(fallbackFunction.permissionBits);
-        }
-
-        _delegateAndReturn(fallbackFunction.implementation);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -327,7 +348,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         InstalledCallbackFunction memory callbackFunction = callbackFunctionData_[_selector];
 
         if (callbackFunction.implementation != address(0)) {
-            (success, returndata) = callbackFunction.implementation.staticcall(_abiEncodedCalldata);
+            bytes memory encodedWithImpl = abi.encode(callbackFunction.implementation, _abiEncodedCalldata);
+            (success, returndata) = address(this).staticcall(encodedWithImpl);
         } else {
             if (callbackMode == CallbackMode.REQUIRED) {
                 revert CallbackFunctionRequired();

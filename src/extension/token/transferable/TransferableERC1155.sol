@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
 import {Role} from "../../../Role.sol";
+import {BeforeTransferCallbackERC1155} from "../../../callback/BeforeTransferCallbackERC1155.sol";
+import {BeforeBatchTransferCallbackERC1155} from "../../../callback/BeforeBatchTransferCallbackERC1155.sol";
 
 library TransferableStorage {
     /// @custom:storage-location erc7201:token.transferable
@@ -13,7 +15,7 @@ library TransferableStorage {
         // whether transfers are enabled
         bool transferEnabled;
         // from/to/operator address => bool, whether transfer is enabled
-        mapping(address => bool) transferrerAllowed;
+        mapping(address => bool) transferEnabledFor;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -24,7 +26,7 @@ library TransferableStorage {
     }
 }
 
-contract TransferableERC1155 is ModularExtension {
+contract TransferableERC1155 is ModularExtension, BeforeTransferCallbackERC1155, BeforeBatchTransferCallbackERC1155 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -60,13 +62,15 @@ contract TransferableERC1155 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for ERC1155.safeTransferFrom
-    function beforeTransferERC1155(address from, address to, uint256, uint256)
+    function beforeTransferERC1155(address caller, address from, address to, uint256, uint256)
         external
         virtual
+        override
         returns (bytes memory)
     {
         TransferableStorage.Data storage data = _transferableStorage();
-        bool isOperatorAllowed = data.transferrerAllowed[from] || data.transferrerAllowed[to];
+        bool isOperatorAllowed =
+            data.transferEnabledFor[caller] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
 
         if (!isOperatorAllowed && !data.transferEnabled) {
             revert TransferDisabled();
@@ -74,13 +78,17 @@ contract TransferableERC1155 is ModularExtension {
     }
 
     /// @notice Callback function for ERC1155.safeBatchTransferFrom
-    function beforeBatchTransferERC1155(address from, address to, uint256[] calldata, uint256[] calldata)
-        external
-        virtual
-        returns (bytes memory)
-    {
+    function beforeBatchTransferERC1155(
+        address caller,
+        address from,
+        address to,
+        uint256[] calldata,
+        uint256[] calldata
+    ) external virtual override returns (bytes memory) {
+        address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
-        bool isOperatorAllowed = data.transferrerAllowed[from] || data.transferrerAllowed[to];
+        bool isOperatorAllowed =
+            data.transferEnabledFor[caller] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
 
         if (!isOperatorAllowed && !data.transferEnabled) {
             revert TransferDisabled();
@@ -96,9 +104,9 @@ contract TransferableERC1155 is ModularExtension {
         return _transferableStorage().transferEnabled;
     }
 
-    /// @notice Returns whether transfers is enabled for the transferrer for the token.
-    function isTransferEnabledFor(address transferrer) external view returns (bool) {
-        return _transferableStorage().transferrerAllowed[transferrer];
+    /// @notice Returns whether transfers is enabled for the target for the token.
+    function isTransferEnabledFor(address target) external view returns (bool) {
+        return _transferableStorage().transferEnabledFor[target];
     }
 
     /// @notice Set transferability for a token.
@@ -107,8 +115,9 @@ contract TransferableERC1155 is ModularExtension {
     }
 
     /// @notice Set transferability for an operator for a token.
-    function setTransferableFor(address transferrer, bool enableTransfer) external {
-        _transferableStorage().transferrerAllowed[transferrer] = enableTransfer;
+    function setTransferableFor(address target, bool enableTransfer) external {
+        address token = msg.sender;
+        _transferableStorage().transferEnabledFor[target] = enableTransfer;
     }
 
     /*//////////////////////////////////////////////////////////////
