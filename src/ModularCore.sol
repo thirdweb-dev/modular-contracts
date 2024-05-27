@@ -81,6 +81,14 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
     /// @notice Routes a call to the appropriate extension contract.
     fallback() external payable {
+        // This case is meant to handle calling `view` callback functions.
+        //
+        // All calls to extension contracts are delegateCall. A `view` callback function on
+        // an extension cannot be called via delegateCall inside a view function of the core contract.
+        // (see `_executeCallbackFunctionView` for more details)
+        //
+        // So, we route `view` callback function calls via the core's fallback, which permits calling
+        // the `view` callback function via delegateCall.
         if (msg.sender == address(this)) {
             (address impl, bytes memory decoded) = abi.decode(msg.data, (address, bytes));
 
