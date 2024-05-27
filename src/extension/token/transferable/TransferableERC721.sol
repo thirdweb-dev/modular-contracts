@@ -66,7 +66,6 @@ contract TransferableERC721 is ModularExtension, BeforeTransferCallbackERC721 {
         override
         returns (bytes memory)
     {
-        address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
         bool isOperatorAllowed =
             data.transferEnabledFor[caller] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
@@ -97,7 +96,6 @@ contract TransferableERC721 is ModularExtension, BeforeTransferCallbackERC721 {
 
     /// @notice Set transferability for an address for a token.
     function setTransferableFor(address target, bool enableTransfer) external {
-        address token = msg.sender;
         _transferableStorage().transferEnabledFor[target] = enableTransfer;
     }
 

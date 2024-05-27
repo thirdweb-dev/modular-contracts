@@ -64,7 +64,6 @@ contract TransferableERC20 is ModularExtension, BeforeTransferCallbackERC20 {
         override
         returns (bytes memory)
     {
-        address token = msg.sender;
         TransferableStorage.Data storage data = _transferableStorage();
         bool isOperatorAllowed =
             data.transferEnabledFor[caller] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
@@ -95,7 +94,6 @@ contract TransferableERC20 is ModularExtension, BeforeTransferCallbackERC20 {
 
     /// @notice Set transferability for an address for a token.
     function setTransferableFor(address target, bool enableTransfer) external {
-        address token = msg.sender;
         _transferableStorage().transferEnabledFor[target] = enableTransfer;
     }
 
