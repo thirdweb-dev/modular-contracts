@@ -351,7 +351,7 @@ contract MintableERC20Test is Test {
         MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestUnauthorizedSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestUnauthorized.selector));
         core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
             mintRequest.recipient, mintRequest.quantity, abi.encode(params)
         );

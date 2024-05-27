@@ -95,7 +95,7 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
     error MintableRequestMismatch();
 
     /// @dev Emitted when the minting request signature is unauthorized.
-    error MintableRequestUnauthorizedSignature();
+    error MintableRequestUnauthorized();
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -138,10 +138,20 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
         returns (bytes memory)
     {
         MintParamsERC20 memory _params = abi.decode(_data, (MintParamsERC20));
-        _mintWithSignatureERC20(_to, _quantity, _params.request, _params.signature);
-        _distributeMintPrice(
-            _caller, _params.request.currency, (_params.request.quantity * _params.request.pricePerUnit) / 1e18
-        );
+
+        // If the signature is empty, the caller must have the MINTER_ROLE.
+        if (_params.signature.length == 0) {
+            if (!OwnableRoles(address(this)).hasAllRoles(_caller, Role._MINTER_ROLE)) {
+                revert MintableRequestUnauthorized();
+            }
+
+            // Else read and verify the payload and signature.
+        } else {
+            _mintWithSignatureERC20(_to, _quantity, _params.request, _params.signature);
+            _distributeMintPrice(
+                _caller, _params.request.currency, (_params.request.quantity * _params.request.pricePerUnit) / 1e18
+            );
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -198,7 +208,7 @@ contract MintableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
         ).recover(_signature);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert MintableRequestUnauthorizedSignature();
+            revert MintableRequestUnauthorized();
         }
 
         _mintableStorage().uidUsed[_req.uid] = true;

@@ -163,7 +163,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);
@@ -200,7 +200,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         vm.expectRevert();
@@ -225,7 +225,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestMismatch.selector));
@@ -253,7 +253,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestMismatch.selector));
@@ -281,7 +281,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestMismatch.selector));
@@ -309,7 +309,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestExpired.selector));
@@ -334,7 +334,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.warp(mintRequest.endTimestamp);
 
@@ -361,7 +361,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
@@ -375,7 +375,8 @@ contract MintableERC1155Test is Test {
 
         bytes memory sigTwo = signMintRequest(mintRequestTwo, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory paramsTwo = MintableERC1155.MintParamsERC1155(mintRequestTwo, sigTwo);
+        MintableERC1155.MintParamsERC1155 memory paramsTwo =
+            MintableERC1155.MintParamsERC1155(mintRequestTwo, sigTwo, "");
 
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestUidReused.selector));
         core.mint(mintRequestTwo.recipient, mintRequestTwo.tokenId, mintRequestTwo.quantity, abi.encode(paramsTwo));
@@ -397,10 +398,10 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey); // is owner but not MINTER_ROLE holder
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestUnauthorizedSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestUnauthorized.selector));
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
             mintRequest.recipient, mintRequest.tokenId, mintRequest.quantity, abi.encode(params)
         );
@@ -422,7 +423,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableIncorrectNativeTokenSent.selector));
@@ -445,7 +446,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableIncorrectNativeTokenSent.selector));
@@ -470,7 +471,7 @@ contract MintableERC1155Test is Test {
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()

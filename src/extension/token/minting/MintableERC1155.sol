@@ -21,7 +21,9 @@ library MintableStorage {
         mapping(bytes32 => bool) uidUsed;
         // sale config
         MintableERC1155.SaleConfig saleConfig;
-        // tokenID => tokenURI
+        // tokenId range end
+        uint256[] tokenIdRangeEnd;
+        // tokenId range end => baseURI of range
         mapping(uint256 => string) tokenURI;
     }
 
@@ -74,6 +76,7 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
     struct MintParamsERC1155 {
         MintRequestERC1155 request;
         bytes signature;
+        string metadataURI;
     }
 
     /**
@@ -102,7 +105,7 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
     error MintableRequestMismatch();
 
     /// @dev Emitted when the minting request signature is unauthorized.
-    error MintableRequestUnauthorizedSignature();
+    error MintableRequestUnauthorized();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -160,8 +163,29 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
         returns (bytes memory)
     {
         MintParamsERC1155 memory _params = abi.decode(_data, (MintParamsERC1155));
-        _mintWithSignatureERC1155(_to, _quantity, _id, _params.request, _params.signature);
-        _distributeMintPrice(_caller, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit);
+
+        // If the signature is empty, the caller must have the MINTER_ROLE.
+        if (_params.signature.length == 0) {
+            if (!OwnableRoles(address(this)).hasAllRoles(_caller, Role._MINTER_ROLE)) {
+                revert MintableRequestUnauthorized();
+            }
+
+            if (bytes(_params.metadataURI).length > 0) {
+                setTokenURI(_params.request.tokenId, _params.metadataURI);
+            }
+
+            // Else read and verify the payload and signature.
+        } else {
+            _mintWithSignatureERC1155(_to, _quantity, _id, _params.request, _params.signature);
+
+            if (bytes(_params.request.metadataURI).length > 0) {
+                setTokenURI(_params.request.tokenId, _params.request.metadataURI);
+            }
+
+            _distributeMintPrice(
+                _caller, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
+            );
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -229,14 +253,10 @@ contract MintableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155,
         ).recover(_signature);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert MintableRequestUnauthorizedSignature();
+            revert MintableRequestUnauthorized();
         }
 
         _mintableStorage().uidUsed[_req.uid] = true;
-
-        if (bytes(_req.metadataURI).length > 0) {
-            setTokenURI(_req.tokenId, _req.metadataURI);
-        }
     }
 
     /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
