@@ -100,8 +100,9 @@ contract MintableERC1155Test is Test {
         extensionImplementation = new MintableERC1155();
 
         // install extension
+        bytes memory extensionInitializeData = abi.encodeWithSelector(MintableERC1155.setSaleConfig.selector, owner);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installExtension(address(extensionImplementation), extensionInitializeData);
 
         // Setup signature vars
         typehashMintRequest = keccak256(

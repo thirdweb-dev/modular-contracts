@@ -58,10 +58,6 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
 
     uint256 private number;
 
-    function onInstall(address sender, bytes memory data) external virtual {}
-
-    function onUninstall(address sender, bytes memory data) external virtual {}
-
     function getCallbacks() internal pure override returns (IExtensionConfig.CallbackFunction[] memory functions) {
         functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK + 1);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
@@ -89,8 +85,6 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
             FallbackFunction({selector: bytes4(keccak256("setNumber(uint256)")), permissionBits: CALLER_ROLE});
         functions[7] = FallbackFunction({selector: bytes4(keccak256("getNumber()")), permissionBits: 0});
         config.fallbackFunctions = functions;
-
-        config.registerInstallationCallback = true;
     }
 
     function setNumber(uint256 _number) external {
@@ -118,22 +112,6 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
     function permissioned_delegatecall() external {}
 
     function permissioned_staticcall() external view {}
-}
-
-contract MockExtensionOnInstallFails is MockExtensionWithFunctions {
-    error OnInstallFailed();
-
-    function onInstall(address sender, bytes memory data) external override {
-        revert OnInstallFailed();
-    }
-}
-
-contract MockExtensionOnUninstallFails is MockExtensionWithFunctions {
-    error OnUninstallFailed();
-
-    function onUninstall(address sender, bytes memory data) external override {
-        revert OnUninstallFailed();
-    }
 }
 
 contract MockExtensionNoCallbacks is MockExtensionWithFunctions {
@@ -303,7 +281,6 @@ contract ModularCoreTest is Test {
         IExtensionConfig.ExtensionConfig memory expectedConfig = ModularExtension(extension).getExtensionConfig();
 
         assertEq(installedConfig.requiredInterfaceId, expectedConfig.requiredInterfaceId);
-        assertEq(installedConfig.registerInstallationCallback, expectedConfig.registerInstallationCallback);
 
         assertEq(installedConfig.supportedInterfaces.length, expectedConfig.supportedInterfaces.length);
         uint256 len = installedConfig.supportedInterfaces.length;
@@ -351,16 +328,6 @@ contract ModularCoreTest is Test {
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionAlreadyInstalled.selector));
         core.installExtension(address(extension), "");
-    }
-
-    function test_installExtension_revert_onInstallCallbackFailed() public {
-        // Deploy extension
-        MockExtensionOnInstallFails ext = new MockExtensionOnInstallFails();
-
-        // Install extension
-        vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(MockExtensionOnInstallFails.OnInstallFailed.selector));
-        core.installExtension(address(ext), "");
     }
 
     function test_installExtension_revert_requiredInterfaceNotImplemented() public {
@@ -456,19 +423,5 @@ contract ModularCoreTest is Test {
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionNotInstalled.selector));
         core.uninstallExtension(address(extension), "");
-    }
-
-    function test_uninstallExtension_revert_onUninstallCallbackFailed() public {
-        // Deploy extension
-        MockExtensionOnUninstallFails ext = new MockExtensionOnUninstallFails();
-
-        // Install extension
-        vm.prank(owner);
-        core.installExtension(address(ext), "");
-
-        // Uninstall extension
-        vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(MockExtensionOnUninstallFails.OnUninstallFailed.selector));
-        core.uninstallExtension(address(ext), "");
     }
 }

@@ -99,8 +99,9 @@ contract MintableERC20Test is Test {
         extensionImplementation = new MintableERC20();
 
         // install extension
+        bytes memory extensionInitializeData = abi.encodeWithSelector(MintableERC20.setSaleConfig.selector, owner);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installExtension(address(extensionImplementation), extensionInitializeData);
 
         // Setup signature vars
         typehashMintRequest = keccak256(

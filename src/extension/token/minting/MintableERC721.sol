@@ -161,6 +161,7 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////

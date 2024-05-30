@@ -99,8 +99,9 @@ contract ClaimableERC721Test is Test {
         extensionImplementation = new ClaimableERC721();
 
         // install extension
+        bytes memory extensionInitializeData = abi.encodeWithSelector(ClaimableERC721.setSaleConfig.selector, owner);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installExtension(address(extensionImplementation), extensionInitializeData);
 
         // Setup signature vars
         typehashClaimRequest = keccak256(

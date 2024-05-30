@@ -99,8 +99,9 @@ contract ClaimableERC20Test is Test {
         extensionImplementation = new ClaimableERC20();
 
         // install extension
+        bytes memory extensionInitializeData = abi.encodeWithSelector(ClaimableERC20.setSaleConfig.selector, owner);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installExtension(address(extensionImplementation), extensionInitializeData);
 
         // Setup signature vars
         typehashClaimRequest = keccak256(

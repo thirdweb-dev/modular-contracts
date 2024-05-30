@@ -123,6 +123,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0x36372b07; // ERC20
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -100,8 +100,9 @@ contract ClaimableERC1155Test is Test {
         extensionImplementation = new ClaimableERC1155();
 
         // install extension
+        bytes memory extensionInitializeData = abi.encodeWithSelector(ClaimableERC1155.setSaleConfig.selector, owner);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installExtension(address(extensionImplementation), extensionInitializeData);
 
         // Setup signature vars
         typehashClaimRequest = keccak256(

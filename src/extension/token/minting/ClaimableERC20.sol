@@ -158,6 +158,7 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20 {
             FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0x36372b07; // ERC20
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////

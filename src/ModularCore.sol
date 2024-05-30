@@ -4,7 +4,6 @@ pragma solidity ^0.8.23;
 // Interface
 import {IModularCore} from "./interface/IModularCore.sol";
 import {IModularExtension} from "./interface/IModularExtension.sol";
-import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 
 // Utils
 import {Role} from "./Role.sol";
@@ -230,10 +229,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
             });
         }
 
-        // Call `onInstall` callback function if extension has registered installation callback.
+        // Call function if extension has registered installation callback.
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) =
-                _extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
+            (bool success, bytes memory returndata) = _extension.call{value: msg.value}(_data);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -271,9 +269,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) = _extension.call{value: msg.value}(
-                abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data))
-            );
+            (bool success, bytes memory returndata) = _extension.call{value: msg.value}(_data);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
