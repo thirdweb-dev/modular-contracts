@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {Role} from "../../../Role.sol";
 
 library RoyaltyStorage {
@@ -24,7 +25,7 @@ library RoyaltyStorage {
     }
 }
 
-contract RoyaltyERC721 is ModularExtension {
+contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -79,7 +80,22 @@ contract RoyaltyERC721 is ModularExtension {
 
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
+
+        config.registerInstallationCallback = true;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            CALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    function onInstall(address sender, bytes calldata data) external {
+        (address royaltyRecipient, uint256 royaltyBps) = abi.decode(data, (address, uint256));
+        setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
+    }
+
+    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    function onUninstall(address sender, bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
@@ -116,7 +132,7 @@ contract RoyaltyERC721 is ModularExtension {
     }
 
     /// @notice Sets the default royalty info for a given token.
-    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) external {
+    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) public {
         if (_royaltyBps > 10_000) {
             revert RoyaltyExceedsMaxBps();
         }

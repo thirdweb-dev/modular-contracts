@@ -233,7 +233,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         // Call `onInstall` callback function if extension has registered installation callback.
         if (config.registerInstallationCallback) {
             (bool success, bytes memory returndata) =
-                _extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
+                _extension.delegatecall(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -271,9 +271,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) = _extension.call{value: msg.value}(
-                abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data))
-            );
+            (bool success, bytes memory returndata) =
+                _extension.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }

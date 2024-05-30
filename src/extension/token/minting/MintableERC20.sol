@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {Role} from "../../../Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
@@ -30,7 +31,7 @@ library MintableStorage {
     }
 }
 
-contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCallbackERC20 {
+contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -123,6 +124,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0x36372b07; // ERC20
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -153,6 +155,15 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
             );
         }
     }
+
+    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    function onInstall(address sender, bytes calldata data) external {
+        (address primarySaleRecipient) = abi.decode(data, (address));
+        _mintableStorage().saleConfig = SaleConfig(primarySaleRecipient);
+    }
+
+    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    function onUninstall(address sender, bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

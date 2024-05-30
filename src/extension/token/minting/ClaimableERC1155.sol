@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {Role} from "../../../Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
@@ -33,7 +34,7 @@ library ClaimableStorage {
     }
 }
 
-contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155 {
+contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155, IInstallationCallback {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -164,6 +165,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             FallbackFunction({selector: this.setClaimConditionByTokenId.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -196,6 +198,15 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
 
         _distributeMintPrice(_caller, currency, _quantity * pricePerUnit);
     }
+
+    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    function onInstall(address sender, bytes calldata data) external {
+        (address primarySaleRecipient) = abi.decode(data, (address));
+        _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient);
+    }
+
+    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    function onUninstall(address sender, bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
