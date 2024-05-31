@@ -14,13 +14,13 @@ contract BeforeApproveCallbackERC20 {
 
     /**
      *  @notice The beforeApproveERC20 hook that is called by a core token before approving tokens.
-     *  @param _caller The address of the caller.
+     *
      *  @param _from The address that is approving tokens.
      *  @param _to The address that is being approved.
      *  @param _amount The amount of tokens being approved.
      *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeApproveERC20(address _caller, address _from, address _to, uint256 _amount)
+    function beforeApproveERC20(address _from, address _to, uint256 _amount)
         external
         virtual
         returns (bytes memory result)

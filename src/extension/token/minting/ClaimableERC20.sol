@@ -167,7 +167,7 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC20Core.mint function.
-    function beforeMintERC20(address _caller, address _to, uint256 _amount, bytes memory _data)
+    function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -189,17 +189,17 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
             pricePerUnit = _params.request.pricePerUnit;
         }
 
-        _distributeMintPrice(_caller, currency, (_amount * pricePerUnit) / 1e18);
+        _distributeMintPrice(msg.sender, currency, (_amount * pricePerUnit) / 1e18);
     }
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
-    function onInstall(address sender, bytes calldata data) external {
+    function onInstall(bytes calldata data) external {
         (address primarySaleRecipient) = abi.decode(data, (address));
         _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
-    function onUninstall(address sender, bytes calldata data) external {}
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

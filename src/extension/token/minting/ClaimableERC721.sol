@@ -167,13 +167,13 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(
-        address _caller,
-        address _to,
-        uint256 _startTokenId,
-        uint256 _quantity,
-        bytes memory _data
-    ) external payable virtual override returns (bytes memory) {
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
         ClaimParamsERC721 memory _params = abi.decode(_data, (ClaimParamsERC721));
 
         address currency;
@@ -189,17 +189,17 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
             pricePerUnit = _params.request.pricePerUnit;
         }
 
-        _distributeMintPrice(_caller, currency, _quantity * pricePerUnit);
+        _distributeMintPrice(msg.sender, currency, _quantity * pricePerUnit);
     }
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
-    function onInstall(address sender, bytes calldata data) external {
+    function onInstall(bytes calldata data) external {
         (address primarySaleRecipient) = abi.decode(data, (address));
         _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
-    function onUninstall(address sender, bytes calldata data) external {}
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

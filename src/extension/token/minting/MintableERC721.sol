@@ -182,18 +182,18 @@ contract MintableERC721 is
     }
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(
-        address _caller,
-        address _to,
-        uint256 _startTokenId,
-        uint256 _quantity,
-        bytes memory _data
-    ) external payable virtual override returns (bytes memory) {
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
         MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
 
         // If the signature is empty, the caller must have the MINTER_ROLE.
         if (_params.signature.length == 0) {
-            if (!OwnableRoles(address(this)).hasAllRoles(_caller, Role._MINTER_ROLE)) {
+            if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
                 revert MintableRequestUnauthorized();
             }
 
@@ -204,19 +204,19 @@ contract MintableERC721 is
             _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
             _setBaseURI(_startTokenId, _quantity, _params.request.baseURI);
             _distributeMintPrice(
-                _caller, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
+                msg.sender, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
             );
         }
     }
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
-    function onInstall(address sender, bytes calldata data) external {
+    function onInstall(bytes calldata data) external {
         (address primarySaleRecipient) = abi.decode(data, (address));
         _mintableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
-    function onUninstall(address sender, bytes calldata data) external {}
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

@@ -58,9 +58,9 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
 
     uint256 private number;
 
-    function onInstall(address sender, bytes memory data) external virtual {}
+    function onInstall(bytes memory data) external virtual {}
 
-    function onUninstall(address sender, bytes memory data) external virtual {}
+    function onUninstall(bytes memory data) external virtual {}
 
     function getCallbacks() internal pure override returns (IExtensionConfig.CallbackFunction[] memory functions) {
         functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK + 1);
@@ -123,7 +123,7 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
 contract MockExtensionOnInstallFails is MockExtensionWithFunctions {
     error OnInstallFailed();
 
-    function onInstall(address sender, bytes memory data) external override {
+    function onInstall(bytes memory data) external override {
         revert OnInstallFailed();
     }
 }
@@ -131,7 +131,7 @@ contract MockExtensionOnInstallFails is MockExtensionWithFunctions {
 contract MockExtensionOnUninstallFails is MockExtensionWithFunctions {
     error OnUninstallFailed();
 
-    function onUninstall(address sender, bytes memory data) external override {
+    function onUninstall(bytes memory data) external override {
         revert OnUninstallFailed();
     }
 }

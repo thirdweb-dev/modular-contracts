@@ -163,7 +163,7 @@ contract MintableERC1155 is
     }
 
     /// @notice Callback function for the ERC1155Core.mint function.
-    function beforeMintERC1155(address _caller, address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
@@ -174,7 +174,7 @@ contract MintableERC1155 is
 
         // If the signature is empty, the caller must have the MINTER_ROLE.
         if (_params.signature.length == 0) {
-            if (!OwnableRoles(address(this)).hasAllRoles(_caller, Role._MINTER_ROLE)) {
+            if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
                 revert MintableRequestUnauthorized();
             }
 
@@ -191,19 +191,19 @@ contract MintableERC1155 is
             }
 
             _distributeMintPrice(
-                _caller, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
+                msg.sender, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
             );
         }
     }
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
-    function onInstall(address sender, bytes calldata data) external {
+    function onInstall(bytes calldata data) external {
         (address primarySaleRecipient) = abi.decode(data, (address));
         _mintableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
-    function onUninstall(address sender, bytes calldata data) external {}
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

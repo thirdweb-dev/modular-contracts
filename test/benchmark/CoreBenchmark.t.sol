@@ -70,9 +70,9 @@ contract MockCore is MockBase, ModularCore {
 }
 
 contract MockExtension is MockBase, IModularExtension {
-    function onInstall(address sender, bytes memory data) external {}
+    function onInstall(bytes memory data) external {}
 
-    function onUninstall(address sender, bytes memory data) external {}
+    function onUninstall(bytes memory data) external {}
 
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getCallbacks();
@@ -84,9 +84,9 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
 
     uint256 public constant CALLER_ROLE = 1 << 0;
 
-    function onInstall(address sender, bytes memory data) external {}
+    function onInstall(bytes memory data) external {}
 
-    function onUninstall(address sender, bytes memory data) external {}
+    function onUninstall(bytes memory data) external {}
 
     function getCallbacks() internal pure override returns (IExtensionConfig.CallbackFunction[] memory functions) {
         functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK + 1);

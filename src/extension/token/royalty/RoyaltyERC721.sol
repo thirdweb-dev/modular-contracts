@@ -89,13 +89,13 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
-    function onInstall(address sender, bytes calldata data) external {
+    function onInstall(bytes calldata data) external {
         (address royaltyRecipient, uint256 royaltyBps) = abi.decode(data, (address, uint256));
         setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
-    function onUninstall(address sender, bytes calldata data) external {}
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

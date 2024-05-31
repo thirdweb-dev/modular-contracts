@@ -58,15 +58,10 @@ contract TransferableERC20 is ModularExtension, BeforeTransferCallbackERC20 {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for ERC20.transfer
-    function beforeTransferERC20(address caller, address from, address to, uint256)
-        external
-        virtual
-        override
-        returns (bytes memory)
-    {
+    function beforeTransferERC20(address from, address to, uint256) external virtual override returns (bytes memory) {
         TransferableStorage.Data storage data = _transferableStorage();
         bool isOperatorAllowed =
-            data.transferEnabledFor[caller] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
+            data.transferEnabledFor[msg.sender] || data.transferEnabledFor[from] || data.transferEnabledFor[to];
 
         if (!isOperatorAllowed && !data.transferEnabled) {
             revert TransferDisabled();

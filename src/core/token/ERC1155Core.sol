@@ -252,7 +252,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     function _beforeMint(address to, uint256 tokenId, uint256 value, bytes memory data) internal virtual {
         _executeCallbackFunction(
             BeforeMintCallbackERC1155.beforeMintERC1155.selector,
-            abi.encodeCall(BeforeMintCallbackERC1155.beforeMintERC1155, (msg.sender, to, tokenId, value, data))
+            abi.encodeCall(BeforeMintCallbackERC1155.beforeMintERC1155, (to, tokenId, value, data))
         );
     }
 
@@ -260,7 +260,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     function _beforeTransfer(address from, address to, uint256 tokenId, uint256 value) internal virtual {
         _executeCallbackFunction(
             BeforeTransferCallbackERC1155.beforeTransferERC1155.selector,
-            abi.encodeCall(BeforeTransferCallbackERC1155.beforeTransferERC1155, (msg.sender, from, to, tokenId, value))
+            abi.encodeCall(BeforeTransferCallbackERC1155.beforeTransferERC1155, (from, to, tokenId, value))
         );
     }
 
@@ -271,9 +271,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     {
         _executeCallbackFunction(
             BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155.selector,
-            abi.encodeCall(
-                BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155, (msg.sender, from, to, tokenIds, values)
-            )
+            abi.encodeCall(BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155, (from, to, tokenIds, values))
         );
     }
 
@@ -281,7 +279,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     function _beforeBurn(address from, uint256 tokenId, uint256 value, bytes memory data) internal virtual {
         _executeCallbackFunction(
             BeforeBurnCallbackERC1155.beforeBurnERC1155.selector,
-            abi.encodeCall(BeforeBurnCallbackERC1155.beforeBurnERC1155, (msg.sender, from, tokenId, value, data))
+            abi.encodeCall(BeforeBurnCallbackERC1155.beforeBurnERC1155, (from, tokenId, value, data))
         );
     }
 
@@ -289,7 +287,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
     function _beforeApproveForAll(address from, address to, bool approved) internal virtual {
         _executeCallbackFunction(
             BeforeApproveForAllCallback.beforeApproveForAll.selector,
-            abi.encodeCall(BeforeApproveForAllCallback.beforeApproveForAll, (msg.sender, from, to, approved))
+            abi.encodeCall(BeforeApproveForAllCallback.beforeApproveForAll, (from, to, approved))
         );
     }
 
