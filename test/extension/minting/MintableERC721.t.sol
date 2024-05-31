@@ -117,9 +117,9 @@ contract MintableERC721Test is Test {
         extensionImplementation = new MintableERC721();
 
         // install extension
-        bytes memory exetnsionInitializeData = abi.encode(owner);
+
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), exetnsionInitializeData);
+        core.installExtension(address(extensionImplementation), "");
 
         // Setup signature vars
         typehashMintRequest = keccak256(

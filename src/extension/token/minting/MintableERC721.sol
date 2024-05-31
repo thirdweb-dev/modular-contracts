@@ -211,8 +211,7 @@ contract MintableERC721 is
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
     function onInstall(bytes calldata data) external {
-        (address primarySaleRecipient) = abi.decode(data, (address));
-        _mintableStorage().saleConfig = SaleConfig(primarySaleRecipient);
+        _mintableStorage().saleConfig = SaleConfig(msg.sender);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.

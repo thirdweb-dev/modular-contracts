@@ -194,8 +194,7 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
     function onInstall(bytes calldata data) external {
-        (address primarySaleRecipient) = abi.decode(data, (address));
-        _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient);
+        _claimableStorage().saleConfig = SaleConfig(msg.sender);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
