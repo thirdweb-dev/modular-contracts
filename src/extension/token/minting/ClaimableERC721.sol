@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {Role} from "../../../Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
@@ -33,7 +34,7 @@ library ClaimableStorage {
     }
 }
 
-contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
+contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -158,6 +159,7 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
             FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -165,13 +167,13 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(
-        address _caller,
-        address _to,
-        uint256 _startTokenId,
-        uint256 _quantity,
-        bytes memory _data
-    ) external payable virtual override returns (bytes memory) {
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
         ClaimParamsERC721 memory _params = abi.decode(_data, (ClaimParamsERC721));
 
         address currency;
@@ -187,8 +189,16 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721 {
             pricePerUnit = _params.request.pricePerUnit;
         }
 
-        _distributeMintPrice(_caller, currency, _quantity * pricePerUnit);
+        _distributeMintPrice(msg.sender, currency, _quantity * pricePerUnit);
     }
+
+    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    function onInstall(bytes calldata data) external {
+        _claimableStorage().saleConfig = SaleConfig(msg.sender);
+    }
+
+    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

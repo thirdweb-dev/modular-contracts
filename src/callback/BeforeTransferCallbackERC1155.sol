@@ -20,7 +20,7 @@ contract BeforeTransferCallbackERC1155 {
      *  @param _value The quantity of tokens being transferred.
      *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeTransferERC1155(address _caller, address _from, address _to, uint256 _id, uint256 _value)
+    function beforeTransferERC1155(address _from, address _to, uint256 _id, uint256 _value)
         external
         virtual
         returns (bytes memory result)

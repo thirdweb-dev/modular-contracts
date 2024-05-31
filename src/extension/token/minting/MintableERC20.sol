@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {Role} from "../../../Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
@@ -30,7 +31,7 @@ library MintableStorage {
     }
 }
 
-contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCallbackERC20 {
+contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -123,6 +124,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0x36372b07; // ERC20
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -130,7 +132,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC20Core.mint function.
-    function beforeMintERC20(address _caller, address _to, uint256 _quantity, bytes memory _data)
+    function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
@@ -141,7 +143,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
 
         // If the signature is empty, the caller must have the MINTER_ROLE.
         if (_params.signature.length == 0) {
-            if (!OwnableRoles(address(this)).hasAllRoles(_caller, Role._MINTER_ROLE)) {
+            if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
                 revert MintableRequestUnauthorized();
             }
 
@@ -149,10 +151,18 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
         } else {
             _mintWithSignatureERC20(_to, _quantity, _params.request, _params.signature);
             _distributeMintPrice(
-                _caller, _params.request.currency, (_params.request.quantity * _params.request.pricePerUnit) / 1e18
+                msg.sender, _params.request.currency, (_params.request.quantity * _params.request.pricePerUnit) / 1e18
             );
         }
     }
+
+    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    function onInstall(bytes calldata data) external {
+        _mintableStorage().saleConfig = SaleConfig(msg.sender);
+    }
+
+    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

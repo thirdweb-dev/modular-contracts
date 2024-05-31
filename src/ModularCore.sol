@@ -36,10 +36,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when an extension is installed.
-    event ExtensionInstalled(address sender, address implementation, address installedExtension);
+    event ExtensionInstalled(address caller, address implementation, address installedExtension);
 
     /// @notice Emitted when an extension is uninstalled.
-    event ExtensionUninstalled(address sender, address implementation, address installedExtension);
+    event ExtensionUninstalled(address caller, address implementation, address installedExtension);
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -233,7 +233,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         // Call `onInstall` callback function if extension has registered installation callback.
         if (config.registerInstallationCallback) {
             (bool success, bytes memory returndata) =
-                _extension.call{value: msg.value}(abi.encodeCall(IInstallationCallback.onInstall, (msg.sender, _data)));
+                _extension.delegatecall(abi.encodeCall(IInstallationCallback.onInstall, (_data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -271,9 +271,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) = _extension.call{value: msg.value}(
-                abi.encodeCall(IInstallationCallback.onUninstall, (msg.sender, _data))
-            );
+            (bool success, bytes memory returndata) =
+                _extension.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (_data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }

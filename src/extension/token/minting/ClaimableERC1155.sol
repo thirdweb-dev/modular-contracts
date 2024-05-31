@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {Role} from "../../../Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
@@ -33,7 +34,7 @@ library ClaimableStorage {
     }
 }
 
-contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155 {
+contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155, IInstallationCallback {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -164,6 +165,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             FallbackFunction({selector: this.setClaimConditionByTokenId.selector, permissionBits: Role._MINTER_ROLE});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -171,7 +173,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC1155(address _caller, address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
@@ -194,8 +196,16 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             pricePerUnit = _params.request.pricePerUnit;
         }
 
-        _distributeMintPrice(_caller, currency, _quantity * pricePerUnit);
+        _distributeMintPrice(msg.sender, currency, _quantity * pricePerUnit);
     }
+
+    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    function onInstall(bytes calldata data) external {
+        _claimableStorage().saleConfig = SaleConfig(msg.sender);
+    }
+
+    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

@@ -117,6 +117,7 @@ contract MintableERC721Test is Test {
         extensionImplementation = new MintableERC721();
 
         // install extension
+
         vm.prank(owner);
         core.installExtension(address(extensionImplementation), "");
 

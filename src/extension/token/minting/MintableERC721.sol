@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {Role} from "../../../Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
@@ -36,7 +37,13 @@ library MintableStorage {
     }
 }
 
-contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, OnTokenURICallback {
+contract MintableERC721 is
+    ModularExtension,
+    EIP712,
+    BeforeMintCallbackERC721,
+    OnTokenURICallback,
+    IInstallationCallback
+{
     using ECDSA for bytes32;
     using LibString for uint256;
 
@@ -161,6 +168,7 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -174,18 +182,18 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
     }
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(
-        address _caller,
-        address _to,
-        uint256 _startTokenId,
-        uint256 _quantity,
-        bytes memory _data
-    ) external payable virtual override returns (bytes memory) {
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
         MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
 
         // If the signature is empty, the caller must have the MINTER_ROLE.
         if (_params.signature.length == 0) {
-            if (!OwnableRoles(address(this)).hasAllRoles(_caller, Role._MINTER_ROLE)) {
+            if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
                 revert MintableRequestUnauthorized();
             }
 
@@ -196,10 +204,18 @@ contract MintableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, O
             _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
             _setBaseURI(_startTokenId, _quantity, _params.request.baseURI);
             _distributeMintPrice(
-                _caller, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
+                msg.sender, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
             );
         }
     }
+
+    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    function onInstall(bytes calldata data) external {
+        _mintableStorage().saleConfig = SaleConfig(msg.sender);
+    }
+
+    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

@@ -32,8 +32,9 @@ contract RoyaltyERC721Test is Test {
         extensionImplementation = new RoyaltyExt();
 
         // install extension
+        bytes memory extensionInitializeData = abi.encode(owner, 100);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installExtension(address(extensionImplementation), extensionInitializeData);
 
         IModularCore.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
         installedExtension = RoyaltyExt(installedExtensions[0].implementation);
