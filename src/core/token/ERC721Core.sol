@@ -63,6 +63,16 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
         return _contractURI;
     }
 
+    /// @notice Returns the starting token ID for sequential mints.
+    function startTokenId() external view returns (uint256) {
+        return _startTokenId();
+    }
+
+    /// @notice Returns the total number of tokens minted ever.
+    function totalMinted() external view returns (uint256) {
+        return _totalMinted();
+    }
+
     /**
      *  @notice Returns the token metadata of an NFT.
      *  @dev Always returns metadata queried from the metadata source.
