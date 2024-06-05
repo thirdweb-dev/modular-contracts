@@ -168,9 +168,9 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
      */
     function mint(address to, uint256 tokenId, uint256 value, bytes memory data) external payable {
         _beforeMint(to, tokenId, value, data);
-        _mint(to, tokenId, value, "");
 
         _totalSupply[tokenId] += value;
+        _mint(to, tokenId, value, "");
     }
 
     /**
@@ -183,9 +183,9 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
      */
     function burn(address from, uint256 tokenId, uint256 value, bytes memory data) external {
         _beforeBurn(from, tokenId, value, data);
-        _burn(msg.sender, from, tokenId, value);
 
         _totalSupply[tokenId] -= value;
+        _burn(msg.sender, from, tokenId, value);
     }
 
     /**
