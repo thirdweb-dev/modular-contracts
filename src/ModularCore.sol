@@ -307,14 +307,11 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         if (callbackFunction.implementation != address(0)) {
             (success, returndata) = callbackFunction.implementation.delegatecall(_abiEncodedCalldata);
-        } else {
-            if (callbackMode == CallbackMode.REQUIRED) {
-                revert CallbackFunctionRequired();
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
             }
-        }
-
-        if (!success) {
-            _revert(returndata, CallbackExecutionReverted.selector);
+        } else if (callbackMode == CallbackMode.REQUIRED) {
+            revert CallbackFunctionRequired();
         }
     }
 
