@@ -458,7 +458,7 @@ contract ModularCoreTest is Test {
         core.uninstallExtension(address(extension), "");
     }
 
-    function test_uninstallExtension_revert_onUninstallCallbackFailed() public {
+    function test_uninstallExtension_doesNotCauseRevert() public {
         // Deploy extension
         MockExtensionOnUninstallFails ext = new MockExtensionOnUninstallFails();
 
@@ -468,7 +468,6 @@ contract ModularCoreTest is Test {
 
         // Uninstall extension
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(MockExtensionOnUninstallFails.OnUninstallFailed.selector));
         core.uninstallExtension(address(ext), "");
     }
 }

@@ -271,11 +271,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) =
-                _extension.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (_data)));
-            if (!success) {
-                _revert(returndata, CallbackExecutionReverted.selector);
-            }
+            _extension.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (_data)));
         }
 
         emit ExtensionUninstalled(msg.sender, _extension, _extension);
