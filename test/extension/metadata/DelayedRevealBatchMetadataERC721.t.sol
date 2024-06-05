@@ -37,6 +37,50 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
     }
 
     /*///////////////////////////////////////////////////////////////
+                        Helper functions
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     *  @notice         Encrypt/decrypt data on chain.
+     *  @dev            Encrypt/decrypt given `data` with `key`. Uses inline assembly.
+     *                  See: https://ethereum.stackexchange.com/questions/69825/decrypt-message-on-chain
+     */
+    function _encryptDecrypt(bytes memory data, bytes memory key) internal pure returns (bytes memory result) {
+        // Store data length on stack for later use
+        uint256 length = data.length;
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            // Set result to free memory pointer
+            result := mload(0x40)
+            // Increase free memory pointer by lenght + 32
+            mstore(0x40, add(add(result, length), 32))
+            // Set result length
+            mstore(result, length)
+        }
+
+        // Iterate over the data stepping by 32 bytes
+        for (uint256 i = 0; i < length; i += 32) {
+            // Generate hash of the key and offset
+            bytes32 hash = keccak256(abi.encodePacked(key, i));
+
+            bytes32 chunk;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                // Read 32-bytes data chunk
+                chunk := mload(add(data, add(i, 32)))
+            }
+            // XOR the chunk with hash
+            chunk ^= hash;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                // Write 32-byte encrypted chunk
+                mstore(add(result, add(i, 32)), chunk)
+            }
+        }
+    }
+
+    /*///////////////////////////////////////////////////////////////
                         Unit tests: `uploadMetadata`
     //////////////////////////////////////////////////////////////*/
 
@@ -65,7 +109,7 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         bytes memory encryptionKey = "key123";
 
         bytes32 provenanceHash = keccak256(abi.encodePacked(originalURI, encryptionKey, block.chainid));
-        bytes memory encryptedURI = DelayedRevealExt(address(core)).encryptDecrypt(bytes(originalURI), encryptionKey);
+        bytes memory encryptedURI = _encryptDecrypt(bytes(originalURI), encryptionKey);
         bytes memory encryptedData = abi.encode(encryptedURI, provenanceHash);
 
         vm.prank(owner);
@@ -82,7 +126,7 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         bytes memory encryptionKey = "key123";
 
         bytes32 provenanceHash = keccak256(abi.encodePacked(originalURI, encryptionKey, block.chainid));
-        bytes memory encryptedURI = DelayedRevealExt(address(core)).encryptDecrypt(bytes(originalURI), encryptionKey);
+        bytes memory encryptedURI = _encryptDecrypt(bytes(originalURI), encryptionKey);
         bytes memory encryptedData = abi.encode(encryptedURI, provenanceHash);
 
         vm.prank(owner);
@@ -103,14 +147,23 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         bytes memory encryptionKey = "key123";
 
         bytes32 provenanceHash = keccak256(abi.encodePacked(originalURI, encryptionKey, block.chainid));
-        bytes memory encryptedURI = DelayedRevealExt(address(core)).encryptDecrypt(bytes(originalURI), encryptionKey);
+        bytes memory encryptedURI = _encryptDecrypt(bytes(originalURI), encryptionKey);
         bytes memory encryptedData = abi.encode(encryptedURI, provenanceHash);
 
         vm.prank(owner);
         DelayedRevealExt(address(core)).uploadMetadata(100, tempURI, encryptedData);
 
         // get reveal URI
-        string memory revealURI = DelayedRevealExt(address(core)).getRevealURI(0, encryptionKey);
+        uint256 index = 0;
+
+        DelayedRevealBatchMetadataERC721.DelayedRevealMetadataBatch[] memory batches =
+            DelayedRevealExt(address(core)).getAllMetadataBatches();
+
+        bytes memory encryptedDataStored = batches[index].encryptedData;
+        (bytes memory encryptedURIStored,) = abi.decode(encryptedDataStored, (bytes, bytes32));
+
+        string memory revealURI = string(_encryptDecrypt(encryptedURIStored, encryptionKey));
+
         assertEq(revealURI, originalURI);
 
         // state unchanged
