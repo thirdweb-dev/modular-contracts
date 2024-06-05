@@ -24,7 +24,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The contract metadata URI of the contract.
-    string private _contractURI;
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -38,22 +38,22 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
     //////////////////////////////////////////////////////////////*/
 
     function initialize(
-        string memory name,
-        string memory symbol,
-        string memory contractURI,
-        address owner,
-        address[] memory extensions,
-        bytes[] memory extensionInstallData
+        string memory _name,
+        string memory _symbol,
+        string memory _contractURI,
+        address _owner,
+        address[] memory _extensions,
+        bytes[] memory _extensionInstallData
     ) external payable initializer initializerERC721A {
         // Set contract metadata
-        __ERC721A_init(name, symbol);
-        _setupContractURI(contractURI);
-        _initializeOwner(owner);
+        __ERC721A_init(_name, _symbol);
+        _setupContractURI(_contractURI);
+        _initializeOwner(_owner);
 
         // Install and initialize extensions
-        require(extensions.length == extensions.length);
-        for (uint256 i = 0; i < extensions.length; i++) {
-            _installExtension(extensions[i], extensionInstallData[i]);
+        require(_extensions.length == _extensionInstallData.length);
+        for (uint256 i = 0; i < _extensions.length; i++) {
+            _installExtension(_extensions[i], _extensionInstallData[i]);
         }
     }
 
@@ -66,7 +66,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view returns (string memory) {
-        return _contractURI;
+        return contractURI_;
     }
 
     /**
@@ -213,8 +213,8 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Sets contract URI
-    function _setupContractURI(string memory contractURI) internal {
-        _contractURI = contractURI;
+    function _setupContractURI(string memory _contractURI) internal {
+        contractURI_ = contractURI_;
         emit ContractURIUpdated();
     }
 

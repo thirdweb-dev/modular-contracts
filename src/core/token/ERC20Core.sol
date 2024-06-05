@@ -19,13 +19,13 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The name of the token.
-    string private _name;
+    string private name_;
 
     /// @notice The symbol of the token.
-    string private _symbol;
+    string private symbol_;
 
     /// @notice The contract metadata URI of the contract.
-    string private _contractURI;
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -39,23 +39,23 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        string memory name,
-        string memory symbol,
-        string memory contractURI,
-        address owner,
-        address[] memory extensions,
-        bytes[] memory extensionInstallData
+        string memory _name,
+        string memory _symbol,
+        string memory _contractURI,
+        address _owner,
+        address[] memory _extensions,
+        bytes[] memory _extensionInstallData
     ) payable {
         // Set contract metadata
-        _name = _name;
-        _symbol = _symbol;
-        _setupContractURI(contractURI);
-        _initializeOwner(owner);
+        name_ = _name;
+        symbol_ = _symbol;
+        _setupContractURI(_contractURI);
+        _initializeOwner(_owner);
 
         // Install and initialize extensions
-        require(extensions.length == extensions.length);
-        for (uint256 i = 0; i < extensions.length; i++) {
-            _installExtension(extensions[i], extensionInstallData[i]);
+        require(_extensions.length == _extensionInstallData.length);
+        for (uint256 i = 0; i < _extensions.length; i++) {
+            _installExtension(_extensions[i], _extensionInstallData[i]);
         }
     }
 
@@ -65,12 +65,12 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
 
     /// @notice Returns the name of the token.
     function name() public view override returns (string memory) {
-        return _name;
+        return name_;
     }
 
     /// @notice Returns the symbol of the token.
     function symbol() public view override returns (string memory) {
-        return _symbol;
+        return symbol_;
     }
 
     /**
@@ -78,7 +78,7 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view returns (string memory) {
-        return _contractURI;
+        return contractURI_;
     }
 
     function getSupportedCallbackFunctions()
@@ -207,8 +207,8 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Sets contract URI
-    function _setupContractURI(string memory contractURI) internal {
-        _contractURI = contractURI;
+    function _setupContractURI(string memory _contractURI) internal {
+        contractURI_ = _contractURI;
         emit ContractURIUpdated();
     }
 

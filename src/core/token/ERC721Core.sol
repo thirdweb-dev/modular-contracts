@@ -19,7 +19,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The contract metadata URI of the contract.
-    string private _contractURI;
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -33,21 +33,21 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        string memory name,
-        string memory symbol,
-        string memory contractURI,
-        address owner,
-        address[] memory extensions,
-        bytes[] memory extensionInstallData
-    ) payable ERC721A(name, symbol) {
+        string memory _name,
+        string memory _symbol,
+        string memory _contractURI,
+        address _owner,
+        address[] memory _extensions,
+        bytes[] memory _extensionInstallData
+    ) payable ERC721A(_name, _symbol) {
         // Set contract metadata
-        _setupContractURI(contractURI);
-        _initializeOwner(owner);
+        _setupContractURI(_contractURI);
+        _initializeOwner(_owner);
 
         // Install and initialize extensions
-        require(extensions.length == extensions.length);
-        for (uint256 i = 0; i < extensions.length; i++) {
-            _installExtension(extensions[i], extensionInstallData[i]);
+        require(_extensions.length == _extensionInstallData.length);
+        for (uint256 i = 0; i < _extensions.length; i++) {
+            _installExtension(_extensions[i], _extensionInstallData[i]);
         }
     }
 
@@ -60,7 +60,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view returns (string memory) {
-        return _contractURI;
+        return contractURI_;
     }
 
     /**
@@ -195,8 +195,8 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Sets contract URI
-    function _setupContractURI(string memory contractURI) internal {
-        _contractURI = contractURI;
+    function _setupContractURI(string memory _contractURI) internal {
+        contractURI_ = _contractURI;
         emit ContractURIUpdated();
     }
 

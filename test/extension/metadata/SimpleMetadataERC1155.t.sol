@@ -58,4 +58,9 @@ contract SimpleMetadataERC1155Test is Test {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
         SimpleMetadataExt(address(core)).setTokenURI(1, "ipfs://base/");
     }
+
+    function test_audit_does_not_set_name_and_symbol() public {
+        assertEq(core.name(), "test");
+        assertEq(core.symbol(), "TEST");
+    }
 }
