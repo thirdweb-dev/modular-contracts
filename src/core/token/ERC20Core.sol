@@ -146,7 +146,10 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
     function burn(address from, uint256 amount, bytes calldata data) external {
         _beforeBurn(from, amount, data);
 
-        _spendAllowance(from, msg.sender, amount);
+        if (from != msg.sender) {
+            _spendAllowance(from, msg.sender, amount);
+        }
+
         _burn(from, amount);
     }
 

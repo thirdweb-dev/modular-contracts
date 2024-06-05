@@ -180,4 +180,9 @@ contract TransferableERC20Test is Test {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
         TransferableExt(address(core)).setTransferableFor(actorOne, true);
     }
+
+    function test_burner_should_not_need_to_approve_to_themselves() public {
+        vm.startPrank(actorOne);
+        core.burn(actorOne, 1, "");
+    }
 }
