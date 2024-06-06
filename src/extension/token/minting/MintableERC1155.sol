@@ -121,6 +121,9 @@ contract MintableERC1155 is
     /// @dev Emitted when a token's metadata URI is updated.
     event MintableTokenURIUpdated(uint256 tokenId, string tokenURI);
 
+    /// @notice Emitted when the metadata URI for a token is updated.
+    event MetadataUpdate(uint256 id);
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -224,6 +227,7 @@ contract MintableERC1155 is
     function setTokenURI(uint256 _tokenId, string memory _tokenURI) public {
         _mintableStorage().tokenURI[_tokenId] = _tokenURI;
         emit MintableTokenURIUpdated(_tokenId, _tokenURI);
+        emit MetadataUpdate(_tokenId);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -141,6 +141,9 @@ contract MintableERC721 is
         uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
     );
 
+    /// @dev ERC-4906 Metadata Update.
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -246,6 +249,7 @@ contract MintableERC721 is
         _mintableStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
         emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
+        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive);
     }
 
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
