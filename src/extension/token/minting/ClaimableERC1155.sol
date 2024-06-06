@@ -101,6 +101,8 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
     struct ClaimParamsERC1155 {
         ClaimRequestERC1155 request;
         bytes signature;
+        address currency;
+        uint256 pricePerUnit;
         bytes32[] recipientAllowlistProof;
     }
 
@@ -131,6 +133,9 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
 
     /// @dev Emitted when the mint is out of supply.
     error ClaimableOutOfSupply();
+
+    /// @dev Emitted when the mint is priced at an unexpected price or currency.
+    error ClaimableIncorrectPriceOrCurrency();
 
     /// @dev Emitted when the minter is not in the allowlist.
     error ClaimableNotInAllowlist();
@@ -186,10 +191,11 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
         uint256 pricePerUnit;
 
         if (_params.signature.length == 0) {
-            ClaimCondition memory condition =
-                _validateClaimCondition(_to, _quantity, _id, _params.recipientAllowlistProof);
-            currency = condition.currency;
-            pricePerUnit = condition.pricePerUnit;
+            ClaimCondition memory condition = _validateClaimCondition(
+                _to, _quantity, _id, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
+            );
+            currency = _params.currency;
+            pricePerUnit = _params.pricePerUnit;
         } else {
             _validateClaimRequest(_to, _quantity, _id, _params.request, _params.signature);
             currency = _params.request.currency;
@@ -241,12 +247,18 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
         address _recipient,
         uint256 _amount,
         uint256 _tokenId,
+        address _currency,
+        uint256 _pricePerUnit,
         bytes32[] memory _allowlistProof
     ) internal returns (ClaimCondition memory condition) {
         condition = _claimableStorage().claimConditionByTokenId[_tokenId];
 
         if (block.timestamp < condition.startTimestamp || condition.endTimestamp <= block.timestamp) {
             revert ClaimableOutOfTimeWindow();
+        }
+
+        if (_currency != condition.currency || _pricePerUnit != condition.pricePerUnit) {
+            revert ClaimableIncorrectPriceOrCurrency();
         }
 
         if (_amount > condition.availableSupply) {

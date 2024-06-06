@@ -99,6 +99,8 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
     struct ClaimParamsERC721 {
         ClaimRequestERC721 request;
         bytes signature;
+        address currency;
+        uint256 pricePerUnit;
         bytes32[] recipientAllowlistProof;
     }
 
@@ -126,6 +128,9 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
 
     /// @dev Emitted when the mint is out of supply.
     error ClaimableOutOfSupply();
+
+    /// @dev Emitted when the mint is priced at an unexpected price or currency.
+    error ClaimableIncorrectPriceOrCurrency();
 
     /// @dev Emitted when the minter is not in the allowlist.
     error ClaimableNotInAllowlist();
@@ -180,9 +185,11 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
         uint256 pricePerUnit;
 
         if (_params.signature.length == 0) {
-            ClaimCondition memory condition = _validateClaimCondition(_to, _quantity, _params.recipientAllowlistProof);
-            currency = condition.currency;
-            pricePerUnit = condition.pricePerUnit;
+            ClaimCondition memory condition = _validateClaimCondition(
+                _to, _quantity, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
+            );
+            currency = _params.currency;
+            pricePerUnit = _params.pricePerUnit;
         } else {
             _validateClaimRequest(_to, _quantity, _params.request, _params.signature);
             currency = _params.request.currency;
@@ -230,14 +237,21 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Verifies a claim against the active claim condition.
-    function _validateClaimCondition(address _recipient, uint256 _amount, bytes32[] memory _allowlistProof)
-        internal
-        returns (ClaimCondition memory condition)
-    {
+    function _validateClaimCondition(
+        address _recipient,
+        uint256 _amount,
+        address _currency,
+        uint256 _pricePerUnit,
+        bytes32[] memory _allowlistProof
+    ) internal returns (ClaimCondition memory condition) {
         condition = _claimableStorage().claimCondition;
 
         if (block.timestamp < condition.startTimestamp || condition.endTimestamp <= block.timestamp) {
             revert ClaimableOutOfTimeWindow();
+        }
+
+        if (_currency != condition.currency || _pricePerUnit != condition.pricePerUnit) {
+            revert ClaimableIncorrectPriceOrCurrency();
         }
 
         if (_amount > condition.availableSupply) {
