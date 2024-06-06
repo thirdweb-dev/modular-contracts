@@ -297,11 +297,14 @@ contract MintableERC1155 is
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
+            if (msg.value > 0) {
+                revert MintableIncorrectNativeTokenSent();
+            }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }
-
     /// @dev Returns the domain name and version for EIP712.
+
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
         name = "MintableERC1155";
         version = "1";

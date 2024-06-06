@@ -325,6 +325,9 @@ contract MintableERC721 is
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
+            if (msg.value > 0) {
+                revert MintableIncorrectNativeTokenSent();
+            }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }
