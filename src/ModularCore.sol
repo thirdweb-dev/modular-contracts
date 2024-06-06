@@ -77,8 +77,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                             FALLBACK FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    receive() external payable {}
-
     /// @notice Routes a call to the appropriate extension contract.
     fallback() external payable {
         // Get extension function data.
