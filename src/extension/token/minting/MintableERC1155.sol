@@ -138,7 +138,7 @@ contract MintableERC1155 is
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
         config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector);
@@ -148,6 +148,7 @@ contract MintableERC1155 is
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.setTokenURI.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
         config.registerInstallationCallback = true;

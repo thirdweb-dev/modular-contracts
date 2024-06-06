@@ -152,7 +152,7 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](4);
+        config.fallbackFunctions = new FallbackFunction[](5);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
 
@@ -162,6 +162,7 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
         config.fallbackFunctions[2] = FallbackFunction({selector: this.getClaimCondition.selector, permissionBits: 0});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0x36372b07; // ERC20
         config.registerInstallationCallback = true;

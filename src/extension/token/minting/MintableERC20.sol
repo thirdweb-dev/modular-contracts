@@ -115,13 +115,14 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](2);
+        config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0x36372b07; // ERC20
         config.registerInstallationCallback = true;
