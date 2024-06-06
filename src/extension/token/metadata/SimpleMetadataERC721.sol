@@ -33,6 +33,9 @@ contract SimpleMetadataERC721 is ModularExtension {
     /// @notice Emitted when the metadata URI for a token is updated.
     event MetadataUpdate(uint256 id);
 
+    /// @notice Emitted when the metadata URI is queried for non-existent token.
+    error MetadataNoMetadataForTokenId();
+
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
@@ -54,8 +57,12 @@ contract SimpleMetadataERC721 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for ERC721Metadata.tokenURI
-    function onTokenURI(uint256 _id) public view returns (string memory) {
-        return SimpleMetadataStorage.data().uris[_id];
+    function onTokenURI(uint256 _id) public view returns (string memory uri) {
+        uri = SimpleMetadataStorage.data().uris[_id];
+        if (bytes(uri).length == 0) {
+            revert MetadataNoMetadataForTokenId();
+        }
+        return uri;
     }
 
     /*//////////////////////////////////////////////////////////////
