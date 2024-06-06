@@ -192,7 +192,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
         uint256 pricePerUnit;
 
         if (_params.signature.length == 0) {
-            ClaimCondition memory condition = _validateClaimCondition(
+            _validateClaimCondition(
                 _to, _quantity, _id, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
             );
             currency = _params.currency;
@@ -251,8 +251,8 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
         address _currency,
         uint256 _pricePerUnit,
         bytes32[] memory _allowlistProof
-    ) internal returns (ClaimCondition memory condition) {
-        condition = _claimableStorage().claimConditionByTokenId[_tokenId];
+    ) internal {
+        ClaimCondition memory condition = _claimableStorage().claimConditionByTokenId[_tokenId];
 
         if (block.timestamp < condition.startTimestamp || condition.endTimestamp <= block.timestamp) {
             revert ClaimableOutOfTimeWindow();

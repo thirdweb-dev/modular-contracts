@@ -186,7 +186,7 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
         uint256 pricePerUnit;
 
         if (_params.signature.length == 0) {
-            ClaimCondition memory condition = _validateClaimCondition(
+            _validateClaimCondition(
                 _to, _amount, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
             );
             currency = _params.currency;
@@ -244,8 +244,8 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
         address _currency,
         uint256 _pricePerUnit,
         bytes32[] memory _allowlistProof
-    ) internal returns (ClaimCondition memory condition) {
-        condition = _claimableStorage().claimCondition;
+    ) internal {
+        ClaimCondition memory condition = _claimableStorage().claimCondition;
 
         if (block.timestamp < condition.startTimestamp || condition.endTimestamp <= block.timestamp) {
             revert ClaimableOutOfTimeWindow();
