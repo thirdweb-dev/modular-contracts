@@ -85,6 +85,9 @@ contract BatchMetadataERC721 is ModularExtension {
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721.
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////

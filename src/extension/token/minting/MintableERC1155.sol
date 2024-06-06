@@ -155,6 +155,9 @@ contract MintableERC1155 is
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
         config.registerInstallationCallback = true;
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////

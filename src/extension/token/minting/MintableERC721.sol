@@ -173,6 +173,9 @@ contract MintableERC721 is
 
         config.requiredInterfaceId = 0x80ac58cd; // ERC721
         config.registerInstallationCallback = true;
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////

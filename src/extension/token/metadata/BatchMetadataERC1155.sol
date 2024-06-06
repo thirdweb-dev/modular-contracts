@@ -17,5 +17,8 @@ contract BatchMetadataERC1155 is BatchMetadataERC721 {
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
 
         config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 }

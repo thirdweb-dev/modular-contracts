@@ -126,6 +126,9 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
 
         config.requiredInterfaceId = 0x36372b07; // ERC20
         config.registerInstallationCallback = true;
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////
