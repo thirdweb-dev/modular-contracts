@@ -37,6 +37,10 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
                             CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         string memory _name,
         string memory _symbol,

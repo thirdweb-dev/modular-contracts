@@ -43,6 +43,10 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
                         CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         string memory _name,
         string memory _symbol,

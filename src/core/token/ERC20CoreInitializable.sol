@@ -40,6 +40,10 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
                         CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         string memory _name,
         string memory _symbol,
