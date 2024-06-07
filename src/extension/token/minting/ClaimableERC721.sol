@@ -164,7 +164,9 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
             FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
         config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
+
         config.registerInstallationCallback = true;
     }
 

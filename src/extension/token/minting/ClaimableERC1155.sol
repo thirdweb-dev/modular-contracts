@@ -170,7 +170,9 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
             FallbackFunction({selector: this.setClaimConditionByTokenId.selector, permissionBits: Role._MINTER_ROLE});
         config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
+
         config.registerInstallationCallback = true;
     }
 

@@ -76,7 +76,8 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
         config.fallbackFunctions[4] =
             FallbackFunction({selector: this.setRoyaltyInfoForToken.selector, permissionBits: Role._MANAGER_ROLE});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721.
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
 
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.

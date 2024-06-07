@@ -153,7 +153,9 @@ contract MintableERC1155 is
             FallbackFunction({selector: this.setTokenURI.selector, permissionBits: Role._MINTER_ROLE});
         config.fallbackFunctions[3] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
+
         config.registerInstallationCallback = true;
 
         config.supportedInterfaces = new bytes4[](1);

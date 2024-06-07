@@ -23,7 +23,8 @@ contract RoyaltyERC1155 is RoyaltyERC721 {
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
 
-        config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
 
         config.registerInstallationCallback = true;
     }

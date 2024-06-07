@@ -172,9 +172,11 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
 
         // Check: ModularCore supports interface required by extension.
-        if (config.requiredInterfaceId != bytes4(0)) {
-            if (!this.supportsInterface(config.requiredInterfaceId)) {
-                revert ExtensionInterfaceNotCompatible(config.requiredInterfaceId);
+        if (config.requiredInterfaces.length != 0) {
+            for (uint256 i = 0; i < config.requiredInterfaces.length; i++) {
+                if (!this.supportsInterface(config.requiredInterfaces[i])) {
+                    revert ExtensionInterfaceNotCompatible(config.requiredInterfaces[i]);
+                }
             }
         }
 

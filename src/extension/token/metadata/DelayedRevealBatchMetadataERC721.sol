@@ -97,7 +97,8 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.reveal.selector, permissionBits: Role._MINTER_ROLE});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721.
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
 
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x49064906; // ERC4906.
