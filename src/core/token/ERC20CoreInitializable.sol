@@ -152,7 +152,7 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
      *  @param amount The amount of tokens to burn.
      *  @param data ABI encoded arguments to pass to the beforeBurnERC20 hook.
      */
-    function burn(address from, uint256 amount, bytes calldata data) external {
+    function burn(address from, uint256 amount, bytes calldata data) external payable {
         _beforeBurn(from, amount, data);
 
         if (from != msg.sender) {

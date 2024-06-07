@@ -168,7 +168,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
      *  @param tokenId The token ID of the NFT to burn.
      *  @param data ABI encoded data to pass to the beforeBurn hook.
      */
-    function burn(uint256 tokenId, bytes calldata data) external {
+    function burn(uint256 tokenId, bytes calldata data) external payable {
         _beforeBurn(tokenId, data);
         _burn(tokenId, true);
     }

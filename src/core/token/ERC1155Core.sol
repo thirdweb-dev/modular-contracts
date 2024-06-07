@@ -208,7 +208,7 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
      *  @param value The amount of tokens to burn.
      *  @param data ABI encoded data to pass to the beforeBurn hook.
      */
-    function burn(address from, uint256 tokenId, uint256 value, bytes memory data) external {
+    function burn(address from, uint256 tokenId, uint256 value, bytes memory data) external payable {
         _beforeBurn(from, tokenId, value, data);
 
         _totalSupply[tokenId] -= value;
