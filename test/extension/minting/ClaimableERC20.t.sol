@@ -505,7 +505,7 @@ contract ClaimableERC20Test is Test {
             ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestOutOfTimeWindow.selector));
         core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
             claimRequest.recipient, claimRequest.quantity, abi.encode(params)
         );
@@ -544,7 +544,7 @@ contract ClaimableERC20Test is Test {
         vm.warp(claimRequest.endTimestamp);
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestOutOfTimeWindow.selector));
         core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
             claimRequest.recipient, claimRequest.quantity, abi.encode(params)
         );

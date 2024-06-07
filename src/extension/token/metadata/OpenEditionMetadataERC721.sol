@@ -104,15 +104,9 @@ contract OpenEditionMetadataERC721 is ModularExtension {
 
     /// @notice Set shared metadata for NFTs
     function setSharedMetadata(SharedMetadata calldata _metadata) external {
-        OpenEditionMetadataStorage.data().sharedMetadata = SharedMetadata({
-            name: _metadata.name,
-            description: _metadata.description,
-            imageURI: _metadata.imageURI,
-            animationURI: _metadata.animationURI
-        });
+        OpenEditionMetadataStorage.data().sharedMetadata = _metadata;
 
         emit BatchMetadataUpdate(0, type(uint256).max);
-
         emit SharedMetadataUpdated(_metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI);
     }
 

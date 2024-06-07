@@ -269,7 +269,7 @@ contract MintableERC20Test is Test {
         MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestOutOfTimeWindow.selector));
         core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
             mintRequest.recipient, mintRequest.quantity, abi.encode(params)
         );
@@ -294,7 +294,7 @@ contract MintableERC20Test is Test {
         vm.warp(mintRequest.endTimestamp);
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestOutOfTimeWindow.selector));
         core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
             mintRequest.recipient, mintRequest.quantity, abi.encode(params)
         );

@@ -120,7 +120,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
     error ClaimableRequestMismatch();
 
     /// @dev Emitted when the minting request has expired.
-    error ClaimableRequestExpired();
+    error ClaimableRequestOutOfTimeWindow();
 
     /// @dev Emitted when the minting request UID has been reused.
     error ClaimableRequestUidReused();
@@ -296,11 +296,15 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert ClaimableRequestExpired();
+            revert ClaimableRequestOutOfTimeWindow();
         }
 
         if (_claimableStorage().uidUsed[_req.uid]) {
             revert ClaimableRequestUidReused();
+        }
+
+        if (_req.quantity > _claimableStorage().claimConditionByTokenId[_expectedTokenId].availableSupply) {
+            revert ClaimableOutOfSupply();
         }
 
         address signer = _hashTypedData(

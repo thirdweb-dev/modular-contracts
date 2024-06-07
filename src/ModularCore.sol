@@ -145,7 +145,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
         if (interfaceId == 0xffffffff) return false;
         if (supportedInterfaceRefCounter[interfaceId] > 0) return true;
         return false;
@@ -174,7 +174,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         // Check: ModularCore supports interface required by extension.
         if (config.requiredInterfaces.length != 0) {
             for (uint256 i = 0; i < config.requiredInterfaces.length; i++) {
-                if (!this.supportsInterface(config.requiredInterfaces[i])) {
+                if (!supportsInterface(config.requiredInterfaces[i])) {
                     revert ExtensionInterfaceNotCompatible(config.requiredInterfaces[i]);
                 }
             }

@@ -114,8 +114,8 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     /// @dev Emitted when the minting request does not match the expected values.
     error ClaimableRequestMismatch();
 
-    /// @dev Emitted when the minting request has expired.
-    error ClaimableRequestExpired();
+    /// @dev Emitted when the minting request is outside time window.
+    error ClaimableRequestOutOfTimeWindow();
 
     /// @dev Emitted when the minting request UID has been reused.
     error ClaimableRequestUidReused();
@@ -286,11 +286,15 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert ClaimableRequestExpired();
+            revert ClaimableRequestOutOfTimeWindow();
         }
 
         if (_claimableStorage().uidUsed[_req.uid]) {
             revert ClaimableRequestUidReused();
+        }
+
+        if (_req.quantity > _claimableStorage().claimCondition.availableSupply) {
+            revert ClaimableOutOfSupply();
         }
 
         address signer = _hashTypedData(

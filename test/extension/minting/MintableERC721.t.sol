@@ -321,7 +321,7 @@ contract MintableERC721Test is Test {
         MintableERC721.MintParamsERC721 memory params = MintableERC721.MintParamsERC721(mintRequest, sig, "");
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableRequestOutOfTimeWindow.selector));
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
             mintRequest.recipient, mintRequest.quantity, abi.encode(params)
         );
@@ -347,7 +347,7 @@ contract MintableERC721Test is Test {
         vm.warp(mintRequest.endTimestamp);
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableRequestOutOfTimeWindow.selector));
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
             mintRequest.recipient, mintRequest.quantity, abi.encode(params)
         );

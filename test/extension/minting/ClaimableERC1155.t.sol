@@ -517,7 +517,7 @@ contract ClaimableERC1155Test is Test {
             ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestOutOfTimeWindow.selector));
         core.mint{value: (claimRequest.quantity * condition.pricePerUnit)}(
             claimRequest.recipient, 0, claimRequest.quantity, abi.encode(params)
         );
@@ -557,7 +557,7 @@ contract ClaimableERC1155Test is Test {
         vm.warp(claimRequest.endTimestamp);
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestOutOfTimeWindow.selector));
         core.mint{value: (claimRequest.quantity * condition.pricePerUnit)}(
             claimRequest.recipient, 0, claimRequest.quantity, abi.encode(params)
         );

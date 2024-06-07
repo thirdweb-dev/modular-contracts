@@ -63,7 +63,6 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
 
     /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](0);
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.royaltyInfo.selector, permissionBits: 0});

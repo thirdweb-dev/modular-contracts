@@ -87,7 +87,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     error MintableIncorrectNativeTokenSent();
 
     /// @dev Emitted when the minting request has expired.
-    error MintableRequestExpired();
+    error MintableRequestOutOfTimeWindow();
 
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
@@ -201,7 +201,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintableRequestExpired();
+            revert MintableRequestOutOfTimeWindow();
         }
 
         if (_mintableStorage().uidUsed[_req.uid]) {
