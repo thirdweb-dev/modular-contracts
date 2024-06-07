@@ -8,6 +8,7 @@ import {ERC1155} from "@solady/tokens/ERC1155.sol";
 import {ModularCore} from "../../ModularCore.sol";
 
 import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC1155.sol";
+import {BeforeBatchMintCallbackERC1155} from "../../callback/BeforeBatchMintCallbackERC1155.sol";
 import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
 import {BeforeBatchTransferCallbackERC1155} from "../../callback/BeforeBatchTransferCallbackERC1155.sol";
 import {BeforeBurnCallbackERC1155} from "../../callback/BeforeBurnCallbackERC1155.sol";
@@ -122,7 +123,7 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](6);
+        supportedCallbackFunctions = new SupportedCallbackFunction[](7);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: BeforeMintCallbackERC1155.beforeMintERC1155.selector,
             mode: CallbackMode.REQUIRED
@@ -145,6 +146,10 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
         });
         supportedCallbackFunctions[5] =
             SupportedCallbackFunction({selector: OnTokenURICallback.onTokenURI.selector, mode: CallbackMode.REQUIRED});
+        supportedCallbackFunctions[6] = SupportedCallbackFunction({
+            selector: BeforeBatchMintCallbackERC1155.beforeBatchMintERC1155.selector,
+            mode: CallbackMode.REQUIRED
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -173,6 +178,27 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
 
         _totalSupply[tokenId] += value;
         _mint(to, tokenId, value, "");
+    }
+
+    /**
+     *  @notice Batch mints tokens. Calls the beforeBatchMint hook.
+     *  @dev Reverts if beforeBatchMint hook is absent or unsuccessful.
+     *  @param to The address to mint the token to.
+     *  @param ids The tokenIds to mint.
+     *  @param amounts The amounts of tokens to mint.
+     *  @param data ABI encoded data to pass to the beforeBatchMint hook.
+     */
+    function batchMint(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data)
+        external
+        payable
+    {
+        _beforeBatchMint(to, ids, amounts, data);
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            _totalSupply[ids[i]] += amounts[i];
+        }
+
+        _batchMint(to, ids, amounts, "");
     }
 
     /**
@@ -255,6 +281,17 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
         _executeCallbackFunction(
             BeforeMintCallbackERC1155.beforeMintERC1155.selector,
             abi.encodeCall(BeforeMintCallbackERC1155.beforeMintERC1155, (to, tokenId, value, data))
+        );
+    }
+
+    /// @dev Calls the beforeBatchMint hook.
+    function _beforeBatchMint(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data)
+        internal
+        virtual
+    {
+        _executeCallbackFunction(
+            BeforeBatchMintCallbackERC1155.beforeBatchMintERC1155.selector,
+            abi.encodeCall(BeforeBatchMintCallbackERC1155.beforeBatchMintERC1155, (to, ids, amounts, data))
         );
     }
 

@@ -144,7 +144,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      */
     function mint(address to, uint256 quantity, bytes calldata data) external payable {
         _beforeMint(to, _nextTokenId(), quantity, data);
-        _mint(to, quantity);
+        _safeMint(to, quantity, "");
     }
 
     /**
