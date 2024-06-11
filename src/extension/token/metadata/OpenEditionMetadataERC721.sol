@@ -54,6 +54,9 @@ contract OpenEditionMetadataERC721 is ModularExtension {
     /// @dev EIP-4906: Emitted when shared metadata is updated
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
+    /// @notice Emitted when the metadata URI is queried for non-existent token.
+    error BatchMetadataNoMetadataForTokenId();
+
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
@@ -67,7 +70,11 @@ contract OpenEditionMetadataERC721 is ModularExtension {
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.setSharedMetadata.selector, permissionBits: Role._MINTER_ROLE});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -77,6 +84,11 @@ contract OpenEditionMetadataERC721 is ModularExtension {
     /// @notice Callback function for ERC721Metadata.tokenURI
     function onTokenURI(uint256 _id) external view returns (string memory) {
         SharedMetadata memory info = OpenEditionMetadataStorage.data().sharedMetadata;
+
+        if (bytes(info.name).length == 0 && bytes(info.description).length == 0 && bytes(info.imageURI).length == 0) {
+            revert BatchMetadataNoMetadataForTokenId();
+        }
+
         return _createMetadataEdition({
             name: info.name,
             description: info.description,
@@ -92,15 +104,9 @@ contract OpenEditionMetadataERC721 is ModularExtension {
 
     /// @notice Set shared metadata for NFTs
     function setSharedMetadata(SharedMetadata calldata _metadata) external {
-        OpenEditionMetadataStorage.data().sharedMetadata = SharedMetadata({
-            name: _metadata.name,
-            description: _metadata.description,
-            imageURI: _metadata.imageURI,
-            animationURI: _metadata.animationURI
-        });
+        OpenEditionMetadataStorage.data().sharedMetadata = _metadata;
 
         emit BatchMetadataUpdate(0, type(uint256).max);
-
         emit SharedMetadataUpdated(_metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI);
     }
 

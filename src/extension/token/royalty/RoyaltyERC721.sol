@@ -63,7 +63,6 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
 
     /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](0);
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.royaltyInfo.selector, permissionBits: 0});
@@ -76,7 +75,8 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
         config.fallbackFunctions[4] =
             FallbackFunction({selector: this.setRoyaltyInfoForToken.selector, permissionBits: Role._MANAGER_ROLE});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721.
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
 
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.

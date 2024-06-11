@@ -121,7 +121,7 @@ contract ClaimableERC1155Test is Test {
                         Tests: get / set Claim Condition
     //////////////////////////////////////////////////////////////*/
 
-    function test_claimCondition_state() public {
+    function test_setClaimCondition_state() public {
         ClaimableERC1155.ClaimCondition memory condition = ClaimableERC1155.ClaimCondition({
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
@@ -222,7 +222,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);
@@ -275,7 +275,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);
@@ -336,7 +336,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         currency.mintTo(tokenRecipient, 100 ether);
 
@@ -394,7 +394,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         vm.expectRevert();
@@ -432,7 +432,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestMismatch.selector));
@@ -473,7 +473,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestMismatch.selector));
@@ -514,10 +514,10 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestOutOfTimeWindow.selector));
         core.mint{value: (claimRequest.quantity * condition.pricePerUnit)}(
             claimRequest.recipient, 0, claimRequest.quantity, abi.encode(params)
         );
@@ -552,12 +552,12 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.warp(claimRequest.endTimestamp);
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestOutOfTimeWindow.selector));
         core.mint{value: (claimRequest.quantity * condition.pricePerUnit)}(
             claimRequest.recipient, 0, claimRequest.quantity, abi.encode(params)
         );
@@ -592,7 +592,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         core.mint{value: (claimRequest.quantity * claimRequest.pricePerUnit)}(
@@ -607,7 +607,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sigTwo = signMintRequest(claimRequestTwo, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory paramsTwo =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequestTwo, sigTwo, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequestTwo, sigTwo, address(0), 0, new bytes32[](0));
 
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestUidReused.selector));
         core.mint(claimRequestTwo.recipient, 0, claimRequestTwo.quantity, abi.encode(paramsTwo));
@@ -642,7 +642,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, ownerPrivateKey); // is owner but not MINTER_ROLE holder
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableRequestUnauthorizedSignature.selector));
@@ -680,7 +680,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableIncorrectNativeTokenSent.selector));
@@ -716,7 +716,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableIncorrectNativeTokenSent.selector));
@@ -754,10 +754,47 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         ClaimableERC1155.ClaimParamsERC1155 memory params =
-            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, new bytes32[](0));
+            ClaimableERC1155.ClaimParamsERC1155(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()
+        core.mint(claimRequest.recipient, 0, claimRequest.quantity, abi.encode(params));
+    }
+
+    function test_mint_revert_unexpectedPriceOrCurrency() public {
+        MockCurrency currency = new MockCurrency();
+
+        ClaimableERC1155.ClaimCondition memory condition = ClaimableERC1155.ClaimCondition({
+            availableSupply: 1000 ether,
+            pricePerUnit: 0.2 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            auxData: "",
+            allowlistMerkleRoot: bytes32(0)
+        });
+
+        vm.prank(owner);
+        ClaimableERC1155(address(core)).setClaimConditionByTokenId(0, condition);
+
+        address saleRecipient = address(0x987);
+
+        vm.prank(owner);
+        ClaimableERC1155(address(core)).setSaleConfig(saleRecipient);
+
+        vm.deal(tokenRecipient, 100 ether);
+
+        ClaimableERC1155.ClaimParamsERC1155 memory params = ClaimableERC1155.ClaimParamsERC1155(
+            claimRequest, "", address(currency), condition.pricePerUnit, new bytes32[](0)
+        ); // unexpected currrency
+
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableIncorrectPriceOrCurrency.selector));
+        core.mint(claimRequest.recipient, 0, claimRequest.quantity, abi.encode(params));
+
+        params.currency = NATIVE_TOKEN_ADDRESS;
+        params.pricePerUnit = 0.1 ether; // unexpected price
+
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableIncorrectPriceOrCurrency.selector));
         core.mint(claimRequest.recipient, 0, claimRequest.quantity, abi.encode(params));
     }
 }

@@ -77,8 +77,6 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
                             FALLBACK FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    receive() external payable {}
-
     /// @notice Routes a call to the appropriate extension contract.
     fallback() external payable {
         // Get extension function data.
@@ -147,7 +145,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
         if (interfaceId == 0xffffffff) return false;
         if (supportedInterfaceRefCounter[interfaceId] > 0) return true;
         return false;
@@ -174,9 +172,11 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
 
         // Check: ModularCore supports interface required by extension.
-        if (config.requiredInterfaceId != bytes4(0)) {
-            if (!this.supportsInterface(config.requiredInterfaceId)) {
-                revert ExtensionInterfaceNotCompatible(config.requiredInterfaceId);
+        if (config.requiredInterfaces.length != 0) {
+            for (uint256 i = 0; i < config.requiredInterfaces.length; i++) {
+                if (!supportsInterface(config.requiredInterfaces[i])) {
+                    revert ExtensionInterfaceNotCompatible(config.requiredInterfaces[i]);
+                }
             }
         }
 
@@ -271,11 +271,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
         }
 
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) =
-                _extension.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (_data)));
-            if (!success) {
-                _revert(returndata, CallbackExecutionReverted.selector);
-            }
+            _extension.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (_data)));
         }
 
         emit ExtensionUninstalled(msg.sender, _extension, _extension);
@@ -307,14 +303,11 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
 
         if (callbackFunction.implementation != address(0)) {
             (success, returndata) = callbackFunction.implementation.delegatecall(_abiEncodedCalldata);
-        } else {
-            if (callbackMode == CallbackMode.REQUIRED) {
-                revert CallbackFunctionRequired();
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
             }
-        }
-
-        if (!success) {
-            _revert(returndata, CallbackExecutionReverted.selector);
+        } else if (callbackMode == CallbackMode.REQUIRED) {
+            revert CallbackFunctionRequired();
         }
     }
 

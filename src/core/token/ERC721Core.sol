@@ -19,7 +19,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The contract metadata URI of the contract.
-    string private _contractURI;
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -33,21 +33,21 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        string memory name,
-        string memory symbol,
-        string memory contractURI,
-        address owner,
-        address[] memory extensions,
-        bytes[] memory extensionInstallData
-    ) payable ERC721A(name, symbol) {
+        string memory _name,
+        string memory _symbol,
+        string memory _contractURI,
+        address _owner,
+        address[] memory _extensions,
+        bytes[] memory _extensionInstallData
+    ) payable ERC721A(_name, _symbol) {
         // Set contract metadata
-        _setupContractURI(contractURI);
-        _initializeOwner(owner);
+        _setupContractURI(_contractURI);
+        _initializeOwner(_owner);
 
         // Install and initialize extensions
-        require(extensions.length == extensions.length);
-        for (uint256 i = 0; i < extensions.length; i++) {
-            _installExtension(extensions[i], extensionInstallData[i]);
+        require(_extensions.length == _extensionInstallData.length);
+        for (uint256 i = 0; i < _extensions.length; i++) {
+            _installExtension(_extensions[i], _extensionInstallData[i]);
         }
     }
 
@@ -60,7 +60,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view returns (string memory) {
-        return _contractURI;
+        return contractURI_;
     }
 
     /**
@@ -86,7 +86,8 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
             || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
-            || interfaceId == 0x2a55205a // ERC165 Interface ID for ERC-2981
+            || interfaceId == 0xe8a3d485 // ERC-7572
+            || interfaceId == 0x7f5828d0 // ERC-173
             || super.supportsInterface(interfaceId); // right-most ModularCore
     }
 
@@ -143,7 +144,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      */
     function mint(address to, uint256 quantity, bytes calldata data) external payable {
         _beforeMint(to, _nextTokenId(), quantity, data);
-        _mint(to, quantity);
+        _safeMint(to, quantity, "");
     }
 
     /**
@@ -152,7 +153,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @param tokenId The token ID of the NFT to burn.
      *  @param data ABI encoded data to pass to the beforeBurn hook.
      */
-    function burn(uint256 tokenId, bytes calldata data) external {
+    function burn(uint256 tokenId, bytes calldata data) external payable {
         _beforeBurn(tokenId, data);
         _burn(tokenId, true);
     }
@@ -195,8 +196,8 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Sets contract URI
-    function _setupContractURI(string memory contractURI) internal {
-        _contractURI = contractURI;
+    function _setupContractURI(string memory _contractURI) internal {
+        contractURI_ = _contractURI;
         emit ContractURIUpdated();
     }
 

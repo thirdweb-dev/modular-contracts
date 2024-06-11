@@ -7,7 +7,6 @@ import {Role} from "../../../Role.sol";
 contract RoyaltyERC1155 is RoyaltyERC721 {
     /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](0);
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.royaltyInfo.selector, permissionBits: 0});
@@ -23,7 +22,8 @@ contract RoyaltyERC1155 is RoyaltyERC721 {
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
 
-        config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
 
         config.registerInstallationCallback = true;
     }

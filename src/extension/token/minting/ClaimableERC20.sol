@@ -99,6 +99,8 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     struct ClaimParamsERC20 {
         ClaimRequestERC20 request;
         bytes signature;
+        address currency;
+        uint256 pricePerUnit;
         bytes32[] recipientAllowlistProof;
     }
 
@@ -112,8 +114,8 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     /// @dev Emitted when the minting request does not match the expected values.
     error ClaimableRequestMismatch();
 
-    /// @dev Emitted when the minting request has expired.
-    error ClaimableRequestExpired();
+    /// @dev Emitted when the minting request is outside time window.
+    error ClaimableRequestOutOfTimeWindow();
 
     /// @dev Emitted when the minting request UID has been reused.
     error ClaimableRequestUidReused();
@@ -126,6 +128,9 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
 
     /// @dev Emitted when the mint is out of supply.
     error ClaimableOutOfSupply();
+
+    /// @dev Emitted when the mint is priced at an unexpected price or currency.
+    error ClaimableIncorrectPriceOrCurrency();
 
     /// @dev Emitted when the minter is not in the allowlist.
     error ClaimableNotInAllowlist();
@@ -147,7 +152,7 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](4);
+        config.fallbackFunctions = new FallbackFunction[](5);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
 
@@ -157,8 +162,11 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
         config.fallbackFunctions[2] = FallbackFunction({selector: this.getClaimCondition.selector, permissionBits: 0});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0x36372b07; // ERC20
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x36372b07; // ERC20
+
         config.registerInstallationCallback = true;
     }
 
@@ -180,9 +188,11 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
         uint256 pricePerUnit;
 
         if (_params.signature.length == 0) {
-            ClaimCondition memory condition = _validateClaimCondition(_to, _amount, _params.recipientAllowlistProof);
-            currency = condition.currency;
-            pricePerUnit = condition.pricePerUnit;
+            _validateClaimCondition(
+                _to, _amount, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
+            );
+            currency = _params.currency;
+            pricePerUnit = _params.pricePerUnit;
         } else {
             _validateClaimRequest(_to, _amount, _params.request, _params.signature);
             currency = _params.request.currency;
@@ -230,14 +240,21 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Verifies a claim against the active claim condition.
-    function _validateClaimCondition(address _recipient, uint256 _amount, bytes32[] memory _allowlistProof)
-        internal
-        returns (ClaimCondition memory condition)
-    {
-        condition = _claimableStorage().claimCondition;
+    function _validateClaimCondition(
+        address _recipient,
+        uint256 _amount,
+        address _currency,
+        uint256 _pricePerUnit,
+        bytes32[] memory _allowlistProof
+    ) internal {
+        ClaimCondition memory condition = _claimableStorage().claimCondition;
 
         if (block.timestamp < condition.startTimestamp || condition.endTimestamp <= block.timestamp) {
             revert ClaimableOutOfTimeWindow();
+        }
+
+        if (_currency != condition.currency || _pricePerUnit != condition.pricePerUnit) {
+            revert ClaimableIncorrectPriceOrCurrency();
         }
 
         if (_amount > condition.availableSupply) {
@@ -269,11 +286,15 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert ClaimableRequestExpired();
+            revert ClaimableRequestOutOfTimeWindow();
         }
 
         if (_claimableStorage().uidUsed[_req.uid]) {
             revert ClaimableRequestUidReused();
+        }
+
+        if (_req.quantity > _claimableStorage().claimCondition.availableSupply) {
+            revert ClaimableOutOfSupply();
         }
 
         address signer = _hashTypedData(

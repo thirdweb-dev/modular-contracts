@@ -115,7 +115,7 @@ contract MintableERC721 is
     error MintableIncorrectNativeTokenSent();
 
     /// @dev Emitted when the minting request has expired.
-    error MintableRequestExpired();
+    error MintableRequestOutOfTimeWindow();
 
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
@@ -141,6 +141,9 @@ contract MintableERC721 is
         uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
     );
 
+    /// @dev ERC-4906 Metadata Update.
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -158,7 +161,7 @@ contract MintableERC721 is
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](2);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
         config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector);
@@ -166,9 +169,17 @@ contract MintableERC721 is
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
+
         config.registerInstallationCallback = true;
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -221,6 +232,26 @@ contract MintableERC721 is
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns all metadata batches for a token.
+    function getAllMetadataBatches() external view returns (MetadataBatch[] memory) {
+        uint256[] memory rangeEnds = _mintableStorage().tokenIdRangeEnd;
+        uint256 numOfBatches = rangeEnds.length;
+
+        MetadataBatch[] memory batches = new MetadataBatch[](rangeEnds.length);
+
+        uint256 rangeStart = 0;
+        for (uint256 i = 0; i < numOfBatches; i += 1) {
+            batches[i] = MetadataBatch({
+                startTokenIdInclusive: rangeStart,
+                endTokenIdInclusive: rangeEnds[i] - 1,
+                baseURI: _mintableStorage().baseURIOfTokenIdRange[rangeEnds[i]]
+            });
+            rangeStart = rangeEnds[i];
+        }
+
+        return batches;
+    }
+
     /// @notice Returns the sale configuration for a token.
     function getSaleConfig() external view returns (address primarySaleRecipient) {
         SaleConfig memory saleConfig = _mintableStorage().saleConfig;
@@ -245,6 +276,7 @@ contract MintableERC721 is
         _mintableStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
         emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
+        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive);
     }
 
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
@@ -273,7 +305,7 @@ contract MintableERC721 is
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintableRequestExpired();
+            revert MintableRequestOutOfTimeWindow();
         }
 
         if (_mintableStorage().uidUsed[_req.uid]) {
@@ -320,6 +352,9 @@ contract MintableERC721 is
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
+            if (msg.value > 0) {
+                revert MintableIncorrectNativeTokenSent();
+            }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }

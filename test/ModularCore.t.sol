@@ -155,7 +155,8 @@ contract MockExtensionRequiresSomeInterface is MockExtensionWithFunctions {
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getCallbacks();
 
-        config.requiredInterfaceId = bytes4(0x12345678);
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = bytes4(0x12345678);
     }
 }
 
@@ -302,11 +303,15 @@ contract ModularCoreTest is Test {
         IExtensionConfig.ExtensionConfig memory installedConfig = extensionsAfter[0].config;
         IExtensionConfig.ExtensionConfig memory expectedConfig = ModularExtension(extension).getExtensionConfig();
 
-        assertEq(installedConfig.requiredInterfaceId, expectedConfig.requiredInterfaceId);
+        assertEq(installedConfig.requiredInterfaces.length, expectedConfig.requiredInterfaces.length);
+        uint256 len = installedConfig.requiredInterfaces.length;
+        for (uint256 i = 0; i < len; i++) {
+            assertEq(installedConfig.requiredInterfaces[i], expectedConfig.requiredInterfaces[i]);
+        }
         assertEq(installedConfig.registerInstallationCallback, expectedConfig.registerInstallationCallback);
 
         assertEq(installedConfig.supportedInterfaces.length, expectedConfig.supportedInterfaces.length);
-        uint256 len = installedConfig.supportedInterfaces.length;
+        len = installedConfig.supportedInterfaces.length;
         for (uint256 i = 0; i < len; i++) {
             assertEq(installedConfig.supportedInterfaces[i], expectedConfig.supportedInterfaces[i]);
         }
@@ -458,7 +463,7 @@ contract ModularCoreTest is Test {
         core.uninstallExtension(address(extension), "");
     }
 
-    function test_uninstallExtension_revert_onUninstallCallbackFailed() public {
+    function test_uninstallExtension_doesNotCauseRevert() public {
         // Deploy extension
         MockExtensionOnUninstallFails ext = new MockExtensionOnUninstallFails();
 
@@ -468,7 +473,6 @@ contract ModularCoreTest is Test {
 
         // Uninstall extension
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(MockExtensionOnUninstallFails.OnUninstallFailed.selector));
         core.uninstallExtension(address(ext), "");
     }
 }

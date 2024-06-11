@@ -52,7 +52,8 @@ contract TransferableERC721 is ModularExtension, BeforeTransferCallbackERC721 {
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setTransferableFor.selector, permissionBits: Role._MANAGER_ROLE});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
     }
 
     /*//////////////////////////////////////////////////////////////

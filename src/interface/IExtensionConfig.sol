@@ -32,17 +32,17 @@ interface IExtensionConfig {
     /**
      *  @dev Struct containing all information that a Core uses to check whether an Extension is compatible for installation.
      *
-     *  @param requiredInterfaceId The ERC-165 interface that a Core MUST support to be compatible for installation. OPTIONAL -- can be bytes4(0)
-     *                             if there is no required interface id
      *  @param registerInstallationCallback Whether the Extension expects onInstall and onUninstall callback function calls at
      *                                      installation and uninstallation time, respectively
+     *  @param requiredInterfaces The ERC-165 interface that a Core MUST support to be compatible for installation. OPTIONAL -- can be bytes4(0)
+     *                             if there is no required interface id.
      *  @param supportedInterfaces The ERC-165 interfaces that a Core supports upon installing the Extension.
      *  @param callbackFunctions List of callback functions that the Core MUST call at some point in the execution of its fixed functions.
      *  @param fallbackFunctions List of functions that the Core MUST call via its fallback function with the Extension as the call destination.
      */
     struct ExtensionConfig {
-        bytes4 requiredInterfaceId;
         bool registerInstallationCallback;
+        bytes4[] requiredInterfaces;
         bytes4[] supportedInterfaces;
         CallbackFunction[] callbackFunctions;
         FallbackFunction[] fallbackFunctions;

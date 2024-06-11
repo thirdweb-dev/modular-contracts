@@ -51,11 +51,18 @@ contract SimpleMetadataERC1155Test is Test {
         // read state from core
         assertEq(core.uri(1), "ipfs://base/1");
         assertEq(core.uri(2), "ipfs://base/2");
-        assertEq(core.uri(3), "");
+
+        vm.expectRevert(abi.encodeWithSelector(SimpleMetadataERC721.MetadataNoMetadataForTokenId.selector));
+        core.uri(3);
     }
 
     function test_revert_setTokenURI() public {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
         SimpleMetadataExt(address(core)).setTokenURI(1, "ipfs://base/");
+    }
+
+    function test_audit_does_not_set_name_and_symbol() public {
+        assertEq(core.name(), "test");
+        assertEq(core.symbol(), "TEST");
     }
 }

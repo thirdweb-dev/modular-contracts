@@ -87,7 +87,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     error MintableIncorrectNativeTokenSent();
 
     /// @dev Emitted when the minting request has expired.
-    error MintableRequestExpired();
+    error MintableRequestOutOfTimeWindow();
 
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
@@ -115,16 +115,22 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](2);
+        config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0x36372b07; // ERC20
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x36372b07; // ERC20
+
         config.registerInstallationCallback = true;
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -195,7 +201,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintableRequestExpired();
+            revert MintableRequestOutOfTimeWindow();
         }
 
         if (_mintableStorage().uidUsed[_req.uid]) {
@@ -241,6 +247,9 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
+            if (msg.value > 0) {
+                revert MintableIncorrectNativeTokenSent();
+            }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }

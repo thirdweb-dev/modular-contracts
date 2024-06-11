@@ -103,7 +103,7 @@ contract MintableERC1155 is
     error MintableIncorrectNativeTokenSent();
 
     /// @dev Emitted when the minting request has expired.
-    error MintableRequestExpired();
+    error MintableRequestOutOfTimeWindow();
 
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
@@ -120,6 +120,9 @@ contract MintableERC1155 is
 
     /// @dev Emitted when a token's metadata URI is updated.
     event MintableTokenURIUpdated(uint256 tokenId, string tokenURI);
+
+    /// @notice Emitted when the metadata URI for a token is updated.
+    event MetadataUpdate(uint256 id);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -138,7 +141,7 @@ contract MintableERC1155 is
     /// @notice Returns all implemented callback and fallback functions.
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
         config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector);
@@ -148,9 +151,15 @@ contract MintableERC1155 is
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.setTokenURI.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
+
         config.registerInstallationCallback = true;
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -223,6 +232,7 @@ contract MintableERC1155 is
     function setTokenURI(uint256 _tokenId, string memory _tokenURI) public {
         _mintableStorage().tokenURI[_tokenId] = _tokenURI;
         emit MintableTokenURIUpdated(_tokenId, _tokenURI);
+        emit MetadataUpdate(_tokenId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -244,7 +254,7 @@ contract MintableERC1155 is
         }
 
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
-            revert MintableRequestExpired();
+            revert MintableRequestOutOfTimeWindow();
         }
 
         if (_mintableStorage().uidUsed[_req.uid]) {
@@ -292,11 +302,14 @@ contract MintableERC1155 is
             }
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
+            if (msg.value > 0) {
+                revert MintableIncorrectNativeTokenSent();
+            }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }
-
     /// @dev Returns the domain name and version for EIP712.
+
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
         name = "MintableERC1155";
         version = "1";

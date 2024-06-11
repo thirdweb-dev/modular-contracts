@@ -42,10 +42,11 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
      *   @param endTokenIdNonInclusive The last tokenId in the range.
      *   @param baseURI The base URI for the range.
      */
-    struct MetadataBatch {
+    struct DelayedRevealMetadataBatch {
         uint256 startTokenIdInclusive;
         uint256 endTokenIdInclusive;
         string baseURI;
+        bytes encryptedData;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -73,6 +74,9 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
     );
 
+    /// @dev ERC-4906 Metadata Update.
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     /// @dev Emitted when tokens are revealed.
     event TokenURIRevealed(uint256 indexed index, string revealedURI);
 
@@ -83,7 +87,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](5);
+        config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
         config.fallbackFunctions[0] =
@@ -92,10 +96,12 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.reveal.selector, permissionBits: Role._MINTER_ROLE});
-        config.fallbackFunctions[3] = FallbackFunction({selector: this.getRevealURI.selector, permissionBits: 0});
-        config.fallbackFunctions[4] = FallbackFunction({selector: this.encryptDecrypt.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721.
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -118,18 +124,19 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all metadata batches for a token.
-    function getAllMetadataBatches() external view returns (MetadataBatch[] memory) {
+    function getAllMetadataBatches() external view returns (DelayedRevealMetadataBatch[] memory) {
         uint256[] memory rangeEnds = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd;
         uint256 numOfBatches = rangeEnds.length;
 
-        MetadataBatch[] memory batches = new MetadataBatch[](rangeEnds.length);
+        DelayedRevealMetadataBatch[] memory batches = new DelayedRevealMetadataBatch[](rangeEnds.length);
 
         uint256 rangeStart = 0;
         for (uint256 i = 0; i < numOfBatches; i += 1) {
-            batches[i] = MetadataBatch({
+            batches[i] = DelayedRevealMetadataBatch({
                 startTokenIdInclusive: rangeStart,
                 endTokenIdInclusive: rangeEnds[i] - 1,
-                baseURI: _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]]
+                baseURI: _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]],
+                encryptedData: _delayedRevealBatchMetadataStorage().encryptedData[rangeEnds[i]]
             });
             rangeStart = rangeEnds[i];
         }
@@ -158,6 +165,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
         emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
+        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive);
     }
 
     /// @notice reveals the URI for a range of 'delayed-reveal' tokens.
@@ -169,21 +177,21 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[_rangeEndNonInclusive] = revealedURI;
 
         emit TokenURIRevealed(_index, revealedURI);
+
+        uint256 rangeStart = _index == 0 ? 0 : _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[_index - 1];
+        emit BatchMetadataUpdate(rangeStart, _rangeEndNonInclusive);
     }
 
-    /// @notice unencrypted URI for a range of 'delayed-reveal' tokens.
-    function getRevealURI(uint256 _index, bytes calldata _key) public view returns (string memory) {
-        uint256 _rangeEndNonInclusive = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[_index];
-
-        return _getRevealURI(_rangeEndNonInclusive, _key);
-    }
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      *  @notice         Encrypt/decrypt data on chain.
      *  @dev            Encrypt/decrypt given `data` with `key`. Uses inline assembly.
      *                  See: https://ethereum.stackexchange.com/questions/69825/decrypt-message-on-chain
      */
-    function encryptDecrypt(bytes memory data, bytes calldata key) public pure returns (bytes memory result) {
+    function _encryptDecrypt(bytes memory data, bytes calldata key) internal pure returns (bytes memory result) {
         // Store data length on stack for later use
         uint256 length = data.length;
 
@@ -218,10 +226,6 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         }
     }
 
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
     function _getBaseURI(uint256 _tokenId) internal view returns (string memory, bool) {
         uint256[] memory rangeEnds = _delayedRevealBatchMetadataStorage().tokenIdRangeEnd;
@@ -251,7 +255,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
 
         (bytes memory encryptedURI, bytes32 provenanceHash) = abi.decode(data, (bytes, bytes32));
 
-        revealedURI = string(encryptDecrypt(encryptedURI, _key));
+        revealedURI = string(_encryptDecrypt(encryptedURI, _key));
 
         if (keccak256(abi.encodePacked(revealedURI, _key, block.chainid)) != provenanceHash) {
             revert DelayedRevealIncorrectDecryptionKey(

@@ -65,6 +65,9 @@ contract BatchMetadataERC721 is ModularExtension {
         uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
     );
 
+    /// @dev ERC-4906 Metadata Update.
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
@@ -81,7 +84,11 @@ contract BatchMetadataERC721 is ModularExtension {
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
 
-        config.requiredInterfaceId = 0x80ac58cd; // ERC721.
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
+
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -133,6 +140,7 @@ contract BatchMetadataERC721 is ModularExtension {
         _batchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
         emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
+        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive);
     }
 
     /*//////////////////////////////////////////////////////////////

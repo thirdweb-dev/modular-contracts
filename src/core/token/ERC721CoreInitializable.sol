@@ -24,7 +24,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The contract metadata URI of the contract.
-    string private _contractURI;
+    string private contractURI_;
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -37,23 +37,27 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
                             CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////*/
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
-        string memory name,
-        string memory symbol,
-        string memory contractURI,
-        address owner,
-        address[] memory extensions,
-        bytes[] memory extensionInstallData
+        string memory _name,
+        string memory _symbol,
+        string memory _contractURI,
+        address _owner,
+        address[] memory _extensions,
+        bytes[] memory _extensionInstallData
     ) external payable initializer initializerERC721A {
         // Set contract metadata
-        __ERC721A_init(name, symbol);
-        _setupContractURI(contractURI);
-        _initializeOwner(owner);
+        __ERC721A_init(_name, _symbol);
+        _setupContractURI(_contractURI);
+        _initializeOwner(_owner);
 
         // Install and initialize extensions
-        require(extensions.length == extensions.length);
-        for (uint256 i = 0; i < extensions.length; i++) {
-            _installExtension(extensions[i], extensionInstallData[i]);
+        require(_extensions.length == _extensionInstallData.length);
+        for (uint256 i = 0; i < _extensions.length; i++) {
+            _installExtension(_extensions[i], _extensionInstallData[i]);
         }
     }
 
@@ -66,7 +70,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
      *  @return uri The contract URI of the contract.
      */
     function contractURI() external view returns (string memory) {
-        return _contractURI;
+        return contractURI_;
     }
 
     /**
@@ -97,7 +101,8 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
             || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
-            || interfaceId == 0x2a55205a // ERC165 Interface ID for ERC-2981
+            || interfaceId == 0xe8a3d485 // ERC-7572
+            || interfaceId == 0x7f5828d0 // ERC-173
             || super.supportsInterface(interfaceId); // right-most ModularCore
     }
 
@@ -154,7 +159,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
      */
     function mint(address to, uint256 quantity, bytes calldata data) external payable {
         _beforeMint(to, _nextTokenId(), quantity, data);
-        _mint(to, quantity);
+        _safeMint(to, quantity, "");
     }
 
     /**
@@ -163,7 +168,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
      *  @param tokenId The token ID of the NFT to burn.
      *  @param data ABI encoded data to pass to the beforeBurn hook.
      */
-    function burn(uint256 tokenId, bytes calldata data) external {
+    function burn(uint256 tokenId, bytes calldata data) external payable {
         _beforeBurn(tokenId, data);
         _burn(tokenId, true);
     }
@@ -213,8 +218,8 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Sets contract URI
-    function _setupContractURI(string memory contractURI) internal {
-        _contractURI = contractURI;
+    function _setupContractURI(string memory _contractURI) internal {
+        contractURI_ = contractURI_;
         emit ContractURIUpdated();
     }
 

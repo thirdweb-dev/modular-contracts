@@ -50,7 +50,9 @@ contract SimpleMetadataERC721Test is Test {
         // read state from core
         assertEq(core.tokenURI(1), "ipfs://base/1");
         assertEq(core.tokenURI(2), "ipfs://base/2");
-        assertEq(core.tokenURI(3), "");
+
+        vm.expectRevert(abi.encodeWithSelector(SimpleMetadataERC721.MetadataNoMetadataForTokenId.selector));
+        core.tokenURI(3);
     }
 
     function test_revert_setTokenURI() public {

@@ -54,7 +54,8 @@ contract TransferableERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setTransferableFor.selector, permissionBits: Role._MANAGER_ROLE});
 
-        config.requiredInterfaceId = 0xd9b67a26; // ERC1155
+        config.requiredInterfaces = new bytes4[](1);
+        config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
     }
 
     /*//////////////////////////////////////////////////////////////
