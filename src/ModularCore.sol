@@ -10,8 +10,9 @@ import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 import {Role} from "./Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
+import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 
-abstract contract ModularCore is IModularCore, OwnableRoles {
+abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
     /*//////////////////////////////////////////////////////////////
@@ -280,6 +281,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles {
     /// @dev Calls an extension callback function and checks whether it is optional or required.
     function _executeCallbackFunction(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
+        nonReentrant
         returns (bool success, bytes memory returndata)
     {
         InstalledFunction memory callbackFunction = functionData_[_selector];

@@ -5,6 +5,7 @@ import {ModularCore} from "../../ModularCore.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
+import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 
 import {IERC20} from "../../interface/IERC20.sol";
 
