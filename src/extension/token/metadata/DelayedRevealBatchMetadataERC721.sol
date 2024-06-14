@@ -165,7 +165,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
         emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
-        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive);
+        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
     }
 
     /// @notice reveals the URI for a range of 'delayed-reveal' tokens.
@@ -179,7 +179,7 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
         emit TokenURIRevealed(_index, revealedURI);
 
         uint256 rangeStart = _index == 0 ? 0 : _delayedRevealBatchMetadataStorage().tokenIdRangeEnd[_index - 1];
-        emit BatchMetadataUpdate(rangeStart, _rangeEndNonInclusive);
+        emit BatchMetadataUpdate(rangeStart, _rangeEndNonInclusive - 1);
     }
 
     /*//////////////////////////////////////////////////////////////
