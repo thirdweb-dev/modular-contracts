@@ -276,7 +276,7 @@ contract MintableERC721 is
         _mintableStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
         emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
-        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive);
+        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
     }
 
     /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
