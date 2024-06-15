@@ -9,6 +9,7 @@ import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 import {ModularExtension} from "src/ModularExtension.sol";
 import {ModularCore} from "src/ModularCore.sol";
+import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 
 contract MockBase {
     uint256 internal constant NUMBER_OF_CALLBACK = 10;
@@ -101,7 +102,7 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
         return number;
     }
 
-    function callbackFunctionOne() external {
+    function callbackFunctionOne() external virtual {
         emit CallbackFunctionOne();
     }
 
@@ -118,6 +119,12 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
     function permissioned_delegatecall() external {}
 
     function permissioned_staticcall() external view {}
+}
+
+contract MockExtensionReentrant is MockExtensionWithFunctions {
+    function callbackFunctionOne() external override {
+        MockCore(payable(address(this))).callbackFunctionOne();
+    }
 }
 
 contract MockExtensionOnInstallFails is MockExtensionWithFunctions {
@@ -340,6 +347,17 @@ contract ModularCoreTest is Test {
         vm.expectEmit(true, false, false, false);
         emit FallbackFunctionCalled();
         MockExtensionWithFunctions(address(core)).notPermissioned_call();
+    }
+
+    function test_installExtension_revert_reentrantCallbackFunction() public {
+        MockExtensionReentrant ext = new MockExtensionReentrant();
+
+        // Install extension
+        vm.prank(owner);
+        core.installExtension(address(ext), "");
+
+        vm.expectRevert(abi.encodeWithSelector(ReentrancyGuard.Reentrancy.selector));
+        core.callbackFunctionOne();
     }
 
     function test_installExtension_revert_unauthorizedCaller() public {
