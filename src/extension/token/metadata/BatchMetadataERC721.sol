@@ -140,7 +140,7 @@ contract BatchMetadataERC721 is ModularExtension {
         _batchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
         emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
-        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive);
+        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
     }
 
     /*//////////////////////////////////////////////////////////////

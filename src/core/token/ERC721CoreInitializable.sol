@@ -219,7 +219,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
 
     /// @dev Sets contract URI
     function _setupContractURI(string memory _contractURI) internal {
-        contractURI_ = contractURI_;
+        contractURI_ = _contractURI;
         emit ContractURIUpdated();
     }
 
