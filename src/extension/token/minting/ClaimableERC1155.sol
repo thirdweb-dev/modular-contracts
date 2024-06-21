@@ -210,11 +210,24 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
     function onInstall(bytes calldata data) external {
-        _claimableStorage().saleConfig = SaleConfig(msg.sender);
+        address primarySaleRecipient = abi.decode(data, (address));
+        _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
     function onUninstall(bytes calldata data) external {}
+
+    /*//////////////////////////////////////////////////////////////
+                    Encode install / uninstall data
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
+    function encodeInstallParams(address primarySaleRecipient) external pure returns (bytes memory) {
+        return abi.encode(primarySaleRecipient);
+    }
+
+    /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
+    function encodeUninstallParams() external pure returns (bytes memory) {}
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
