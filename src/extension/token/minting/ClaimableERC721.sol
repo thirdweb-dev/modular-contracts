@@ -221,7 +221,9 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
-    function encodeUninstallParams() external pure returns (bytes memory) {}
+    function encodeUninstallParams() external pure returns (bytes memory) {
+        return "";
+    }
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

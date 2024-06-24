@@ -239,7 +239,9 @@ contract MintableERC721 is
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
-    function encodeUninstallParams() external pure returns (bytes memory) {}
+    function encodeUninstallParams() external pure returns (bytes memory) {
+        return "";
+    }
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS

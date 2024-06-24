@@ -178,7 +178,9 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
-    function encodeUninstallParams() external pure returns (bytes memory) {}
+    function encodeUninstallParams() external pure returns (bytes memory) {
+        return "";
+    }
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
