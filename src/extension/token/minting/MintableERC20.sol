@@ -183,6 +183,15 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     }
 
     /*//////////////////////////////////////////////////////////////
+                        Encode mint params
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
+    function encodeMintParams(MintParamsERC20 memory params) external pure returns (bytes memory) {
+        return abi.encode(params);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

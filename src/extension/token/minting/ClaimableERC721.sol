@@ -226,6 +226,15 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
     }
 
     /*//////////////////////////////////////////////////////////////
+                        Encode mint params
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
+    function encodeMintParams(ClaimParamsERC721 memory params) external pure returns (bytes memory) {
+        return abi.encode(params);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

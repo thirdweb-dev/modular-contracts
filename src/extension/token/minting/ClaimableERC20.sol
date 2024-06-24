@@ -226,6 +226,15 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     }
 
     /*//////////////////////////////////////////////////////////////
+                        Encode mint params
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
+    function encodeMintParams(ClaimParamsERC20 memory params) external pure returns (bytes memory) {
+        return abi.encode(params);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

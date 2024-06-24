@@ -232,6 +232,15 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
     }
 
     /*//////////////////////////////////////////////////////////////
+                        Encode mint params
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
+    function encodeMintParams(ClaimParamsERC1155 memory params) external pure returns (bytes memory) {
+        return abi.encode(params);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
