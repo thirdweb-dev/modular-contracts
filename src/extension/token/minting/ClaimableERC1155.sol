@@ -222,7 +222,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesInstallParams(address primarySaleRecipient) external pure returns (bytes memory) {
+    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
         return abi.encode(primarySaleRecipient);
     }
 
@@ -236,7 +236,7 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesMintParams(ClaimParamsERC1155 memory params) external pure returns (bytes memory) {
+    function encodeBytesBeforeMintERC1155(ClaimParamsERC1155 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 

@@ -219,7 +219,7 @@ contract MintableERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesInstallParams(address primarySaleRecipient) external pure returns (bytes memory) {
+    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
         return abi.encode(primarySaleRecipient);
     }
 
@@ -233,7 +233,7 @@ contract MintableERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesMintParams(MintParamsERC1155 memory params) external pure returns (bytes memory) {
+    function encodeBytesBeforeMintERC1155(MintParamsERC1155 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 
