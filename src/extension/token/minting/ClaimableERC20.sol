@@ -216,12 +216,12 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeInstallParams(address primarySaleRecipient) external pure returns (bytes memory) {
+    function encodeBytesInstallParams(address primarySaleRecipient) external pure returns (bytes memory) {
         return abi.encode(primarySaleRecipient);
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
-    function encodeUninstallParams() external pure returns (bytes memory) {
+    function encodeBytesUninstallParams() external pure returns (bytes memory) {
         return "";
     }
 
@@ -230,7 +230,7 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeMintParams(ClaimParamsERC20 memory params) external pure returns (bytes memory) {
+    function encodeBytesMintParams(ClaimParamsERC20 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 

@@ -89,12 +89,12 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeInstallParams(address royaltyRecipient, uint256 royaltyBps) external pure returns (bytes memory) {
+    function encodeBytesInstallParams(address royaltyRecipient, uint256 royaltyBps) external pure returns (bytes memory) {
         return abi.encode(royaltyRecipient, royaltyBps);
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
-    function encodeUninstallParams() external pure returns (bytes memory) {
+    function encodeBytesUninstallParams() external pure returns (bytes memory) {
         return "";
     }
 

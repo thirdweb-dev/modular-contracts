@@ -173,12 +173,12 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeInstallParams(address primarySaleRecipient) external pure returns (bytes memory) {
+    function encodeBytesInstallParams(address primarySaleRecipient) external pure returns (bytes memory) {
         return abi.encode(primarySaleRecipient);
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
-    function encodeUninstallParams() external pure returns (bytes memory) {
+    function encodeBytesUninstallParams() external pure returns (bytes memory) {
         return "";
     }
 
@@ -187,7 +187,7 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeMintParams(MintParamsERC20 memory params) external pure returns (bytes memory) {
+    function encodeBytesMintParams(MintParamsERC20 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 
