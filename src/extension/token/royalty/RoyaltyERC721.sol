@@ -94,7 +94,7 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
-    function encodeBytesUninstallParams() external pure returns (bytes memory) {
+    function encodeBytesOnUninstall() external pure returns (bytes memory) {
         return "";
     }
 

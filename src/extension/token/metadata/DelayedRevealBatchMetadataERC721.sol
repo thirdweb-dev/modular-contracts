@@ -187,7 +187,11 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded metadata, to be used in `uploadedMetadata` fallback function
-    function encodeBytesUploadMetadata(bytes memory encryptedURI, bytes32 provenanceHash) external pure returns (bytes memory) {
+    function encodeBytesUploadMetadata(bytes memory encryptedURI, bytes32 provenanceHash)
+        external
+        pure
+        returns (bytes memory)
+    {
         return abi.encode(encryptedURI, provenanceHash);
     }
 
