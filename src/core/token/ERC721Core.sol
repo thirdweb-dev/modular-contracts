@@ -7,6 +7,8 @@ import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQu
 import {ModularCore} from "../../ModularCore.sol";
 
 import {CreatorToken} from "./CreatorToken/CreatorToken.sol";
+import {TOKEN_TYPE_ERC721} from "@limitbreak/permit-c/Constants.sol";
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
 
 import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
@@ -235,6 +237,9 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable, CreatorToke
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
+        if (transferValidator != address(0)) {
+            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId);
+        }
         _executeCallbackFunction(
             BeforeTransferCallbackERC721.beforeTransferERC721.selector,
             abi.encodeCall(BeforeTransferCallbackERC721.beforeTransferERC721, (from, to, tokenId))

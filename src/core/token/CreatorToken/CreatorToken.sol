@@ -4,15 +4,12 @@ pragma solidity ^0.8.0;
 import {ICreatorToken} from "@limitbreak/creator-token-standards/interfaces/ICreatorToken.sol";
 import {ITransferValidatorSetTokenType} from
     "@limitbreak/creator-token-standards/interfaces/ITransferValidatorSetTokenType.sol";
+
 /**
  * @title  CreatorToken
  * @notice Functionality to enable Limit Break's Creator Token Standard for ERC721, and allow the usage of a transfer validator.
  */
-
 abstract contract CreatorToken is ICreatorToken {
-    
-    uint256 constant TOKEN_TYPE_ERC721 = 721;
-
     /// @dev Store the transfer validator. The address(0) indicates that no transfer validator has been set.
     address internal transferValidator;
 
