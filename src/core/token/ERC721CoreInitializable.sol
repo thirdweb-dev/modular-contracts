@@ -11,6 +11,10 @@ import {
 
 import {ModularCore} from "../../ModularCore.sol";
 
+import {CreatorToken} from "./CreatorToken/CreatorToken.sol";
+import {TOKEN_TYPE_ERC721} from "@limitbreak/permit-c/Constants.sol";
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
+
 import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
 import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
@@ -18,7 +22,13 @@ import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackE
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Multicallable, Initializable {
+contract ERC721CoreInitializable is
+    ERC721AQueryableUpgradeable,
+    ModularCore,
+    Multicallable,
+    Initializable,
+    CreatorToken
+{
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -160,6 +170,10 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
         _setupContractURI(uri);
     }
 
+    function setTransferValidator(address validator) external onlyOwner {
+        _setTransferValidator(validator);
+    }
+
     /**
      *  @notice Mints a token. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
@@ -233,6 +247,10 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
         emit ContractURIUpdated();
     }
 
+    function _tokenType() internal pure override returns (uint16) {
+        return uint16(TOKEN_TYPE_ERC721);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         CALLBACK INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -247,6 +265,9 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
+        if (transferValidator != address(0)) {
+            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId);
+        }
         _executeCallbackFunction(
             BeforeTransferCallbackERC721.beforeTransferERC721.selector,
             abi.encodeCall(BeforeTransferCallbackERC721.beforeTransferERC721, (from, to, tokenId))
