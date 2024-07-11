@@ -1,7 +1,7 @@
 [profile.default]
 #auto_detect_solc = false
 solc-version = "0.8.25"
-evm_version = "london"
+evm_version = "cancun"
 optimizer = true
 optimizer_runs = 10000
 cache = true
