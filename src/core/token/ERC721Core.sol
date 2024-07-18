@@ -237,6 +237,7 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable, CreatorToke
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
+        address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
             ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId);
         }

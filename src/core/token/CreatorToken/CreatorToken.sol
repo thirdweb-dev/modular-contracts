@@ -9,9 +9,26 @@ import {ITransferValidatorSetTokenType} from
  * @title  CreatorToken
  * @notice Functionality to enable Limit Break's Creator Token Standard for ERC721, and allow the usage of a transfer validator.
  */
+library CreatorTokenStorage {
+    /// @custom:storage-location erc7201:creator.token
+    bytes32 public constant CREATORTOKEN_STORAGE_POSITION =
+        keccak256(abi.encode(uint256(keccak256("creator.token")) - 1)) & ~bytes32(uint256(0xff));
+
+    struct Data {
+        // Store the transfer validator. The address(0) indicates that no transfer validator has been set.
+        address transferValidator;
+    }
+
+    function data() internal pure returns (Data storage data_) {
+        bytes32 position = CREATORTOKEN_STORAGE_POSITION;
+        assembly {
+            data_.slot := position
+        }
+    }
+}
+
 abstract contract CreatorToken is ICreatorToken {
     /// @dev Store the transfer validator. The address(0) indicates that no transfer validator has been set.
-    address internal transferValidator;
 
     /// @notice Revert with an error if the transfer validator is not valid
     error InvalidTransferValidatorContract();
@@ -20,7 +37,7 @@ abstract contract CreatorToken is ICreatorToken {
      * @notice Returns the transfer validator contract address for this token contract.
      */
     function getTransferValidator() public view returns (address validator) {
-        return transferValidator;
+        return _creatorTokenStorage().transferValidator;
     }
 
     /**
@@ -41,7 +58,7 @@ abstract contract CreatorToken is ICreatorToken {
 
         emit TransferValidatorUpdated(address(getTransferValidator()), validator);
 
-        transferValidator = validator;
+        _creatorTokenStorage().transferValidator = validator;
         _registerTokenType(validator);
     }
 
@@ -59,4 +76,8 @@ abstract contract CreatorToken is ICreatorToken {
     }
 
     function _tokenType() internal pure virtual returns (uint16 tokenType);
+
+    function _creatorTokenStorage() internal pure returns (CreatorTokenStorage.Data storage) {
+        return CreatorTokenStorage.data();
+    }
 }
