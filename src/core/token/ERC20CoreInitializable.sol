@@ -249,7 +249,7 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
     function _beforeTransfer(address from, address to, uint256 amount) internal virtual {
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
-            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId);
+            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, 0, amount);
         }
         _executeCallbackFunction(
             BeforeTransferCallbackERC20.beforeTransferERC20.selector,
