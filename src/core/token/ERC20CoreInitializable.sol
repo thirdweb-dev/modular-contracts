@@ -8,6 +8,10 @@ import {ModularCore} from "../../ModularCore.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
+import {CreatorToken} from "./CreatorToken/CreatorToken.sol";
+import {TOKEN_TYPE_ERC20} from "@limitbreak/permit-c/Constants.sol";
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
+
 import {IERC20} from "../../interface/IERC20.sol";
 
 import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
@@ -15,7 +19,7 @@ import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.so
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializable {
+contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializable, CreatorToken {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -133,6 +137,10 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
         _setupContractURI(contractURI);
     }
 
+    function setTransferValidator(address validator) external onlyOwner {
+        _setTransferValidator(validator);
+    }
+
     /**
      *  @notice Mints tokens. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
@@ -221,6 +229,10 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
         emit ContractURIUpdated();
     }
 
+    function _tokenType() internal pure override returns (uint16) {
+        return uint16(TOKEN_TYPE_ERC20);
+    }
+
     /*//////////////////////////////////////////////////////////////
                           CALLBACK INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -235,6 +247,10 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address from, address to, uint256 amount) internal virtual {
+        address transferValidator = getTransferValidator();
+        if (transferValidator != address(0)) {
+            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId);
+        }
         _executeCallbackFunction(
             BeforeTransferCallbackERC20.beforeTransferERC20.selector,
             abi.encodeCall(BeforeTransferCallbackERC20.beforeTransferERC20, (from, to, amount))
