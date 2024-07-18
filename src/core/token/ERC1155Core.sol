@@ -6,6 +6,10 @@ import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
 import {ModularCore} from "../../ModularCore.sol";
 
+import {CreatorToken} from "./CreatorToken/CreatorToken.sol";
+import {TOKEN_TYPE_ERC1155} from "@limitbreak/permit-c/Constants.sol";
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
+
 import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC1155.sol";
 import {BeforeBatchMintCallbackERC1155} from "../../callback/BeforeBatchMintCallbackERC1155.sol";
 import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
@@ -14,7 +18,7 @@ import {BeforeBurnCallbackERC1155} from "../../callback/BeforeBurnCallbackERC115
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC1155Core is ERC1155, ModularCore, Multicallable {
+contract ERC1155Core is ERC1155, ModularCore, Multicallable, CreatorToken {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -164,6 +168,10 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         _setupContractURI(uri);
     }
 
+    function setTransferValidator(address validator) external onlyOwner {
+        _setTransferValidator(validator);
+    }
+
     /**
      *  @notice Mints tokens with a given tokenId. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
@@ -271,6 +279,10 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         emit ContractURIUpdated();
     }
 
+    function _tokenType() internal pure override returns (uint16) {
+        return uint16(TOKEN_TYPE_ERC1155);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         CALLBACK INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -296,6 +308,10 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address from, address to, uint256 tokenId, uint256 value) internal virtual {
+        address transferValidator = getTransferValidator();
+        if (transferValidator != address(0)) {
+            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId, value);
+        }
         _executeCallbackFunction(
             BeforeTransferCallbackERC1155.beforeTransferERC1155.selector,
             abi.encodeCall(BeforeTransferCallbackERC1155.beforeTransferERC1155, (from, to, tokenId, value))
@@ -307,6 +323,12 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         internal
         virtual
     {
+        address transferValidator = getTransferValidator();
+        if (transferValidator != address(0)) {
+            for (uint256 i = 0; i < tokenIds.length; i++) {
+                ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenIds[i], values[i]);
+            }
+        }
         _executeCallbackFunction(
             BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155.selector,
             abi.encodeCall(BeforeBatchTransferCallbackERC1155.beforeBatchTransferERC1155, (from, to, tokenIds, values))
