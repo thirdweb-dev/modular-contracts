@@ -173,6 +173,10 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
         _setupContractURI(uri);
     }
 
+    function setTransferValidator(address validator) external onlyOwner {
+        _setTransferValidator(validator);
+    }
+
     /**
      *  @notice Mints tokens with a given tokenId. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
@@ -270,6 +274,15 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
         super.setApprovalForAll(operator, approved);
     }
 
+    /**
+     * @notice Returns the function selector for the transfer validator's validation function to be called
+     * @notice for transaction simulation.
+     */
+    function getTransferValidationFunction() external pure returns (bytes4 functionSignature, bool isViewFunction) {
+        functionSignature = bytes4(keccak256("validateTransfer(address,address,address,uint256,uint256)"));
+        isViewFunction = true;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -278,6 +291,10 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
     function _setupContractURI(string memory _contractURI) internal {
         contractURI_ = _contractURI;
         emit ContractURIUpdated();
+    }
+
+    function _tokenType() internal pure override returns (uint16) {
+        return uint16(TOKEN_TYPE_ERC1155);
     }
 
     /*//////////////////////////////////////////////////////////////

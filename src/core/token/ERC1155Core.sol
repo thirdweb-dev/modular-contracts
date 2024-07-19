@@ -269,6 +269,15 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable, CreatorToken {
         super.setApprovalForAll(operator, approved);
     }
 
+    /**
+     * @notice Returns the function selector for the transfer validator's validation function to be called
+     * @notice for transaction simulation.
+     */
+    function getTransferValidationFunction() external pure returns (bytes4 functionSignature, bool isViewFunction) {
+        functionSignature = bytes4(keccak256("validateTransfer(address,address,address,uint256,uint256)"));
+        isViewFunction = true;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
