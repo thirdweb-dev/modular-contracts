@@ -63,7 +63,12 @@ contract CreatorTokenERC20 is ModularExtension, BeforeTransferCallbackERC20, ICr
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for ERC20.transferFrom/safeTransferFrom
-    function beforeTransferERC20(address from, address to, uint256 amount) external virtual override returns (bytes memory) {
+    function beforeTransferERC20(address from, address to, uint256 amount)
+        external
+        virtual
+        override
+        returns (bytes memory)
+    {
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
             ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, 0, amount);

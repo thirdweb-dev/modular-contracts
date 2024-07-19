@@ -63,7 +63,12 @@ contract CreatorTokenERC721 is ModularExtension, BeforeTransferCallbackERC721, I
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for ERC721.transferFrom/safeTransferFrom
-    function beforeTransferERC721(address from, address to, uint256 tokenId) external virtual override returns (bytes memory) {
+    function beforeTransferERC721(address from, address to, uint256 tokenId)
+        external
+        virtual
+        override
+        returns (bytes memory)
+    {
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
             ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId);

@@ -29,6 +29,16 @@ contract TransferToken {
     {
         ERC1155Core(tokenContract).safeTransferFrom(from, to, tokenId, value, "");
     }
+
+    function batchTransferToken(
+        address payable tokenContract,
+        address from,
+        address to,
+        uint256[] memory tokenIds,
+        uint256[] memory values
+    ) public {
+        ERC1155Core(tokenContract).safeBatchTransferFrom(from, to, tokenIds, values, "");
+    }
 }
 
 contract CreatorTokenERC1155Test is Test {
@@ -162,9 +172,11 @@ contract CreatorTokenERC1155Test is Test {
     }
 
     function test_allowsTransferWithTransferValidatorAddressZero() public {
-        _mintToken(owner, 1);
+        _mintToken(owner, 2, 0, bytes32("1"));
+        _mintToken(owner, 1, 1, bytes32("2"));
 
-        assertEq(1, core.balanceOf(owner, 0));
+        assertEq(2, core.balanceOf(owner, 0));
+        assertEq(1, core.balanceOf(owner, 1));
 
         vm.prank(owner);
         core.setApprovalForAll(address(transferTokenContract), true);
@@ -172,12 +184,27 @@ contract CreatorTokenERC1155Test is Test {
         transferTokenContract.transferToken(payable(address(core)), owner, permissionedActor, 0, 1);
 
         assertEq(1, core.balanceOf(permissionedActor, 0));
+
+        uint256[] memory tokenIds = new uint256[](2);
+        tokenIds[0] = 0;
+        tokenIds[1] = 1;
+
+        uint256[] memory values = new uint256[](2);
+        values[0] = 1;
+        values[1] = 1;
+
+        transferTokenContract.batchTransferToken(payable(address(core)), owner, permissionedActor, tokenIds, values);
+
+        assertEq(2, core.balanceOf(permissionedActor, 0));
+        assertEq(1, core.balanceOf(permissionedActor, 1));
     }
 
     function test_transferRestrictedWithValidValidator() public {
-        _mintToken(owner, 1);
+        _mintToken(owner, 2, 0, bytes32("1"));
+        _mintToken(owner, 1, 1, bytes32("2"));
 
-        assertEq(1, core.balanceOf(owner, 0));
+        assertEq(2, core.balanceOf(owner, 0));
+        assertEq(1, core.balanceOf(owner, 1));
 
         // set transfer validator
         vm.prank(owner);
@@ -191,23 +218,37 @@ contract CreatorTokenERC1155Test is Test {
         transferTokenContract.transferToken(payable(address(core)), owner, permissionedActor, 0, 1);
 
         assertEq(0, core.balanceOf(permissionedActor, 0));
+
+        uint256[] memory tokenIds = new uint256[](2);
+        tokenIds[0] = 0;
+        tokenIds[1] = 1;
+
+        uint256[] memory values = new uint256[](2);
+        values[0] = 1;
+        values[1] = 1;
+
+        vm.expectRevert(0xef28f901);
+        transferTokenContract.batchTransferToken(payable(address(core)), owner, permissionedActor, tokenIds, values);
+
+        assertEq(0, core.balanceOf(permissionedActor, 0));
+        assertEq(0, core.balanceOf(permissionedActor, 1));
     }
 
-    function _mintToken(address to, uint256 quantity) internal {
+    function _mintToken(address to, uint256 quantity, uint256 id, bytes32 uid) internal {
         address saleRecipient = address(0x987);
 
         vm.prank(owner);
         MintableERC1155(address(core)).setSaleConfig(saleRecipient);
 
         MintableERC1155.MintRequestERC1155 memory mintRequest = MintableERC1155.MintRequestERC1155({
-            tokenId: 0,
+            tokenId: id,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: to,
             quantity: quantity,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
-            uid: bytes32("1"),
+            uid: uid,
             metadataURI: "https://example.com/"
         });
         bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);

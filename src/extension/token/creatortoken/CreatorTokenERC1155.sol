@@ -30,7 +30,12 @@ library CreatorTokenStorage {
     }
 }
 
-contract CreatorTokenERC1155 is ModularExtension, BeforeTransferCallbackERC1155, BeforeBatchTransferCallbackERC1155, ICreatorToken {
+contract CreatorTokenERC1155 is
+    ModularExtension,
+    BeforeTransferCallbackERC1155,
+    BeforeBatchTransferCallbackERC1155,
+    ICreatorToken
+{
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -50,7 +55,6 @@ contract CreatorTokenERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
         config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC1155.selector);
         config.callbackFunctions[1] = CallbackFunction(this.beforeBatchTransferERC1155.selector);
 
-
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.getTransferValidator.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
@@ -66,14 +70,24 @@ contract CreatorTokenERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for ERC1155.transferFrom/safeTransferFrom
-    function beforeTransferERC1155(address from, address to, uint256 _id, uint256 _value) external virtual override returns (bytes memory) {
+    function beforeTransferERC1155(address from, address to, uint256 _id, uint256 _value)
+        external
+        virtual
+        override
+        returns (bytes memory)
+    {
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
             ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, _id, _value);
         }
     }
 
-    function beforeBatchTransferERC1155(address from, address to, uint256[] calldata ids, uint256[] calldata values) external virtual override returns (bytes memory) {
+    function beforeBatchTransferERC1155(address from, address to, uint256[] calldata ids, uint256[] calldata values)
+        external
+        virtual
+        override
+        returns (bytes memory)
+    {
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
             for (uint256 i = 0; i < ids.length; i++) {
@@ -81,7 +95,6 @@ contract CreatorTokenERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
             }
         }
     }
-
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
