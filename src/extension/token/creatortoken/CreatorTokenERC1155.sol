@@ -30,7 +30,7 @@ library CreatorTokenStorage {
     }
 }
 
-contract CreatorTokenERC1155 is ModularExtension, BeforeTransferCallbackERC1155, ICreatorToken {
+contract CreatorTokenERC1155 is ModularExtension, BeforeTransferCallbackERC1155, BeforeBatchTransferCallbackERC1155, ICreatorToken {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -76,7 +76,7 @@ contract CreatorTokenERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
     function beforeBatchTransferERC1155(address from, address to, uint256[] calldata ids, uint256[] calldata values) external virtual override returns (bytes memory) {
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
-            for (uint256 i = 0; i < tokenIds.length; i++) {
+            for (uint256 i = 0; i < ids.length; i++) {
                 ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, ids[i], values[i]);
             }
         }
