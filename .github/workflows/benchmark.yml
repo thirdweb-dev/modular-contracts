@@ -41,5 +41,5 @@ jobs:
 
       - name: Create Forge Gas Report
         run: |
-          forge snapshot diff --isolate --mp 'test/benchmark/*'
+          forge snapshot --diff --isolate --mp 'test/benchmark/*'
         id: benchmark
