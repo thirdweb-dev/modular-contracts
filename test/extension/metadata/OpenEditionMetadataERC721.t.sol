@@ -6,17 +6,19 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularExtension} from "src/ModularExtension.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {
     OpenEditionMetadataERC721,
     OpenEditionMetadataStorage
 } from "src/extension/token/metadata/OpenEditionMetadataERC721.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract OpenEditionMetadataExt is OpenEditionMetadataERC721 {
+
     function sharedMetadata() external view returns (SharedMetadata memory) {
         return OpenEditionMetadataStorage.data().sharedMetadata;
     }
@@ -30,9 +32,11 @@ contract OpenEditionMetadataExt is OpenEditionMetadataERC721 {
     ) external pure returns (string memory) {
         return _createMetadataEdition(name, description, imageURI, animationURI, tokenOfEdition);
     }
+
 }
 
 contract OpenEditionMetadataERC721Test is Test {
+
     ERC721Core public core;
 
     OpenEditionMetadataExt public extensionImplementation;
@@ -87,4 +91,5 @@ contract OpenEditionMetadataERC721Test is Test {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
         OpenEditionMetadataExt(address(core)).setSharedMetadata(sharedMetadata);
     }
+
 }

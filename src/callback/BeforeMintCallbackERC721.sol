@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract BeforeMintCallbackERC721 {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -28,4 +29,5 @@ contract BeforeMintCallbackERC721 {
     {
         revert BeforeMintCallbackERC721NotImplemented();
     }
+
 }

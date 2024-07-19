@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import {ERC1155} from "@solady/tokens/ERC1155.sol";
 import {Initializable} from "@solady/utils/Initializable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
 import {ModularCore} from "../../ModularCore.sol";
 
-import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC1155.sol";
+import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {BeforeBatchMintCallbackERC1155} from "../../callback/BeforeBatchMintCallbackERC1155.sol";
-import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
 import {BeforeBatchTransferCallbackERC1155} from "../../callback/BeforeBatchTransferCallbackERC1155.sol";
 import {BeforeBurnCallbackERC1155} from "../../callback/BeforeBurnCallbackERC1155.sol";
-import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC1155.sol";
+import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
+
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
 contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initializable {
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -341,4 +343,5 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
         );
         tokenUri = abi.decode(returndata, (string));
     }
+
 }

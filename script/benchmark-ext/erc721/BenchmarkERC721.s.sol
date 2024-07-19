@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
-import "forge-std/Script.sol";
 import {IERC721} from "./BenchmarkERC721Base.sol";
-import {BenchmarkERC721ThirdwebLegacy} from "./BenchmarkERC721ThirdwebLegacy.sol";
+
 import {BenchmarkERC721Manifold} from "./BenchmarkERC721Manifold.sol";
+import {BenchmarkERC721ThirdwebLegacy} from "./BenchmarkERC721ThirdwebLegacy.sol";
+import "forge-std/Script.sol";
 
 contract BenchmarkERC721 is Script {
+
     function benchmarkThirdwebLegacy() public {
         BenchmarkERC721ThirdwebLegacy benchmark = new BenchmarkERC721ThirdwebLegacy();
 
@@ -38,4 +40,5 @@ contract BenchmarkERC721 is Script {
         benchmarkThirdwebLegacy();
         benchmarkManifold();
     }
+
 }

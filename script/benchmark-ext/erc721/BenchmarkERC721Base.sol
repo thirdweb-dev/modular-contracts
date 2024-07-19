@@ -2,12 +2,15 @@
 pragma solidity ^0.8.24;
 
 interface IERC721 {
+
     function transferFrom(address from, address to, uint256 tokenId) external;
 
     function setApprovalForAll(address operator, bool _approved) external;
+
 }
 
 abstract contract BenchmarkERC721Base {
+
     // Step 1: Deploy a contract through factory or create
     // Step 2: Setup the collection with token URI
     // Step 3: Mint an NFT
@@ -27,4 +30,5 @@ abstract contract BenchmarkERC721Base {
     function mintBatchTokens(address contractAddress) external virtual;
 
     function transferTokenFrom(address contractAddress) external virtual;
+
 }

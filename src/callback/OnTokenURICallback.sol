@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract OnTokenURICallback {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -21,4 +22,5 @@ contract OnTokenURICallback {
     function onTokenURI(uint256 _tokenId) external view virtual returns (string memory metadata) {
         revert OnTokenURICallbackNotImplemented();
     }
+
 }

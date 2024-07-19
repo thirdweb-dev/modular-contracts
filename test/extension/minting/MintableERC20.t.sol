@@ -9,15 +9,18 @@ import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularExtension} from "src/ModularExtension.sol";
+
+import {Role} from "src/Role.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {MintableERC20, MintableStorage} from "src/extension/token/minting/MintableERC20.sol";
-import {Role} from "src/Role.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract MockCurrency is ERC20 {
+
     function mintTo(address _recipient, uint256 _amount) public {
         _mint(_recipient, _amount);
     }
@@ -31,9 +34,11 @@ contract MockCurrency is ERC20 {
     function symbol() public view virtual override returns (string memory) {
         return "MOCK";
     }
+
 }
 
 contract MintableERC20Test is Test {
+
     ERC20Core public core;
 
     MintableERC20 public extensionImplementation;
@@ -421,4 +426,5 @@ contract MintableERC20Test is Test {
         vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()
         core.mint(mintRequest.recipient, mintRequest.quantity, abi.encode(params));
     }
+
 }

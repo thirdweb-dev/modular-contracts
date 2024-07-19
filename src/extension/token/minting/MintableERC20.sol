@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+
 import {Role} from "../../../Role.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
@@ -12,6 +13,7 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
 
 library MintableStorage {
+
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc20")) - 1)) & ~bytes32(uint256(0xff));
@@ -29,9 +31,11 @@ library MintableStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
+
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -260,4 +264,5 @@ contract MintableERC20 is OwnableRoles, ModularExtension, EIP712, BeforeMintCall
     function _mintableStorage() internal pure returns (MintableStorage.Data storage) {
         return MintableStorage.data();
     }
+
 }

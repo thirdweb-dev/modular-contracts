@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
+import {ERC721A, ERC721AQueryable, IERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {IERC721A, ERC721A, ERC721AQueryable} from "@erc721a/extensions/ERC721AQueryable.sol";
 
 import {ModularCore} from "../../ModularCore.sol";
 
-import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
-import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
-import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
 import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
+import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
+
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
 contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -262,4 +264,5 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
         );
         uri = abi.decode(returndata, (string));
     }
+
 }

@@ -3,11 +3,12 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 
-import {IModularExtension, IExtensionConfig} from "src/interface/IModularExtension.sol";
 import {ModularCore} from "src/ModularCore.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
+import {IExtensionConfig, IModularExtension} from "src/interface/IModularExtension.sol";
 
 contract MockBase {
+
     uint256 internal constant NUMBER_OF_CALLBACK = 10;
 
     function getCallbacks() internal pure virtual returns (IExtensionConfig.CallbackFunction[] memory functions) {
@@ -16,9 +17,11 @@ contract MockBase {
             functions[i].selector = bytes4(uint32(i));
         }
     }
+
 }
 
 contract MockCoreMinimal is MockBase, ModularCore {
+
     constructor() {
         _initializeOwner(msg.sender);
     }
@@ -38,9 +41,11 @@ contract MockCoreMinimal is MockBase, ModularCore {
             functions[i] = SupportedCallbackFunction({selector: bytes4(uint32(i)), mode: CallbackMode.OPTIONAL});
         }
     }
+
 }
 
 contract MockCore is MockBase, ModularCore {
+
     constructor() {
         _initializeOwner(msg.sender);
     }
@@ -67,9 +72,11 @@ contract MockCore is MockBase, ModularCore {
     function callbackFunctionOne() external {
         _executeCallbackFunction(msg.sig, abi.encodeCall(this.callbackFunctionOne, ()));
     }
+
 }
 
 contract MockExtension is MockBase, IModularExtension {
+
     function onInstall(bytes memory data) external {}
 
     function onUninstall(bytes memory data) external {}
@@ -77,9 +84,11 @@ contract MockExtension is MockBase, IModularExtension {
     function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getCallbacks();
     }
+
 }
 
 contract MockExtensionWithFunctions is MockBase, IModularExtension {
+
     event CallbackFunctionOne();
 
     uint256 public constant CALLER_ROLE = 1 << 0;
@@ -129,9 +138,11 @@ contract MockExtensionWithFunctions is MockBase, IModularExtension {
     function permissioned_delegatecall() external {}
 
     function permissioned_staticcall() external view {}
+
 }
 
 contract CoreBenchmark is Test {
+
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
@@ -210,4 +221,5 @@ contract CoreBenchmark is Test {
         vm.expectRevert(ModularCore.CallbackFunctionRequired.selector);
         address(coreWithExtensionsNoCallback).call(abi.encodeCall(coreWithExtensionsNoCallback.callbackFunctionOne, ()));
     }
+
 }

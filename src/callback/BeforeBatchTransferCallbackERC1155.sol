@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract BeforeBatchTransferCallbackERC1155 {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -28,4 +29,5 @@ contract BeforeBatchTransferCallbackERC1155 {
     {
         revert BeforeBatchTransferCallbackERC1155NotImplemented();
     }
+
 }

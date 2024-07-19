@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
 library Role {
+
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                   NAMED ROLE CONSTANTS                     */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -273,4 +274,5 @@ library Role {
     uint256 internal constant _ROLE_253 = 1 << 253;
     uint256 internal constant _ROLE_254 = 1 << 254;
     uint256 internal constant _ROLE_255 = 1 << 255;
+
 }

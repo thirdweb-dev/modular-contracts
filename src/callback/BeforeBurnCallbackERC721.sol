@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract BeforeBurnCallbackERC721 {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -27,4 +28,5 @@ contract BeforeBurnCallbackERC721 {
     {
         revert BeforeBurnCallbackERC721NotImplemented();
     }
+
 }

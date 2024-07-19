@@ -6,16 +6,18 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularExtension} from "src/ModularExtension.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {BatchMetadataERC1155} from "src/extension/token/metadata/BatchMetadataERC1155.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract BatchMetadataExt is BatchMetadataERC1155 {}
 
 contract BatchMetadataERC1155Test is Test {
+
     ERC1155Core public core;
 
     BatchMetadataExt public extensionImplementation;
@@ -76,4 +78,5 @@ contract BatchMetadataERC1155Test is Test {
         assertEq(batches[0].endTokenIdInclusive, 99);
         assertEq(batches[0].baseURI, "ipfs://base/");
     }
+
 }

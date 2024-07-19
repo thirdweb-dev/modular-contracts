@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract BeforeApproveForAllCallback {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -26,4 +27,5 @@ contract BeforeApproveForAllCallback {
     {
         revert BeforeApproveForAllCallbackNotImplemented();
     }
+
 }
