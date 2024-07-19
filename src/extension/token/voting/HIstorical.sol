@@ -32,7 +32,7 @@ library Historical {
         uint256 pos = self.length;
         if (pos > 0) {
             Checkpoint memory last = _unsafeAccess(self, pos - 1);
-            if (last.key > key) revert InvalidCheckpoint(key); 
+            if (last.key > key) revert InvalidCheckpoint(key);
 
             self.push(Checkpoint({key: key, value: value}));
             return (last.value, value);
@@ -40,14 +40,13 @@ library Historical {
             self.push(Checkpoint({key: key, value: value}));
             return (0, value);
         }
-   }
+    }
 
-    function _binaryLookup(
-        Checkpoint[] storage self,
-        uint48 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _binaryLookup(Checkpoint[] storage self, uint48 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = (low & high) + (low ^ high) / 2; // calculate average
             if (_unsafeAccess(self, mid).key > key) {
@@ -59,10 +58,7 @@ library Historical {
         return high;
     }
 
-    function _unsafeAccess(
-        Checkpoint[] storage self,
-        uint256 pos
-    ) private pure returns (Checkpoint storage result) {
+    function _unsafeAccess(Checkpoint[] storage self, uint256 pos) private pure returns (Checkpoint storage result) {
         assembly {
             mstore(0, self.slot)
             result.slot := add(keccak256(0, 0x20), pos)

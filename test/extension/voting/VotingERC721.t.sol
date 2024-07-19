@@ -41,9 +41,7 @@ contract BaseTest is Test {
         core.installExtension(address(extensionImplementation), "");
 
         // Setup signature vars
-        typehashDelegation = keccak256(
-            "Delegation(address delegatee,uint256 nonce,uint256 expiry)"
-        );
+        typehashDelegation = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
         nameHash = keccak256(bytes("VotingERC721"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -59,7 +57,7 @@ contract BaseTest is Test {
                     Tests: Callback Functions
 //////////////////////////////////////////////////////////////*/
 /**
- * @dev 2 most common scenarios for both minting and burning: 
+ * @dev 2 most common scenarios for both minting and burning:
  * 1. user mints (or burns) then delegates
  * 2. user delegates then mints (or burns)
  *
@@ -135,11 +133,19 @@ contract VotingTests is BaseTest {
         vm.warp(mintTimestamp + 1);
         core.mint(voter1, 1, "");
 
-        assertEq(extension().getPastVotes(voter1, mintTimestamp), 1, "getPastVotes should return correct historical vote count");
+        assertEq(
+            extension().getPastVotes(voter1, mintTimestamp),
+            1,
+            "getPastVotes should return correct historical vote count"
+        );
     }
 
     function test_getPastVotes_revert_futureLookup() public {
-        vm.expectRevert(abi.encodeWithSelector(VotingERC721.InvalidFutureLookup.selector, block.timestamp + 1, uint48(block.timestamp)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                VotingERC721.InvalidFutureLookup.selector, block.timestamp + 1, uint48(block.timestamp)
+            )
+        );
         extension().getPastVotes(voter1, block.timestamp + 1);
     }
 
@@ -151,11 +157,19 @@ contract VotingTests is BaseTest {
         vm.warp(mintTimestamp + 1);
         core.mint(voter1, 1, "");
 
-        assertEq(extension().getPastTotalSupply(mintTimestamp), 1, "getPastTotalSupply should return correct historical total supply");
+        assertEq(
+            extension().getPastTotalSupply(mintTimestamp),
+            1,
+            "getPastTotalSupply should return correct historical total supply"
+        );
     }
 
     function test_getPastTotalSupply_revert_futureLookup() public {
-        vm.expectRevert(abi.encodeWithSelector(VotingERC721.InvalidFutureLookup.selector, block.timestamp + 1, uint48(block.timestamp)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                VotingERC721.InvalidFutureLookup.selector, block.timestamp + 1, uint48(block.timestamp)
+            )
+        );
         extension().getPastTotalSupply(block.timestamp + 1);
     }
 
@@ -190,12 +204,7 @@ contract delegateTests is BaseTest {
         uint256 nonce = extension().nonces(voter1);
         uint256 expiry = block.timestamp + 1 hours;
 
-        bytes32 structHash = keccak256(abi.encode(
-            typehashDelegation,
-            voter2,
-            nonce,
-            expiry
-        ));
+        bytes32 structHash = keccak256(abi.encode(typehashDelegation, voter2, nonce, expiry));
 
         bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(voter1PrivateKey, typedDataHash);
@@ -210,12 +219,7 @@ contract delegateTests is BaseTest {
         uint256 nonce = extension().nonces(voter1);
         uint256 expiry = block.timestamp - 1; // Expired
 
-        bytes32 structHash = keccak256(abi.encode(
-            typehashDelegation,
-            voter2,
-            nonce,
-            expiry
-        ));
+        bytes32 structHash = keccak256(abi.encode(typehashDelegation, voter2, nonce, expiry));
 
         bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(voter1PrivateKey, typedDataHash);

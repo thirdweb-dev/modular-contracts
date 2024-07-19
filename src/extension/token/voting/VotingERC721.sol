@@ -34,7 +34,6 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
     bytes32 private constant DELEGATION_TYPEHASH =
         keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
-
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -60,26 +59,24 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
 
     /// @notice Lookup to future votes is not available.
     error InvalidNonce(uint256 nonce);
-    
+
     /// @notice The signature used has expired.
     error VotesExpiredSignature(uint256 expiry);
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
     //////////////////////////////////////////////////////////////*/
-    
+
     /// @notice Emitted when an account changes their delegate.
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    
     /// @notice Emitted when a token transfer or delegate change results in changes to a delegate's number of voting units.
     event DelegateVotesChanged(address indexed delegate, uint256 previousVotes, uint256 newVotes);
-
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
- 
+
     constructor() ERC721A("vote", "VOTE") {}
 
     /*//////////////////////////////////////////////////////////////
@@ -94,26 +91,16 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
         config.callbackFunctions[1] = CallbackFunction(this.beforeBurnERC721.selector);
         config.callbackFunctions[2] = CallbackFunction(this.beforeTransferERC721.selector);
 
-        config.fallbackFunctions[0] = 
-            FallbackFunction({selector: this.clock.selector, permissionBits: 0});
-        config.fallbackFunctions[1] =
-            FallbackFunction({selector: this.CLOCK_MODE.selector, permissionBits: 0});
-        config.fallbackFunctions[2] =
-            FallbackFunction({selector: this.getVotes.selector, permissionBits: 0});
-        config.fallbackFunctions[3] =
-            FallbackFunction({selector: this.getPastVotes.selector, permissionBits: 0});
-        config.fallbackFunctions[4] = 
-            FallbackFunction({selector: this.getPastTotalSupply.selector, permissionBits: 0});
-        config.fallbackFunctions[5] = 
-            FallbackFunction({selector: this.getTotalSupply.selector, permissionBits: 0});
-        config.fallbackFunctions[6] =
-            FallbackFunction({selector: this.delegates.selector, permissionBits: 0});
-        config.fallbackFunctions[7] =
-            FallbackFunction({selector: this.delegate.selector, permissionBits: 0});
-        config.fallbackFunctions[8] =
-            FallbackFunction({selector: this.delegateBySig.selector, permissionBits: 0});
-        config.fallbackFunctions[9] =
-            FallbackFunction({selector: this.nonces.selector, permissionBits: 0});
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.clock.selector, permissionBits: 0});
+        config.fallbackFunctions[1] = FallbackFunction({selector: this.CLOCK_MODE.selector, permissionBits: 0});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.getVotes.selector, permissionBits: 0});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.getPastVotes.selector, permissionBits: 0});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.getPastTotalSupply.selector, permissionBits: 0});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.getTotalSupply.selector, permissionBits: 0});
+        config.fallbackFunctions[6] = FallbackFunction({selector: this.delegates.selector, permissionBits: 0});
+        config.fallbackFunctions[7] = FallbackFunction({selector: this.delegate.selector, permissionBits: 0});
+        config.fallbackFunctions[8] = FallbackFunction({selector: this.delegateBySig.selector, permissionBits: 0});
+        config.fallbackFunctions[9] = FallbackFunction({selector: this.nonces.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -134,18 +121,12 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
     }
 
     /// @notice Callback function for the ERC721Core.transferFrom function.
-    function beforeTransferERC721(address from, address to, uint256 tokenId)
-        external
-        payable
-    {
+    function beforeTransferERC721(address from, address to, uint256 tokenId) external payable {
         _transferVotingUnits(from, to, 1);
     }
 
     /// @notice Callback function for the ERC721Core.burn function.
-    function beforeBurnERC721(uint256 tokenId, bytes calldata data)
-        external
-        payable
-    {
+    function beforeBurnERC721(uint256 tokenId, bytes calldata data) external payable {
         _transferVotingUnits(msg.sender, address(0), 1);
     }
 
@@ -161,7 +142,6 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
         return SafeCastLib.toUint48(block.timestamp);
     }
 
-    
     /// @notice Machine-readable description of the clock as specified in ERC-6372.
     // solhint-disable-next-line func-name-mixedcase
     function CLOCK_MODE() public view virtual returns (string memory) {
@@ -224,21 +204,13 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
     }
 
     /// @notice Delegates votes from signer to `delegatee`.
-    function delegateBySig(
-        address delegatee,
-        uint256 nonce,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public virtual {
-        if (block.timestamp > expiry) revert VotesExpiredSignature(expiry); 
-        address signer = ECDSA.recover(
-            _hashTypedData(keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry))),
-            v,
-            r,
-            s
-        );
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s)
+        public
+        virtual
+    {
+        if (block.timestamp > expiry) revert VotesExpiredSignature(expiry);
+        address signer =
+            ECDSA.recover(_hashTypedData(keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry))), v, r, s);
         _useNonce(signer, nonce);
         _delegate(signer, delegatee);
     }
@@ -276,19 +248,12 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
         if (from != to && amount > 0) {
             mapping(address => Historical.Timeline) storage delegatedVotes = _votingStorage().delegatedVotes;
             if (from != address(0)) {
-                (uint256 oldValue, uint256 newValue) = _push(
-                    delegatedVotes[from],
-                    _subtract,
-                    SafeCastLib.toUint208(amount)
-                );
+                (uint256 oldValue, uint256 newValue) =
+                    _push(delegatedVotes[from], _subtract, SafeCastLib.toUint208(amount));
                 emit DelegateVotesChanged(from, oldValue, newValue);
             }
             if (to != address(0)) {
-                (uint256 oldValue, uint256 newValue) = _push(
-                    delegatedVotes[to],
-                    _add,
-                    SafeCastLib.toUint208(amount)
-                );
+                (uint256 oldValue, uint256 newValue) = _push(delegatedVotes[to], _add, SafeCastLib.toUint208(amount));
                 emit DelegateVotesChanged(to, oldValue, newValue);
             }
         }
@@ -306,11 +271,11 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
         return timeline.push(clock(), op(timeline.latest(), delta));
     }
 
-    function _add(uint208 a, uint208 b) internal view returns (uint208) {
+    function _add(uint208 a, uint208 b) internal pure returns (uint208) {
         return a + b;
     }
 
-    function _subtract(uint208 a, uint208 b) internal view returns (uint208) {
+    function _subtract(uint208 a, uint208 b) internal pure returns (uint208) {
         return a - b;
     }
 
