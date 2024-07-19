@@ -10,12 +10,14 @@ import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {IERC20} from "../../interface/IERC20.sol";
 
-import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
-import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
+import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
+import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
+
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
 contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializable {
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -256,4 +258,5 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
             abi.encodeCall(BeforeApproveCallbackERC20.beforeApproveERC20, (from, to, amount))
         );
     }
+
 }

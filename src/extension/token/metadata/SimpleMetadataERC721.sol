@@ -6,6 +6,7 @@ import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library SimpleMetadataStorage {
+
     /// @custom:storage-location erc7201:token.metadata.simple
     bytes32 public constant SIMPLE_METADATA_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.metadata.simple")) - 1)) & ~bytes32(uint256(0xff));
@@ -21,9 +22,11 @@ library SimpleMetadataStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract SimpleMetadataERC721 is ModularExtension {
+
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -78,4 +81,5 @@ contract SimpleMetadataERC721 is ModularExtension {
         SimpleMetadataStorage.data().uris[_id] = _uri;
         emit MetadataUpdate(_id);
     }
+
 }

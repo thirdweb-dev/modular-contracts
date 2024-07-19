@@ -6,6 +6,7 @@ import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library DelayedRevealBatchMetadataStorage {
+
     /// @custom:storage-location erc7201:token.metadata.batch.delayed.reveal
     bytes32 public constant DELAYED_REVEAL_BATCH_METADATA_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.metadata.batch.delayed.reveal")) - 1)) & ~bytes32(uint256(0xff));
@@ -27,9 +28,11 @@ library DelayedRevealBatchMetadataStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract DelayedRevealBatchMetadataERC721 is ModularExtension {
+
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -271,4 +274,5 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     {
         return DelayedRevealBatchMetadataStorage.data();
     }
+
 }

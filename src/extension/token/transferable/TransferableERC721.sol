@@ -6,6 +6,7 @@ import {Role} from "../../../Role.sol";
 import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
 
 library TransferableStorage {
+
     /// @custom:storage-location erc7201:token.transferable
     bytes32 public constant TRANSFERABLE_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.transferable")) - 1)) & ~bytes32(uint256(0xff));
@@ -23,9 +24,11 @@ library TransferableStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract TransferableERC721 is ModularExtension, BeforeTransferCallbackERC721 {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -102,4 +105,5 @@ contract TransferableERC721 is ModularExtension, BeforeTransferCallbackERC721 {
     function _transferableStorage() internal pure returns (TransferableStorage.Data storage) {
         return TransferableStorage.data();
     }
+
 }

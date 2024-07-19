@@ -6,15 +6,17 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
+
 import {ModularExtension} from "src/ModularExtension.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {RoyaltyERC1155} from "src/extension/token/royalty/RoyaltyERC1155.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract RoyaltyExt is RoyaltyERC1155 {}
 
 contract RoyaltyERC1155Test is Test {
+
     ERC1155Core public core;
 
     RoyaltyExt public extensionImplementation;
@@ -121,4 +123,5 @@ contract RoyaltyERC1155Test is Test {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
         RoyaltyExt(address(core)).setRoyaltyInfoForToken(10, address(0x123), 100);
     }
+
 }

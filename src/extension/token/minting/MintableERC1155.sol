@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+
 import {Role} from "../../../Role.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
@@ -13,6 +14,7 @@ import {BeforeMintCallbackERC1155} from "../../../callback/BeforeMintCallbackERC
 import {OnTokenURICallback} from "../../../callback/OnTokenURICallback.sol";
 
 library MintableStorage {
+
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc1155")) - 1)) & ~bytes32(uint256(0xff));
@@ -34,6 +36,7 @@ library MintableStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract MintableERC1155 is
@@ -43,6 +46,7 @@ contract MintableERC1155 is
     OnTokenURICallback,
     IInstallationCallback
 {
+
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -318,4 +322,5 @@ contract MintableERC1155 is
     function _mintableStorage() internal pure returns (MintableStorage.Data storage) {
         return MintableStorage.data();
     }
+
 }

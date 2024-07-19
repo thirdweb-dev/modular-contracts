@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "./BenchmarkERC721Base.sol";
 
 interface IBenchmarkERC721 {
+
     function deployProxyByImplementation(address _implementation, bytes calldata _data, bytes32 _salt)
         external
         returns (address deployedProxy);
@@ -20,13 +21,17 @@ interface IBenchmarkERC721 {
         uint128 _platformFeeBps,
         address _platformFeeRecipient
     ) external;
+
 }
 
 interface IThirdwebNFT {
+
     function mintTo(address _to, string calldata _uri) external returns (uint256);
+
 }
 
 contract BenchmarkERC721ThirdwebLegacy is BenchmarkERC721Base {
+
     function deployContract(
         address deployerAddress,
         string memory name,
@@ -67,4 +72,5 @@ contract BenchmarkERC721ThirdwebLegacy is BenchmarkERC721Base {
     function transferTokenFrom(address contractAddress) external override {
         IERC721(contractAddress).transferFrom(tx.origin, address(0xdead), 0);
     }
+
 }

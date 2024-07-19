@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 interface IExtensionConfig {
+
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -47,4 +48,5 @@ interface IExtensionConfig {
         CallbackFunction[] callbackFunctions;
         FallbackFunction[] fallbackFunctions;
     }
+
 }

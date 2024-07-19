@@ -6,15 +6,17 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
+
 import {ModularExtension} from "src/ModularExtension.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {TransferableERC721} from "src/extension/token/transferable/TransferableERC721.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract TransferableExt is TransferableERC721 {}
 
 contract Core is ERC721Core {
+
     constructor(
         string memory name,
         string memory symbol,
@@ -27,9 +29,11 @@ contract Core is ERC721Core {
     // disable mint and approve callbacks for these tests
     function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal override {}
     function _beforeApproveForAll(address from, address to, bool approved) internal override {}
+
 }
 
 contract TransferableERC721Test is Test {
+
     Core public core;
 
     TransferableExt public extensionImplementation;
@@ -188,4 +192,5 @@ contract TransferableERC721Test is Test {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
         TransferableExt(address(core)).setTransferableFor(actorOne, true);
     }
+
 }

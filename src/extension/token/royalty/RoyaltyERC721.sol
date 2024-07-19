@@ -2,10 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+
 import {Role} from "../../../Role.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 
 library RoyaltyStorage {
+
     /// @custom:storage-location erc7201:token.royalty
     bytes32 public constant ROYALTY_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.royalty")) - 1)) & ~bytes32(uint256(0xff));
@@ -23,9 +25,11 @@ library RoyaltyStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
+
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -152,4 +156,5 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
 
         emit TokenRoyaltyUpdate(_tokenId, _recipient, _bps);
     }
+
 }

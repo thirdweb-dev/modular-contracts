@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 // credit Solady (https://github.com/Vectorized/solady)
 contract TestPlus {
+
     event LogString(string name, string value);
     event LogBytes(string name, bytes value);
     event LogUint(string name, uint256 value);
@@ -150,4 +151,5 @@ contract TestPlus {
     function min3(uint256 a, uint256 b, uint256 c) internal pure returns (uint256) {
         return a > b ? (b > c ? c : b) : (a > c ? c : a);
     }
+
 }

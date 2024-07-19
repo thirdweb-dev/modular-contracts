@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+
 import {Role} from "../../../Role.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
@@ -13,6 +14,7 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
 
 library ClaimableStorage {
+
     /// @custom:storage-location erc7201:token.minting.claimable.erc20
     bytes32 public constant CLAIMABLE_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.minting.claimable.erc20")) - 1)) & ~bytes32(uint256(0xff));
@@ -32,9 +34,11 @@ library ClaimableStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
+
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -353,4 +357,5 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     function _claimableStorage() internal pure returns (ClaimableStorage.Data storage) {
         return ClaimableStorage.data();
     }
+
 }

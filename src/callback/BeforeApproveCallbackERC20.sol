@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract BeforeApproveCallbackERC20 {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -27,4 +28,5 @@ contract BeforeApproveCallbackERC20 {
     {
         revert BeforeApproveCallbackERC20NotImplemented();
     }
+
 }

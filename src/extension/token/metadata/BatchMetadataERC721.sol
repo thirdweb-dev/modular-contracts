@@ -6,6 +6,7 @@ import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library BatchMetadataStorage {
+
     /// @custom:storage-location erc7201:token.metadata.batch
     bytes32 public constant BATCH_METADATA_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.metadata.batch")) - 1)) & ~bytes32(uint256(0xff));
@@ -25,9 +26,11 @@ library BatchMetadataStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract BatchMetadataERC721 is ModularExtension {
+
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -163,4 +166,5 @@ contract BatchMetadataERC721 is ModularExtension {
     function _batchMetadataStorage() internal pure returns (BatchMetadataStorage.Data storage) {
         return BatchMetadataStorage.data();
     }
+
 }

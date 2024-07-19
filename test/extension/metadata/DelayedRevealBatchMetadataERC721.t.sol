@@ -6,16 +6,18 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularExtension} from "src/ModularExtension.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {DelayedRevealBatchMetadataERC721} from "src/extension/token/metadata/DelayedRevealBatchMetadataERC721.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract DelayedRevealExt is DelayedRevealBatchMetadataERC721 {}
 
 contract DelayedRevealBatchMetadataERC721Test is Test {
+
     ERC721Core public core;
 
     DelayedRevealExt public extensionImplementation;
@@ -170,4 +172,5 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
         assertEq(core.tokenURI(1), "ipfs://temp/0");
         assertEq(core.tokenURI(99), "ipfs://temp/0");
     }
+
 }
