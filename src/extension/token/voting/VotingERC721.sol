@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2.0
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 import {Historical} from "./Historical.sol";
@@ -28,7 +28,7 @@ library VotingStorage {
     }
 }
 
-contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
+contract VotingERC721 is EIP712, ModularExtension {
     using Historical for Historical.Timeline;
 
     bytes32 private constant DELEGATION_TYPEHASH =
@@ -72,12 +72,6 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
 
     /// @notice Emitted when a token transfer or delegate change results in changes to a delegate's number of voting units.
     event DelegateVotesChanged(address indexed delegate, uint256 previousVotes, uint256 newVotes);
-
-    /*//////////////////////////////////////////////////////////////
-                            CONSTRUCTOR
-    //////////////////////////////////////////////////////////////*/
-
-    constructor() ERC721A("vote", "VOTE") {}
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
@@ -281,7 +275,7 @@ contract VotingERC721 is ERC721AQueryable, EIP712, ModularExtension {
 
     /// @notice Returns the balance of `account`.
     function _getVotingUnits(address account) internal view returns (uint256) {
-        return balanceOf(account);
+        return ERC721A(address(this)).balanceOf(account);
     }
 
     function _useNonce(address signer, uint256 nonce) internal {
