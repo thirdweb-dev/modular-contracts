@@ -5,11 +5,9 @@ import "lib/forge-std/src/console.sol";
 
 import {Test} from "forge-std/Test.sol";
 
-import {CreatorTokenTransferValidator} from
-    "@limitbreak/creator-token-standards/utils/CreatorTokenTransferValidator.sol";
-import {CreatorTokenTransferValidatorConfiguration} from
-    "@limitbreak/creator-token-standards/utils/CreatorTokenTransferValidatorConfiguration.sol";
-import "@limitbreak/creator-token-standards/utils/EOARegistry.sol";
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
+
+import "test/utils/CreatorTokenUtils.sol";
 
 // Target contract
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
@@ -65,9 +63,7 @@ contract CreatorTokenERC721Test is Test {
 
     TransferToken public transferTokenContract;
 
-    EOARegistry public eoaRegistry;
-    CreatorTokenTransferValidator public mockTransferValidator;
-    CreatorTokenTransferValidatorConfiguration public validatorConfiguration;
+    ITransferValidator public mockTransferValidator;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -92,6 +88,8 @@ contract CreatorTokenERC721Test is Test {
     bytes32 internal domainSeparator721;
     bytes32 internal domainSeparator1155;
     bytes32 internal domainSeparator20;
+
+    bytes32 internal evmVersionHash;
 
     MintableERC721.MintRequestERC721 public mintRequest;
 
@@ -177,6 +175,8 @@ contract CreatorTokenERC721Test is Test {
         permissionedActor = vm.addr(permissionedActorPrivateKey);
         unpermissionedActor = vm.addr(unpermissionedActorPrivateKey);
 
+        evmVersionHash = _checkEVMVersion();
+
         address[] memory extensions;
         bytes[] memory extensionData;
 
@@ -228,13 +228,8 @@ contract CreatorTokenERC721Test is Test {
         core20.grantRoles(owner, Role._MINTER_ROLE);
         vm.stopPrank();
 
-        // set up transfer validator
-        eoaRegistry = new EOARegistry();
-        validatorConfiguration = new CreatorTokenTransferValidatorConfiguration(address(this));
-        validatorConfiguration.setNativeValueToCheckPauseState(0);
-        mockTransferValidator = new CreatorTokenTransferValidator(
-            address(this), address(eoaRegistry), "", "", address(validatorConfiguration)
-        );
+        mockTransferValidator = ITransferValidator(0x721C0078c2328597Ca70F5451ffF5A7B38D4E947);
+        vm.etch(address(mockTransferValidator), TRANSFER_VALIDATOR_DEPLOYED_BYTECODE);
     }
 
     function test_state_setTransferValidator() public {
@@ -317,6 +312,10 @@ contract CreatorTokenERC721Test is Test {
     }
 
     function test_transferRestrictedWithValidValidator() public {
+        if (evmVersionHash != keccak256(abi.encode('evm_version = "cancun"'))) {
+            //skip test if evm version is not cancun
+            return;
+        }
         _mintToken721(owner, 1);
         _mintToken1155(owner, 2, 0, bytes32("1"));
         _mintToken1155(owner, 1, 1, bytes32("2"));
@@ -436,5 +435,26 @@ contract CreatorTokenERC721Test is Test {
         core20.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
             mintRequest.recipient, mintRequest.quantity, abi.encode(params)
         );
+    }
+
+    function _checkEVMVersion() internal returns (bytes32 evmVersionHash) {
+        string memory path = "foundry.toml";
+        string memory file;
+        for (uint256 i = 0; i < 100; i++) {
+            file = vm.readLine(path);
+            if (bytes(file).length == 0) {
+                break;
+            }
+            if (
+                keccak256(abi.encode(file)) == keccak256(abi.encode('evm_version = "cancun"'))
+                    || keccak256(abi.encode(file)) == keccak256(abi.encode('evm_version = "london"'))
+                    || keccak256(abi.encode(file)) == keccak256(abi.encode('evm_version = "paris"'))
+                    || keccak256(abi.encode(file)) == keccak256(abi.encode('evm_version = "shanghai"'))
+            ) {
+                break;
+            }
+        }
+
+        evmVersionHash = keccak256(abi.encode(file));
     }
 }
