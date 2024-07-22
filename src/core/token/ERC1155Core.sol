@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
