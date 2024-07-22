@@ -52,7 +52,7 @@ contract TransferToken {
     }
 }
 
-contract CreatorTokenERC721Test is Test {
+contract CreatorTokenTest is Test {
     ERC721Core public core721;
     ERC1155Core public core1155;
     ERC20Core public core20;

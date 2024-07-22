@@ -339,8 +339,11 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
     {
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
-            for (uint256 i = 0; i < tokenIds.length; i++) {
+            for (uint256 i = 0; i < tokenIds.length;) {
                 ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenIds[i], values[i]);
+                unchecked {
+                    ++i;
+                }
             }
         }
         _executeCallbackFunction(
