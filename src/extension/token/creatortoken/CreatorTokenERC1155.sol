@@ -90,8 +90,11 @@ contract CreatorTokenERC1155 is
     {
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
-            for (uint256 i = 0; i < ids.length; i++) {
+            for (uint256 i = 0; i < ids.length;) {
                 ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, ids[i], values[i]);
+                unchecked {
+                    ++i;
+                }
             }
         }
     }
