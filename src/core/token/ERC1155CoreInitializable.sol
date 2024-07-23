@@ -122,6 +122,8 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
             || interfaceId == 0x0e89341c // ERC165 Interface ID for ERC1155MetadataURI
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
+            || interfaceId == 0xad0d7f6c // ICreatorToken
+            || interfaceId == 0xa07d229a // ICreatorTokenLegacy
             || super.supportsInterface(interfaceId); // right-most ModularCore
     }
 

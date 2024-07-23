@@ -116,6 +116,8 @@ contract ERC20Core is ERC20, Multicallable, ModularCore, CreatorToken {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
+            || interfaceId == 0xad0d7f6c // ICreatorToken
+            || interfaceId == 0xa07d229a // ICreatorTokenLegacy
             || interfaceId == type(IERC20).interfaceId || _supportsInterfaceViaExtensions(interfaceId);
     }
 

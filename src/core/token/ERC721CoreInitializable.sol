@@ -123,6 +123,8 @@ contract ERC721CoreInitializable is
             || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
+            || interfaceId == 0xad0d7f6c // ICreatorToken
+            || interfaceId == 0xa07d229a // ICreatorTokenLegacy
             || super.supportsInterface(interfaceId); // right-most ModularCore
     }
 
