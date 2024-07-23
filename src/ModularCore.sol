@@ -352,13 +352,11 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
 
         if (callbackFunction.implementation != address(0)) {
             (success, returndata) = address(this).staticcall(_abiEncodedCalldata);
-        } else {
-            if (callbackMode == CallbackMode.REQUIRED) {
-                revert CallbackFunctionRequired();
+            if (!success) {
+                _revert(returndata, CallbackExecutionReverted.selector);
             }
-        }
-        if (!success) {
-            _revert(returndata, CallbackExecutionReverted.selector);
+        } else if (callbackMode == CallbackMode.REQUIRED) {
+            revert CallbackFunctionRequired();
         }
     }
 
