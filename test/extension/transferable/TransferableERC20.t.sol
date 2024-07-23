@@ -6,15 +6,17 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
+
 import {ModularExtension} from "src/ModularExtension.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {TransferableERC20} from "src/extension/token/transferable/TransferableERC20.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract TransferableExt is TransferableERC20 {}
 
 contract Core is ERC20Core {
+
     constructor(
         string memory name,
         string memory symbol,
@@ -27,9 +29,11 @@ contract Core is ERC20Core {
     // disable mint and approve callbacks for these tests
     function _beforeMint(address to, uint256 amount, bytes calldata data) internal override {}
     function _beforeApprove(address from, address to, uint256 amount) internal override {}
+
 }
 
 contract TransferableERC20Test is Test {
+
     Core public core;
 
     TransferableExt public extensionImplementation;
@@ -185,4 +189,5 @@ contract TransferableERC20Test is Test {
         vm.startPrank(actorOne);
         core.burn(actorOne, 1, "");
     }
+
 }

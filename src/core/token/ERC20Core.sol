@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.20;
 
 import {ModularCore} from "../../ModularCore.sol";
 
@@ -13,10 +13,12 @@ import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces
 
 import {IERC20} from "../../interface/IERC20.sol";
 
-import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
-import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
+import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
+import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
+
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
+
 
 contract ERC20Core is ERC20, Multicallable, ModularCore, CreatorToken {
     /*//////////////////////////////////////////////////////////////
@@ -278,4 +280,5 @@ contract ERC20Core is ERC20, Multicallable, ModularCore, CreatorToken {
             abi.encodeCall(BeforeApproveCallbackERC20.beforeApproveERC20, (from, to, amount))
         );
     }
+
 }

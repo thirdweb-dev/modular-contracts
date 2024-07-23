@@ -1,25 +1,27 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
+import {
+    ERC721AQueryableUpgradeable,
+    ERC721AUpgradeable,
+    IERC721AUpgradeable
+} from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
 import {Initializable} from "@solady/utils/Initializable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {
-    IERC721AUpgradeable,
-    ERC721AUpgradeable,
-    ERC721AQueryableUpgradeable
-} from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
 
 import {ModularCore} from "../../ModularCore.sol";
+
 
 import {CreatorToken} from "./CreatorToken/CreatorToken.sol";
 import {TOKEN_TYPE_ERC721} from "@limitbreak/permit-c/Constants.sol";
 import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
 
-import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
-import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
-import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
 import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
+import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
+
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
 contract ERC721CoreInitializable is
@@ -29,6 +31,7 @@ contract ERC721CoreInitializable is
     Initializable,
     CreatorToken
 {
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -317,4 +320,5 @@ contract ERC721CoreInitializable is
         );
         uri = abi.decode(returndata, (string));
     }
+
 }

@@ -1,12 +1,14 @@
-// SPDX-License-Identifier: Apache 2.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.20;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
 import {Role} from "../../../Role.sol";
-import {BeforeTransferCallbackERC1155} from "../../../callback/BeforeTransferCallbackERC1155.sol";
+
 import {BeforeBatchTransferCallbackERC1155} from "../../../callback/BeforeBatchTransferCallbackERC1155.sol";
+import {BeforeTransferCallbackERC1155} from "../../../callback/BeforeTransferCallbackERC1155.sol";
 
 library TransferableStorage {
+
     /// @custom:storage-location erc7201:token.transferable
     bytes32 public constant TRANSFERABLE_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.transferable")) - 1)) & ~bytes32(uint256(0xff));
@@ -24,9 +26,11 @@ library TransferableStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract TransferableERC1155 is ModularExtension, BeforeTransferCallbackERC1155, BeforeBatchTransferCallbackERC1155 {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -125,4 +129,5 @@ contract TransferableERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
     function _transferableStorage() internal pure returns (TransferableStorage.Data storage) {
         return TransferableStorage.data();
     }
+
 }

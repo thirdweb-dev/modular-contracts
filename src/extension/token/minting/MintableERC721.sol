@@ -1,19 +1,22 @@
-// SPDX-License-Identifier: Apache 2.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.20;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+
 import {Role} from "../../../Role.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
-import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+
 import {LibString} from "@solady/utils/LibString.sol";
+import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
 import {OnTokenURICallback} from "../../../callback/OnTokenURICallback.sol";
 
 library MintableStorage {
+
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc721")) - 1)) & ~bytes32(uint256(0xff));
@@ -35,6 +38,7 @@ library MintableStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract MintableERC721 is
@@ -44,6 +48,7 @@ contract MintableERC721 is
     OnTokenURICallback,
     IInstallationCallback
 {
+
     using ECDSA for bytes32;
     using LibString for uint256;
 
@@ -222,11 +227,35 @@ contract MintableERC721 is
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
     function onInstall(bytes calldata data) external {
-        _mintableStorage().saleConfig = SaleConfig(msg.sender);
+        address primarySaleRecipient = abi.decode(data, (address));
+        _mintableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
     function onUninstall(bytes calldata data) external {}
+
+    /*//////////////////////////////////////////////////////////////
+                    Encode install / uninstall data
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
+    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
+        return abi.encode(primarySaleRecipient);
+    }
+
+    /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
+    function encodeBytesOnUninstall() external pure returns (bytes memory) {
+        return "";
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        Encode mint params
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
+    function encodeBytesBeforeMintERC721(MintParamsERC721 memory params) external pure returns (bytes memory) {
+        return abi.encode(params);
+    }
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
@@ -368,4 +397,5 @@ contract MintableERC721 is
     function _mintableStorage() internal pure returns (MintableStorage.Data storage) {
         return MintableStorage.data();
     }
+
 }

@@ -6,16 +6,18 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularExtension} from "src/ModularExtension.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {SimpleMetadataERC721, SimpleMetadataStorage} from "src/extension/token/metadata/SimpleMetadataERC721.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract SimpleMetadataExt is SimpleMetadataERC721 {}
 
 contract SimpleMetadataERC721Test is Test {
+
     ERC721Core public core;
 
     SimpleMetadataExt public extensionImplementation;
@@ -59,4 +61,5 @@ contract SimpleMetadataERC721Test is Test {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
         SimpleMetadataExt(address(core)).setTokenURI(1, "ipfs://base/");
     }
+
 }

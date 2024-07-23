@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.20;
 
 interface IExtensionConfig {
+
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -47,4 +48,5 @@ interface IExtensionConfig {
         CallbackFunction[] callbackFunctions;
         FallbackFunction[] fallbackFunctions;
     }
+
 }

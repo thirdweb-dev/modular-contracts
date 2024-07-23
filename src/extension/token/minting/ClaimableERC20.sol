@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: Apache 2.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.20;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+
 import {Role} from "../../../Role.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
@@ -13,6 +14,7 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
 
 library ClaimableStorage {
+
     /// @custom:storage-location erc7201:token.minting.claimable.erc20
     bytes32 public constant CLAIMABLE_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.minting.claimable.erc20")) - 1)) & ~bytes32(uint256(0xff));
@@ -32,9 +34,11 @@ library ClaimableStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
+
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -204,11 +208,35 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
 
     /// @dev Called by a Core into an Extension during the installation of the Extension.
     function onInstall(bytes calldata data) external {
-        _claimableStorage().saleConfig = SaleConfig(msg.sender);
+        address primarySaleRecipient = abi.decode(data, (address));
+        _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
     /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
     function onUninstall(bytes calldata data) external {}
+
+    /*//////////////////////////////////////////////////////////////
+                    Encode install / uninstall data
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
+    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
+        return abi.encode(primarySaleRecipient);
+    }
+
+    /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
+    function encodeBytesOnUninstall() external pure returns (bytes memory) {
+        return "";
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        Encode mint params
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
+    function encodeBytesBeforeMintERC20(ClaimParamsERC20 memory params) external pure returns (bytes memory) {
+        return abi.encode(params);
+    }
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
@@ -353,4 +381,5 @@ contract ClaimableERC20 is ModularExtension, EIP712, BeforeMintCallbackERC20, II
     function _claimableStorage() internal pure returns (ClaimableStorage.Data storage) {
         return ClaimableStorage.data();
     }
+
 }

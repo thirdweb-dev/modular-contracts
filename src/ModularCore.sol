@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.20;
 
 // Interface
+
+import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 import {IModularCore} from "./interface/IModularCore.sol";
 import {IModularExtension} from "./interface/IModularExtension.sol";
-import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 
 // Utils
 import {Role} from "./Role.sol";
@@ -13,6 +14,7 @@ import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 
 abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
+
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
     /*//////////////////////////////////////////////////////////////
@@ -147,8 +149,12 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
 
     /// @notice Returns whether a given interface is implemented by the contract.
     function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
-        if (interfaceId == 0xffffffff) return false;
-        if (supportedInterfaceRefCounter[interfaceId] > 0) return true;
+        if (interfaceId == 0xffffffff) {
+            return false;
+        }
+        if (supportedInterfaceRefCounter[interfaceId] > 0) {
+            return true;
+        }
         return false;
     }
 
@@ -158,8 +164,12 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
 
     /// @notice Returns whether a given interface is implemented by the contract.
     function _supportsInterfaceViaExtensions(bytes4 interfaceId) internal view virtual returns (bool) {
-        if (interfaceId == 0xffffffff) return false;
-        if (supportedInterfaceRefCounter[interfaceId] > 0) return true;
+        if (interfaceId == 0xffffffff) {
+            return false;
+        }
+        if (supportedInterfaceRefCounter[interfaceId] > 0) {
+            return true;
+        }
         return false;
     }
 
@@ -208,7 +218,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
                     break;
                 }
             }
-            if (!supported) revert CallbackFunctionNotSupported();
+            if (!supported) {
+                revert CallbackFunctionNotSupported();
+            }
 
             functionData_[callbackFunction.selector] =
                 InstalledFunction({implementation: _extension, permissionBits: 0, fnType: FunctionType.CALLBACK});
@@ -388,4 +400,5 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
             }
         }
     }
+
 }

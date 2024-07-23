@@ -5,13 +5,15 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
+
+import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
+import {ModularCore} from "src/ModularCore.sol";
+import {ModularExtension} from "src/ModularExtension.sol";
 import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCore} from "src/ModularCore.sol";
-import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 
 contract MockBase {
+
     uint256 internal constant NUMBER_OF_CALLBACK = 10;
 
     function getCallbacks() internal pure virtual returns (IExtensionConfig.CallbackFunction[] memory functions) {
@@ -20,9 +22,11 @@ contract MockBase {
             functions[i].selector = bytes4(uint32(i));
         }
     }
+
 }
 
 contract MockCore is MockBase, ModularCore {
+
     constructor(address _owner) {
         _initializeOwner(_owner);
     }
@@ -49,9 +53,11 @@ contract MockCore is MockBase, ModularCore {
     function callbackFunctionOne() external {
         _executeCallbackFunction(msg.sig, abi.encodeCall(this.callbackFunctionOne, ()));
     }
+
 }
 
 contract MockExtensionWithFunctions is MockBase, ModularExtension {
+
     event CallbackFunctionOne();
     event FallbackFunctionCalled();
 
@@ -119,77 +125,97 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
     function permissioned_delegatecall() external {}
 
     function permissioned_staticcall() external view {}
+
 }
 
 contract MockExtensionReentrant is MockExtensionWithFunctions {
+
     function callbackFunctionOne() external override {
         MockCore(payable(address(this))).callbackFunctionOne();
     }
+
 }
 
 contract MockExtensionOnInstallFails is MockExtensionWithFunctions {
+
     error OnInstallFailed();
 
     function onInstall(bytes memory data) external override {
         revert OnInstallFailed();
     }
+
 }
 
 contract MockExtensionOnUninstallFails is MockExtensionWithFunctions {
+
     error OnUninstallFailed();
 
     function onUninstall(bytes memory data) external override {
         revert OnUninstallFailed();
     }
+
 }
 
 contract MockExtensionNoCallbacks is MockExtensionWithFunctions {
+
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new IExtensionConfig.CallbackFunction[](0);
 
         FallbackFunction[] memory functions = new FallbackFunction[](1);
         functions[0] = FallbackFunction({selector: bytes4(keccak256("notPermissioned_call()")), permissionBits: 0});
     }
+
 }
 
 contract MockExtensionNoFallbackFunctions is MockExtensionWithFunctions {
+
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getCallbacks();
     }
+
 }
 
 contract MockExtensionRequiresSomeInterface is MockExtensionWithFunctions {
+
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getCallbacks();
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = bytes4(0x12345678);
     }
+
 }
 
 contract MockExtensionOverlappingCallbacks is MockExtensionWithFunctions {
+
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getCallbacks();
     }
+
 }
 
 contract MockExtensionUnsupportedCallbacks is MockExtensionWithFunctions {
+
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = new IExtensionConfig.CallbackFunction[](1);
         config.callbackFunctions[0].selector = bytes4(0x12345678);
     }
+
 }
 
 contract MockExtensionOverlappingFallbackFunction is MockExtensionWithFunctions {
+
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         FallbackFunction[] memory functions = new FallbackFunction[](1);
         functions[0] = FallbackFunction({selector: bytes4(keccak256("notPermissioned_call()")), permissionBits: 0});
 
         config.fallbackFunctions = functions;
     }
+
 }
 
 contract MockExtensionAlternate is MockExtensionWithFunctions {
+
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.callbackFunctions = getCallbacks();
 
@@ -216,9 +242,11 @@ contract MockExtensionAlternate is MockExtensionWithFunctions {
     function someNewFunction() external {
         emit SomeNewEvent();
     }
+
 }
 
 contract ModularCoreTest is Test {
+
     MockCore public core;
 
     MockExtensionWithFunctions public extension;
@@ -493,4 +521,5 @@ contract ModularCoreTest is Test {
         vm.prank(owner);
         core.uninstallExtension(address(ext), "");
     }
+
 }

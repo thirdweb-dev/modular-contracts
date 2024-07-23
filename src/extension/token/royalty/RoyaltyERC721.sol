@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+
 import {Role} from "../../../Role.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 
 library RoyaltyStorage {
+
     /// @custom:storage-location erc7201:token.royalty
     bytes32 public constant ROYALTY_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.royalty")) - 1)) & ~bytes32(uint256(0xff));
@@ -23,9 +25,11 @@ library RoyaltyStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
+
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -82,6 +86,20 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
 
         config.registerInstallationCallback = true;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    Encode install / uninstall data
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
+    function encodeBytesOnInstall(address royaltyRecipient, uint256 royaltyBps) external pure returns (bytes memory) {
+        return abi.encode(royaltyRecipient, royaltyBps);
+    }
+
+    /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
+    function encodeBytesOnUninstall() external pure returns (bytes memory) {
+        return "";
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -152,4 +170,5 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
 
         emit TokenRoyaltyUpdate(_tokenId, _recipient, _bps);
     }
+
 }

@@ -3,20 +3,23 @@ pragma solidity ^0.8.0;
 
 import "lib/forge-std/src/console.sol";
 
-import {Test} from "forge-std/Test.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
+import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularExtension} from "src/ModularExtension.sol";
+
+import {Role} from "src/Role.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {ClaimableERC1155, ClaimableStorage} from "src/extension/token/minting/ClaimableERC1155.sol";
-import {Role} from "src/Role.sol";
+import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract MockCurrency is ERC20 {
+
     function mintTo(address _recipient, uint256 _amount) public {
         _mint(_recipient, _amount);
     }
@@ -30,9 +33,11 @@ contract MockCurrency is ERC20 {
     function symbol() public view virtual override returns (string memory) {
         return "MOCK";
     }
+
 }
 
 contract ClaimableERC1155Test is Test {
+
     ERC1155Core public core;
 
     ClaimableERC1155 public extensionImplementation;
@@ -100,8 +105,9 @@ contract ClaimableERC1155Test is Test {
         extensionImplementation = new ClaimableERC1155();
 
         // install extension
+        bytes memory encodedInstallParams = abi.encode(owner);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installExtension(address(extensionImplementation), encodedInstallParams);
 
         // Setup signature vars
         typehashClaimRequest = keccak256(
@@ -797,4 +803,5 @@ contract ClaimableERC1155Test is Test {
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableIncorrectPriceOrCurrency.selector));
         core.mint(claimRequest.recipient, 0, claimRequest.quantity, abi.encode(params));
     }
+
 }

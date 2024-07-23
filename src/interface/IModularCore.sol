@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.20;
 
-import {IExtensionConfig} from "./IExtensionConfig.sol";
 import {IERC165} from "./IERC165.sol";
+import {IExtensionConfig} from "./IExtensionConfig.sol";
 
 interface IModularCore is IExtensionConfig, IERC165 {
+
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -80,4 +81,5 @@ interface IModularCore is IExtensionConfig, IERC165 {
      *  MAY interpret the provided address as the implementation address of the Extension contract which is installed as a proxy.
      */
     function uninstallExtension(address extensionContract, bytes calldata data) external payable;
+
 }

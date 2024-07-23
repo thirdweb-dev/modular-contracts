@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "./BenchmarkERC721Base.sol";
 
 library StorageSlot {
+
     struct AddressSlot {
         address value;
     }
@@ -14,9 +15,11 @@ library StorageSlot {
             r.slot := slot
         }
     }
+
 }
 
 abstract contract Proxy {
+
     function _delegate(address implementation) internal virtual {
         assembly {
             calldatacopy(0, 0, calldatasize())
@@ -40,9 +43,11 @@ abstract contract Proxy {
     fallback() external payable virtual {
         _fallback();
     }
+
 }
 
 contract ERC721Creator is Proxy {
+
     constructor(string memory name, string memory symbol) {
         assert(_IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1));
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = 0x07aee92b7C5977F5EC15d20BaC713A21f72F287B;
@@ -61,9 +66,11 @@ contract ERC721Creator is Proxy {
     function _implementation() internal view override returns (address) {
         return StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value;
     }
+
 }
 
 interface IManifoldNFT {
+
     function transferFrom(address from, address to, uint256 tokenId) external;
 
     function mintBase(address to, string calldata uri) external returns (uint256);
@@ -71,9 +78,11 @@ interface IManifoldNFT {
     function mintBaseBatch(address to, uint16 count) external returns (uint256[] memory);
 
     function mintBaseBatch(address to, string[] calldata uris) external returns (uint256[] memory);
+
 }
 
 contract BenchmarkERC721Manifold is BenchmarkERC721Base {
+
     function deployContract(
         address deployerAddress,
         string memory name,
@@ -102,4 +111,5 @@ contract BenchmarkERC721Manifold is BenchmarkERC721Base {
     function transferTokenFrom(address contractAddress) external override {
         IERC721(contractAddress).transferFrom(tx.origin, address(0xdead), 1);
     }
+
 }

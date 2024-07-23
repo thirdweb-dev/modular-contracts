@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.20;
 
 interface IInstallationCallback {
+
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -19,4 +20,5 @@ interface IInstallationCallback {
      *  @param data The data passed to the Core's uninstallExtension function.
      */
     function onUninstall(bytes calldata data) external;
+
 }

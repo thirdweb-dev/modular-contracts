@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import {RoyaltyERC721} from "./RoyaltyERC721.sol";
 import {Role} from "../../../Role.sol";
+import {RoyaltyERC721} from "./RoyaltyERC721.sol";
 
 contract RoyaltyERC1155 is RoyaltyERC721 {
+
     /// @notice Returns all implemented callback and extension functions.
     function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
         config.fallbackFunctions = new FallbackFunction[](5);
@@ -27,4 +28,5 @@ contract RoyaltyERC1155 is RoyaltyERC721 {
 
         config.registerInstallationCallback = true;
     }
+
 }
