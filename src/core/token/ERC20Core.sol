@@ -7,6 +7,10 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 
+import {CreatorToken} from "./CreatorToken/CreatorToken.sol";
+import {TOKEN_TYPE_ERC20} from "@limitbreak/permit-c/Constants.sol";
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
+
 import {IERC20} from "../../interface/IERC20.sol";
 
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
@@ -15,8 +19,8 @@ import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.so
 
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20Core is ERC20, Multicallable, ModularCore {
 
+contract ERC20Core is ERC20, Multicallable, ModularCore, CreatorToken {
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -114,6 +118,8 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
+            || interfaceId == 0xad0d7f6c // ICreatorToken
+            || interfaceId == 0xa07d229a // ICreatorTokenLegacy
             || interfaceId == type(IERC20).interfaceId || _supportsInterfaceViaExtensions(interfaceId);
     }
 
@@ -128,6 +134,10 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
      */
     function setContractURI(string memory contractURI) external onlyOwner {
         _setupContractURI(contractURI);
+    }
+
+    function setTransferValidator(address validator) external onlyOwner {
+        _setTransferValidator(validator);
     }
 
     /**
@@ -208,6 +218,15 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
         super.permit(owner, spender, value, deadline, v, r, s);
     }
 
+    /**
+     * @notice Returns the function selector for the transfer validator's validation function to be called
+     * @notice for transaction simulation.
+     */
+    function getTransferValidationFunction() external pure returns (bytes4 functionSignature, bool isViewFunction) {
+        functionSignature = bytes4(keccak256("validateTransfer(address,address,address,uint256,uint256)"));
+        isViewFunction = true;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -216,6 +235,10 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
     function _setupContractURI(string memory _contractURI) internal {
         contractURI_ = _contractURI;
         emit ContractURIUpdated();
+    }
+
+    function _tokenType() internal pure override returns (uint16) {
+        return uint16(TOKEN_TYPE_ERC20);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -232,6 +255,10 @@ contract ERC20Core is ERC20, Multicallable, ModularCore {
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address from, address to, uint256 amount) internal virtual {
+        address transferValidator = getTransferValidator();
+        if (transferValidator != address(0)) {
+            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, 0, amount);
+        }
         _executeCallbackFunction(
             BeforeTransferCallbackERC20.beforeTransferERC20.selector,
             abi.encodeCall(BeforeTransferCallbackERC20.beforeTransferERC20, (from, to, amount))

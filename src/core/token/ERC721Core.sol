@@ -6,6 +6,11 @@ import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {ModularCore} from "../../ModularCore.sol";
 
+
+import {CreatorToken} from "./CreatorToken/CreatorToken.sol";
+import {TOKEN_TYPE_ERC721} from "@limitbreak/permit-c/Constants.sol";
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
+
 import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
@@ -14,7 +19,7 @@ import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbac
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
+contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable, CreatorToken {
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -100,6 +105,8 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
             || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
+            || interfaceId == 0xad0d7f6c // ICreatorToken
+            || interfaceId == 0xa07d229a // ICreatorTokenLegacy
             || super.supportsInterface(interfaceId); // right-most ModularCore
     }
 
@@ -145,6 +152,10 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      */
     function setContractURI(string memory uri) external onlyOwner {
         _setupContractURI(uri);
+    }
+
+    function setTransferValidator(address validator) external onlyOwner {
+        _setTransferValidator(validator);
     }
 
     /**
@@ -203,6 +214,15 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
         super.setApprovalForAll(operator, approved);
     }
 
+    /**
+     * @notice Returns the function selector for the transfer validator's validation function to be called
+     * @notice for transaction simulation.
+     */
+    function getTransferValidationFunction() external pure returns (bytes4 functionSignature, bool isViewFunction) {
+        functionSignature = bytes4(keccak256("validateTransfer(address,address,address,uint256)"));
+        isViewFunction = true;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -211,6 +231,10 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     function _setupContractURI(string memory _contractURI) internal {
         contractURI_ = _contractURI;
         emit ContractURIUpdated();
+    }
+
+    function _tokenType() internal pure override returns (uint16) {
+        return uint16(TOKEN_TYPE_ERC721);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -227,6 +251,10 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
 
     /// @dev Calls the beforeTransfer hook, if installed.
     function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
+        address transferValidator = getTransferValidator();
+        if (transferValidator != address(0)) {
+            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId);
+        }
         _executeCallbackFunction(
             BeforeTransferCallbackERC721.beforeTransferERC721.selector,
             abi.encodeCall(BeforeTransferCallbackERC721.beforeTransferERC721, (from, to, tokenId))
