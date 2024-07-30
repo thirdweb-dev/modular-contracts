@@ -19,3 +19,6 @@
 [submodule "lib/PermitC"]
 	path = lib/PermitC
 	url = https://github.com/limitbreakinc/PermitC
+[submodule "lib/lxly-bridge-and-call"]
+	path = lib/lxly-bridge-and-call
+	url = https://github.com/agglayer/lxly-bridge-and-call
