@@ -13,3 +13,6 @@
 [submodule "lib/creator-token-standards"]
 	path = lib/creator-token-standards
 	url = https://github.com/limitbreakinc/creator-token-standards
+[submodule "lib/PermitC"]
+	path = lib/PermitC
+	url = https://github.com/limitbreakinc/PermitC
