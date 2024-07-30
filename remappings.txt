@@ -5,3 +5,4 @@ forge-std/=lib/forge-std/src/
 @erc721a-upgradeable/=lib/ERC721A-Upgradeable/contracts/
 @limitbreak/creator-token-standards/=lib/creator-token-standards/src/
 @limitbreak/permit-c/=lib/PermitC/src/
+@lxly-bridge-and-call/=lib/lxly-bridge-and-call/src/
