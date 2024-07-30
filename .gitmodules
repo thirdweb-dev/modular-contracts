@@ -10,3 +10,6 @@
 [submodule "lib/ERC721A-Upgradeable"]
 	path = lib/ERC721A-Upgradeable
 	url = https://github.com/chiru-labs/ERC721A-Upgradeable
+[submodule "lib/lxly-bridge-and-call"]
+	path = lib/lxly-bridge-and-call
+	url = https://github.com/agglayer/lxly-bridge-and-call
