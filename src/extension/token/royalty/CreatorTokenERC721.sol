@@ -2,10 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {ModularExtension} from "../../../ModularExtension.sol";
-import {TOKEN_TYPE_ERC721} from "@creator-token-standards/permit-c/Constants.sol";
+import {TOKEN_TYPE_ERC721} from "@PermitC/Constants.sol";
 import {ICreatorToken} from "@creator-token-standards/interfaces/ICreatorToken.sol";
 import {ITransferValidatorSetTokenType} from "@creator-token-standards/interfaces/ITransferValidatorSetTokenType.sol";
-import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
+import {ITransferValidator} from "@creator-token-standards/interfaces/ITransferValidator.sol";
+import {Role} from "../../../Role.sol";
+import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
 
 /**
  * @title  CreatorToken
@@ -30,7 +32,11 @@ library CreatorTokenStorage {
     }
 }
 
-contract CreatorToken is ICreatorToken {
+contract CreatorToken is
+    ModularExtension,
+    ICreatorToken,
+    BeforeTransferCallbackERC721
+{
     /// @dev Store the transfer validator. The address(0) indicates that no transfer validator has been set.
 
     /// @notice Revert with an error if the transfer validator is not valid
@@ -93,7 +99,7 @@ contract CreatorToken is ICreatorToken {
         address to,
         uint256 tokenId
     ) external virtual override returns (bytes memory) {
-        address transferValidator = creatorTokenStorage().transferValidator;
+        address transferValidator = _creatorTokenStorage().transferValidator;
         if (transferValidator != address(0)) {
             ITransferValidator(transferValidator).validateTransfer(
                 msg.sender,
@@ -172,7 +178,7 @@ contract CreatorToken is ICreatorToken {
     }
 
     function _tokenType() internal pure virtual returns (uint16) {
-        return uint16(TOKEN_TYPE_ERC1155);
+        return uint16(TOKEN_TYPE_ERC721);
     }
 
     function _creatorTokenStorage()
