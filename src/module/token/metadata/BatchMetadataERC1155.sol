@@ -6,8 +6,8 @@ import {BatchMetadataERC721} from "./BatchMetadataERC721.sol";
 
 contract BatchMetadataERC1155 is BatchMetadataERC721 {
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](2);
 

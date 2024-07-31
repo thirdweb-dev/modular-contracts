@@ -4,10 +4,10 @@
 // import {Test} from "forge-std/Test.sol";
 // import {TestPlus} from "../utils/TestPlus.sol";
 // import {
-//     MockExtensionERC20,
-//     MockExtensionWithOnTokenURICallback,
-//     MockExtensionWithPermissionedFallback
-// } from "../mocks/MockExtension.sol";
+//     MockModuleERC20,
+//     MockModuleWithOnTokenURICallback,
+//     MockModuleWithPermissionedFallback
+// } from "../mocks/MockModule.sol";
 
 // import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
@@ -53,23 +53,23 @@
 
 //     function setUp() public {
 //         bytes memory hookInitData = abi.encodeWithSelector(
-//             MockExtensionERC20.initialize.selector,
+//             MockModuleERC20.initialize.selector,
 //             address(0x123) // upgradeAdmin
 //         );
-//         hookProxyAddress = address(new EIP1967Proxy(address(new MockExtensionERC20()), hookInitData));
+//         hookProxyAddress = address(new EIP1967Proxy(address(new MockModuleERC20()), hookInitData));
 
 //         vm.startPrank(admin);
 
-//         address[] memory extensionsToInstall = new address[](1);
-//         extensionsToInstall[0] = hookProxyAddress;
+//         address[] memory modulesToInstall = new address[](1);
+//         modulesToInstall[0] = hookProxyAddress;
 
 //         token = new ERC20Core(
 //             "Token",
 //             "TKN",
 //             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
 //             admin, // core contract owner,
-//             extensionsToInstall,
-//             new bytes[](extensionsToInstall.length)
+//             modulesToInstall,
+//             new bytes[](modulesToInstall.length)
 //         );
 //         vm.stopPrank();
 
@@ -79,25 +79,25 @@
 
 //     function testPermissionedFallbackFunctionCall() public {
 //         vm.startPrank(admin);
-//         address permissionedCallHook = address(new MockExtensionWithPermissionedFallback());
+//         address permissionedCallHook = address(new MockModuleWithPermissionedFallback());
 
-//         token.installExtension(permissionedCallHook, "");
+//         token.installModule(permissionedCallHook, "");
 //         vm.stopPrank();
 
 //         vm.expectRevert(abi.encodeWithSelector(ModularCore.UnauthorizedFunctionCall.selector));
-//         MockExtensionWithPermissionedFallback(address(token)).permissionedFunction();
+//         MockModuleWithPermissionedFallback(address(token)).permissionedFunction();
 
 //         vm.prank(admin);
-//         uint256 result = MockExtensionWithPermissionedFallback(address(token)).permissionedFunction();
+//         uint256 result = MockModuleWithPermissionedFallback(address(token)).permissionedFunction();
 //         assertEq(result, 1);
 //     }
 
 //     function testIncompatibleHookInstall() public {
 //         vm.startPrank(admin);
-//         address mockHook = address(new MockExtensionWithOnTokenURICallback());
+//         address mockHook = address(new MockModuleWithOnTokenURICallback());
 
-//         vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionUnsupportedCallbackFunction.selector));
-//         token.installExtension(address(mockHook), "");
+//         vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleUnsupportedCallbackFunction.selector));
+//         token.installModule(address(mockHook), "");
 //         vm.stopPrank();
 //     }
 

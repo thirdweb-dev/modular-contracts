@@ -8,10 +8,10 @@ import {Test} from "forge-std/Test.sol";
 // Target contract
 
 import {ModularCore} from "src/ModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+import {ModularModule} from "src/ModularModule.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {DelayedRevealBatchMetadataERC721} from "src/extension/token/metadata/DelayedRevealBatchMetadataERC721.sol";
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+import {DelayedRevealBatchMetadataERC721} from "src/module/token/metadata/DelayedRevealBatchMetadataERC721.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract DelayedRevealExt is DelayedRevealBatchMetadataERC721 {}
@@ -20,22 +20,22 @@ contract DelayedRevealBatchMetadataERC721Test is Test {
 
     ERC721Core public core;
 
-    DelayedRevealExt public extensionImplementation;
+    DelayedRevealExt public moduleImplementation;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
     address public unpermissionedActor = address(0x3);
 
     function setUp() public {
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC721Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new DelayedRevealExt();
+        core = new ERC721Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new DelayedRevealExt();
 
-        // install extension
+        // install module
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installModule(address(moduleImplementation), "");
     }
 
     /*///////////////////////////////////////////////////////////////

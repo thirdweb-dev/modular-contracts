@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
@@ -28,7 +28,7 @@ library RoyaltyStorage {
 
 }
 
-contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
+contract RoyaltyERC721 is ModularModule, IInstallationCallback {
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
@@ -62,11 +62,11 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
     error RoyaltyExceedsMaxBps();
 
     /*//////////////////////////////////////////////////////////////
-                               EXTENSION CONFIG
+                               MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.royaltyInfo.selector, permissionBits: 0});
@@ -106,13 +106,13 @@ contract RoyaltyERC721 is ModularExtension, IInstallationCallback {
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         (address royaltyRecipient, uint256 royaltyBps) = abi.decode(data, (address, uint256));
         setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
     }
 
-    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
     function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////

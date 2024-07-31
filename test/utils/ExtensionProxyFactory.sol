@@ -3,4 +3,4 @@ pragma solidity ^0.8.0;
 
 import "@solady/utils/ERC1967Factory.sol";
 
-contract ExtensionProxyFactory is ERC1967Factory {}
+contract ModuleProxyFactory is ERC1967Factory {}

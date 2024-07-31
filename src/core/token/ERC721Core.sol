@@ -15,7 +15,6 @@ import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbac
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
 contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
-
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -39,17 +38,17 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
         string memory _symbol,
         string memory _contractURI,
         address _owner,
-        address[] memory _extensions,
-        bytes[] memory _extensionInstallData
+        address[] memory _modules,
+        bytes[] memory _moduleInstallData
     ) payable ERC721A(_name, _symbol) {
         // Set contract metadata
         _setupContractURI(_contractURI);
         _initializeOwner(_owner);
 
-        // Install and initialize extensions
-        require(_extensions.length == _extensionInstallData.length);
-        for (uint256 i = 0; i < _extensions.length; i++) {
-            _installExtension(_extensions[i], _extensionInstallData[i]);
+        // Install and initialize modules
+        require(_modules.length == _moduleInstallData.length);
+        for (uint256 i = 0; i < _modules.length; i++) {
+            _installModule(_modules[i], _moduleInstallData[i]);
         }
     }
 
@@ -81,7 +80,9 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @param id The token ID of the NFT.
      *  @return metadata The URI to fetch metadata from.
      */
-    function tokenURI(uint256 id) public view override(ERC721A, IERC721A) returns (string memory) {
+    function tokenURI(
+        uint256 id
+    ) public view override(ERC721A, IERC721A) returns (string memory) {
         return _getTokenURI(id);
     }
 
@@ -89,18 +90,16 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721A, IERC721A, ModularCore)
-        returns (bool)
-    {
-        return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
-            || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
-            || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
-            || interfaceId == 0xe8a3d485 // ERC-7572
-            || interfaceId == 0x7f5828d0 // ERC-173
-            || super.supportsInterface(interfaceId); // right-most ModularCore
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721A, IERC721A, ModularCore) returns (bool) {
+        return
+            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
+            interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
+            interfaceId == 0xe8a3d485 || // ERC-7572
+            interfaceId == 0x7f5828d0 || // ERC-173
+            super.supportsInterface(interfaceId); // right-most ModularCore
     }
 
     function getSupportedCallbackFunctions()
@@ -115,7 +114,9 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[1] = SupportedCallbackFunction({
-            selector: BeforeTransferCallbackERC721.beforeTransferERC721.selector,
+            selector: BeforeTransferCallbackERC721
+                .beforeTransferERC721
+                .selector,
             mode: CallbackMode.OPTIONAL
         });
         supportedCallbackFunctions[2] = SupportedCallbackFunction({
@@ -130,8 +131,10 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
             selector: BeforeApproveForAllCallback.beforeApproveForAll.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[5] =
-            SupportedCallbackFunction({selector: OnTokenURICallback.onTokenURI.selector, mode: CallbackMode.REQUIRED});
+        supportedCallbackFunctions[5] = SupportedCallbackFunction({
+            selector: OnTokenURICallback.onTokenURI.selector,
+            mode: CallbackMode.REQUIRED
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -154,7 +157,11 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @param quantity The quantity of tokens to mint.
      *  @param data ABI encoded data to pass to the beforeMint hook.
      */
-    function mint(address to, uint256 quantity, bytes calldata data) external payable {
+    function mint(
+        address to,
+        uint256 quantity,
+        bytes calldata data
+    ) external payable {
         _beforeMint(to, _nextTokenId(), quantity, data);
         _safeMint(to, quantity, "");
     }
@@ -177,7 +184,11 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @param to The address to transfer to
      *  @param id The token ID of the NFT
      */
-    function transferFrom(address from, address to, uint256 id) public payable override(ERC721A, IERC721A) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public payable override(ERC721A, IERC721A) {
         _beforeTransfer(from, to, id);
         super.transferFrom(from, to, id);
     }
@@ -188,7 +199,10 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @param spender The address to approve
      *  @param id The token ID of the NFT
      */
-    function approve(address spender, uint256 id) public payable override(ERC721A, IERC721A) {
+    function approve(
+        address spender,
+        uint256 id
+    ) public payable override(ERC721A, IERC721A) {
         _beforeApprove(msg.sender, spender, id, true);
         super.approve(spender, id);
     }
@@ -198,7 +212,10 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @param operator The address to approve or revoke approval from
      *  @param approved Whether the operator is approved
      */
-    function setApprovalForAll(address operator, bool approved) public override(ERC721A, IERC721A) {
+    function setApprovalForAll(
+        address operator,
+        bool approved
+    ) public override(ERC721A, IERC721A) {
         _beforeApproveForAll(msg.sender, operator, approved);
         super.setApprovalForAll(operator, approved);
     }
@@ -218,51 +235,89 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal virtual {
+    function _beforeMint(
+        address to,
+        uint256 startTokenId,
+        uint256 quantity,
+        bytes calldata data
+    ) internal virtual {
         _executeCallbackFunction(
             BeforeMintCallbackERC721.beforeMintERC721.selector,
-            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (to, startTokenId, quantity, data))
+            abi.encodeCall(
+                BeforeMintCallbackERC721.beforeMintERC721,
+                (to, startTokenId, quantity, data)
+            )
         );
     }
 
     /// @dev Calls the beforeTransfer hook, if installed.
-    function _beforeTransfer(address from, address to, uint256 tokenId) internal virtual {
+    function _beforeTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual {
         _executeCallbackFunction(
             BeforeTransferCallbackERC721.beforeTransferERC721.selector,
-            abi.encodeCall(BeforeTransferCallbackERC721.beforeTransferERC721, (from, to, tokenId))
+            abi.encodeCall(
+                BeforeTransferCallbackERC721.beforeTransferERC721,
+                (from, to, tokenId)
+            )
         );
     }
 
     /// @dev Calls the beforeBurn hook, if installed.
-    function _beforeBurn(uint256 tokenId, bytes calldata data) internal virtual {
+    function _beforeBurn(
+        uint256 tokenId,
+        bytes calldata data
+    ) internal virtual {
         _executeCallbackFunction(
             BeforeBurnCallbackERC721.beforeBurnERC721.selector,
-            abi.encodeCall(BeforeBurnCallbackERC721.beforeBurnERC721, (tokenId, data))
+            abi.encodeCall(
+                BeforeBurnCallbackERC721.beforeBurnERC721,
+                (tokenId, data)
+            )
         );
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApprove(address from, address to, uint256 tokenId, bool approved) internal virtual {
+    function _beforeApprove(
+        address from,
+        address to,
+        uint256 tokenId,
+        bool approved
+    ) internal virtual {
         _executeCallbackFunction(
             BeforeApproveCallbackERC721.beforeApproveERC721.selector,
-            abi.encodeCall(BeforeApproveCallbackERC721.beforeApproveERC721, (from, to, tokenId, approved))
+            abi.encodeCall(
+                BeforeApproveCallbackERC721.beforeApproveERC721,
+                (from, to, tokenId, approved)
+            )
         );
     }
 
     /// @dev Calls the beforeApprove hook, if installed.
-    function _beforeApproveForAll(address from, address to, bool approved) internal virtual {
+    function _beforeApproveForAll(
+        address from,
+        address to,
+        bool approved
+    ) internal virtual {
         _executeCallbackFunction(
             BeforeApproveForAllCallback.beforeApproveForAll.selector,
-            abi.encodeCall(BeforeApproveForAllCallback.beforeApproveForAll, (from, to, approved))
+            abi.encodeCall(
+                BeforeApproveForAllCallback.beforeApproveForAll,
+                (from, to, approved)
+            )
         );
     }
 
     /// @dev Fetches token URI from the token metadata hook.
-    function _getTokenURI(uint256 tokenId) internal view virtual returns (string memory uri) {
+    function _getTokenURI(
+        uint256 tokenId
+    ) internal view virtual returns (string memory uri) {
         (, bytes memory returndata) = _executeCallbackFunctionView(
-            OnTokenURICallback.onTokenURI.selector, abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
+            OnTokenURICallback.onTokenURI.selector,
+            abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
         );
         uri = abi.decode(returndata, (string));
     }
-
 }

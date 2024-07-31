@@ -8,14 +8,14 @@ import {Test} from "forge-std/Test.sol";
 // Target contract
 
 import {ModularCore} from "src/ModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+import {ModularModule} from "src/ModularModule.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {OpenEditionMetadataERC1155} from "src/extension/token/metadata/OpenEditionMetadataERC1155.sol";
+import {OpenEditionMetadataERC1155} from "src/module/token/metadata/OpenEditionMetadataERC1155.sol";
 import {
     OpenEditionMetadataERC721,
     OpenEditionMetadataStorage
-} from "src/extension/token/metadata/OpenEditionMetadataERC721.sol";
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+} from "src/module/token/metadata/OpenEditionMetadataERC721.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract OpenEditionMetadataExt is OpenEditionMetadataERC1155 {
@@ -40,26 +40,26 @@ contract OpenEditionMetadataERC1155Test is Test {
 
     ERC1155Core public core;
 
-    OpenEditionMetadataExt public extensionImplementation;
-    OpenEditionMetadataExt public installedExtension;
+    OpenEditionMetadataExt public moduleImplementation;
+    OpenEditionMetadataExt public installedModule;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
     address public unpermissionedActor = address(0x3);
 
     function setUp() public {
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC1155Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new OpenEditionMetadataExt();
+        core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new OpenEditionMetadataExt();
 
-        // install extension
+        // install module
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installModule(address(moduleImplementation), "");
 
-        IModularCore.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
-        installedExtension = OpenEditionMetadataExt(installedExtensions[0].implementation);
+        IModularCore.InstalledModule[] memory installedModules = core.getInstalledModules();
+        installedModule = OpenEditionMetadataExt(installedModules[0].implementation);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -80,7 +80,7 @@ contract OpenEditionMetadataERC1155Test is Test {
         // read state from core
         assertEq(
             core.uri(1),
-            installedExtension.createMetadataEdition(
+            installedModule.createMetadataEdition(
                 sharedMetadata.name, sharedMetadata.description, sharedMetadata.imageURI, sharedMetadata.animationURI, 1
             )
         );
