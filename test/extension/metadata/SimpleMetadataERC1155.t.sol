@@ -10,10 +10,11 @@ import {Test} from "forge-std/Test.sol";
 import {ModularCore} from "src/ModularCore.sol";
 import {ModularModule} from "src/ModularModule.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
+
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {SimpleMetadataERC1155} from "src/module/token/metadata/SimpleMetadataERC1155.sol";
 import {SimpleMetadataERC721, SimpleMetadataStorage} from "src/module/token/metadata/SimpleMetadataERC721.sol";
-import {IModuleConfig} from "src/interface/IModuleConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract SimpleMetadataExt is SimpleMetadataERC1155 {}
 

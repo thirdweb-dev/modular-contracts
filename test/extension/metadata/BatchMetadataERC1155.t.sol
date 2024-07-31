@@ -10,9 +10,10 @@ import {Test} from "forge-std/Test.sol";
 import {ModularCore} from "src/ModularCore.sol";
 import {ModularModule} from "src/ModularModule.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {BatchMetadataERC1155} from "src/module/token/metadata/BatchMetadataERC1155.sol";
-import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {BatchMetadataERC1155} from "src/module/token/metadata/BatchMetadataERC1155.sol";
 
 contract BatchMetadataExt is BatchMetadataERC1155 {}
 

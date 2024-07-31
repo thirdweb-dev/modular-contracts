@@ -9,9 +9,10 @@ import {Test} from "forge-std/Test.sol";
 
 import {ModularModule} from "src/ModularModule.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {RoyaltyERC1155} from "src/module/token/royalty/RoyaltyERC1155.sol";
-import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {RoyaltyERC1155} from "src/module/token/royalty/RoyaltyERC1155.sol";
 
 contract RoyaltyExt is RoyaltyERC1155 {}
 

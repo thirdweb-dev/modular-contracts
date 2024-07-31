@@ -14,9 +14,10 @@ import {ModularModule} from "src/ModularModule.sol";
 
 import {Role} from "src/Role.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {ClaimableERC20, ClaimableStorage} from "src/module/token/minting/ClaimableERC20.sol";
-import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {ClaimableERC20, ClaimableStorage} from "src/module/token/minting/ClaimableERC20.sol";
 
 contract MockCurrency is ERC20 {
 

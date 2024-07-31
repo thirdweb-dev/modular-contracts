@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {ModularCore} from "src/ModularCore.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {IModuleConfig, IModularModule} from "src/interface/IModularModule.sol";
+import {IModularModule, IModuleConfig} from "src/interface/IModularModule.sol";
 
 contract MockBase {
 
@@ -193,9 +193,8 @@ contract CoreBenchmark is Test {
     }
 
     function test_module_callFunction_notPermissionedDelegate() public {
-        (bool success,) = address(moduleWithFunctions).call(
-            abi.encodeCall(MockModuleWithFunctions.notPermissioned_delegatecall, ())
-        );
+        (bool success,) =
+            address(moduleWithFunctions).call(abi.encodeCall(MockModuleWithFunctions.notPermissioned_delegatecall, ()));
         vm.assertTrue(success);
     }
 
@@ -206,9 +205,8 @@ contract CoreBenchmark is Test {
     }
 
     function test_core_callFunction_notPermissionedDelegate() public {
-        (bool success,) = address(coreWithModules).call(
-            abi.encodeCall(MockModuleWithFunctions.notPermissioned_delegatecall, ())
-        );
+        (bool success,) =
+            address(coreWithModules).call(abi.encodeCall(MockModuleWithFunctions.notPermissioned_delegatecall, ()));
         vm.assertTrue(success);
     }
 

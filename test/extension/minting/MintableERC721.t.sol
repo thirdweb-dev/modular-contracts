@@ -14,9 +14,10 @@ import {ModularModule} from "src/ModularModule.sol";
 
 import {Role} from "src/Role.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {MintableERC721, MintableStorage} from "src/module/token/minting/MintableERC721.sol";
-import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {MintableERC721, MintableStorage} from "src/module/token/minting/MintableERC721.sol";
 
 contract MockCurrency is ERC20 {
 

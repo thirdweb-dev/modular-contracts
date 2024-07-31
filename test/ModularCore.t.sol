@@ -9,8 +9,9 @@ import {Test} from "forge-std/Test.sol";
 import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 import {ModularCore} from "src/ModularCore.sol";
 import {ModularModule} from "src/ModularModule.sol";
-import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 
 contract MockBase {
 
@@ -420,9 +421,7 @@ contract ModularCoreTest is Test {
 
         // Install module
         vm.prank(owner);
-        vm.expectRevert(
-            abi.encodeWithSelector(ModularCore.ModuleInterfaceNotCompatible.selector, bytes4(0x12345678))
-        );
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleInterfaceNotCompatible.selector, bytes4(0x12345678)));
         core.installModule(address(ext), "");
     }
 

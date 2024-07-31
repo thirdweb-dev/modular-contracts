@@ -9,9 +9,10 @@ import {Test} from "forge-std/Test.sol";
 
 import {ModularModule} from "src/ModularModule.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {TransferableERC20} from "src/module/token/transferable/TransferableERC20.sol";
-import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {TransferableERC20} from "src/module/token/transferable/TransferableERC20.sol";
 
 contract TransferableExt is TransferableERC20 {}
 

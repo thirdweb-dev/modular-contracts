@@ -10,13 +10,14 @@ import {Test} from "forge-std/Test.sol";
 import {ModularCore} from "src/ModularCore.sol";
 import {ModularModule} from "src/ModularModule.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
+
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {OpenEditionMetadataERC1155} from "src/module/token/metadata/OpenEditionMetadataERC1155.sol";
 import {
     OpenEditionMetadataERC721,
     OpenEditionMetadataStorage
 } from "src/module/token/metadata/OpenEditionMetadataERC721.sol";
-import {IModuleConfig} from "src/interface/IModuleConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
 
 contract OpenEditionMetadataExt is OpenEditionMetadataERC1155 {
 
