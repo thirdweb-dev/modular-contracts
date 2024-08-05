@@ -26,6 +26,8 @@ library ClaimableStorage {
         mapping(uint256 => ClaimableERC1155.ClaimCondition) claimConditionByTokenId;
         // UID => whether it has been used
         mapping(bytes32 => bool) uidUsed;
+        // recipient => whether this recipient has already used their proof
+        mapping(address => bool) recipientClaimed;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -143,6 +145,9 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
 
     /// @dev Emitted when the minter is not in the allowlist.
     error ClaimableNotInAllowlist();
+
+    /// @dev Emitted when the minter has already claimed.
+    error ClaimableRecipientAlreadyClaimed();
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -297,12 +302,18 @@ contract ClaimableERC1155 is ModularExtension, EIP712, BeforeMintCallbackERC1155
         }
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
+            if (_claimableStorage().recipientClaimed[_recipient]) {
+                revert ClaimableRecipientAlreadyClaimed();
+            }
+
             bool isAllowlisted = MerkleProofLib.verify(
                 _allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
             );
 
             if (!isAllowlisted) {
                 revert ClaimableNotInAllowlist();
+            } else {
+                _claimableStorage().recipientClaimed[_recipient] = true;
             }
         }
 
