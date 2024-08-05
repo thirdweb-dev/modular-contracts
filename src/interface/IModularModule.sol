@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {IExtensionConfig} from "./IExtensionConfig.sol";
+import {IModuleConfig} from "./IModuleConfig.sol";
 
-interface IModularExtension is IExtensionConfig {
+interface IModularModule is IModuleConfig {
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     *  @dev Returns the ExtensionConfig of the Extension contract.
+     *  @dev Returns the ModuleConfig of the Module contract.
      */
-    function getExtensionConfig() external pure returns (ExtensionConfig memory);
+    function getModuleConfig() external pure returns (ModuleConfig memory);
 
 }

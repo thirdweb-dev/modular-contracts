@@ -49,8 +49,8 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         string memory _symbol,
         string memory _contractURI,
         address _owner,
-        address[] memory _extensions,
-        bytes[] memory _extensionInstallData
+        address[] memory _modules,
+        bytes[] memory _moduleInstallData
     ) payable {
         // Set contract metadata
         name_ = _name;
@@ -58,10 +58,10 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
         _setupContractURI(_contractURI);
         _initializeOwner(_owner);
 
-        // Install and initialize extensions
-        require(_extensions.length == _extensionInstallData.length);
-        for (uint256 i = 0; i < _extensions.length; i++) {
-            _installExtension(_extensions[i], _extensionInstallData[i]);
+        // Install and initialize modules
+        require(_modules.length == _moduleInstallData.length);
+        for (uint256 i = 0; i < _modules.length; i++) {
+            _installModule(_modules[i], _moduleInstallData[i]);
         }
     }
 

@@ -1,35 +1,33 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
-
-import {LibString} from "@solady/utils/LibString.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
-import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeMintCallbackERC1155} from "../../../callback/BeforeMintCallbackERC1155.sol";
 import {OnTokenURICallback} from "../../../callback/OnTokenURICallback.sol";
 
 library MintableStorage {
 
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc721")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc1155")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // UID => whether it has been used
         mapping(bytes32 => bool) uidUsed;
         // sale config
-        MintableERC721.SaleConfig saleConfig;
+        MintableERC1155.SaleConfig saleConfig;
         // tokenId range end
         uint256[] tokenIdRangeEnd;
         // tokenId range end => baseURI of range
-        mapping(uint256 => string) baseURIOfTokenIdRange;
+        mapping(uint256 => string) tokenURI;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -41,16 +39,15 @@ library MintableStorage {
 
 }
 
-contract MintableERC721 is
-    ModularExtension,
+contract MintableERC1155 is
+    ModularModule,
     EIP712,
-    BeforeMintCallbackERC721,
+    BeforeMintCallbackERC1155,
     OnTokenURICallback,
     IInstallationCallback
 {
 
     using ECDSA for bytes32;
-    using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -59,23 +56,25 @@ contract MintableERC721 is
     /**
      *  @notice The request struct signed by an authorized party to mint tokens.
      *
+     *  @param tokenId The ID of the token being minted.
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
      *  @param quantity The quantity of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
-     *  @param baseURI The base URI for the range of minted token IDs.
+     *  @param metadataURI The URI of the metadata for the minted token.
      *  @param uid A unique identifier for the minting request.
      */
-    struct MintRequestERC721 {
+    struct MintRequestERC1155 {
+        uint256 tokenId;
         uint48 startTimestamp;
         uint48 endTimestamp;
         address recipient;
         uint256 quantity;
         address currency;
         uint256 pricePerUnit;
-        string baseURI;
+        string metadataURI;
         bytes32 uid;
     }
 
@@ -85,10 +84,10 @@ contract MintableERC721 is
      *  @param request The minting request.
      *  @param signature The signature produced from signing the minting request.
      */
-    struct MintParamsERC721 {
-        MintRequestERC721 request;
+    struct MintParamsERC1155 {
+        MintRequestERC1155 request;
         bytes signature;
-        string baseURI;
+        string metadataURI;
     }
 
     /**
@@ -98,18 +97,6 @@ contract MintableERC721 is
      */
     struct SaleConfig {
         address primarySaleRecipient;
-    }
-
-    /**
-     *   @notice MetadataBatch struct to store metadata for a range of tokenIds.
-     *   @param startTokenIdInclusive The first tokenId in the range.
-     *   @param endTokenIdNonInclusive The last tokenId in the range.
-     *   @param baseURI The base URI for the range.
-     */
-    struct MetadataBatch {
-        uint256 startTokenIdInclusive;
-        uint256 endTokenIdInclusive;
-        string baseURI;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -125,61 +112,53 @@ contract MintableERC721 is
     /// @dev Emitted when the minting request UID has been reused.
     error MintableRequestUidReused();
 
-    /// @dev Emitted when the minting request token is invalid.
-    error MintableRequestInvalidToken();
-
     /// @dev Emitted when the minting request does not match the expected values.
     error MintableRequestMismatch();
 
     /// @dev Emitted when the minting request signature is unauthorized.
     error MintableRequestUnauthorized();
 
-    /// @dev Emitted when trying to fetch metadata for a token that has no metadata.
-    error MintableNoMetadataForTokenId();
-
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Emitted when a new metadata batch is uploaded.
-    event NewMetadataBatch(
-        uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
-    );
+    /// @dev Emitted when a token's metadata URI is updated.
+    event MintableTokenURIUpdated(uint256 tokenId, string tokenURI);
 
-    /// @dev ERC-4906 Metadata Update.
-    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+    /// @notice Emitted when the metadata URI for a token is updated.
+    event MetadataUpdate(uint256 id);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 private constant TYPEHASH_MINTABLE_ERC721 = keccak256(
-        "MintRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string baseURI,bytes32 uid)"
+    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC1155 = keccak256(
+        "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string metadataURI,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION CONFIG
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and fallback functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](4);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
         config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[2] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
-        config.fallbackFunctions[3] =
-            FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.setTokenURI.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
-        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
+        config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
 
         config.registerInstallationCallback = true;
 
@@ -191,21 +170,20 @@ contract MintableERC721 is
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Callback function for ERC721Metadata.tokenURI
-    function onTokenURI(uint256 _id) public view override returns (string memory) {
-        string memory batchUri = _getBaseURI(_id);
-        return string(abi.encodePacked(batchUri, _id.toString()));
+    /// @notice Callback function for the ERC721Core.tokenURI function.
+    function onTokenURI(uint256 _tokenId) external view virtual override returns (string memory) {
+        return _mintableStorage().tokenURI[_tokenId];
     }
 
-    /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+    /// @notice Callback function for the ERC1155Core.mint function.
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
         override
         returns (bytes memory)
     {
-        MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
+        MintParamsERC1155 memory _params = abi.decode(_data, (MintParamsERC1155));
 
         // If the signature is empty, the caller must have the MINTER_ROLE.
         if (_params.signature.length == 0) {
@@ -213,25 +191,31 @@ contract MintableERC721 is
                 revert MintableRequestUnauthorized();
             }
 
-            _setBaseURI(_startTokenId, _quantity, _params.baseURI);
+            if (bytes(_params.metadataURI).length > 0) {
+                setTokenURI(_params.request.tokenId, _params.metadataURI);
+            }
 
             // Else read and verify the payload and signature.
         } else {
-            _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
-            _setBaseURI(_startTokenId, _quantity, _params.request.baseURI);
+            _mintWithSignatureERC1155(_to, _quantity, _id, _params.request, _params.signature);
+
+            if (bytes(_params.request.metadataURI).length > 0) {
+                setTokenURI(_params.request.tokenId, _params.request.metadataURI);
+            }
+
             _distributeMintPrice(
                 msg.sender, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
             );
         }
     }
 
-    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         address primarySaleRecipient = abi.decode(data, (address));
         _mintableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
-    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
     function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
@@ -253,33 +237,13 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesBeforeMintERC721(MintParamsERC721 memory params) external pure returns (bytes memory) {
+    function encodeBytesBeforeMintERC1155(MintParamsERC1155 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Returns all metadata batches for a token.
-    function getAllMetadataBatches() external view returns (MetadataBatch[] memory) {
-        uint256[] memory rangeEnds = _mintableStorage().tokenIdRangeEnd;
-        uint256 numOfBatches = rangeEnds.length;
-
-        MetadataBatch[] memory batches = new MetadataBatch[](rangeEnds.length);
-
-        uint256 rangeStart = 0;
-        for (uint256 i = 0; i < numOfBatches; i += 1) {
-            batches[i] = MetadataBatch({
-                startTokenIdInclusive: rangeStart,
-                endTokenIdInclusive: rangeEnds[i] - 1,
-                baseURI: _mintableStorage().baseURIOfTokenIdRange[rangeEnds[i]]
-            });
-            rangeStart = rangeEnds[i];
-        }
-
-        return batches;
-    }
 
     /// @notice Returns the sale configuration for a token.
     function getSaleConfig() external view returns (address primarySaleRecipient) {
@@ -292,44 +256,28 @@ contract MintableERC721 is
         _mintableStorage().saleConfig = SaleConfig(_primarySaleRecipient);
     }
 
+    /// @notice Sets the token URI for a token.
+    function setTokenURI(uint256 _tokenId, string memory _tokenURI) public {
+        _mintableStorage().tokenURI[_tokenId] = _tokenURI;
+        emit MintableTokenURIUpdated(_tokenId, _tokenURI);
+        emit MetadataUpdate(_tokenId);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Sets the metadata for a range of tokenIds.
-    function _setBaseURI(uint256 _startTokenId, uint256 _amount, string memory _baseURI) internal {
-        uint256 rangeStart = _startTokenId;
-        uint256 rangeEndNonInclusive = rangeStart + _amount;
-
-        _mintableStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
-        _mintableStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
-
-        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
-        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
-    }
-
-    /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
-    function _getBaseURI(uint256 _tokenId) internal view returns (string memory) {
-        uint256[] memory rangeEnds = _mintableStorage().tokenIdRangeEnd;
-        uint256 numOfBatches = rangeEnds.length;
-
-        for (uint256 i = 0; i < numOfBatches; i += 1) {
-            if (_tokenId < rangeEnds[i]) {
-                return _mintableStorage().baseURIOfTokenIdRange[rangeEnds[i]];
-            }
-        }
-        revert MintableNoMetadataForTokenId();
-    }
-
     /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _mintWithSignatureERC721(
+    function _mintWithSignatureERC1155(
         address _expectedRecipient,
         uint256 _expectedAmount,
-        uint256 _startTokenId,
-        MintRequestERC721 memory _req,
+        uint256 _expectedTokenId,
+        MintRequestERC1155 memory _req,
         bytes memory _signature
     ) internal {
-        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
+        if (
+            _req.recipient != _expectedRecipient || _req.quantity != _expectedAmount || _req.tokenId != _expectedTokenId
+        ) {
             revert MintableRequestMismatch();
         }
 
@@ -344,14 +292,15 @@ contract MintableERC721 is
         address signer = _hashTypedData(
             keccak256(
                 abi.encode(
-                    TYPEHASH_MINTABLE_ERC721,
+                    TYPEHASH_SIGNATURE_MINT_ERC1155,
+                    _req.tokenId,
                     _req.startTimestamp,
                     _req.endTimestamp,
                     _req.recipient,
                     _req.quantity,
                     _req.currency,
                     _req.pricePerUnit,
-                    keccak256(bytes(_req.baseURI)),
+                    keccak256(bytes(_req.metadataURI)),
                     _req.uid
                 )
             )
@@ -387,10 +336,10 @@ contract MintableERC721 is
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
     }
-
     /// @dev Returns the domain name and version for EIP712.
+
     function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "MintableERC721";
+        name = "MintableERC1155";
         version = "1";
     }
 

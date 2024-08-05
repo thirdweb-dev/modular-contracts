@@ -8,11 +8,12 @@ import {Test} from "forge-std/Test.sol";
 // Target contract
 
 import {ModularCore} from "src/ModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+import {ModularModule} from "src/ModularModule.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {BatchMetadataERC1155} from "src/extension/token/metadata/BatchMetadataERC1155.sol";
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {BatchMetadataERC1155} from "src/module/token/metadata/BatchMetadataERC1155.sol";
 
 contract BatchMetadataExt is BatchMetadataERC1155 {}
 
@@ -20,22 +21,22 @@ contract BatchMetadataERC1155Test is Test {
 
     ERC1155Core public core;
 
-    BatchMetadataExt public extensionImplementation;
+    BatchMetadataExt public moduleImplementation;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
     address public unpermissionedActor = address(0x3);
 
     function setUp() public {
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC1155Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new BatchMetadataExt();
+        core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new BatchMetadataExt();
 
-        // install extension
+        // install module
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installModule(address(moduleImplementation), "");
     }
 
     /*///////////////////////////////////////////////////////////////

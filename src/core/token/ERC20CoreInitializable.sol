@@ -51,8 +51,8 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
         string memory _symbol,
         string memory _contractURI,
         address _owner,
-        address[] memory _extensions,
-        bytes[] memory _extensionInstallData
+        address[] memory _modules,
+        bytes[] memory _moduleInstallData
     ) external payable initializer {
         // Set contract metadata
         name_ = _name;
@@ -60,10 +60,10 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
         _setupContractURI(_contractURI);
         _initializeOwner(_owner);
 
-        // Install and initialize extensions
-        require(_extensions.length == _extensionInstallData.length);
-        for (uint256 i = 0; i < _extensions.length; i++) {
-            _installExtension(_extensions[i], _extensionInstallData[i]);
+        // Install and initialize modules
+        require(_modules.length == _moduleInstallData.length);
+        for (uint256 i = 0; i < _modules.length; i++) {
+            _installModule(_modules[i], _moduleInstallData[i]);
         }
     }
 
@@ -119,7 +119,7 @@ contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializa
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
-            || interfaceId == type(IERC20).interfaceId || _supportsInterfaceViaExtensions(interfaceId);
+            || interfaceId == type(IERC20).interfaceId || _supportsInterfaceViaModules(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

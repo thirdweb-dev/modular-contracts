@@ -5,7 +5,7 @@ pragma solidity ^0.8.20;
 
 import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
 import {IModularCore} from "./interface/IModularCore.sol";
-import {IModularExtension} from "./interface/IModularExtension.sol";
+import {IModularModule} from "./interface/IModularModule.sol";
 
 // Utils
 import {Role} from "./Role.sol";
@@ -21,7 +21,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
                                 TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev The type of function callable on extension contracts.
+    /// @dev The type of function callable on module contracts.
     enum FunctionType {
         CALLBACK,
         FALLBACK
@@ -38,20 +38,20 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when an extension is installed.
-    event ExtensionInstalled(address caller, address implementation, address installedExtension);
+    /// @notice Emitted when an module is installed.
+    event ModuleInstalled(address caller, address implementation, address installedModule);
 
-    /// @notice Emitted when an extension is uninstalled.
-    event ExtensionUninstalled(address caller, address implementation, address installedExtension);
+    /// @notice Emitted when an module is uninstalled.
+    event ModuleUninstalled(address caller, address implementation, address installedModule);
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev The set of addresses of installed extensions.
-    EnumerableSetLib.AddressSet private extensions;
+    /// @dev The set of addresses of installed modules.
+    EnumerableSetLib.AddressSet private modules;
 
-    /// @dev interface ID => counter of extensions supporting the interface.
+    /// @dev interface ID => counter of modules supporting the interface.
     mapping(bytes4 => uint256) private supportedInterfaceRefCounter;
 
     /// @dev function selector => function data.
@@ -61,9 +61,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error ExtensionOutOfSync();
-    error ExtensionNotInstalled();
-    error ExtensionAlreadyInstalled();
+    error ModuleOutOfSync();
+    error ModuleNotInstalled();
+    error ModuleAlreadyInstalled();
 
     error CallbackFunctionRequired();
     error CallbackExecutionReverted();
@@ -74,23 +74,23 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
     error FallbackFunctionAlreadyInstalled();
     error FallbackFunctionNotInstalled();
 
-    error ExtensionInterfaceNotCompatible(bytes4 requiredInterfaceId);
+    error ModuleInterfaceNotCompatible(bytes4 requiredInterfaceId);
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Routes a call to the appropriate extension contract.
+    /// @notice Routes a call to the appropriate module contract.
     fallback() external payable {
-        // Get extension function data.
+        // Get module function data.
         InstalledFunction memory fn = functionData_[msg.sig];
 
-        // Check: extension function data exists.
+        // Check: module function data exists.
         if (fn.implementation == address(0)) {
             revert FallbackFunctionNotInstalled();
         }
 
-        // Check: authorized to call permissioned extension function
+        // Check: authorized to call permissioned module function
         if (fn.fnType == FunctionType.CALLBACK) {
             if (msg.sender != address(this)) {
                 revert CallbackFunctionUnauthorizedCall();
@@ -106,19 +106,19 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns the list of all callback functions called on some extension contract.
+    /// @notice Returns the list of all callback functions called on some module contract.
     function getSupportedCallbackFunctions() public pure virtual returns (SupportedCallbackFunction[] memory);
 
-    /// @notice Returns a list of addresess and respective extension configs of all installed extensions.
-    function getInstalledExtensions() external view returns (InstalledExtension[] memory _installedExtensions) {
-        uint256 totalInstalled = extensions.length();
-        _installedExtensions = new InstalledExtension[](totalInstalled);
+    /// @notice Returns a list of addresess and respective module configs of all installed modules.
+    function getInstalledModules() external view returns (InstalledModule[] memory _installedModules) {
+        uint256 totalInstalled = modules.length();
+        _installedModules = new InstalledModule[](totalInstalled);
 
         for (uint256 i = 0; i < totalInstalled; i++) {
-            address implementation = extensions.at(i);
-            _installedExtensions[i] = InstalledExtension({
+            address implementation = modules.at(i);
+            _installedModules[i] = InstalledModule({
                 implementation: implementation,
-                config: IModularExtension(implementation).getExtensionConfig()
+                config: IModularModule(implementation).getModuleConfig()
             });
         }
     }
@@ -127,24 +127,24 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Installs an extension contract.
-    function installExtension(address _extension, bytes calldata _data)
+    /// @notice Installs an module contract.
+    function installModule(address _module, bytes calldata _data)
         external
         payable
         onlyOwnerOrRoles(Role._INSTALLER_ROLE)
     {
-        // Install extension.
-        _installExtension(_extension, _data);
+        // Install module.
+        _installModule(_module, _data);
     }
 
-    /// @notice Uninstalls an extension contract.
-    function uninstallExtension(address _extension, bytes calldata _data)
+    /// @notice Uninstalls an module contract.
+    function uninstallModule(address _module, bytes calldata _data)
         external
         payable
         onlyOwnerOrRoles(Role._INSTALLER_ROLE)
     {
-        // Uninstall extension.
-        _uninstallExtension(_extension, _data);
+        // Uninstall module.
+        _uninstallModule(_module, _data);
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
@@ -163,7 +163,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function _supportsInterfaceViaExtensions(bytes4 interfaceId) internal view virtual returns (bool) {
+    function _supportsInterfaceViaModules(bytes4 interfaceId) internal view virtual returns (bool) {
         if (interfaceId == 0xffffffff) {
             return false;
         }
@@ -173,25 +173,25 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         return false;
     }
 
-    /// @dev Installs an extension contract.
-    function _installExtension(address _extension, bytes memory _data) internal {
-        if (!extensions.add(_extension)) {
-            revert ExtensionAlreadyInstalled();
+    /// @dev Installs an module contract.
+    function _installModule(address _module, bytes memory _data) internal {
+        if (!modules.add(_module)) {
+            revert ModuleAlreadyInstalled();
         }
 
-        // Get extension config.
-        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
+        // Get module config.
+        ModuleConfig memory config = IModularModule(_module).getModuleConfig();
 
-        // Check: ModularCore supports interface required by extension.
+        // Check: ModularCore supports interface required by module.
         if (config.requiredInterfaces.length != 0) {
             for (uint256 i = 0; i < config.requiredInterfaces.length; i++) {
                 if (!supportsInterface(config.requiredInterfaces[i])) {
-                    revert ExtensionInterfaceNotCompatible(config.requiredInterfaces[i]);
+                    revert ModuleInterfaceNotCompatible(config.requiredInterfaces[i]);
                 }
             }
         }
 
-        // Store interface support inherited via extension installation.
+        // Store interface support inherited via module installation.
         uint256 supportedInterfaceLength = config.supportedInterfaces.length;
         for (uint256 i = 0; i < supportedInterfaceLength; i++) {
             supportedInterfaceRefCounter[config.supportedInterfaces[i]] += 1;
@@ -223,55 +223,55 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
             }
 
             functionData_[callbackFunction.selector] =
-                InstalledFunction({implementation: _extension, permissionBits: 0, fnType: FunctionType.CALLBACK});
+                InstalledFunction({implementation: _module, permissionBits: 0, fnType: FunctionType.CALLBACK});
         }
 
-        // Store extension function data.
+        // Store module function data.
         uint256 functionLength = config.fallbackFunctions.length;
         for (uint256 i = 0; i < functionLength; i++) {
             FallbackFunction memory ext = config.fallbackFunctions[i];
 
-            // Check: extension function data not already stored.
+            // Check: module function data not already stored.
             if (functionData_[ext.selector].implementation != address(0)) {
                 revert FallbackFunctionAlreadyInstalled();
             }
 
             functionData_[ext.selector] = InstalledFunction({
-                implementation: _extension,
+                implementation: _module,
                 permissionBits: ext.permissionBits,
                 fnType: FunctionType.FALLBACK
             });
         }
 
-        // Call `onInstall` callback function if extension has registered installation callback.
+        // Call `onInstall` callback function if module has registered installation callback.
         if (config.registerInstallationCallback) {
             (bool success, bytes memory returndata) =
-                _extension.delegatecall(abi.encodeCall(IInstallationCallback.onInstall, (_data)));
+                _module.delegatecall(abi.encodeCall(IInstallationCallback.onInstall, (_data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
         }
 
-        emit ExtensionInstalled(msg.sender, _extension, _extension);
+        emit ModuleInstalled(msg.sender, _module, _module);
     }
 
-    /// @notice Uninstalls an extension contract.
-    function _uninstallExtension(address _extension, bytes memory _data) internal {
-        // Check: remove and check if the extension is installed
-        if (!extensions.remove(_extension)) {
-            revert ExtensionNotInstalled();
+    /// @notice Uninstalls an module contract.
+    function _uninstallModule(address _module, bytes memory _data) internal {
+        // Check: remove and check if the module is installed
+        if (!modules.remove(_module)) {
+            revert ModuleNotInstalled();
         }
 
-        // Get extension config.
-        ExtensionConfig memory config = IModularExtension(_extension).getExtensionConfig();
+        // Get module config.
+        ModuleConfig memory config = IModularModule(_module).getModuleConfig();
 
         uint256 supportedInterfaceLength = config.supportedInterfaces.length;
         for (uint256 i = 0; i < supportedInterfaceLength; i++) {
-            // Note: This should not underflow because extension needs to be installed before uninstalling. getExtensionConfig should returns the same value during installation and uninstallation.
+            // Note: This should not underflow because module needs to be installed before uninstalling. getModuleConfig should returns the same value during installation and uninstallation.
             supportedInterfaceRefCounter[config.supportedInterfaces[i]] -= 1;
         }
 
-        // Remove extension function data
+        // Remove module function data
         uint256 functionLength = config.fallbackFunctions.length;
         for (uint256 i = 0; i < functionLength; i++) {
             delete functionData_[config.fallbackFunctions[i].selector];
@@ -284,13 +284,13 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         if (config.registerInstallationCallback) {
-            _extension.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (_data)));
+            _module.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (_data)));
         }
 
-        emit ExtensionUninstalled(msg.sender, _extension, _extension);
+        emit ModuleUninstalled(msg.sender, _module, _module);
     }
 
-    /// @dev Calls an extension callback function and checks whether it is optional or required.
+    /// @dev Calls an module callback function and checks whether it is optional or required.
     function _executeCallbackFunction(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
         nonReentrant
@@ -325,7 +325,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
     }
 
-    /// @dev Calls an extension callback function and checks whether it is optional or required.
+    /// @dev Calls an module callback function and checks whether it is optional or required.
     function _executeCallbackFunctionView(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
         view

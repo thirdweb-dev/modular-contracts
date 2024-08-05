@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
@@ -37,7 +37,7 @@ library ClaimableStorage {
 
 }
 
-contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
+contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
 
     using ECDSA for bytes32;
 
@@ -150,11 +150,11 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION CONFIG
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and fallback functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](5);
 
@@ -206,13 +206,13 @@ contract ClaimableERC721 is ModularExtension, EIP712, BeforeMintCallbackERC721, 
         _distributeMintPrice(msg.sender, currency, _quantity * pricePerUnit);
     }
 
-    /// @dev Called by a Core into an Extension during the installation of the Extension.
+    /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         address primarySaleRecipient = abi.decode(data, (address));
         _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient);
     }
 
-    /// @dev Called by a Core into an Extension during the uninstallation of the Extension.
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
     function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////

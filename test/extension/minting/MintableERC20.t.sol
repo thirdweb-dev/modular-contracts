@@ -11,13 +11,14 @@ import {ERC20} from "@solady/tokens/ERC20.sol";
 // Target contract
 
 import {ModularCore} from "src/ModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+import {ModularModule} from "src/ModularModule.sol";
 
 import {Role} from "src/Role.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {MintableERC20, MintableStorage} from "src/extension/token/minting/MintableERC20.sol";
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {MintableERC20, MintableStorage} from "src/module/token/minting/MintableERC20.sol";
 
 contract MockCurrency is ERC20 {
 
@@ -41,8 +42,8 @@ contract MintableERC20Test is Test {
 
     ERC20Core public core;
 
-    MintableERC20 public extensionImplementation;
-    MintableERC20 public installedExtension;
+    MintableERC20 public moduleImplementation;
+    MintableERC20 public installedModule;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -97,16 +98,16 @@ contract MintableERC20Test is Test {
         permissionedActor = vm.addr(permissionedActorPrivateKey);
         unpermissionedActor = vm.addr(unpermissionedActorPrivateKey);
 
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC20Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new MintableERC20();
+        core = new ERC20Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new MintableERC20();
 
-        // install extension
+        // install module
         bytes memory encodedInstallParams = abi.encode(owner);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), encodedInstallParams);
+        core.installModule(address(moduleImplementation), encodedInstallParams);
 
         // Setup signature vars
         typehashMintRequest = keccak256(

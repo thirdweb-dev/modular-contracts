@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 import {Role} from "../../../Role.sol";
 
 import {Base64} from "@solady/utils/Base64.sol";
@@ -27,7 +27,7 @@ library OpenEditionMetadataStorage {
 
 }
 
-contract OpenEditionMetadataERC721 is ModularExtension {
+contract OpenEditionMetadataERC721 is ModularModule {
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
@@ -62,11 +62,11 @@ contract OpenEditionMetadataERC721 is ModularExtension {
     error BatchMetadataNoMetadataForTokenId();
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION CONFIG
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 

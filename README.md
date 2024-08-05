@@ -7,11 +7,11 @@
 <p align="center"><strong>Write smart contracts for which you can add, remove, upgrade or switch out the exact parts you want.</strong></p>
 <br />
 
-A Modular Contract is built of two kinds of parts: a _Modular Core_ and its _Modular Extensions_.
+A Modular Contract is built of two kinds of parts: a _Modular Core_ and its _Modular Modules_.
 
 ![modular-contracts-analogy](./assets/readme-hero-image.png)
 
-A developer writes a **_Core_** smart contract as the foundation that can be customized by adding new parts and updating or removing these parts over time. These ‘parts’ are **_Extension_** smart contracts which any third-party developer can independently develop with reference to the **_Core_** smart contract as the known foundation to build around.
+A developer writes a **_Core_** smart contract as the foundation that can be customized by adding new parts and updating or removing these parts over time. These ‘parts’ are **_Module_** smart contracts which any third-party developer can independently develop with reference to the **_Core_** smart contract as the known foundation to build around.
 
 # Install and Use
 
@@ -36,12 +36,12 @@ import {ERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
 contract ModularNFTCollection is ERC721A, ModularCore {}
 ```
 
-Import `ModularExtension` to create an Extension for your Core contract (e.g. `Soulbound`):
+Import `ModularModule` to create an Module for your Core contract (e.g. `Soulbound`):
 
 ```solidity
-import {ModularExtension} from "@modular-contracts/ModularExtension.sol";
+import {ModularModule} from "@modular-contracts/ModularModule.sol";
 
-contract SoulboundERC721 is ModularExtension {}
+contract SoulboundERC721 is ModularModule {}
 ```
 
 # Run this repo

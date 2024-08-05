@@ -6,8 +6,8 @@ import {SimpleMetadataERC721} from "./SimpleMetadataERC721.sol";
 
 contract SimpleMetadataERC1155 is SimpleMetadataERC721 {
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 

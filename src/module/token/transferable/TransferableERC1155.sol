@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 import {Role} from "../../../Role.sol";
 
 import {BeforeBatchTransferCallbackERC1155} from "../../../callback/BeforeBatchTransferCallbackERC1155.sol";
@@ -29,7 +29,7 @@ library TransferableStorage {
 
 }
 
-contract TransferableERC1155 is ModularExtension, BeforeTransferCallbackERC1155, BeforeBatchTransferCallbackERC1155 {
+contract TransferableERC1155 is ModularModule, BeforeTransferCallbackERC1155, BeforeBatchTransferCallbackERC1155 {
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -39,11 +39,11 @@ contract TransferableERC1155 is ModularExtension, BeforeTransferCallbackERC1155,
     error TransferDisabled();
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION CONFIG
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](4);
 

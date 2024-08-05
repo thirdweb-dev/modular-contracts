@@ -7,11 +7,12 @@ import {Test} from "forge-std/Test.sol";
 
 // Target contract
 
-import {ModularExtension} from "src/ModularExtension.sol";
+import {ModularModule} from "src/ModularModule.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {TransferableERC20} from "src/extension/token/transferable/TransferableERC20.sol";
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
+
 import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {TransferableERC20} from "src/module/token/transferable/TransferableERC20.sol";
 
 contract TransferableExt is TransferableERC20 {}
 
@@ -22,9 +23,9 @@ contract Core is ERC20Core {
         string memory symbol,
         string memory contractURI,
         address owner,
-        address[] memory extensions,
-        bytes[] memory extensionInstallData
-    ) payable ERC20Core(name, symbol, contractURI, owner, extensions, extensionInstallData) {}
+        address[] memory modules,
+        bytes[] memory moduleInstallData
+    ) payable ERC20Core(name, symbol, contractURI, owner, modules, moduleInstallData) {}
 
     // disable mint and approve callbacks for these tests
     function _beforeMint(address to, uint256 amount, bytes calldata data) internal override {}
@@ -36,8 +37,8 @@ contract TransferableERC20Test is Test {
 
     Core public core;
 
-    TransferableExt public extensionImplementation;
-    TransferableExt public installedExtension;
+    TransferableExt public moduleImplementation;
+    TransferableExt public installedModule;
 
     address public owner = address(0x1);
     address public actorOne = address(0x2);
@@ -45,18 +46,18 @@ contract TransferableERC20Test is Test {
     address public actorThree = address(0x4);
 
     function setUp() public {
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new TransferableExt();
+        core = new Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new TransferableExt();
 
-        // install extension
+        // install module
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installModule(address(moduleImplementation), "");
 
-        IModularCore.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
-        installedExtension = TransferableExt(installedExtensions[0].implementation);
+        IModularCore.InstalledModule[] memory installedModules = core.getInstalledModules();
+        installedModule = TransferableExt(installedModules[0].implementation);
 
         // mint tokens
         core.mint(actorOne, 10 ether, "");
