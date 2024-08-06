@@ -6,38 +6,41 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
+import {ModularModule} from "src/ModularModule.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
-import {RoyaltyERC1155} from "src/extension/token/royalty/RoyaltyERC1155.sol";
+
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {RoyaltyERC1155} from "src/module/token/royalty/RoyaltyERC1155.sol";
 
 contract RoyaltyExt is RoyaltyERC1155 {}
 
 contract RoyaltyERC1155Test is Test {
+
     ERC1155Core public core;
 
-    RoyaltyExt public extensionImplementation;
-    RoyaltyExt public installedExtension;
+    RoyaltyExt public moduleImplementation;
+    RoyaltyExt public installedModule;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
     address public unpermissionedActor = address(0x3);
 
     function setUp() public {
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC1155Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new RoyaltyExt();
+        core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new RoyaltyExt();
 
-        // install extension
-        bytes memory extensionInitializeData = abi.encode(owner, 100);
+        // install module
+        bytes memory moduleInitializeData = abi.encode(owner, 100);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), extensionInitializeData);
+        core.installModule(address(moduleImplementation), moduleInitializeData);
 
-        IModularCore.InstalledExtension[] memory installedExtensions = core.getInstalledExtensions();
-        installedExtension = RoyaltyExt(installedExtensions[0].implementation);
+        IModularCore.InstalledModule[] memory installedModules = core.getInstalledModules();
+        installedModule = RoyaltyExt(installedModules[0].implementation);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -55,7 +58,7 @@ contract RoyaltyERC1155Test is Test {
         uint256 royaltyAmount;
         uint16 bps;
 
-        // read state from extension
+        // read state from module
         (receiver, bps) = RoyaltyExt(address(core)).getDefaultRoyaltyInfo();
         assertEq(receiver, royaltyRecipient);
         assertEq(bps, royaltyBps);
@@ -92,7 +95,7 @@ contract RoyaltyERC1155Test is Test {
         uint256 royaltyAmount;
         uint16 bps;
 
-        // read state from extension
+        // read state from module
         (receiver, bps) = RoyaltyExt(address(core)).getDefaultRoyaltyInfo();
         assertEq(receiver, defaultRoyaltyRecipient);
         assertEq(bps, defaultRoyaltyBps);
@@ -121,4 +124,5 @@ contract RoyaltyERC1155Test is Test {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
         RoyaltyExt(address(core)).setRoyaltyInfoForToken(10, address(0x123), 100);
     }
+
 }

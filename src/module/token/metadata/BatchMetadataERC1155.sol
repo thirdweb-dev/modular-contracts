@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import {BatchMetadataERC721} from "./BatchMetadataERC721.sol";
 import {Role} from "../../../Role.sol";
+import {BatchMetadataERC721} from "./BatchMetadataERC721.sol";
 
 contract BatchMetadataERC1155 is BatchMetadataERC721 {
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](2);
 
@@ -22,4 +23,5 @@ contract BatchMetadataERC1155 is BatchMetadataERC721 {
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
+
 }

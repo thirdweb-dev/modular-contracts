@@ -3,7 +3,7 @@
 
 // import {Test} from "forge-std/Test.sol";
 // import {TestPlus} from "../utils/TestPlus.sol";
-// import {MockExtensionERC721} from "../mocks/MockExtension.sol";
+// import {MockModuleERC721} from "../mocks/MockModule.sol";
 
 // import {EIP1967Proxy} from "test/utils/EIP1967Proxy.sol";
 
@@ -68,23 +68,23 @@
 
 //     function setUp() public {
 //         bytes memory hookInitData = abi.encodeWithSelector(
-//             MockExtensionERC721.initialize.selector,
+//             MockModuleERC721.initialize.selector,
 //             address(0x123) // upgradeAdmin
 //         );
-//         hookProxyAddress = address(new EIP1967Proxy(address(new MockExtensionERC721()), hookInitData));
+//         hookProxyAddress = address(new EIP1967Proxy(address(new MockModuleERC721()), hookInitData));
 
 //         vm.startPrank(admin);
 
-//         address[] memory extensionsToInstall = new address[](1);
-//         extensionsToInstall[0] = hookProxyAddress;
+//         address[] memory modulesToInstall = new address[](1);
+//         modulesToInstall[0] = hookProxyAddress;
 
 //         token = new ERC721Core(
 //             "Token",
 //             "TKN",
 //             "ipfs://QmPVMvePSWfYXTa8haCbFavYx4GM4kBPzvdgBw7PTGUByp/0",
 //             admin, // core contract owner,
-//             extensionsToInstall,
-//             new bytes[](extensionsToInstall.length)
+//             modulesToInstall,
+//             new bytes[](modulesToInstall.length)
 //         );
 
 //         vm.stopPrank();

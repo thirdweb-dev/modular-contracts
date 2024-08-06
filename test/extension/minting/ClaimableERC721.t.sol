@@ -3,20 +3,24 @@ pragma solidity ^0.8.0;
 
 import "lib/forge-std/src/console.sol";
 
-import {Test} from "forge-std/Test.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
+import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {ClaimableERC721, ClaimableStorage} from "src/extension/token/minting/ClaimableERC721.sol";
+import {ModularModule} from "src/ModularModule.sol";
+
 import {Role} from "src/Role.sol";
+import {ERC721Core} from "src/core/token/ERC721Core.sol";
+
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {ClaimableERC721, ClaimableStorage} from "src/module/token/minting/ClaimableERC721.sol";
 
 contract MockCurrency is ERC20 {
+
     function mintTo(address _recipient, uint256 _amount) public {
         _mint(_recipient, _amount);
     }
@@ -30,13 +34,15 @@ contract MockCurrency is ERC20 {
     function symbol() public view virtual override returns (string memory) {
         return "MOCK";
     }
+
 }
 
 contract ClaimableERC721Test is Test {
+
     ERC721Core public core;
 
-    ClaimableERC721 public extensionImplementation;
-    ClaimableERC721 public installedExtension;
+    ClaimableERC721 public moduleImplementation;
+    ClaimableERC721 public installedModule;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -92,15 +98,16 @@ contract ClaimableERC721Test is Test {
         permissionedActor = vm.addr(permissionedActorPrivateKey);
         unpermissionedActor = vm.addr(unpermissionedActorPrivateKey);
 
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC721Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new ClaimableERC721();
+        core = new ERC721Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new ClaimableERC721();
 
-        // install extension
+        // install module
+        bytes memory encodedInstallParams = abi.encode(owner);
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installModule(address(moduleImplementation), encodedInstallParams);
 
         // Setup signature vars
         typehashClaimRequest = keccak256(
@@ -779,4 +786,5 @@ contract ClaimableERC721Test is Test {
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC721.ClaimableIncorrectPriceOrCurrency.selector));
         core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
     }
+
 }

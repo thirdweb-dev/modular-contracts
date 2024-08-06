@@ -1,24 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
+import {
+    ERC721AQueryableUpgradeable,
+    ERC721AUpgradeable,
+    IERC721AUpgradeable
+} from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
 import {Initializable} from "@solady/utils/Initializable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
-import {
-    IERC721AUpgradeable,
-    ERC721AUpgradeable,
-    ERC721AQueryableUpgradeable
-} from "@erc721a-upgradeable/extensions/ERC721AQueryableUpgradeable.sol";
 
 import {ModularCore} from "../../ModularCore.sol";
 
-import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
-import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
-import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
 import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
+import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
+import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
+
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
 contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Multicallable, Initializable {
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -46,18 +48,18 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
         string memory _symbol,
         string memory _contractURI,
         address _owner,
-        address[] memory _extensions,
-        bytes[] memory _extensionInstallData
+        address[] memory _modules,
+        bytes[] memory _moduleInstallData
     ) external payable initializer initializerERC721A {
         // Set contract metadata
         __ERC721A_init(_name, _symbol);
         _setupContractURI(_contractURI);
         _initializeOwner(_owner);
 
-        // Install and initialize extensions
-        require(_extensions.length == _extensionInstallData.length);
-        for (uint256 i = 0; i < _extensions.length; i++) {
-            _installExtension(_extensions[i], _extensionInstallData[i]);
+        // Install and initialize modules
+        require(_modules.length == _moduleInstallData.length);
+        for (uint256 i = 0; i < _modules.length; i++) {
+            _installModule(_modules[i], _moduleInstallData[i]);
         }
     }
 
@@ -284,4 +286,5 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
         );
         uri = abi.decode(returndata, (string));
     }
+
 }

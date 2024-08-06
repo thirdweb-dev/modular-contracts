@@ -6,34 +6,37 @@ import "lib/forge-std/src/console.sol";
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularModule} from "src/ModularModule.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
-import {BatchMetadataERC721} from "src/extension/token/metadata/BatchMetadataERC721.sol";
+
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+import {BatchMetadataERC721} from "src/module/token/metadata/BatchMetadataERC721.sol";
 
 contract BatchMetadataExt is BatchMetadataERC721 {}
 
 contract BatchMetadataERC721Test is Test {
+
     ERC721Core public core;
 
-    BatchMetadataExt public extensionImplementation;
+    BatchMetadataExt public moduleImplementation;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
     address public unpermissionedActor = address(0x3);
 
     function setUp() public {
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC721Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new BatchMetadataExt();
+        core = new ERC721Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new BatchMetadataExt();
 
-        // install extension
+        // install module
         vm.prank(owner);
-        core.installExtension(address(extensionImplementation), "");
+        core.installModule(address(moduleImplementation), "");
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -76,4 +79,5 @@ contract BatchMetadataERC721Test is Test {
         assertEq(batches[0].endTokenIdInclusive, 99);
         assertEq(batches[0].baseURI, "ipfs://base/");
     }
+
 }

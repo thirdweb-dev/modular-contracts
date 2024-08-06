@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library DelayedRevealBatchMetadataStorage {
+
     /// @custom:storage-location erc7201:token.metadata.batch.delayed.reveal
     bytes32 public constant DELAYED_REVEAL_BATCH_METADATA_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.metadata.batch.delayed.reveal")) - 1)) & ~bytes32(uint256(0xff));
@@ -27,9 +28,11 @@ library DelayedRevealBatchMetadataStorage {
             data_.slot := position
         }
     }
+
 }
 
-contract DelayedRevealBatchMetadataERC721 is ModularExtension {
+contract DelayedRevealBatchMetadataERC721 is ModularModule {
+
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -81,11 +84,11 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     event TokenURIRevealed(uint256 indexed index, string revealedURI);
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION CONFIG
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](3);
 
@@ -183,6 +186,19 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     }
 
     /*//////////////////////////////////////////////////////////////
+                            Encode `uploadMetadata`
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded metadata, to be used in `uploadedMetadata` fallback function
+    function encodeBytesUploadMetadata(bytes memory encryptedURI, bytes32 provenanceHash)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(encryptedURI, provenanceHash);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -271,4 +287,5 @@ contract DelayedRevealBatchMetadataERC721 is ModularExtension {
     {
         return DelayedRevealBatchMetadataStorage.data();
     }
+
 }

@@ -1,7 +1,6 @@
 [profile.default]
-evm_version = "london"
-#auto_detect_solc = false
-solc-version = "0.8.25"
+solc-version = "0.8.26"
+evm_version = "paris"
 optimizer = true
 optimizer_runs = 10000
 cache = true
@@ -17,5 +16,15 @@ gas_reports = [
 ignored_warnings_from = ["node_modules", "lib", "test"]
 fs_permissions = [{ access = "read", path = "./"}]
 
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+[fmt]
+line_length = 120
+tab_width = 4
+sort_imports = true
+override_spacing = false
+bracket_spacing = false
+contract_new_lines = true
+single_line_statement_blocks = "multi"
+int_types = "long"
+quote_style = "double"
+number_underscore = "thousands"
+multiline_func_header = "attributes_first"

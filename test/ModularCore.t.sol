@@ -5,24 +5,29 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
-import {ModularCore} from "src/ModularCore.sol";
+
 import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
+import {ModularCore} from "src/ModularCore.sol";
+import {ModularModule} from "src/ModularModule.sol";
+
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 
 contract MockBase {
+
     uint256 internal constant NUMBER_OF_CALLBACK = 10;
 
-    function getCallbacks() internal pure virtual returns (IExtensionConfig.CallbackFunction[] memory functions) {
-        functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK);
+    function getCallbacks() internal pure virtual returns (IModuleConfig.CallbackFunction[] memory functions) {
+        functions = new IModuleConfig.CallbackFunction[](NUMBER_OF_CALLBACK);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
             functions[i].selector = bytes4(uint32(i));
         }
     }
+
 }
 
 contract MockCore is MockBase, ModularCore {
+
     constructor(address _owner) {
         _initializeOwner(_owner);
     }
@@ -49,9 +54,11 @@ contract MockCore is MockBase, ModularCore {
     function callbackFunctionOne() external {
         _executeCallbackFunction(msg.sig, abi.encodeCall(this.callbackFunctionOne, ()));
     }
+
 }
 
-contract MockExtensionWithFunctions is MockBase, ModularExtension {
+contract MockModuleWithFunctions is MockBase, ModularModule {
+
     event CallbackFunctionOne();
     event FallbackFunctionCalled();
 
@@ -63,15 +70,15 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
 
     function onUninstall(bytes memory data) external virtual {}
 
-    function getCallbacks() internal pure override returns (IExtensionConfig.CallbackFunction[] memory functions) {
-        functions = new IExtensionConfig.CallbackFunction[](NUMBER_OF_CALLBACK + 1);
+    function getCallbacks() internal pure override returns (IModuleConfig.CallbackFunction[] memory functions) {
+        functions = new IModuleConfig.CallbackFunction[](NUMBER_OF_CALLBACK + 1);
         for (uint256 i = 0; i < NUMBER_OF_CALLBACK; i++) {
             functions[i].selector = bytes4(uint32(i));
         }
         functions[NUMBER_OF_CALLBACK].selector = this.callbackFunctionOne.selector;
     }
 
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = getCallbacks();
 
         FallbackFunction[] memory functions = new FallbackFunction[](8);
@@ -119,78 +126,98 @@ contract MockExtensionWithFunctions is MockBase, ModularExtension {
     function permissioned_delegatecall() external {}
 
     function permissioned_staticcall() external view {}
+
 }
 
-contract MockExtensionReentrant is MockExtensionWithFunctions {
+contract MockModuleReentrant is MockModuleWithFunctions {
+
     function callbackFunctionOne() external override {
         MockCore(payable(address(this))).callbackFunctionOne();
     }
+
 }
 
-contract MockExtensionOnInstallFails is MockExtensionWithFunctions {
+contract MockModuleOnInstallFails is MockModuleWithFunctions {
+
     error OnInstallFailed();
 
     function onInstall(bytes memory data) external override {
         revert OnInstallFailed();
     }
+
 }
 
-contract MockExtensionOnUninstallFails is MockExtensionWithFunctions {
+contract MockModuleOnUninstallFails is MockModuleWithFunctions {
+
     error OnUninstallFailed();
 
     function onUninstall(bytes memory data) external override {
         revert OnUninstallFailed();
     }
+
 }
 
-contract MockExtensionNoCallbacks is MockExtensionWithFunctions {
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new IExtensionConfig.CallbackFunction[](0);
+contract MockModuleNoCallbacks is MockModuleWithFunctions {
+
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
+        config.callbackFunctions = new IModuleConfig.CallbackFunction[](0);
 
         FallbackFunction[] memory functions = new FallbackFunction[](1);
         functions[0] = FallbackFunction({selector: bytes4(keccak256("notPermissioned_call()")), permissionBits: 0});
     }
+
 }
 
-contract MockExtensionNoFallbackFunctions is MockExtensionWithFunctions {
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+contract MockModuleNoFallbackFunctions is MockModuleWithFunctions {
+
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = getCallbacks();
     }
+
 }
 
-contract MockExtensionRequiresSomeInterface is MockExtensionWithFunctions {
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+contract MockModuleRequiresSomeInterface is MockModuleWithFunctions {
+
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = getCallbacks();
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = bytes4(0x12345678);
     }
+
 }
 
-contract MockExtensionOverlappingCallbacks is MockExtensionWithFunctions {
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+contract MockModuleOverlappingCallbacks is MockModuleWithFunctions {
+
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = getCallbacks();
     }
+
 }
 
-contract MockExtensionUnsupportedCallbacks is MockExtensionWithFunctions {
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
-        config.callbackFunctions = new IExtensionConfig.CallbackFunction[](1);
+contract MockModuleUnsupportedCallbacks is MockModuleWithFunctions {
+
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
+        config.callbackFunctions = new IModuleConfig.CallbackFunction[](1);
         config.callbackFunctions[0].selector = bytes4(0x12345678);
     }
+
 }
 
-contract MockExtensionOverlappingFallbackFunction is MockExtensionWithFunctions {
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+contract MockModuleOverlappingFallbackFunction is MockModuleWithFunctions {
+
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         FallbackFunction[] memory functions = new FallbackFunction[](1);
         functions[0] = FallbackFunction({selector: bytes4(keccak256("notPermissioned_call()")), permissionBits: 0});
 
         config.fallbackFunctions = functions;
     }
+
 }
 
-contract MockExtensionAlternate is MockExtensionWithFunctions {
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+contract MockModuleAlternate is MockModuleWithFunctions {
+
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = getCallbacks();
 
         FallbackFunction[] memory functions = new FallbackFunction[](9);
@@ -216,13 +243,15 @@ contract MockExtensionAlternate is MockExtensionWithFunctions {
     function someNewFunction() external {
         emit SomeNewEvent();
     }
+
 }
 
 contract ModularCoreTest is Test {
+
     MockCore public core;
 
-    MockExtensionWithFunctions public extension;
-    MockExtensionAlternate public alternateExtension;
+    MockModuleWithFunctions public module;
+    MockModuleAlternate public alternateModule;
 
     address public owner = address(0x1);
     address public permissionedActor = address(0x2);
@@ -231,54 +260,54 @@ contract ModularCoreTest is Test {
     function setUp() public {
         core = new MockCore(owner);
 
-        extension = new MockExtensionWithFunctions();
-        alternateExtension = new MockExtensionAlternate();
+        module = new MockModuleWithFunctions();
+        alternateModule = new MockModuleAlternate();
     }
 
     /*//////////////////////////////////////////////////////////////
-                        1. Install an extension
+                        1. Install an module
     //////////////////////////////////////////////////////////////*/
 
     event CallbackFunctionOne();
     event FallbackFunctionCalled();
 
-    function test_installExtension() public {
-        // 1. Install the extension in the core contract by providing an implementation address.
+    function test_installModule() public {
+        // 1. Install the module in the core contract by providing an implementation address.
         vm.prank(owner);
-        core.installExtension(address(extension), "");
+        core.installModule(address(module), "");
 
         // 2. Callback function is now called
         vm.expectEmit(true, false, false, false);
         emit CallbackFunctionOne();
         core.callbackFunctionOne();
 
-        // 3. Extension functions now callable via the core contract fallback
+        // 3. Module functions now callable via the core contract fallback
         vm.expectEmit(true, false, false, false);
         emit FallbackFunctionCalled();
-        MockExtensionWithFunctions(address(core)).notPermissioned_call();
+        MockModuleWithFunctions(address(core)).notPermissioned_call();
     }
 
     /*//////////////////////////////////////////////////////////////
-                        2. Uninstall extension
+                        2. Uninstall module
     //////////////////////////////////////////////////////////////*/
 
-    function test_uninstallExtension() public {
-        // Setup: Install extension in the core contract and set some storage
+    function test_uninstallModule() public {
+        // Setup: Install module in the core contract and set some storage
         vm.prank(owner);
-        core.installExtension(address(extension), "");
+        core.installModule(address(module), "");
 
         vm.expectEmit(true, false, false, false);
         emit CallbackFunctionOne();
         core.callbackFunctionOne();
 
-        // Uninstall the extension from the core contract.
+        // Uninstall the module from the core contract.
 
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleNotInstalled.selector));
         vm.prank(owner);
-        core.uninstallExtension(address(alternateExtension), "");
+        core.uninstallModule(address(alternateModule), "");
 
         vm.prank(owner);
-        core.uninstallExtension(address(extension), "");
+        core.uninstallModule(address(module), "");
 
         // Required callback function no longer has a call destination
         vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionRequired.selector));
@@ -286,29 +315,29 @@ contract ModularCoreTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                    Unit tests: installExtension
+                    Unit tests: installModule
     //////////////////////////////////////////////////////////////*/
 
-    function test_installExtension_state() public {
-        // Check: no extensions installed
-        IModularCore.InstalledExtension[] memory extensionsBefore = core.getInstalledExtensions();
-        assertEq(extensionsBefore.length, 0);
+    function test_installModule_state() public {
+        // Check: no modules installed
+        IModularCore.InstalledModule[] memory modulesBefore = core.getInstalledModules();
+        assertEq(modulesBefore.length, 0);
 
-        // Install extension
+        // Install module
         vm.prank(owner);
-        core.installExtension(address(extension), "");
+        core.installModule(address(module), "");
 
-        // Now 1 extension installed
-        IModularCore.InstalledExtension[] memory extensionsAfter = core.getInstalledExtensions();
-        assertEq(extensionsAfter.length, 1);
+        // Now 1 module installed
+        IModularCore.InstalledModule[] memory modulesAfter = core.getInstalledModules();
+        assertEq(modulesAfter.length, 1);
 
-        // Check extension address
+        // Check module address
 
-        assertEq(extensionsAfter[0].implementation, address(extension));
+        assertEq(modulesAfter[0].implementation, address(module));
 
-        // Check installed config matches config returned by extension proxy
-        IExtensionConfig.ExtensionConfig memory installedConfig = extensionsAfter[0].config;
-        IExtensionConfig.ExtensionConfig memory expectedConfig = ModularExtension(extension).getExtensionConfig();
+        // Check installed config matches config returned by module proxy
+        IModuleConfig.ModuleConfig memory installedConfig = modulesAfter[0].config;
+        IModuleConfig.ModuleConfig memory expectedConfig = ModularModule(module).getModuleConfig();
 
         assertEq(installedConfig.requiredInterfaces.length, expectedConfig.requiredInterfaces.length);
         uint256 len = installedConfig.requiredInterfaces.length;
@@ -346,119 +375,117 @@ contract ModularCoreTest is Test {
         // Check fallback function is now callable
         vm.expectEmit(true, false, false, false);
         emit FallbackFunctionCalled();
-        MockExtensionWithFunctions(address(core)).notPermissioned_call();
+        MockModuleWithFunctions(address(core)).notPermissioned_call();
     }
 
-    function test_installExtension_revert_reentrantCallbackFunction() public {
-        MockExtensionReentrant ext = new MockExtensionReentrant();
+    function test_installModule_revert_reentrantCallbackFunction() public {
+        MockModuleReentrant ext = new MockModuleReentrant();
 
-        // Install extension
+        // Install module
         vm.prank(owner);
-        core.installExtension(address(ext), "");
+        core.installModule(address(ext), "");
 
         vm.expectRevert(abi.encodeWithSelector(ReentrancyGuard.Reentrancy.selector));
         core.callbackFunctionOne();
     }
 
-    function test_installExtension_revert_unauthorizedCaller() public {
+    function test_installModule_revert_unauthorizedCaller() public {
         vm.expectRevert(abi.encodeWithSelector(0x82b42900)); // OwnableRoles.Unauthorized()
         vm.prank(unpermissionedActor);
-        core.installExtension(address(extension), "");
+        core.installModule(address(module), "");
     }
 
-    function test_installExtension_revert_extensionAlreadyInstalled() public {
-        // Install extension
+    function test_installModule_revert_moduleAlreadyInstalled() public {
+        // Install module
         vm.prank(owner);
-        core.installExtension(address(extension), "");
+        core.installModule(address(module), "");
 
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionAlreadyInstalled.selector));
-        core.installExtension(address(extension), "");
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleAlreadyInstalled.selector));
+        core.installModule(address(module), "");
     }
 
-    function test_installExtension_revert_onInstallCallbackFailed() public {
-        // Deploy extension
-        MockExtensionOnInstallFails ext = new MockExtensionOnInstallFails();
+    function test_installModule_revert_onInstallCallbackFailed() public {
+        // Deploy module
+        MockModuleOnInstallFails ext = new MockModuleOnInstallFails();
 
-        // Install extension
+        // Install module
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(MockExtensionOnInstallFails.OnInstallFailed.selector));
-        core.installExtension(address(ext), "");
+        vm.expectRevert(abi.encodeWithSelector(MockModuleOnInstallFails.OnInstallFailed.selector));
+        core.installModule(address(ext), "");
     }
 
-    function test_installExtension_revert_requiredInterfaceNotImplemented() public {
-        // Deploy extension
-        MockExtensionRequiresSomeInterface ext = new MockExtensionRequiresSomeInterface();
+    function test_installModule_revert_requiredInterfaceNotImplemented() public {
+        // Deploy module
+        MockModuleRequiresSomeInterface ext = new MockModuleRequiresSomeInterface();
 
-        // Install extension
+        // Install module
         vm.prank(owner);
-        vm.expectRevert(
-            abi.encodeWithSelector(ModularCore.ExtensionInterfaceNotCompatible.selector, bytes4(0x12345678))
-        );
-        core.installExtension(address(ext), "");
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleInterfaceNotCompatible.selector, bytes4(0x12345678)));
+        core.installModule(address(ext), "");
     }
 
-    function test_installExtension_revert_callbackFunctionAlreadyInstalled() public {
-        // Install extension
+    function test_installModule_revert_callbackFunctionAlreadyInstalled() public {
+        // Install module
         vm.prank(owner);
-        core.installExtension(address(extension), "");
+        core.installModule(address(module), "");
 
-        // Deploy conflicting extension
-        MockExtensionOverlappingCallbacks ext = new MockExtensionOverlappingCallbacks();
+        // Deploy conflicting module
+        MockModuleOverlappingCallbacks ext = new MockModuleOverlappingCallbacks();
 
-        // Install conflicting extension
+        // Install conflicting module
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionAlreadyInstalled.selector));
-        core.installExtension(address(ext), "");
+        core.installModule(address(ext), "");
     }
 
-    function test_installExtension_revert_callbackFunctionNotSupported() public {
-        // Deploy extension
-        MockExtensionUnsupportedCallbacks ext = new MockExtensionUnsupportedCallbacks();
+    function test_installModule_revert_callbackFunctionNotSupported() public {
+        // Deploy module
+        MockModuleUnsupportedCallbacks ext = new MockModuleUnsupportedCallbacks();
 
-        // Install extension
+        // Install module
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionNotSupported.selector));
-        core.installExtension(address(ext), "");
+        core.installModule(address(ext), "");
     }
 
-    function test_installExtension_revert_fallbackFunctionAlreadyInstalled() public {
-        // Install extension
+    function test_installModule_revert_fallbackFunctionAlreadyInstalled() public {
+        // Install module
         vm.prank(owner);
-        core.installExtension(address(extension), "");
+        core.installModule(address(module), "");
 
-        // Deploy conflicting extension
-        MockExtensionOverlappingFallbackFunction ext = new MockExtensionOverlappingFallbackFunction();
+        // Deploy conflicting module
+        MockModuleOverlappingFallbackFunction ext = new MockModuleOverlappingFallbackFunction();
 
-        // Install conflicting extension
+        // Install conflicting module
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(ModularCore.FallbackFunctionAlreadyInstalled.selector));
-        core.installExtension(address(ext), "");
+        core.installModule(address(ext), "");
     }
 
     /*//////////////////////////////////////////////////////////////
-                    Unit tests: uninstallExtension
+                    Unit tests: uninstallModule
     //////////////////////////////////////////////////////////////*/
 
-    function test_uninstallExtension_state() public {
-        // Install extension
+    function test_uninstallModule_state() public {
+        // Install module
         vm.prank(owner);
-        core.installExtension(address(extension), "");
+        core.installModule(address(module), "");
 
-        IModularCore.InstalledExtension[] memory extensionsBefore = core.getInstalledExtensions();
-        assertEq(extensionsBefore.length, 1);
+        IModularCore.InstalledModule[] memory modulesBefore = core.getInstalledModules();
+        assertEq(modulesBefore.length, 1);
 
         vm.expectEmit(true, false, false, false);
         emit CallbackFunctionOne();
         core.callbackFunctionOne();
 
-        // Uninstall extension
+        // Uninstall module
         vm.prank(owner);
-        core.uninstallExtension(address(extension), "");
+        core.uninstallModule(address(module), "");
 
-        // Check no extensions installed
-        IModularCore.InstalledExtension[] memory extensionsAfter = core.getInstalledExtensions();
-        assertEq(extensionsAfter.length, 0);
+        // Check no modules installed
+        IModularCore.InstalledModule[] memory modulesAfter = core.getInstalledModules();
+        assertEq(modulesAfter.length, 0);
 
         // No callback function installed
         vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionRequired.selector));
@@ -466,31 +493,32 @@ contract ModularCoreTest is Test {
 
         // No fallback function installed
         vm.expectRevert(abi.encodeWithSelector(ModularCore.FallbackFunctionNotInstalled.selector));
-        MockExtensionWithFunctions(address(core)).notPermissioned_call();
+        MockModuleWithFunctions(address(core)).notPermissioned_call();
     }
 
-    function test_uninstallExtension_revert_unauthorizedCaller() public {
+    function test_uninstallModule_revert_unauthorizedCaller() public {
         vm.expectRevert(abi.encodeWithSelector(0x82b42900)); // OwnableRoles.Unauthorized()
         vm.prank(unpermissionedActor);
-        core.uninstallExtension(address(extension), "");
+        core.uninstallModule(address(module), "");
     }
 
-    function test_uninstallExtension_revert_extensionNotInstalled() public {
+    function test_uninstallModule_revert_moduleNotInstalled() public {
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ExtensionNotInstalled.selector));
-        core.uninstallExtension(address(extension), "");
+        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleNotInstalled.selector));
+        core.uninstallModule(address(module), "");
     }
 
-    function test_uninstallExtension_doesNotCauseRevert() public {
-        // Deploy extension
-        MockExtensionOnUninstallFails ext = new MockExtensionOnUninstallFails();
+    function test_uninstallModule_doesNotCauseRevert() public {
+        // Deploy module
+        MockModuleOnUninstallFails ext = new MockModuleOnUninstallFails();
 
-        // Install extension
+        // Install module
         vm.prank(owner);
-        core.installExtension(address(ext), "");
+        core.installModule(address(ext), "");
 
-        // Uninstall extension
+        // Uninstall module
         vm.prank(owner);
-        core.uninstallExtension(address(ext), "");
+        core.uninstallModule(address(ext), "");
     }
+
 }

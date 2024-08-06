@@ -1,7 +1,8 @@
-// SPDX-License-Identifier: Apache 2.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.20;
 
 contract BeforeMintCallbackERC1155 {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -29,4 +30,5 @@ contract BeforeMintCallbackERC1155 {
     {
         revert BeforeMintCallbackERC1155NotImplemented();
     }
+
 }

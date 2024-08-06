@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library SimpleMetadataStorage {
+
     /// @custom:storage-location erc7201:token.metadata.simple
     bytes32 public constant SIMPLE_METADATA_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.metadata.simple")) - 1)) & ~bytes32(uint256(0xff));
@@ -21,9 +22,11 @@ library SimpleMetadataStorage {
             data_.slot := position
         }
     }
+
 }
 
-contract SimpleMetadataERC721 is ModularExtension {
+contract SimpleMetadataERC721 is ModularModule {
+
     using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -37,11 +40,11 @@ contract SimpleMetadataERC721 is ModularExtension {
     error MetadataNoMetadataForTokenId();
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION CONFIG
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 
@@ -78,4 +81,5 @@ contract SimpleMetadataERC721 is ModularExtension {
         SimpleMetadataStorage.data().uris[_id] = _uri;
         emit MetadataUpdate(_id);
     }
+
 }

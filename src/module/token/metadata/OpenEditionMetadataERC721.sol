@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 import {Role} from "../../../Role.sol";
-import {LibString} from "@solady/utils/LibString.sol";
+
 import {Base64} from "@solady/utils/Base64.sol";
+import {LibString} from "@solady/utils/LibString.sol";
 
 library OpenEditionMetadataStorage {
+
     /// @custom:storage-location erc7201:token.metadata.openedition
     bytes32 public constant OPEN_EDITION_METADATA_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.metadata.openedition")) - 1)) & ~bytes32(uint256(0xff));
@@ -22,9 +24,11 @@ library OpenEditionMetadataStorage {
             data_.slot := position
         }
     }
+
 }
 
-contract OpenEditionMetadataERC721 is ModularExtension {
+contract OpenEditionMetadataERC721 is ModularModule {
+
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -58,11 +62,11 @@ contract OpenEditionMetadataERC721 is ModularExtension {
     error BatchMetadataNoMetadataForTokenId();
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION CONFIG
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure virtual override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 
@@ -186,4 +190,5 @@ contract OpenEditionMetadataERC721 is ModularExtension {
 
         return "";
     }
+
 }

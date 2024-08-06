@@ -1,11 +1,12 @@
-// SPDX-License-Identifier: Apache 2.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.20;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 import {Role} from "../../../Role.sol";
 import {BeforeTransferCallbackERC20} from "../../../callback/BeforeTransferCallbackERC20.sol";
 
 library TransferableStorage {
+
     /// @custom:storage-location erc7201:token.transferable
     bytes32 public constant TRANSFERABLE_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.transferable")) - 1)) & ~bytes32(uint256(0xff));
@@ -23,9 +24,11 @@ library TransferableStorage {
             data_.slot := position
         }
     }
+
 }
 
-contract TransferableERC20 is ModularExtension, BeforeTransferCallbackERC20 {
+contract TransferableERC20 is ModularModule, BeforeTransferCallbackERC20 {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -34,11 +37,11 @@ contract TransferableERC20 is ModularExtension, BeforeTransferCallbackERC20 {
     error TransferDisabled();
 
     /*//////////////////////////////////////////////////////////////
-                            EXTENSION CONFIG
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    /// @notice Returns all implemented callback and module functions.
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](4);
 
@@ -99,4 +102,5 @@ contract TransferableERC20 is ModularExtension, BeforeTransferCallbackERC20 {
     function _transferableStorage() internal pure returns (TransferableStorage.Data storage) {
         return TransferableStorage.data();
     }
+
 }
