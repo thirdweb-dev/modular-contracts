@@ -28,3 +28,9 @@ int_types = "long"
 quote_style = "double"
 number_underscore = "thousands"
 multiline_func_header = "attributes_first"
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
