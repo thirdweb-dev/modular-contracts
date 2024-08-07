@@ -10,29 +10,35 @@ import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces
 import "./CreatorTokenUtils.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularModule} from "src/ModularModule.sol";
+
+import {Role} from "src/Role.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 import {CreatorTokenERC20} from "src/extension/token/creatortoken/CreatorTokenERC20.sol";
-import {MintableERC20} from "src/extension/token/minting/MintableERC20.sol";
-import {Role} from "src/Role.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
+import {MintableERC20} from "src/module/token/minting/MintableERC20.sol";
 
 contract CreatorTokenERC20Ext is CreatorTokenERC20 {}
 
 contract TransferToken {
+
     function transferToken(address payable tokenContract, address from, address to, uint256 amount) public {
         ERC20Core(tokenContract).transferFrom(from, to, amount);
     }
+
 }
 
 contract CreatorTokenERC20Test is Test {
+
     ERC20Core public core;
 
-    CreatorTokenERC20Ext public extensionImplementation;
+    CreatorTokenERC20Ext public moduleImplementation;
 
-    MintableERC20 public mintableExtensionImplementation;
+    MintableERC20 public mintableModuleImplementation;
 
     TransferToken public transferTokenContract;
 
@@ -88,19 +94,19 @@ contract CreatorTokenERC20Test is Test {
 
         evmVersionHash = _checkEVMVersion();
 
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC20Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new CreatorTokenERC20Ext();
-        mintableExtensionImplementation = new MintableERC20();
+        core = new ERC20Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new CreatorTokenERC20Ext();
+        mintableModuleImplementation = new MintableERC20();
 
         transferTokenContract = new TransferToken();
 
-        // install extension
+        // install module
         vm.startPrank(owner);
-        core.installExtension(address(extensionImplementation), "");
-        core.installExtension(address(mintableExtensionImplementation), "");
+        core.installModule(address(moduleImplementation), "");
+        core.installModule(address(mintableModuleImplementation), "");
         vm.stopPrank();
 
         typehashMintRequest = keccak256(
@@ -147,7 +153,7 @@ contract CreatorTokenERC20Test is Test {
         // attempt to set the transfer validator to an invalid contract
         vm.prank(owner);
         vm.expectRevert(CreatorTokenERC20.InvalidTransferValidatorContract.selector);
-        CreatorTokenERC20(address(core)).setTransferValidator(address(11111));
+        CreatorTokenERC20(address(core)).setTransferValidator(address(11_111));
     }
 
     function test_allowsTransferWithTransferValidatorAddressZero() public {
@@ -231,4 +237,5 @@ contract CreatorTokenERC20Test is Test {
 
         evmVersionHash = keccak256(abi.encode(file));
     }
+
 }

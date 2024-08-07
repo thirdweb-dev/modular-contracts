@@ -10,18 +10,22 @@ import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces
 import "./CreatorTokenUtils.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularModule} from "src/ModularModule.sol";
+
+import {Role} from "src/Role.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {CreatorTokenERC1155} from "src/extension/token/creatortoken/CreatorTokenERC1155.sol";
-import {MintableERC1155} from "src/extension/token/minting/MintableERC1155.sol";
-import {Role} from "src/Role.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
+import {MintableERC1155} from "src/module/token/minting/MintableERC1155.sol";
 
 contract CreatorTokenERC1155Ext is CreatorTokenERC1155 {}
 
 contract TransferToken {
+
     function transferToken(address payable tokenContract, address from, address to, uint256 tokenId, uint256 value)
         public
     {
@@ -37,14 +41,16 @@ contract TransferToken {
     ) public {
         ERC1155Core(tokenContract).safeBatchTransferFrom(from, to, tokenIds, values, "");
     }
+
 }
 
 contract CreatorTokenERC1155Test is Test {
+
     ERC1155Core public core;
 
-    CreatorTokenERC1155Ext public extensionImplementation;
+    CreatorTokenERC1155Ext public moduleImplementation;
 
-    MintableERC1155 public mintableExtensionImplementation;
+    MintableERC1155 public mintableModuleImplementation;
 
     TransferToken public transferTokenContract;
 
@@ -102,19 +108,19 @@ contract CreatorTokenERC1155Test is Test {
 
         evmVersionHash = _checkEVMVersion();
 
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC1155Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new CreatorTokenERC1155Ext();
-        mintableExtensionImplementation = new MintableERC1155();
+        core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new CreatorTokenERC1155Ext();
+        mintableModuleImplementation = new MintableERC1155();
 
         transferTokenContract = new TransferToken();
 
-        // install extension
+        // install module
         vm.startPrank(owner);
-        core.installExtension(address(extensionImplementation), "");
-        core.installExtension(address(mintableExtensionImplementation), "");
+        core.installModule(address(moduleImplementation), "");
+        core.installModule(address(mintableModuleImplementation), "");
         vm.stopPrank();
 
         typehashMintRequest = keccak256(
@@ -162,7 +168,7 @@ contract CreatorTokenERC1155Test is Test {
         // attempt to set the transfer validator to an invalid contract
         vm.prank(owner);
         vm.expectRevert(CreatorTokenERC1155.InvalidTransferValidatorContract.selector);
-        CreatorTokenERC1155(address(core)).setTransferValidator(address(11111));
+        CreatorTokenERC1155(address(core)).setTransferValidator(address(11_111));
     }
 
     function test_allowsTransferWithTransferValidatorAddressZero() public {
@@ -280,4 +286,5 @@ contract CreatorTokenERC1155Test is Test {
 
         evmVersionHash = keccak256(abi.encode(file));
     }
+
 }

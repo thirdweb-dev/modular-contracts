@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {ModularExtension} from "../../../ModularExtension.sol";
+import {ModularModule} from "../../../ModularModule.sol";
 import {Role} from "../../../Role.sol";
 import {BeforeTransferCallbackERC20} from "../../../callback/BeforeTransferCallbackERC20.sol";
 
 import {ICreatorToken} from "@limitbreak/creator-token-standards/interfaces/ICreatorToken.sol";
+
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
 import {ITransferValidatorSetTokenType} from
     "@limitbreak/creator-token-standards/interfaces/ITransferValidatorSetTokenType.sol";
 import {TOKEN_TYPE_ERC20} from "@limitbreak/permit-c/Constants.sol";
-import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
 
 library CreatorTokenStorage {
+
     /// @custom:storage-location erc7201:creator.token.erc20
     bytes32 public constant CREATORTOKEN_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("creator.token.erc20")) - 1)) & ~bytes32(uint256(0xff));
@@ -27,9 +29,11 @@ library CreatorTokenStorage {
             data_.slot := position
         }
     }
+
 }
 
-contract CreatorTokenERC20 is ModularExtension, BeforeTransferCallbackERC20, ICreatorToken {
+contract CreatorTokenERC20 is ModularModule, BeforeTransferCallbackERC20, ICreatorToken {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -42,7 +46,7 @@ contract CreatorTokenERC20 is ModularExtension, BeforeTransferCallbackERC20, ICr
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and extension functions.
-    function getExtensionConfig() external pure override returns (ExtensionConfig memory config) {
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](3);
 
@@ -134,4 +138,5 @@ contract CreatorTokenERC20 is ModularExtension, BeforeTransferCallbackERC20, ICr
     function _creatorTokenStorage() internal pure returns (CreatorTokenStorage.Data storage) {
         return CreatorTokenStorage.data();
     }
+
 }

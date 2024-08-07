@@ -10,29 +10,35 @@ import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces
 import "./CreatorTokenUtils.sol";
 
 // Target contract
-import {IExtensionConfig} from "src/interface/IExtensionConfig.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
-import {ModularExtension} from "src/ModularExtension.sol";
+
 import {ModularCore} from "src/ModularCore.sol";
+import {ModularModule} from "src/ModularModule.sol";
+
+import {Role} from "src/Role.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 import {CreatorTokenERC721} from "src/extension/token/creatortoken/CreatorTokenERC721.sol";
-import {MintableERC721} from "src/extension/token/minting/MintableERC721.sol";
-import {Role} from "src/Role.sol";
+import {IModularCore} from "src/interface/IModularCore.sol";
+import {IModuleConfig} from "src/interface/IModuleConfig.sol";
+
+import {MintableERC721} from "src/module/token/minting/MintableERC721.sol";
 
 contract CreatorTokenERC721Ext is CreatorTokenERC721 {}
 
 contract TransferToken {
+
     function transferToken(address payable tokenContract, address from, address to, uint256 tokenId) public {
         ERC721Core(tokenContract).transferFrom(from, to, tokenId);
     }
+
 }
 
 contract CreatorTokenERC721Test is Test {
+
     ERC721Core public core;
 
-    CreatorTokenERC721Ext public extensionImplementation;
+    CreatorTokenERC721Ext public moduleImplementation;
 
-    MintableERC721 public mintableExtensionImplementation;
+    MintableERC721 public mintablemoduleImplementation;
 
     TransferToken public transferTokenContract;
 
@@ -89,19 +95,19 @@ contract CreatorTokenERC721Test is Test {
 
         evmVersionHash = _checkEVMVersion();
 
-        address[] memory extensions;
-        bytes[] memory extensionData;
+        address[] memory modules;
+        bytes[] memory moduleData;
 
-        core = new ERC721Core("test", "TEST", "", owner, extensions, extensionData);
-        extensionImplementation = new CreatorTokenERC721Ext();
-        mintableExtensionImplementation = new MintableERC721();
+        core = new ERC721Core("test", "TEST", "", owner, modules, moduleData);
+        moduleImplementation = new CreatorTokenERC721Ext();
+        mintablemoduleImplementation = new MintableERC721();
 
         transferTokenContract = new TransferToken();
 
-        // install extension
+        // install module
         vm.startPrank(owner);
-        core.installExtension(address(extensionImplementation), "");
-        core.installExtension(address(mintableExtensionImplementation), "");
+        core.installModule(address(moduleImplementation), "");
+        core.installModule(address(mintablemoduleImplementation), "");
         vm.stopPrank();
 
         typehashMintRequest = keccak256(
@@ -149,7 +155,7 @@ contract CreatorTokenERC721Test is Test {
         // attempt to set the transfer validator to an invalid contract
         vm.prank(owner);
         vm.expectRevert(CreatorTokenERC721.InvalidTransferValidatorContract.selector);
-        CreatorTokenERC721(address(core)).setTransferValidator(address(11111));
+        CreatorTokenERC721(address(core)).setTransferValidator(address(11_111));
     }
 
     function test_allowsTransferWithTransferValidatorAddressZero() public {
@@ -170,7 +176,7 @@ contract CreatorTokenERC721Test is Test {
             //skip test if evm version is not cancun
             return;
         }
-        
+
         _mintToken(owner, 1);
 
         assertEq(owner, core.ownerOf(0));
@@ -235,4 +241,5 @@ contract CreatorTokenERC721Test is Test {
 
         evmVersionHash = keccak256(abi.encode(file));
     }
+
 }
