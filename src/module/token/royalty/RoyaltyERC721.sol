@@ -4,7 +4,16 @@ pragma solidity ^0.8.20;
 import {ModularModule} from "../../../ModularModule.sol";
 
 import {Role} from "../../../Role.sol";
+
+import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+
+import {ICreatorToken} from "@limitbreak/creator-token-standards/interfaces/ICreatorToken.sol";
+
+import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
+import {ITransferValidatorSetTokenType} from
+    "@limitbreak/creator-token-standards/interfaces/ITransferValidatorSetTokenType.sol";
+import {TOKEN_TYPE_ERC721} from "@limitbreak/permit-c/Constants.sol";
 
 library RoyaltyStorage {
 
@@ -17,6 +26,8 @@ library RoyaltyStorage {
         RoyaltyERC721.RoyaltyInfo defaultRoyaltyInfo;
         // tokenId => royalty info
         mapping(uint256 => RoyaltyERC721.RoyaltyInfo) royaltyInfoForToken;
+        // the addresss of the transfer validator
+        address transferValidator;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -28,7 +39,7 @@ library RoyaltyStorage {
 
 }
 
-contract RoyaltyERC721 is ModularModule, IInstallationCallback {
+contract RoyaltyERC721 is ModularModule, IInstallationCallback, BeforeTransferCallbackERC721 {
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
@@ -54,6 +65,9 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback {
     /// @notice Emitted when the royalty info for a specific NFT is updated.
     event TokenRoyaltyUpdate(uint256 indexed tokenId, address indexed recipient, uint256 bps);
 
+    /// @notice Emitted when the transfer validator is updated.
+    event TransferValidatorUpdated(address oldValidator, address newValidator);
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -61,13 +75,19 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback {
     /// @notice Emitted when royalty BPS exceeds 10,000.
     error RoyaltyExceedsMaxBps();
 
+    /// @notice Revert with an error if the transfer validator is not valid
+    error InvalidTransferValidatorContract();
+
     /*//////////////////////////////////////////////////////////////
                                MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and module functions.
     function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
-        config.fallbackFunctions = new FallbackFunction[](5);
+        config.callbackFunctions = new CallbackFunction[](1);
+        config.fallbackFunctions = new FallbackFunction[](8);
+
+        config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC721.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.royaltyInfo.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
@@ -75,9 +95,15 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback {
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.getRoyaltyInfoForToken.selector, permissionBits: 0});
         config.fallbackFunctions[3] =
-            FallbackFunction({selector: this.setDefaultRoyaltyInfo.selector, permissionBits: Role._MANAGER_ROLE});
+            FallbackFunction({selector: this.getTransferValidator.selector, permissionBits: 0});
         config.fallbackFunctions[4] =
+            FallbackFunction({selector: this.getTransferValidationFunction.selector, permissionBits: 0});
+        config.fallbackFunctions[5] =
+            FallbackFunction({selector: this.setDefaultRoyaltyInfo.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[6] =
             FallbackFunction({selector: this.setRoyaltyInfoForToken.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[7] =
+            FallbackFunction({selector: this.setTransferValidator.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -93,8 +119,12 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(address royaltyRecipient, uint256 royaltyBps) external pure returns (bytes memory) {
-        return abi.encode(royaltyRecipient, royaltyBps);
+    function encodeBytesOnInstall(address royaltyRecipient, uint256 royaltyBps, address transferValidator)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(royaltyRecipient, royaltyBps, transferValidator);
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
@@ -106,10 +136,25 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback {
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Callback function for ERC721.transferFrom/safeTransferFrom
+    function beforeTransferERC721(address from, address to, uint256 tokenId)
+        external
+        virtual
+        override
+        returns (bytes memory)
+    {
+        address transferValidator = getTransferValidator();
+        if (transferValidator != address(0)) {
+            ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, tokenId);
+        }
+    }
+
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        (address royaltyRecipient, uint256 royaltyBps) = abi.decode(data, (address, uint256));
-        setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
+        (address royaltyRecipient, uint256 royaltyBps, address transferValidator) =
+            abi.decode(data, (address, uint256, address));
+        _setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
+        _setTransferValidator(transferValidator);
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -150,14 +195,8 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback {
     }
 
     /// @notice Sets the default royalty info for a given token.
-    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) public {
-        if (_royaltyBps > 10_000) {
-            revert RoyaltyExceedsMaxBps();
-        }
-
-        RoyaltyStorage.data().defaultRoyaltyInfo = RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
-
-        emit DefaultRoyaltyUpdate(_royaltyRecipient, _royaltyBps);
+    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) external {
+        _setDefaultRoyaltyInfo(_royaltyRecipient, _royaltyBps);
     }
 
     /// @notice Sets the royalty info for a specific NFT of a token collection.
@@ -169,6 +208,72 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback {
         RoyaltyStorage.data().royaltyInfoForToken[_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
 
         emit TokenRoyaltyUpdate(_tokenId, _recipient, _bps);
+    }
+
+    /// @notice Returns the transfer validator contract address for this token contract.
+    function getTransferValidator() public view returns (address validator) {
+        return _royaltyStorage().transferValidator;
+    }
+
+    /**
+     * @notice Returns the function selector for the transfer validator's validation function to be called
+     * @notice for transaction simulation.
+     */
+    function getTransferValidationFunction() external pure returns (bytes4 functionSignature, bool isViewFunction) {
+        functionSignature = bytes4(keccak256("validateTransfer(address,address,address,uint256)"));
+        isViewFunction = true;
+    }
+
+    function setTransferValidator(address validator) external {
+        _setTransferValidator(validator);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) internal {
+        if (_royaltyBps > 10_000) {
+            revert RoyaltyExceedsMaxBps();
+        }
+
+        RoyaltyStorage.data().defaultRoyaltyInfo = RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
+
+        emit DefaultRoyaltyUpdate(_royaltyRecipient, _royaltyBps);
+    }
+
+    function _setTransferValidator(address validator) internal {
+        bool isValidTransferValidator = validator.code.length > 0;
+
+        if (validator != address(0) && !isValidTransferValidator) {
+            revert InvalidTransferValidatorContract();
+        }
+
+        emit TransferValidatorUpdated(address(getTransferValidator()), validator);
+
+        _royaltyStorage().transferValidator = validator;
+        _registerTokenType(validator);
+    }
+
+    function _registerTokenType(address validator) internal {
+        if (validator != address(0)) {
+            uint256 validatorCodeSize;
+            assembly {
+                validatorCodeSize := extcodesize(validator)
+            }
+            if (validatorCodeSize > 0) {
+                try ITransferValidatorSetTokenType(validator).setTokenTypeOfCollection(address(this), _tokenType()) {}
+                    catch {}
+            }
+        }
+    }
+
+    function _tokenType() internal pure virtual returns (uint16 tokenType) {
+        return uint16(TOKEN_TYPE_ERC721);
+    }
+
+    function _royaltyStorage() internal pure returns (RoyaltyStorage.Data storage) {
+        return RoyaltyStorage.data();
     }
 
 }
