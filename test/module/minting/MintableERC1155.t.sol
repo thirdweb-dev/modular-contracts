@@ -54,6 +54,7 @@ contract MintableERC1155Test is Test {
     address public unpermissionedActor;
 
     address tokenRecipient = address(0x123);
+    address platformFeeRecipient = 0x000000000000000000000000000000000000dEaD;
 
     // Signature vars
     bytes32 internal typehashMintRequest;
@@ -187,8 +188,11 @@ contract MintableERC1155Test is Test {
         assertEq(core.balanceOf(address(0x123), mintRequest.tokenId), mintRequest.quantity);
 
         uint256 salePrice = mintRequest.quantity * mintRequest.pricePerUnit;
-        assertEq(tokenRecipient.balance, balBefore - salePrice);
-        assertEq(saleRecipient.balance, salePrice);
+        uint256 platformFeeAmount = (salePrice * 3) / 100;
+        uint256 primarySaleAmount = salePrice - platformFeeAmount;
+        assertEq(tokenRecipient.balance, balBefore - salePrice, "Token recipient balance after mint");
+        assertEq(saleRecipient.balance, primarySaleAmount, "Sale recipient balance after mint");
+        assertEq(platformFeeRecipient.balance, platformFeeAmount, "Platform fee recipient after mint");
     }
 
     function test_mint_revert_unableToDecodeArgs() public {

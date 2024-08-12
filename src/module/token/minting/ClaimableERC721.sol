@@ -14,11 +14,10 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
 
 library ClaimableStorage {
+
     /// @custom:storage-location erc7201:token.minting.claimable.erc721
     bytes32 public constant CLAIMABLE_STORAGE_POSITION =
-        keccak256(
-            abi.encode(uint256(keccak256("token.minting.claimable.erc721")) - 1)
-        ) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.minting.claimable.erc721")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // sale config: primary sale recipient, and platform fee recipient + BPS.
@@ -35,19 +34,15 @@ library ClaimableStorage {
             data_.slot := position
         }
     }
+
 }
 
-contract ClaimableERC721 is
-    ModularModule,
-    EIP712,
-    BeforeMintCallbackERC721,
-    IInstallationCallback
-{
+contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
+
     using ECDSA for bytes32;
 
     // TODO: replace with real thirdweb platform fee address
-    address private constant THIRDWEB_PLATFORM_FEE_ADDRESS =
-        0x000000000000000000000000000000000000dEaD;
+    address private constant THIRDWEB_PLATFORM_FEE_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -151,52 +146,30 @@ contract ClaimableERC721 is
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 private constant TYPEHASH_CLAIMABLE_ERC721 =
-        keccak256(
-            "ClaimRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-        );
+    bytes32 private constant TYPEHASH_CLAIMABLE_ERC721 = keccak256(
+        "ClaimRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+    );
 
-    address private constant NATIVE_TOKEN_ADDRESS =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and fallback functions.
-    function getModuleConfig()
-        external
-        pure
-        override
-        returns (ModuleConfig memory config)
-    {
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](5);
 
-        config.callbackFunctions[0] = CallbackFunction(
-            this.beforeMintERC721.selector
-        );
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
 
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.getSaleConfig.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.getClaimCondition.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.setClaimCondition.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
-        config.fallbackFunctions[4] = FallbackFunction({
-            selector: this.eip712Domain.selector,
-            permissionBits: 0
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.getClaimCondition.selector, permissionBits: 0});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -209,37 +182,26 @@ contract ClaimableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(
-        address _to,
-        uint256 _startTokenId,
-        uint256 _quantity,
-        bytes memory _data
-    ) external payable virtual override returns (bytes memory) {
-        ClaimParamsERC721 memory _params = abi.decode(
-            _data,
-            (ClaimParamsERC721)
-        );
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
+        ClaimParamsERC721 memory _params = abi.decode(_data, (ClaimParamsERC721));
 
         address currency;
         uint256 pricePerUnit;
 
         if (_params.signature.length == 0) {
             _validateClaimCondition(
-                _to,
-                _quantity,
-                _params.currency,
-                _params.pricePerUnit,
-                _params.recipientAllowlistProof
+                _to, _quantity, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
             );
             currency = _params.currency;
             pricePerUnit = _params.pricePerUnit;
         } else {
-            _validateClaimRequest(
-                _to,
-                _quantity,
-                _params.request,
-                _params.signature
-            );
+            _validateClaimRequest(_to, _quantity, _params.request, _params.signature);
             currency = _params.request.currency;
             pricePerUnit = _params.request.pricePerUnit;
         }
@@ -261,9 +223,7 @@ contract ClaimableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(
-        address primarySaleRecipient
-    ) external pure returns (bytes memory) {
+    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
         return abi.encode(primarySaleRecipient);
     }
 
@@ -277,9 +237,7 @@ contract ClaimableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesBeforeMintERC721(
-        ClaimParamsERC721 memory params
-    ) external pure returns (bytes memory) {
+    function encodeBytesBeforeMintERC721(ClaimParamsERC721 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 
@@ -288,11 +246,7 @@ contract ClaimableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig()
-        external
-        view
-        returns (address primarySaleRecipient)
-    {
+    function getSaleConfig() external view returns (address primarySaleRecipient) {
         SaleConfig memory saleConfig = _claimableStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
@@ -303,11 +257,7 @@ contract ClaimableERC721 is
     }
 
     /// @notice Returns the claim condition for a token.
-    function getClaimCondition()
-        external
-        view
-        returns (ClaimCondition memory claimCondition)
-    {
+    function getClaimCondition() external view returns (ClaimCondition memory claimCondition) {
         return _claimableStorage().claimCondition;
     }
 
@@ -330,17 +280,11 @@ contract ClaimableERC721 is
     ) internal {
         ClaimCondition memory condition = _claimableStorage().claimCondition;
 
-        if (
-            block.timestamp < condition.startTimestamp ||
-            condition.endTimestamp <= block.timestamp
-        ) {
+        if (block.timestamp < condition.startTimestamp || condition.endTimestamp <= block.timestamp) {
             revert ClaimableOutOfTimeWindow();
         }
 
-        if (
-            _currency != condition.currency ||
-            _pricePerUnit != condition.pricePerUnit
-        ) {
+        if (_currency != condition.currency || _pricePerUnit != condition.pricePerUnit) {
             revert ClaimableIncorrectPriceOrCurrency();
         }
 
@@ -350,9 +294,7 @@ contract ClaimableERC721 is
 
         if (condition.allowlistMerkleRoot != bytes32(0)) {
             bool isAllowlisted = MerkleProofLib.verify(
-                _allowlistProof,
-                condition.allowlistMerkleRoot,
-                keccak256(abi.encodePacked(_recipient))
+                _allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
             );
 
             if (!isAllowlisted) {
@@ -370,17 +312,11 @@ contract ClaimableERC721 is
         ClaimRequestERC721 memory _req,
         bytes memory _signature
     ) internal {
-        if (
-            _req.recipient != _expectedRecipient ||
-            _req.quantity != _expectedAmount
-        ) {
+        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
             revert ClaimableRequestMismatch();
         }
 
-        if (
-            block.timestamp < _req.startTimestamp ||
-            _req.endTimestamp <= block.timestamp
-        ) {
+        if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }
 
@@ -388,9 +324,7 @@ contract ClaimableERC721 is
             revert ClaimableRequestUidReused();
         }
 
-        if (
-            _req.quantity > _claimableStorage().claimCondition.availableSupply
-        ) {
+        if (_req.quantity > _claimableStorage().claimCondition.availableSupply) {
             revert ClaimableOutOfSupply();
         }
 
@@ -409,9 +343,7 @@ contract ClaimableERC721 is
             )
         ).recover(_signature);
 
-        if (
-            !OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)
-        ) {
+        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert ClaimableRequestUnauthorizedSignature();
         }
 
@@ -420,11 +352,7 @@ contract ClaimableERC721 is
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.
-    function _distributeMintPrice(
-        address _owner,
-        address _currency,
-        uint256 _price
-    ) internal {
+    function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {
                 revert ClaimableIncorrectNativeTokenSent();
@@ -440,51 +368,27 @@ contract ClaimableERC721 is
             }
             uint256 platformFeeAmount = (_price * 3) / 100;
             uint256 primarySaleAmount = _price - platformFeeAmount;
-            SafeTransferLib.safeTransferETH(
-                THIRDWEB_PLATFORM_FEE_ADDRESS,
-                platformFeeAmount
-            );
-            SafeTransferLib.safeTransferETH(
-                saleConfig.primarySaleRecipient,
-                primarySaleAmount
-            );
+            SafeTransferLib.safeTransferETH(THIRDWEB_PLATFORM_FEE_ADDRESS, platformFeeAmount);
+            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, primarySaleAmount);
         } else {
             if (msg.value > 0) {
                 revert ClaimableIncorrectNativeTokenSent();
             }
             uint256 platformFeeAmount = (_price * 3) / 100;
             uint256 primarySaleAmount = _price - platformFeeAmount;
-            SafeTransferLib.safeTransferFrom(
-                _currency,
-                _owner,
-                THIRDWEB_PLATFORM_FEE_ADDRESS,
-                platformFeeAmount
-            );
-            SafeTransferLib.safeTransferFrom(
-                _currency,
-                _owner,
-                saleConfig.primarySaleRecipient,
-                primarySaleAmount
-            );
+            SafeTransferLib.safeTransferFrom(_currency, _owner, THIRDWEB_PLATFORM_FEE_ADDRESS, platformFeeAmount);
+            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, primarySaleAmount);
         }
     }
 
     /// @dev Returns the domain name and version for EIP712.
-    function _domainNameAndVersion()
-        internal
-        pure
-        override
-        returns (string memory name, string memory version)
-    {
+    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
         name = "ClaimableERC721";
         version = "1";
     }
 
-    function _claimableStorage()
-        internal
-        pure
-        returns (ClaimableStorage.Data storage)
-    {
+    function _claimableStorage() internal pure returns (ClaimableStorage.Data storage) {
         return ClaimableStorage.data();
     }
+
 }

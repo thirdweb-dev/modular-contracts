@@ -14,11 +14,10 @@ import {BeforeMintCallbackERC1155} from "../../../callback/BeforeMintCallbackERC
 import {OnTokenURICallback} from "../../../callback/OnTokenURICallback.sol";
 
 library MintableStorage {
+
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
-        keccak256(
-            abi.encode(uint256(keccak256("token.minting.mintable.erc1155")) - 1)
-        ) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc1155")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // UID => whether it has been used
@@ -37,6 +36,7 @@ library MintableStorage {
             data_.slot := position
         }
     }
+
 }
 
 contract MintableERC1155 is
@@ -46,11 +46,11 @@ contract MintableERC1155 is
     OnTokenURICallback,
     IInstallationCallback
 {
+
     using ECDSA for bytes32;
 
     // TODO: replace with real thirdweb platform fee address
-    address private constant THIRDWEB_PLATFORM_FEE_ADDRESS =
-        0x000000000000000000000000000000000000dEaD;
+    address private constant THIRDWEB_PLATFORM_FEE_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -135,51 +135,30 @@ contract MintableERC1155 is
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC1155 =
-        keccak256(
-            "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string metadataURI,bytes32 uid)"
-        );
+    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC1155 = keccak256(
+        "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string metadataURI,bytes32 uid)"
+    );
 
-    address private constant NATIVE_TOKEN_ADDRESS =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and fallback functions.
-    function getModuleConfig()
-        external
-        pure
-        override
-        returns (ModuleConfig memory config)
-    {
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](4);
 
-        config.callbackFunctions[0] = CallbackFunction(
-            this.beforeMintERC1155.selector
-        );
-        config.callbackFunctions[1] = CallbackFunction(
-            this.onTokenURI.selector
-        );
+        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.onTokenURI.selector);
 
-        config.fallbackFunctions[0] = FallbackFunction({
-            selector: this.getSaleConfig.selector,
-            permissionBits: 0
-        });
-        config.fallbackFunctions[1] = FallbackFunction({
-            selector: this.setSaleConfig.selector,
-            permissionBits: Role._MANAGER_ROLE
-        });
-        config.fallbackFunctions[2] = FallbackFunction({
-            selector: this.setTokenURI.selector,
-            permissionBits: Role._MINTER_ROLE
-        });
-        config.fallbackFunctions[3] = FallbackFunction({
-            selector: this.eip712Domain.selector,
-            permissionBits: 0
-        });
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
+        config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.setTokenURI.selector, permissionBits: Role._MINTER_ROLE});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
@@ -195,32 +174,23 @@ contract MintableERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.tokenURI function.
-    function onTokenURI(
-        uint256 _tokenId
-    ) external view virtual override returns (string memory) {
+    function onTokenURI(uint256 _tokenId) external view virtual override returns (string memory) {
         return _mintableStorage().tokenURI[_tokenId];
     }
 
     /// @notice Callback function for the ERC1155Core.mint function.
-    function beforeMintERC1155(
-        address _to,
-        uint256 _id,
-        uint256 _quantity,
-        bytes memory _data
-    ) external payable virtual override returns (bytes memory) {
-        MintParamsERC1155 memory _params = abi.decode(
-            _data,
-            (MintParamsERC1155)
-        );
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
+        MintParamsERC1155 memory _params = abi.decode(_data, (MintParamsERC1155));
 
         // If the signature is empty, the caller must have the MINTER_ROLE.
         if (_params.signature.length == 0) {
-            if (
-                !OwnableRoles(address(this)).hasAllRoles(
-                    msg.sender,
-                    Role._MINTER_ROLE
-                )
-            ) {
+            if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
                 revert MintableRequestUnauthorized();
             }
 
@@ -230,25 +200,14 @@ contract MintableERC1155 is
 
             // Else read and verify the payload and signature.
         } else {
-            _mintWithSignatureERC1155(
-                _to,
-                _quantity,
-                _id,
-                _params.request,
-                _params.signature
-            );
+            _mintWithSignatureERC1155(_to, _quantity, _id, _params.request, _params.signature);
 
             if (bytes(_params.request.metadataURI).length > 0) {
-                setTokenURI(
-                    _params.request.tokenId,
-                    _params.request.metadataURI
-                );
+                setTokenURI(_params.request.tokenId, _params.request.metadataURI);
             }
 
             _distributeMintPrice(
-                msg.sender,
-                _params.request.currency,
-                _params.request.quantity * _params.request.pricePerUnit
+                msg.sender, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
             );
         }
     }
@@ -267,9 +226,7 @@ contract MintableERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(
-        address primarySaleRecipient
-    ) external pure returns (bytes memory) {
+    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
         return abi.encode(primarySaleRecipient);
     }
 
@@ -283,9 +240,7 @@ contract MintableERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesBeforeMintERC1155(
-        MintParamsERC1155 memory params
-    ) external pure returns (bytes memory) {
+    function encodeBytesBeforeMintERC1155(MintParamsERC1155 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 
@@ -294,11 +249,7 @@ contract MintableERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig()
-        external
-        view
-        returns (address primarySaleRecipient)
-    {
+    function getSaleConfig() external view returns (address primarySaleRecipient) {
         SaleConfig memory saleConfig = _mintableStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
@@ -328,17 +279,12 @@ contract MintableERC1155 is
         bytes memory _signature
     ) internal {
         if (
-            _req.recipient != _expectedRecipient ||
-            _req.quantity != _expectedAmount ||
-            _req.tokenId != _expectedTokenId
+            _req.recipient != _expectedRecipient || _req.quantity != _expectedAmount || _req.tokenId != _expectedTokenId
         ) {
             revert MintableRequestMismatch();
         }
 
-        if (
-            block.timestamp < _req.startTimestamp ||
-            _req.endTimestamp <= block.timestamp
-        ) {
+        if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert MintableRequestOutOfTimeWindow();
         }
 
@@ -363,9 +309,7 @@ contract MintableERC1155 is
             )
         ).recover(_signature);
 
-        if (
-            !OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)
-        ) {
+        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert MintableRequestUnauthorized();
         }
 
@@ -373,11 +317,7 @@ contract MintableERC1155 is
     }
 
     /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
-    function _distributeMintPrice(
-        address _owner,
-        address _currency,
-        uint256 _price
-    ) internal {
+    function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {
                 revert MintableIncorrectNativeTokenSent();
@@ -393,51 +333,27 @@ contract MintableERC1155 is
             }
             uint256 platformFeeAmount = (_price * 3) / 100;
             uint256 primarySaleAmount = _price - platformFeeAmount;
-            SafeTransferLib.safeTransferETH(
-                THIRDWEB_PLATFORM_FEE_ADDRESS,
-                platformFeeAmount
-            );
-            SafeTransferLib.safeTransferETH(
-                saleConfig.primarySaleRecipient,
-                primarySaleAmount
-            );
+            SafeTransferLib.safeTransferETH(THIRDWEB_PLATFORM_FEE_ADDRESS, platformFeeAmount);
+            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, primarySaleAmount);
         } else {
             if (msg.value > 0) {
                 revert MintableIncorrectNativeTokenSent();
             }
             uint256 platformFeeAmount = (_price * 3) / 100;
             uint256 primarySaleAmount = _price - platformFeeAmount;
-            SafeTransferLib.safeTransferFrom(
-                _currency,
-                _owner,
-                THIRDWEB_PLATFORM_FEE_ADDRESS,
-                platformFeeAmount
-            );
-            SafeTransferLib.safeTransferFrom(
-                _currency,
-                _owner,
-                saleConfig.primarySaleRecipient,
-                primarySaleAmount
-            );
+            SafeTransferLib.safeTransferFrom(_currency, _owner, THIRDWEB_PLATFORM_FEE_ADDRESS, platformFeeAmount);
+            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, primarySaleAmount);
         }
     }
 
     /// @dev Returns the domain name and version for EIP712.
-    function _domainNameAndVersion()
-        internal
-        pure
-        override
-        returns (string memory name, string memory version)
-    {
+    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
         name = "MintableERC1155";
         version = "1";
     }
 
-    function _mintableStorage()
-        internal
-        pure
-        returns (MintableStorage.Data storage)
-    {
+    function _mintableStorage() internal pure returns (MintableStorage.Data storage) {
         return MintableStorage.data();
     }
+
 }
