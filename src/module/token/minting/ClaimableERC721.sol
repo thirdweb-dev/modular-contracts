@@ -41,8 +41,7 @@ contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IIn
 
     using ECDSA for bytes32;
 
-    // TODO: replace with real thirdweb platform fee address
-    address private constant THIRDWEB_PLATFORM_FEE_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    uint256 private constant PLATFORM_FEE_BPS = 10_000;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -51,9 +50,12 @@ contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IIn
     /**
      *  @notice Details for distributing the proceeds of a mint.
      *  @param primarySaleRecipient The address to which the total proceeds minus fees are sent.
+     *  @param platformFeeAddress The address to which the fees are sent.
      */
     struct SaleConfig {
         address primarySaleRecipient;
+        address platformFeeAddress;
+        uint256 platformFee;
     }
 
     /**
@@ -211,8 +213,9 @@ contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IIn
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        address primarySaleRecipient = abi.decode(data, (address));
-        _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient);
+        (address primarySaleRecipient, address platformFeeRecipient, uint256 platformFee) =
+            abi.decode(data, (address, address, uint256));
+        _claimableStorage().saleConfig = SaleConfig(primarySaleRecipient, platformFeeRecipient, platformFee);
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -223,8 +226,12 @@ contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IIn
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
-        return abi.encode(primarySaleRecipient);
+    function encodeBytesOnInstall(address primarySaleRecipient, address platformFeeRecipient, uint256 platformFee)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(primarySaleRecipient, platformFeeRecipient, platformFee);
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
@@ -246,14 +253,20 @@ contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IIn
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig() external view returns (address primarySaleRecipient) {
+    function getSaleConfig()
+        external
+        view
+        returns (address primarySaleRecipient, address platformFeeRecipient, uint256 platformFee)
+    {
         SaleConfig memory saleConfig = _claimableStorage().saleConfig;
-        return (saleConfig.primarySaleRecipient);
+        return (saleConfig.primarySaleRecipient, saleConfig.platformFeeAddress, saleConfig.platformFee);
     }
 
     /// @notice Sets the sale configuration for a token.
-    function setSaleConfig(address _primarySaleRecipient) external {
-        _claimableStorage().saleConfig = SaleConfig(_primarySaleRecipient);
+    function setSaleConfig(address _primarySaleRecipient, address _platformFeeRecipient, uint256 _platformFee)
+        external
+    {
+        _claimableStorage().saleConfig = SaleConfig(_primarySaleRecipient, _platformFeeRecipient, _platformFee);
     }
 
     /// @notice Returns the claim condition for a token.
@@ -366,17 +379,17 @@ contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IIn
             if (msg.value != _price) {
                 revert ClaimableIncorrectNativeTokenSent();
             }
-            uint256 platformFeeAmount = (_price * 3) / 100;
+            uint256 platformFeeAmount = (_price * saleConfig.platformFee) / PLATFORM_FEE_BPS;
             uint256 primarySaleAmount = _price - platformFeeAmount;
-            SafeTransferLib.safeTransferETH(THIRDWEB_PLATFORM_FEE_ADDRESS, platformFeeAmount);
+            SafeTransferLib.safeTransferETH(saleConfig.platformFeeAddress, platformFeeAmount);
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, primarySaleAmount);
         } else {
             if (msg.value > 0) {
                 revert ClaimableIncorrectNativeTokenSent();
             }
-            uint256 platformFeeAmount = (_price * 3) / 100;
+            uint256 platformFeeAmount = (_price * saleConfig.platformFee) / PLATFORM_FEE_BPS;
             uint256 primarySaleAmount = _price - platformFeeAmount;
-            SafeTransferLib.safeTransferFrom(_currency, _owner, THIRDWEB_PLATFORM_FEE_ADDRESS, platformFeeAmount);
+            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.platformFeeAddress, platformFeeAmount);
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, primarySaleAmount);
         }
     }
