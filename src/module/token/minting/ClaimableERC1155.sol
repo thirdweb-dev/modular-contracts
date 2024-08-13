@@ -41,9 +41,6 @@ contract ClaimableERC1155 is ModularModule, EIP712, BeforeMintCallbackERC1155, I
 
     using ECDSA for bytes32;
 
-    // TODO: replace with real thirdweb platform fee address
-    address private constant THIRDWEB_PLATFORM_FEE_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/

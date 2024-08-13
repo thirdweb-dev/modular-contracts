@@ -55,6 +55,8 @@ contract MintableERC721Test is Test {
 
     address tokenRecipient = address(0x123);
     address platformFeeRecipient = 0x000000000000000000000000000000000000dEaD;
+    uint256 platformFeeBps = 300;
+    uint256 platformFeeDenominator = 10_000;
 
     // Signature vars
     bytes32 internal typehashMintRequest;
@@ -121,7 +123,7 @@ contract MintableERC721Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC721Core("test", "TEST", "", owner, modules, moduleData);
-        moduleImplementation = new MintableERC721();
+        moduleImplementation = new MintableERC721(platformFeeRecipient, platformFeeBps);
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);

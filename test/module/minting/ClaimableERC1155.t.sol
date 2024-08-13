@@ -55,6 +55,8 @@ contract ClaimableERC1155Test is Test {
 
     address tokenRecipient = address(0x123);
     address platformFeeRecipient = 0x000000000000000000000000000000000000dEaD;
+    uint256 platformFeeBps = 300;
+    uint256 platformFeeDenominator = 10_000;
 
     // Signature vars
     bytes32 internal typehashClaimRequest;
@@ -104,7 +106,7 @@ contract ClaimableERC1155Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
-        moduleImplementation = new ClaimableERC1155();
+        moduleImplementation = new ClaimableERC1155(platformFeeRecipient, platformFeeBps);
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);
@@ -245,7 +247,7 @@ contract ClaimableERC1155Test is Test {
         assertEq(core.balanceOf(address(0x123), 0), 100);
 
         uint256 salePrice = (claimRequest.quantity * claimRequest.pricePerUnit);
-        uint256 platformFeeAmount = (salePrice * 3) / 100;
+        uint256 platformFeeAmount = (salePrice * platformFeeBps) / platformFeeDenominator;
         uint256 primarySaleAmount = salePrice - platformFeeAmount;
         assertEq(tokenRecipient.balance, balBefore - salePrice, "Token recipient balance after mint");
         assertEq(saleRecipient.balance, primarySaleAmount, "Sale recipient balance after mint");
@@ -307,7 +309,7 @@ contract ClaimableERC1155Test is Test {
         assertEq(core.balanceOf(address(0x123), 0), 100);
 
         uint256 salePrice = (claimRequest.quantity * claimRequest.pricePerUnit);
-        uint256 platformFeeAmount = (salePrice * 3) / 100;
+        uint256 platformFeeAmount = (salePrice * platformFeeBps) / platformFeeDenominator;
         uint256 primarySaleAmount = salePrice - platformFeeAmount;
         assertEq(tokenRecipient.balance, balBefore - salePrice, "Token recipient balance after mint");
         assertEq(saleRecipient.balance, primarySaleAmount, "Sale recipient balance after mint");
@@ -375,7 +377,7 @@ contract ClaimableERC1155Test is Test {
         // Check minted balance
         assertEq(core.balanceOf(address(0x123), 0), 100);
 
-        uint256 platformFeeAmount = (salePrice * 3) / 100;
+        uint256 platformFeeAmount = (salePrice * platformFeeBps) / platformFeeDenominator;
         uint256 primarySaleAmount = salePrice - platformFeeAmount;
         assertEq(currency.balanceOf(tokenRecipient), balBefore - salePrice, "Token recipient balance after mint");
         assertEq(currency.balanceOf(saleRecipient), primarySaleAmount, "Sale recipient balance after mint");
