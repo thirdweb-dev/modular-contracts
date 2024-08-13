@@ -13,10 +13,11 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
 
 library MintableStorage {
-
     /// @custom:storage-location erc7201:token.minting.mintable
     bytes32 public constant MINTABLE_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.minting.mintable.erc20")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(
+            abi.encode(uint256(keccak256("token.minting.mintable.erc20")) - 1)
+        ) & ~bytes32(uint256(0xff));
 
     struct Data {
         // UID => whether it has been used
@@ -31,11 +32,15 @@ library MintableStorage {
             data_.slot := position
         }
     }
-
 }
 
-contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
-
+contract MintableERC20 is
+    OwnableRoles,
+    ModularModule,
+    EIP712,
+    BeforeMintCallbackERC20,
+    IInstallationCallback
+{
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
@@ -106,27 +111,48 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC20 = keccak256(
-        "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-    );
+    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC20 =
+        keccak256(
+            "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+        );
 
-    address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private constant NATIVE_TOKEN_ADDRESS =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    uint256 private constant PLATFORM_FEE_DENOMINATOR = 10_000;
+    address private immutable PLATFORM_FEE_RECIPIENT;
+    uint256 private immutable PLATFORM_FEE_BPS;
 
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns all implemented callback and fallback functions.
-    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
+    function getModuleConfig()
+        external
+        pure
+        override
+        returns (ModuleConfig memory config)
+    {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](3);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
+        config.callbackFunctions[0] = CallbackFunction(
+            this.beforeMintERC20.selector
+        );
 
-        config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
-        config.fallbackFunctions[1] =
-            FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[2] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
+        config.fallbackFunctions[0] = FallbackFunction({
+            selector: this.getSaleConfig.selector,
+            permissionBits: 0
+        });
+        config.fallbackFunctions[1] = FallbackFunction({
+            selector: this.setSaleConfig.selector,
+            permissionBits: Role._MANAGER_ROLE
+        });
+        config.fallbackFunctions[2] = FallbackFunction({
+            selector: this.eip712Domain.selector,
+            permissionBits: 0
+        });
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x36372b07; // ERC20
@@ -135,30 +161,49 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
     }
 
     /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(address _platformFeeRecipient, uint256 _platformFeeBps) {
+        PLATFORM_FEE_RECIPIENT = _platformFeeRecipient;
+        PLATFORM_FEE_BPS = _platformFeeBps;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC20Core.mint function.
-    function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
-        external
-        payable
-        virtual
-        override
-        returns (bytes memory)
-    {
+    function beforeMintERC20(
+        address _to,
+        uint256 _quantity,
+        bytes memory _data
+    ) external payable virtual override returns (bytes memory) {
         MintParamsERC20 memory _params = abi.decode(_data, (MintParamsERC20));
 
         // If the signature is empty, the caller must have the MINTER_ROLE.
         if (_params.signature.length == 0) {
-            if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
+            if (
+                !OwnableRoles(address(this)).hasAllRoles(
+                    msg.sender,
+                    Role._MINTER_ROLE
+                )
+            ) {
                 revert MintableRequestUnauthorized();
             }
 
             // Else read and verify the payload and signature.
         } else {
-            _mintWithSignatureERC20(_to, _quantity, _params.request, _params.signature);
+            _mintWithSignatureERC20(
+                _to,
+                _quantity,
+                _params.request,
+                _params.signature
+            );
             _distributeMintPrice(
-                msg.sender, _params.request.currency, (_params.request.quantity * _params.request.pricePerUnit) / 1e18
+                msg.sender,
+                _params.request.currency,
+                (_params.request.quantity * _params.request.pricePerUnit) / 1e18
             );
         }
     }
@@ -177,7 +222,9 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
+    function encodeBytesOnInstall(
+        address primarySaleRecipient
+    ) external pure returns (bytes memory) {
         return abi.encode(primarySaleRecipient);
     }
 
@@ -191,7 +238,9 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesBeforeMintERC20(MintParamsERC20 memory params) external pure returns (bytes memory) {
+    function encodeBytesBeforeMintERC20(
+        MintParamsERC20 memory params
+    ) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 
@@ -200,7 +249,11 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the sale configuration for a token.
-    function getSaleConfig() external view returns (address primarySaleRecipient) {
+    function getSaleConfig()
+        external
+        view
+        returns (address primarySaleRecipient)
+    {
         SaleConfig memory saleConfig = _mintableStorage().saleConfig;
         return (saleConfig.primarySaleRecipient);
     }
@@ -221,11 +274,17 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
         MintRequestERC20 memory _req,
         bytes memory _signature
     ) internal {
-        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
+        if (
+            _req.recipient != _expectedRecipient ||
+            _req.quantity != _expectedAmount
+        ) {
             revert MintableRequestMismatch();
         }
 
-        if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
+        if (
+            block.timestamp < _req.startTimestamp ||
+            _req.endTimestamp <= block.timestamp
+        ) {
             revert MintableRequestOutOfTimeWindow();
         }
 
@@ -248,7 +307,9 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
             )
         ).recover(_signature);
 
-        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
+        if (
+            !OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)
+        ) {
             revert MintableRequestUnauthorized();
         }
 
@@ -256,7 +317,11 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
     }
 
     /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
-    function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
+    function _distributeMintPrice(
+        address _owner,
+        address _currency,
+        uint256 _price
+    ) internal {
         if (_price == 0) {
             if (msg.value > 0) {
                 revert MintableIncorrectNativeTokenSent();
@@ -265,28 +330,59 @@ contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbac
         }
 
         SaleConfig memory saleConfig = _mintableStorage().saleConfig;
-
         if (_currency == NATIVE_TOKEN_ADDRESS) {
             if (msg.value != _price) {
                 revert MintableIncorrectNativeTokenSent();
             }
-            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
+            uint256 platformFeeAmount = (_price * PLATFORM_FEE_BPS) /
+                PLATFORM_FEE_DENOMINATOR;
+            uint256 primarySaleAmount = _price - platformFeeAmount;
+            SafeTransferLib.safeTransferETH(
+                PLATFORM_FEE_RECIPIENT,
+                platformFeeAmount
+            );
+            SafeTransferLib.safeTransferETH(
+                saleConfig.primarySaleRecipient,
+                primarySaleAmount
+            );
         } else {
             if (msg.value > 0) {
                 revert MintableIncorrectNativeTokenSent();
             }
-            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
+            uint256 platformFeeAmount = (_price * PLATFORM_FEE_BPS) /
+                PLATFORM_FEE_DENOMINATOR;
+            uint256 primarySaleAmount = _price - platformFeeAmount;
+            SafeTransferLib.safeTransferFrom(
+                _currency,
+                _owner,
+                PLATFORM_FEE_RECIPIENT,
+                platformFeeAmount
+            );
+            SafeTransferLib.safeTransferFrom(
+                _currency,
+                _owner,
+                saleConfig.primarySaleRecipient,
+                primarySaleAmount
+            );
         }
     }
 
     /// @dev Returns the domain name and version for EIP712.
-    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
+    function _domainNameAndVersion()
+        internal
+        pure
+        override
+        returns (string memory name, string memory version)
+    {
         name = "MintableERC20";
         version = "1";
     }
 
-    function _mintableStorage() internal pure returns (MintableStorage.Data storage) {
+    function _mintableStorage()
+        internal
+        pure
+        returns (MintableStorage.Data storage)
+    {
         return MintableStorage.data();
     }
-
 }
