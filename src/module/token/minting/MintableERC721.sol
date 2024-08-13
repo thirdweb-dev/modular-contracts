@@ -52,9 +52,6 @@ contract MintableERC721 is
     using ECDSA for bytes32;
     using LibString for uint256;
 
-    // TODO: replace with real thirdweb platform fee address
-    address private constant THIRDWEB_PLATFORM_FEE_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -162,6 +159,10 @@ contract MintableERC721 is
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    uint256 private constant PLATFORM_FEE_DENOMINATOR = 10_000;
+    address private immutable PLATFORM_FEE_RECIPIENT;
+    uint256 private immutable PLATFORM_FEE_BPS;
+
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
@@ -188,6 +189,15 @@ contract MintableERC721 is
 
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x49064906; // ERC4906.
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(address _platformFeeRecipient, uint256 _platformFeeBps) {
+        PLATFORM_FEE_RECIPIENT = _platformFeeRecipient;
+        PLATFORM_FEE_BPS = _platformFeeBps;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -382,17 +392,17 @@ contract MintableERC721 is
             if (msg.value != _price) {
                 revert MintableIncorrectNativeTokenSent();
             }
-            uint256 platformFeeAmount = (_price * 3) / 100;
+            uint256 platformFeeAmount = (_price * PLATFORM_FEE_BPS) / PLATFORM_FEE_DENOMINATOR;
             uint256 primarySaleAmount = _price - platformFeeAmount;
-            SafeTransferLib.safeTransferETH(THIRDWEB_PLATFORM_FEE_ADDRESS, platformFeeAmount);
+            SafeTransferLib.safeTransferETH(PLATFORM_FEE_RECIPIENT, platformFeeAmount);
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, primarySaleAmount);
         } else {
             if (msg.value > 0) {
                 revert MintableIncorrectNativeTokenSent();
             }
-            uint256 platformFeeAmount = (_price * 3) / 100;
+            uint256 platformFeeAmount = (_price * PLATFORM_FEE_BPS) / PLATFORM_FEE_DENOMINATOR;
             uint256 primarySaleAmount = _price - platformFeeAmount;
-            SafeTransferLib.safeTransferFrom(_currency, _owner, THIRDWEB_PLATFORM_FEE_ADDRESS, platformFeeAmount);
+            SafeTransferLib.safeTransferFrom(_currency, _owner, PLATFORM_FEE_RECIPIENT, platformFeeAmount);
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, primarySaleAmount);
         }
     }
