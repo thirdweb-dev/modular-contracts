@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 type ShortString is bytes32;
 
 library ShortStrings {
+
     error StringTooLong(string str);
     error InvalidShortString();
 
@@ -11,9 +12,7 @@ library ShortStrings {
      *
      * This will trigger a `StringTooLong` error is the input string is too long.
      */
-    function toShortString(
-        string memory str
-    ) internal pure returns (ShortString) {
+    function toShortString(string memory str) internal pure returns (ShortString) {
         bytes memory bstr = bytes(str);
         if (bstr.length > 31) {
             revert StringTooLong(str);
@@ -46,4 +45,5 @@ library ShortStrings {
         }
         return result;
     }
+
 }
