@@ -5,6 +5,7 @@ pragma solidity ^0.8.20;
 import {Ownable} from "@solady/auth/Ownable.sol";
 
 contract MintFeeManager is Ownable {
+
     mapping(address => uint256) private tokenMintFees;
 
     event MintFeeUpdated(address indexed token, uint256 mintFee);
@@ -24,12 +25,13 @@ contract MintFeeManager is Ownable {
      * @param _mintFee the new mint fee for the token
      * @dev a mint fee of 0 means they are registered under the default mint fee
      */
-    function updateTokenMintFee(
-        address _token,
-        uint256 _mintFee
-    ) external onlyOwner {
-        if (_mintFee > 10_000) revert MintFeeExceedsMaxBps();
-        if (_mintFee == 0) tokenMintFees[_token] = DEFAULT_MINT_FEE;
+    function updateTokenMintFee(address _token, uint256 _mintFee) external onlyOwner {
+        if (_mintFee > 10_000) {
+            revert MintFeeExceedsMaxBps();
+        }
+        if (_mintFee == 0) {
+            tokenMintFees[_token] = DEFAULT_MINT_FEE;
+        }
         tokenMintFees[_token] = _mintFee;
 
         emit MintFeeUpdated(_token, _mintFee);
@@ -41,7 +43,10 @@ contract MintFeeManager is Ownable {
      * @dev a mint fee of 1 means they are subject to zero mint feedo not have a mint fee sets
      */
     function getTokenMintFee(address _token) external view returns (uint256) {
-        if (tokenMintFees[_token] == 1) return 0;
+        if (tokenMintFees[_token] == 1) {
+            return 0;
+        }
         return tokenMintFees[_token];
     }
+
 }
