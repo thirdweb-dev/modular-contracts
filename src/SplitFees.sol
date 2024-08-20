@@ -16,17 +16,24 @@ contract SplitFees is Ownable, ERC6909 {
     /*//////////////////////////////////////////////////////////////
                             EVENTS
     //////////////////////////////////////////////////////////////*/
-    event SplitsSet(address[] recipients, uint256[] allocations);
-    event SplitsDistributed(address token, uint256 amount);
-    event SplitsWithdrawn(address token, uint256 amount);
+    event SplitCreated(address indexed owner, address[] recipients, uint256[] allocations, address controller);
+    event SplitsUpdated(address indexed owner, address[] recipients, uint256[] allocations, address controller);
+    event SplitsDistributed(address indexed reciever, address token, uint256 amount);
+    event SplitsWithdrawn(address indexed owner, address token, uint256 amount);
+    event ControllerUpdated(address indexed owner, address controller);
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
     //////////////////////////////////////////////////////////////*/
 
-    address[] private recipients;
-    mapping(address => uint256) private allocations;
-    uint256 private totalAllocation;
+    struct Split {
+        address controller;
+        address[] recipients;
+        uint256[] allocations;
+        uint256 totalAllocation;
+    }
+
+    mapping(address => Split) public splits;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -54,61 +61,124 @@ contract SplitFees is Ownable, ERC6909 {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    error SplitFeesTooFewRecipients();
     error SplitFeesEmptyRecipientsOrAllocations();
     error SplitFeesLengthMismatch();
+    error SplitFeesNotController();
+    error SplitFeesAmountMismatch();
+    error SplitFeesNothingToWithdraw();
+    error SplitFeesWithdrawFailed();
 
-    constructor(
-        address[] memory _recipients,
-        uint256[] memory _allocations,
-        string memory _NATIVE_TOKEN_NAME,
-        string memory _NATIVE_TOKEN_SYMBOL,
-        address _owner
-    ) {
-        _validateSplits(_recipients, _allocations);
-        _setSplits(_recipients, _allocations);
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(string memory _NATIVE_TOKEN_NAME, string memory _NATIVE_TOKEN_SYMBOL, address _owner) {
         _initializeOwner(_owner);
 
         NATIVE_TOKEN_NAME = _NATIVE_TOKEN_NAME.toShortString();
         NATIVE_TOKEN_SYMBOL = _NATIVE_TOKEN_SYMBOL.toShortString();
     }
 
-    function setSplits(address[] memory _recipients, uint256[] memory _allocations) external onlyOwner {
-        _validateSplits(_recipients, _allocations);
-        _setSplits(_recipients, _allocations);
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyController(address _owner) {
+        if (splits[_owner].controller != msg.sender) {
+            revert SplitFeesNotController();
+        }
+        _;
     }
 
-    function distribute(address _token) external {
-        uint256 amountToSplit;
-
-        if (_token == NATIVE_TOKEN_ADDRESS) {
-            amountToSplit = address(this).balance;
-        } else {
-            amountToSplit = IERC20(_token).balanceOf(address(this));
+    modifier validateSplits(address[] memory _recipients, uint256[] memory _allocations, address _controller) {
+        if (_recipients.length < 2) {
+            revert SplitFeesTooFewRecipients();
         }
+        if (_recipients.length == 0 || _allocations.length == 0) {
+            revert SplitFeesEmptyRecipientsOrAllocations();
+        }
+        if (_recipients.length != _allocations.length) {
+            revert SplitFeesLengthMismatch();
+        }
+        _;
+    }
 
-        uint256 length = recipients.length;
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
+    // Core contract calls this in constructor
+    function createSplit(address[] memory _recipients, uint256[] memory _allocations, address _controller)
+        external
+        validateSplits(_recipients, _allocations, _controller)
+    {
+        Split memory _split;
+        _setSplits(_split, _recipients, _allocations, _controller);
+        splits[msg.sender] = _split;
+
+        emit SplitCreated(msg.sender, _recipients, _allocations, _controller);
+    }
+
+    function updateSplit(
+        address _owner,
+        address[] memory _recipients,
+        uint256[] memory _allocations,
+        address _controller
+    ) external onlyController(_owner) validateSplits(_recipients, _allocations, _controller) {
+        Split memory _split = splits[_owner];
+        _setSplits(_split, _recipients, _allocations, _controller);
+        splits[_owner] = _split;
+
+        emit SplitsUpdated(_owner, _recipients, _allocations, _controller);
+    }
+
+    function distribute(address _owner, address _token) external {
+        Split memory _split = splits[_owner];
+        uint256 amountToSplit = balanceOf(_owner, _token.toUint256());
+
+        _burn(_owner, _token.toUint256(), amountToSplit);
+
+        uint256 length = _split.recipients.length;
         for (uint256 i = 0; i < length; i++) {
-            uint256 amountToSend = (amountToSplit * allocations[recipients[i]]) / totalAllocation;
+            uint256 amountToSend = (amountToSplit * _split.allocations[i]) / _split.totalAllocation;
 
-            _mint(recipients[i], _token.toUint256(), amountToSend);
+            _mint(_split.recipients[i], _token.toUint256(), amountToSend);
         }
 
-        emit SplitsDistributed(_token, amountToSplit);
+        emit SplitsDistributed(_owner, _token, amountToSplit);
     }
 
     function withdraw(address _token) external {
         uint256 amountToWithdraw = balanceOf(msg.sender, _token.toUint256());
+        if (amountToWithdraw == 0) {
+            revert SplitFeesNothingToWithdraw();
+        }
 
         _burn(msg.sender, _token.toUint256(), amountToWithdraw);
 
         if (_token == NATIVE_TOKEN_ADDRESS) {
-            payable(msg.sender).transfer(amountToWithdraw);
+            (bool success,) = payable(msg.sender).call{value: amountToWithdraw}("");
+            if (!success) {
+                revert SplitFeesWithdrawFailed();
+            }
         } else {
             IERC20(_token).transfer(msg.sender, amountToWithdraw);
         }
 
-        emit SplitsWithdrawn(_token, amountToWithdraw);
+        emit SplitsWithdrawn(msg.sender, _token, amountToWithdraw);
+    }
+
+    function deposit(address _receiver, address _token, uint256 _amount) external payable {
+        if (_token == NATIVE_TOKEN_ADDRESS && msg.value != _amount) {
+            revert SplitFeesAmountMismatch();
+        } else {
+            IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        }
+
+        _mint(_receiver, _token.toUint256(), _amount);
+
+        emit SplitsDistributed(_receiver, _token, _amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -147,28 +217,22 @@ contract SplitFees is Ownable, ERC6909 {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _validateSplits(address[] memory _recipients, uint256[] memory _allocations) internal pure {
-        if (_recipients.length == 0 || _allocations.length == 0) {
-            revert SplitFeesEmptyRecipientsOrAllocations();
-        }
-        if (_recipients.length != _allocations.length) {
-            revert SplitFeesLengthMismatch();
-        }
-    }
-
-    function _setSplits(address[] memory _recipients, uint256[] memory _allocations) internal {
+    function _setSplits(
+        Split memory _split,
+        address[] memory _recipients,
+        uint256[] memory _allocations,
+        address _controller
+    ) internal pure {
         uint256 _totalAllocation;
-        uint256 length = _recipients.length;
+        _split.recipients = _recipients;
+        _split.allocations = _allocations;
+        _split.totalAllocation = _totalAllocation;
+        _split.controller = _controller;
 
+        uint256 length = _recipients.length;
         for (uint256 i = 0; i < length; i++) {
-            recipients.push(_recipients[i]);
-            allocations[_recipients[i]] = _allocations[i];
             _totalAllocation += _allocations[i];
         }
-        totalAllocation = _totalAllocation;
-
-        emit SplitsSet(_recipients, _allocations);
     }
 
 }
