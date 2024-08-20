@@ -18,9 +18,9 @@ import {TOKEN_TYPE_ERC1155} from "@limitbreak/permit-c/Constants.sol";
 
 library RoyaltyStorage {
 
-    /// @custom:storage-location erc7201:token.royalty
+    /// @custom:storage-location erc7201:token.royalty.ERC1155
     bytes32 public constant ROYALTY_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.royalty")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.royalty.erc1155")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         // default royalty info
@@ -58,7 +58,7 @@ contract RoyaltyERC1155 is
      */
     struct RoyaltyInfo {
         address recipient;
-        uint256 bps;
+        uint96 bps;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -66,10 +66,10 @@ contract RoyaltyERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when the default royalty info for a token is updated.
-    event DefaultRoyaltyUpdate(address indexed recipient, uint256 bps);
+    event DefaultRoyaltyUpdated(address indexed recipient, uint96 bps);
 
     /// @notice Emitted when the royalty info for a specific NFT is updated.
-    event TokenRoyaltyUpdate(uint256 indexed tokenId, address indexed recipient, uint256 bps);
+    event TokenRoyaltyUpdated(uint256 indexed tokenId, address indexed recipient, uint96 bps);
 
     /// @notice Emitted when the transfer validator is updated.
     event TransferValidatorUpdated(address oldValidator, address newValidator);
@@ -126,7 +126,7 @@ contract RoyaltyERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(address royaltyRecipient, uint256 royaltyBps, address transferValidator)
+    function encodeBytesOnInstall(address royaltyRecipient, uint96 royaltyBps, address transferValidator)
         external
         pure
         returns (bytes memory)
@@ -165,19 +165,16 @@ contract RoyaltyERC1155 is
         address transferValidator = getTransferValidator();
         if (transferValidator != address(0)) {
             uint256 length = ids.length;
-            for (uint256 i = 0; i < length;) {
+            for (uint256 i = 0; i < length; i++) {
                 ITransferValidator(transferValidator).validateTransfer(msg.sender, from, to, ids[i], values[i]);
-                unchecked {
-                    ++i;
-                }
             }
         }
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        (address royaltyRecipient, uint256 royaltyBps, address transferValidator) =
-            abi.decode(data, (address, uint256, address));
+        (address royaltyRecipient, uint96 royaltyBps, address transferValidator) =
+            abi.decode(data, (address, uint96, address));
         _setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
         _setTransferValidator(transferValidator);
     }
@@ -220,19 +217,19 @@ contract RoyaltyERC1155 is
     }
 
     /// @notice Sets the default royalty info for a given token.
-    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) external {
+    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint96 _royaltyBps) external {
         _setDefaultRoyaltyInfo(_royaltyRecipient, _royaltyBps);
     }
 
     /// @notice Sets the royalty info for a specific NFT of a token collection.
-    function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint256 _bps) external {
+    function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint96 _bps) external {
         if (_bps > 10_000) {
             revert RoyaltyExceedsMaxBps();
         }
 
         RoyaltyStorage.data().royaltyInfoForToken[_tokenId] = RoyaltyInfo({recipient: _recipient, bps: _bps});
 
-        emit TokenRoyaltyUpdate(_tokenId, _recipient, _bps);
+        emit TokenRoyaltyUpdated(_tokenId, _recipient, _bps);
     }
 
     /// @notice Returns the transfer validator contract address for this token contract.
@@ -257,14 +254,14 @@ contract RoyaltyERC1155 is
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _setDefaultRoyaltyInfo(address _royaltyRecipient, uint256 _royaltyBps) internal {
+    function _setDefaultRoyaltyInfo(address _royaltyRecipient, uint96 _royaltyBps) internal {
         if (_royaltyBps > 10_000) {
             revert RoyaltyExceedsMaxBps();
         }
 
         RoyaltyStorage.data().defaultRoyaltyInfo = RoyaltyInfo({recipient: _royaltyRecipient, bps: _royaltyBps});
 
-        emit DefaultRoyaltyUpdate(_royaltyRecipient, _royaltyBps);
+        emit DefaultRoyaltyUpdated(_royaltyRecipient, _royaltyBps);
     }
 
     function _setTransferValidator(address validator) internal {

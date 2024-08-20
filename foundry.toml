@@ -1,6 +1,6 @@
 [profile.default]
 solc-version = "0.8.26"
-evm_version = "cancun"
+evm_version = "paris"
 optimizer = true
 optimizer_runs = 10000
 cache = true

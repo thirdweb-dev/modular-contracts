@@ -58,8 +58,6 @@ contract CreatorTokenERC20 is ModularModule, BeforeTransferCallbackERC20, ICreat
             FallbackFunction({selector: this.getTransferValidationFunction.selector, permissionBits: 0});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.setTransferValidator.selector, permissionBits: Role._MANAGER_ROLE});
-        config.requiredInterfaces = new bytes4[](1);
-        config.requiredInterfaces[0] = 0x36372b07; // ERC20
     }
 
     /*//////////////////////////////////////////////////////////////

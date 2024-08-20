@@ -22,17 +22,15 @@ import {RoyaltyERC721} from "src/module/token/royalty/RoyaltyERC721.sol";
 contract RoyaltyExt is RoyaltyERC721 {}
 
 contract TransferToken {
-    function transferToken(
-        address payable tokenContract,
-        address from,
-        address to,
-        uint256 tokenId
-    ) public {
+
+    function transferToken(address payable tokenContract, address from, address to, uint256 tokenId) public {
         ERC721Core(tokenContract).transferFrom(from, to, tokenId);
     }
+
 }
 
 contract RoyaltyERC721Test is Test {
+
     ERC721Core public core;
 
     RoyaltyExt public moduleImplementation;
@@ -60,10 +58,11 @@ contract RoyaltyERC721Test is Test {
 
     bytes32 internal evmVersionHash;
 
-    function signMintRequest(
-        MintableERC721.MintRequestERC721 memory _req,
-        uint256 _privateKey
-    ) internal view returns (bytes memory) {
+    function signMintRequest(MintableERC721.MintRequestERC721 memory _req, uint256 _privateKey)
+        internal
+        view
+        returns (bytes memory)
+    {
         bytes memory encodedRequest = abi.encode(
             typehashMintRequest,
             _req.startTimestamp,
@@ -76,9 +75,7 @@ contract RoyaltyERC721Test is Test {
             _req.uid
         );
         bytes32 structHash = keccak256(encodedRequest);
-        bytes32 typedDataHash = keccak256(
-            abi.encodePacked("\x19\x01", domainSeparator, structHash)
-        );
+        bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_privateKey, typedDataHash);
         bytes memory sig = abi.encodePacked(r, s, v);
@@ -103,18 +100,13 @@ contract RoyaltyERC721Test is Test {
         transferTokenContract = new TransferToken();
 
         // install module
-        bytes memory moduleInitializeData = moduleImplementation
-            .encodeBytesOnInstall(owner, 100, address(0));
-        bytes memory mintableModuleInitializeData = mintablemoduleImplementation
-            .encodeBytesOnInstall(owner);
+        bytes memory moduleInitializeData = moduleImplementation.encodeBytesOnInstall(owner, 100, address(0));
+        bytes memory mintableModuleInitializeData = mintablemoduleImplementation.encodeBytesOnInstall(owner);
 
         // install module
         vm.startPrank(owner);
         core.installModule(address(moduleImplementation), moduleInitializeData);
-        core.installModule(
-            address(mintablemoduleImplementation),
-            mintableModuleInitializeData
-        );
+        core.installModule(address(mintablemoduleImplementation), mintableModuleInitializeData);
         vm.stopPrank();
 
         typehashMintRequest = keccak256(
@@ -122,30 +114,15 @@ contract RoyaltyERC721Test is Test {
         );
         nameHash = keccak256(bytes("MintableERC721"));
         versionHash = keccak256(bytes("1"));
-        typehashEip712 = keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
-        domainSeparator = keccak256(
-            abi.encode(
-                typehashEip712,
-                nameHash,
-                versionHash,
-                block.chainid,
-                address(core)
-            )
-        );
+        typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(core)));
 
         vm.prank(owner);
         core.grantRoles(owner, Role._MINTER_ROLE);
 
         // set up transfer validator
-        mockTransferValidator = ITransferValidator(
-            0x721C0078c2328597Ca70F5451ffF5A7B38D4E947
-        );
-        vm.etch(
-            address(mockTransferValidator),
-            TRANSFER_VALIDATOR_DEPLOYED_BYTECODE
-        );
+        mockTransferValidator = ITransferValidator(0x721C0078c2328597Ca70F5451ffF5A7B38D4E947);
+        vm.etch(address(mockTransferValidator), TRANSFER_VALIDATOR_DEPLOYED_BYTECODE);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -154,13 +131,10 @@ contract RoyaltyERC721Test is Test {
 
     function test_state_setDefaultRoyaltyInfo() public {
         address royaltyRecipient = address(0x123);
-        uint256 royaltyBps = 100;
+        uint96 royaltyBps = 100;
 
         vm.prank(owner);
-        RoyaltyExt(address(core)).setDefaultRoyaltyInfo(
-            royaltyRecipient,
-            royaltyBps
-        );
+        RoyaltyExt(address(core)).setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
 
         address receiver;
         uint256 royaltyAmount;
@@ -177,10 +151,7 @@ contract RoyaltyERC721Test is Test {
         // read state from core
         uint256 salePrice = 1000;
         uint256 tokenId = 1;
-        (receiver, royaltyAmount) = RoyaltyExt(address(core)).royaltyInfo(
-            tokenId,
-            salePrice
-        );
+        (receiver, royaltyAmount) = RoyaltyExt(address(core)).royaltyInfo(tokenId, salePrice);
         assertEq(receiver, royaltyRecipient);
         assertEq(royaltyAmount, (salePrice * royaltyBps) / 10_000);
     }
@@ -192,21 +163,14 @@ contract RoyaltyERC721Test is Test {
 
     function test_state_setRoyaltyInfoForToken() public {
         address defaultRoyaltyRecipient = address(0x123);
-        uint256 defaultRoyaltyBps = 100;
+        uint96 defaultRoyaltyBps = 100;
 
         address customRoyaltyRecipient = address(0x345);
-        uint256 customRoyaltyBps = 200;
+        uint96 customRoyaltyBps = 200;
 
         vm.startPrank(owner);
-        RoyaltyExt(address(core)).setDefaultRoyaltyInfo(
-            defaultRoyaltyRecipient,
-            defaultRoyaltyBps
-        );
-        RoyaltyExt(address(core)).setRoyaltyInfoForToken(
-            10,
-            customRoyaltyRecipient,
-            customRoyaltyBps
-        );
+        RoyaltyExt(address(core)).setDefaultRoyaltyInfo(defaultRoyaltyRecipient, defaultRoyaltyBps);
+        RoyaltyExt(address(core)).setRoyaltyInfoForToken(10, customRoyaltyRecipient, customRoyaltyBps);
         vm.stopPrank();
 
         address receiver;
@@ -228,29 +192,19 @@ contract RoyaltyERC721Test is Test {
         uint256 salePrice = 1000;
         uint256 tokenId = 1;
 
-        (receiver, royaltyAmount) = RoyaltyExt(address(core)).royaltyInfo(
-            tokenId,
-            salePrice
-        ); // default royalty
+        (receiver, royaltyAmount) = RoyaltyExt(address(core)).royaltyInfo(tokenId, salePrice); // default royalty
         assertEq(receiver, defaultRoyaltyRecipient);
         assertEq(royaltyAmount, (salePrice * defaultRoyaltyBps) / 10_000);
 
         tokenId = 10;
-        (receiver, royaltyAmount) = RoyaltyExt(address(core)).royaltyInfo(
-            tokenId,
-            salePrice
-        ); // custom royalty
+        (receiver, royaltyAmount) = RoyaltyExt(address(core)).royaltyInfo(tokenId, salePrice); // custom royalty
         assertEq(receiver, customRoyaltyRecipient);
         assertEq(royaltyAmount, (salePrice * customRoyaltyBps) / 10_000);
     }
 
     function test_revert_setRoyaltyInfoForToken() public {
         vm.expectRevert(0x82b42900); // `Unauthorized()`
-        RoyaltyExt(address(core)).setRoyaltyInfoForToken(
-            10,
-            address(0x123),
-            100
-        );
+        RoyaltyExt(address(core)).setRoyaltyInfoForToken(10, address(0x123), 100);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -258,45 +212,30 @@ contract RoyaltyERC721Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_state_setTransferValidator() public {
-        assertEq(
-            RoyaltyERC721(address(core)).getTransferValidator(),
-            address(0)
-        );
+        assertEq(RoyaltyERC721(address(core)).getTransferValidator(), address(0));
 
         // set transfer validator
         vm.prank(owner);
-        RoyaltyERC721(address(core)).setTransferValidator(
-            address(mockTransferValidator)
-        );
-        assertEq(
-            RoyaltyERC721(address(core)).getTransferValidator(),
-            address(mockTransferValidator)
-        );
+        RoyaltyERC721(address(core)).setTransferValidator(address(mockTransferValidator));
+        assertEq(RoyaltyERC721(address(core)).getTransferValidator(), address(mockTransferValidator));
 
         // set transfer validator back to zero address
         vm.prank(owner);
         RoyaltyERC721(address(core)).setTransferValidator(address(0));
-        assertEq(
-            RoyaltyERC721(address(core)).getTransferValidator(),
-            address(0)
-        );
+        assertEq(RoyaltyERC721(address(core)).getTransferValidator(), address(0));
     }
 
     function test_revert_setTransferValidator_accessControl() public {
         // attemp to set the transfer validator from an unpermissioned actor
         vm.prank(unpermissionedActor);
         vm.expectRevert(0x82b42900); // `Unauthorized()`
-        RoyaltyERC721(address(core)).setTransferValidator(
-            address(mockTransferValidator)
-        );
+        RoyaltyERC721(address(core)).setTransferValidator(address(mockTransferValidator));
     }
 
     function test_revert_setTransferValidator_invalidContract() public {
         // attempt to set the transfer validator to an invalid contract
         vm.prank(owner);
-        vm.expectRevert(
-            RoyaltyERC721.InvalidTransferValidatorContract.selector
-        );
+        vm.expectRevert(RoyaltyERC721.InvalidTransferValidatorContract.selector);
         RoyaltyERC721(address(core)).setTransferValidator(address(11_111));
     }
 
@@ -312,12 +251,7 @@ contract RoyaltyERC721Test is Test {
         vm.prank(owner);
         core.setApprovalForAll(address(transferTokenContract), true);
 
-        transferTokenContract.transferToken(
-            payable(address(core)),
-            owner,
-            permissionedActor,
-            0
-        );
+        transferTokenContract.transferToken(payable(address(core)), owner, permissionedActor, 0);
 
         assertEq(permissionedActor, core.ownerOf(0));
     }
@@ -334,21 +268,14 @@ contract RoyaltyERC721Test is Test {
 
         // set transfer validator
         vm.prank(owner);
-        RoyaltyERC721(address(core)).setTransferValidator(
-            address(mockTransferValidator)
-        );
+        RoyaltyERC721(address(core)).setTransferValidator(address(mockTransferValidator));
 
         // attempt to transfer token from owner to permissionedActor
         vm.prank(owner);
         core.setApprovalForAll(address(transferTokenContract), true);
 
         vm.expectRevert(0xef28f901);
-        transferTokenContract.transferToken(
-            payable(address(core)),
-            owner,
-            permissionedActor,
-            0
-        );
+        transferTokenContract.transferToken(payable(address(core)), owner, permissionedActor, 0);
 
         assertEq(owner, core.ownerOf(0));
     }
@@ -363,27 +290,23 @@ contract RoyaltyERC721Test is Test {
         vm.prank(owner);
         MintableERC721(address(core)).setSaleConfig(saleRecipient);
 
-        MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721
-            .MintRequestERC721({
-                startTimestamp: uint48(block.timestamp),
-                endTimestamp: uint48(block.timestamp + 100),
-                recipient: to,
-                quantity: quantity,
-                currency: NATIVE_TOKEN_ADDRESS,
-                pricePerUnit: 0,
-                uid: bytes32("1"),
-                baseURI: "https://example.com/"
-            });
+        MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            recipient: to,
+            quantity: quantity,
+            currency: NATIVE_TOKEN_ADDRESS,
+            pricePerUnit: 0,
+            uid: bytes32("1"),
+            baseURI: "https://example.com/"
+        });
         bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);
 
-        MintableERC721.MintParamsERC721 memory params = MintableERC721
-            .MintParamsERC721(mintRequest, sig, "");
+        MintableERC721.MintParamsERC721 memory params = MintableERC721.MintParamsERC721(mintRequest, sig, "");
 
         vm.prank(owner);
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
-            mintRequest.recipient,
-            mintRequest.quantity,
-            abi.encode(params)
+            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
         );
     }
 
@@ -396,14 +319,10 @@ contract RoyaltyERC721Test is Test {
                 break;
             }
             if (
-                keccak256(abi.encode(file)) ==
-                keccak256(abi.encode('evm_version = "cancun"')) ||
-                keccak256(abi.encode(file)) ==
-                keccak256(abi.encode('evm_version = "london"')) ||
-                keccak256(abi.encode(file)) ==
-                keccak256(abi.encode('evm_version = "paris"')) ||
-                keccak256(abi.encode(file)) ==
-                keccak256(abi.encode('evm_version = "shanghai"'))
+                keccak256(abi.encode(file)) == keccak256(abi.encode('evm_version = "cancun"'))
+                    || keccak256(abi.encode(file)) == keccak256(abi.encode('evm_version = "london"'))
+                    || keccak256(abi.encode(file)) == keccak256(abi.encode('evm_version = "paris"'))
+                    || keccak256(abi.encode(file)) == keccak256(abi.encode('evm_version = "shanghai"'))
             ) {
                 break;
             }
@@ -411,4 +330,5 @@ contract RoyaltyERC721Test is Test {
 
         evmVersionHash = keccak256(abi.encode(file));
     }
+
 }
