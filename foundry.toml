@@ -14,6 +14,7 @@ gas_reports = [
   "ERC1155Core"
 ]
 ignored_warnings_from = ["node_modules", "lib", "test"]
+fs_permissions = [{ access = "read", path = "./"}]
 
 [fmt]
 line_length = 120

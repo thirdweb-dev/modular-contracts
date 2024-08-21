@@ -10,3 +10,12 @@
 [submodule "lib/ERC721A-Upgradeable"]
 	path = lib/ERC721A-Upgradeable
 	url = https://github.com/chiru-labs/ERC721A-Upgradeable
+[submodule "lib/creator-token-contracts"]
+	path = lib/creator-token-contracts
+	url = https://github.com/limitbreakinc/creator-token-contracts
+[submodule "lib/creator-token-standards"]
+	path = lib/creator-token-standards
+	url = https://github.com/limitbreakinc/creator-token-standards
+[submodule "lib/PermitC"]
+	path = lib/PermitC
+	url = https://github.com/limitbreakinc/PermitC

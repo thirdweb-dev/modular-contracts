@@ -3,3 +3,5 @@ forge-std/=lib/forge-std/src/
 @solady/=lib/solady/src/
 @erc721a/=lib/erc721a/contracts/
 @erc721a-upgradeable/=lib/ERC721A-Upgradeable/contracts/
+@limitbreak/creator-token-standards/=lib/creator-token-standards/src/
+@limitbreak/permit-c/=lib/PermitC/src/
