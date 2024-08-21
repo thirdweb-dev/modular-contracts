@@ -52,7 +52,7 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback, BeforeTransferCa
      */
     struct RoyaltyInfo {
         address recipient;
-        uint96 bps;
+        uint16 bps;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -63,7 +63,7 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback, BeforeTransferCa
     event DefaultRoyaltyUpdated(address indexed recipient, uint256 bps);
 
     /// @notice Emitted when the royalty info for a specific NFT is updated.
-    event TokenRoyaltyUpdated(uint256 indexed tokenId, address indexed recipient, uint96 bps);
+    event TokenRoyaltyUpdated(uint256 indexed tokenId, address indexed recipient, uint16 bps);
 
     /// @notice Emitted when the transfer validator is updated.
     event TransferValidatorUpdated(address oldValidator, address newValidator);
@@ -119,7 +119,7 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback, BeforeTransferCa
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(address royaltyRecipient, uint96 royaltyBps, address transferValidator)
+    function encodeBytesOnInstall(address royaltyRecipient, uint16 royaltyBps, address transferValidator)
         external
         pure
         returns (bytes memory)
@@ -151,8 +151,8 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback, BeforeTransferCa
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        (address royaltyRecipient, uint96 royaltyBps, address transferValidator) =
-            abi.decode(data, (address, uint96, address));
+        (address royaltyRecipient, uint16 royaltyBps, address transferValidator) =
+            abi.decode(data, (address, uint16, address));
         _setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
         _setTransferValidator(transferValidator);
     }
@@ -195,12 +195,12 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback, BeforeTransferCa
     }
 
     /// @notice Sets the default royalty info for a given token.
-    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint96 _royaltyBps) external {
+    function setDefaultRoyaltyInfo(address _royaltyRecipient, uint16 _royaltyBps) external {
         _setDefaultRoyaltyInfo(_royaltyRecipient, _royaltyBps);
     }
 
     /// @notice Sets the royalty info for a specific NFT of a token collection.
-    function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint96 _bps) external {
+    function setRoyaltyInfoForToken(uint256 _tokenId, address _recipient, uint16 _bps) external {
         if (_bps > 10_000) {
             revert RoyaltyExceedsMaxBps();
         }
@@ -232,7 +232,7 @@ contract RoyaltyERC721 is ModularModule, IInstallationCallback, BeforeTransferCa
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _setDefaultRoyaltyInfo(address _royaltyRecipient, uint96 _royaltyBps) internal {
+    function _setDefaultRoyaltyInfo(address _royaltyRecipient, uint16 _royaltyBps) internal {
         if (_royaltyBps > 10_000) {
             revert RoyaltyExceedsMaxBps();
         }

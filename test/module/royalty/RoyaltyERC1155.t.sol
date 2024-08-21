@@ -143,7 +143,7 @@ contract RoyaltyERC1155Test is Test {
 
     function test_state_setDefaultRoyaltyInfo() public {
         address royaltyRecipient = address(0x123);
-        uint96 royaltyBps = 100;
+        uint16 royaltyBps = 100;
 
         vm.prank(owner);
         RoyaltyExt(address(core)).setDefaultRoyaltyInfo(royaltyRecipient, royaltyBps);
@@ -175,10 +175,10 @@ contract RoyaltyERC1155Test is Test {
 
     function test_state_setRoyaltyInfoForToken() public {
         address defaultRoyaltyRecipient = address(0x123);
-        uint96 defaultRoyaltyBps = 100;
+        uint16 defaultRoyaltyBps = 100;
 
         address customRoyaltyRecipient = address(0x345);
-        uint96 customRoyaltyBps = 200;
+        uint16 customRoyaltyBps = 200;
 
         vm.startPrank(owner);
         RoyaltyExt(address(core)).setDefaultRoyaltyInfo(defaultRoyaltyRecipient, defaultRoyaltyBps);
