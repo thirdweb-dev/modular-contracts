@@ -16,6 +16,9 @@ gas_reports = [
 ignored_warnings_from = ["node_modules", "lib", "test"]
 fs_permissions = [{ access = "read", path = "./"}]
 
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
 [fmt]
 line_length = 120
 tab_width = 4
