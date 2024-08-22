@@ -14,6 +14,7 @@ import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 
 abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
+
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
     /*//////////////////////////////////////////////////////////////
@@ -38,18 +39,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when an module is installed.
-    event ModuleInstalled(
-        address caller,
-        address implementation,
-        address installedModule
-    );
+    event ModuleInstalled(address caller, address implementation, address installedModule);
 
     /// @notice Emitted when an module is uninstalled.
-    event ModuleUninstalled(
-        address caller,
-        address implementation,
-        address installedModule
-    );
+    event ModuleUninstalled(address caller, address implementation, address installedModule);
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -104,9 +97,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
             if (msg.sender != address(this)) {
                 revert CallbackFunctionUnauthorizedCall();
             }
-        } else if (
-            fn.fnType == FunctionType.FALLBACK && fn.permissionBits > 0
-        ) {
+        } else if (fn.fnType == FunctionType.FALLBACK && fn.permissionBits > 0) {
             _checkOwnerOrRoles(fn.permissionBits);
         }
 
@@ -118,18 +109,10 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the list of all callback functions called on some module contract.
-    function getSupportedCallbackFunctions()
-        public
-        pure
-        virtual
-        returns (SupportedCallbackFunction[] memory);
+    function getSupportedCallbackFunctions() public pure virtual returns (SupportedCallbackFunction[] memory);
 
     /// @notice Returns a list of addresess and respective module configs of all installed modules.
-    function getInstalledModules()
-        external
-        view
-        returns (InstalledModule[] memory _installedModules)
-    {
+    function getInstalledModules() external view returns (InstalledModule[] memory _installedModules) {
         uint256 totalInstalled = modules.length();
         _installedModules = new InstalledModule[](totalInstalled);
 
@@ -147,27 +130,27 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Installs an module contract.
-    function installModule(
-        address _module,
-        bytes calldata _data
-    ) external payable onlyOwnerOrRoles(Role._INSTALLER_ROLE) {
+    function installModule(address _module, bytes calldata _data)
+        external
+        payable
+        onlyOwnerOrRoles(Role._INSTALLER_ROLE)
+    {
         // Install module.
         _installModule(_module, _data);
     }
 
     /// @notice Uninstalls an module contract.
-    function uninstallModule(
-        address _module,
-        bytes calldata _data
-    ) external payable onlyOwnerOrRoles(Role._INSTALLER_ROLE) {
+    function uninstallModule(address _module, bytes calldata _data)
+        external
+        payable
+        onlyOwnerOrRoles(Role._INSTALLER_ROLE)
+    {
         // Uninstall module.
         _uninstallModule(_module, _data);
     }
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
         if (interfaceId == 0xffffffff) {
             return false;
         }
@@ -182,9 +165,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns whether a given interface is implemented by the contract.
-    function _supportsInterfaceViaModules(
-        bytes4 interfaceId
-    ) internal view virtual returns (bool) {
+    function _supportsInterfaceViaModules(bytes4 interfaceId) internal view virtual returns (bool) {
         if (interfaceId == 0xffffffff) {
             return false;
         }
@@ -207,9 +188,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         if (config.requiredInterfaces.length != 0) {
             for (uint256 i = 0; i < config.requiredInterfaces.length; i++) {
                 if (!supportsInterface(config.requiredInterfaces[i])) {
-                    revert ModuleInterfaceNotCompatible(
-                        config.requiredInterfaces[i]
-                    );
+                    revert ModuleInterfaceNotCompatible(config.requiredInterfaces[i]);
                 }
             }
         }
@@ -221,30 +200,22 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         // Store callback function data. Only install supported callback functions
-        SupportedCallbackFunction[]
-            memory supportedCallbacks = getSupportedCallbackFunctions();
+        SupportedCallbackFunction[] memory supportedCallbacks = getSupportedCallbackFunctions();
         uint256 supportedCallbacksLength = supportedCallbacks.length;
 
         uint256 callbackLength = config.callbackFunctions.length;
         for (uint256 i = 0; i < callbackLength; i++) {
-            CallbackFunction memory callbackFunction = config.callbackFunctions[
-                i
-            ];
+            CallbackFunction memory callbackFunction = config.callbackFunctions[i];
 
             // Check: callback function data not already stored.
-            if (
-                functionData_[callbackFunction.selector].implementation !=
-                address(0)
-            ) {
+            if (functionData_[callbackFunction.selector].implementation != address(0)) {
                 revert CallbackFunctionAlreadyInstalled();
             }
 
             // Check: callback function is supported
             bool supported = false;
             for (uint256 j = 0; j < supportedCallbacksLength; j++) {
-                if (
-                    supportedCallbacks[j].selector == callbackFunction.selector
-                ) {
+                if (supportedCallbacks[j].selector == callbackFunction.selector) {
                     supported = true;
                     break;
                 }
@@ -253,11 +224,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
                 revert CallbackFunctionNotSupported();
             }
 
-            functionData_[callbackFunction.selector] = InstalledFunction({
-                implementation: _module,
-                permissionBits: 0,
-                fnType: FunctionType.CALLBACK
-            });
+            functionData_[callbackFunction.selector] =
+                InstalledFunction({implementation: _module, permissionBits: 0, fnType: FunctionType.CALLBACK});
         }
 
         // Store module function data.
@@ -279,9 +247,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
 
         // Call `onInstall` callback function if module has registered installation callback.
         if (config.registerInstallationCallback) {
-            (bool success, bytes memory returndata) = _module.delegatecall(
-                abi.encodeCall(IInstallationCallback.onInstall, (_data))
-            );
+            (bool success, bytes memory returndata) =
+                _module.delegatecall(abi.encodeCall(IInstallationCallback.onInstall, (_data)));
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -319,19 +286,18 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         if (config.registerInstallationCallback) {
-            _module.delegatecall(
-                abi.encodeCall(IInstallationCallback.onUninstall, (_data))
-            );
+            _module.delegatecall(abi.encodeCall(IInstallationCallback.onUninstall, (_data)));
         }
 
         emit ModuleUninstalled(msg.sender, _module, _module);
     }
 
     /// @dev Calls an module callback function and checks whether it is optional or required.
-    function _executeCallbackFunction(
-        bytes4 _selector,
-        bytes memory _abiEncodedCalldata
-    ) internal nonReentrant returns (bool success, bytes memory returndata) {
+    function _executeCallbackFunction(bytes4 _selector, bytes memory _abiEncodedCalldata)
+        internal
+        nonReentrant
+        returns (bool success, bytes memory returndata)
+    {
         InstalledFunction memory callbackFunction = functionData_[_selector];
 
         // Verify that the function is a callback function
@@ -340,8 +306,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         // Get callback mode -- required or not required.
-        SupportedCallbackFunction[]
-            memory functions = getSupportedCallbackFunctions();
+        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
@@ -353,9 +318,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         if (callbackFunction.implementation != address(0)) {
-            (success, returndata) = callbackFunction
-                .implementation
-                .delegatecall(_abiEncodedCalldata);
+            (success, returndata) = callbackFunction.implementation.delegatecall(_abiEncodedCalldata);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -365,10 +328,11 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
     }
 
     /// @dev Calls an module callback function and checks whether it is optional or required.
-    function _executeCallbackFunctionView(
-        bytes4 _selector,
-        bytes memory _abiEncodedCalldata
-    ) internal view returns (bool success, bytes memory returndata) {
+    function _executeCallbackFunctionView(bytes4 _selector, bytes memory _abiEncodedCalldata)
+        internal
+        view
+        returns (bool success, bytes memory returndata)
+    {
         InstalledFunction memory callbackFunction = functionData_[_selector];
 
         // Verify that the function is a callback function
@@ -377,8 +341,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         // Get callback mode -- required or not required.
-        SupportedCallbackFunction[]
-            memory functions = getSupportedCallbackFunctions();
+        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
         uint256 len = functions.length;
 
         CallbackMode callbackMode;
@@ -390,9 +353,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         if (callbackFunction.implementation != address(0)) {
-            (success, returndata) = address(this).staticcall(
-                _abiEncodedCalldata
-            );
+            (success, returndata) = address(this).staticcall(_abiEncodedCalldata);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
@@ -414,29 +375,17 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
             let calldataPtr := allocate(calldatasize())
             calldatacopy(calldataPtr, 0, calldatasize())
 
-            let success := delegatecall(
-                gas(),
-                _implementation,
-                calldataPtr,
-                calldatasize(),
-                0,
-                0
-            )
+            let success := delegatecall(gas(), _implementation, calldataPtr, calldatasize(), 0, 0)
 
             let returnDataPtr := allocate(returndatasize())
             returndatacopy(returnDataPtr, 0, returndatasize())
-            if iszero(success) {
-                revert(returnDataPtr, returndatasize())
-            }
+            if iszero(success) { revert(returnDataPtr, returndatasize()) }
             return(returnDataPtr, returndatasize())
         }
     }
 
     /// @dev Reverts with the given return data / error message.
-    function _revert(
-        bytes memory _returnData,
-        bytes4 _errorSignature
-    ) internal pure {
+    function _revert(bytes memory _returnData, bytes4 _errorSignature) internal pure {
         // Look for revert reason and bubble it up if present
         if (_returnData.length > 0) {
             // The easiest way to bubble the revert reason is using memory via assembly
@@ -451,4 +400,5 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
             }
         }
     }
+
 }
