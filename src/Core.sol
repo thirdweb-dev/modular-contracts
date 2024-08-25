@@ -301,25 +301,23 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
             revert CallbackFunctionNotSupported();
         }
 
-        // Get callback mode -- required or not required.
-        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
-        uint256 len = functions.length;
-
-        CallbackMode callbackMode;
-        for (uint256 i = 0; i < len; i++) {
-            if (functions[i].selector == _selector) {
-                callbackMode = functions[i].mode;
-                break;
-            }
-        }
-
         if (callbackFunction.implementation != address(0)) {
             (success, returndata) = callbackFunction.implementation.delegatecall(_abiEncodedCalldata);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
-        } else if (callbackMode == CallbackMode.REQUIRED) {
-            revert CallbackFunctionRequired();
+        } else {
+            // Get callback mode -- required or not required.
+            SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
+            uint256 len = functions.length;
+
+            for (uint256 i = 0; i < len; i++) {
+                if (functions[i].selector == _selector) {
+                    if (functions[i].mode == CallbackMode.REQUIRED) {
+                        revert CallbackFunctionRequired();
+                    }
+                }
+            }
         }
     }
 
