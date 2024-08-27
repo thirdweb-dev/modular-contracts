@@ -34,7 +34,7 @@ library MintableStorage {
 
 }
 
-contract MintableERC20 is OwnableRoles, ModularModule, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
+contract MintableERC20 is ModularModule, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
 
     using ECDSA for bytes32;
 
