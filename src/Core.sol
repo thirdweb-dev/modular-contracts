@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 // Interface
 
+import {ICore} from "./interface/ICore.sol";
 import {IInstallationCallback} from "./interface/IInstallationCallback.sol";
-import {IModularCore} from "./interface/IModularCore.sol";
-import {IModularModule} from "./interface/IModularModule.sol";
+import {IModule} from "./interface/IModule.sol";
 
 // Utils
 import {Role} from "./Role.sol";
@@ -13,7 +13,7 @@ import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {EnumerableSetLib} from "@solady/utils/EnumerableSetLib.sol";
 import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 
-abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
+abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
 
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
@@ -116,10 +116,8 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
 
         for (uint256 i = 0; i < totalInstalled; i++) {
             address implementation = modules.at(i);
-            _installedModules[i] = InstalledModule({
-                implementation: implementation,
-                config: IModularModule(implementation).getModuleConfig()
-            });
+            _installedModules[i] =
+                InstalledModule({implementation: implementation, config: IModule(implementation).getModuleConfig()});
         }
     }
 
@@ -180,9 +178,9 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         // Get module config.
-        ModuleConfig memory config = IModularModule(_module).getModuleConfig();
+        ModuleConfig memory config = IModule(_module).getModuleConfig();
 
-        // Check: ModularCore supports interface required by module.
+        // Check: Core supports interface required by module.
         if (config.requiredInterfaces.length != 0) {
             for (uint256 i = 0; i < config.requiredInterfaces.length; i++) {
                 if (!supportsInterface(config.requiredInterfaces[i])) {
@@ -263,7 +261,7 @@ abstract contract ModularCore is IModularCore, OwnableRoles, ReentrancyGuard {
         }
 
         // Get module config.
-        ModuleConfig memory config = IModularModule(_module).getModuleConfig();
+        ModuleConfig memory config = IModule(_module).getModuleConfig();
 
         uint256 supportedInterfaceLength = config.supportedInterfaces.length;
         for (uint256 i = 0; i < supportedInterfaceLength; i++) {

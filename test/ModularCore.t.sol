@@ -7,10 +7,10 @@ import {Test} from "forge-std/Test.sol";
 // Target contract
 
 import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
-import {ModularCore} from "src/ModularCore.sol";
-import {ModularModule} from "src/ModularModule.sol";
+import {Core} from "src/Core.sol";
+import {Module} from "src/Module.sol";
 
-import {IModularCore} from "src/interface/IModularCore.sol";
+import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 
 contract MockBase {
@@ -26,7 +26,7 @@ contract MockBase {
 
 }
 
-contract MockCore is MockBase, ModularCore {
+contract MockCore is MockBase, Core {
 
     constructor(address _owner) {
         _initializeOwner(_owner);
@@ -57,7 +57,7 @@ contract MockCore is MockBase, ModularCore {
 
 }
 
-contract MockModuleWithFunctions is MockBase, ModularModule {
+contract MockModuleWithFunctions is MockBase, Module {
 
     event CallbackFunctionOne();
     event FallbackFunctionCalled();
@@ -246,7 +246,7 @@ contract MockModuleAlternate is MockModuleWithFunctions {
 
 }
 
-contract ModularCoreTest is Test {
+contract CoreTest is Test {
 
     MockCore public core;
 
@@ -302,7 +302,7 @@ contract ModularCoreTest is Test {
 
         // Uninstall the module from the core contract.
 
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.ModuleNotInstalled.selector));
         vm.prank(owner);
         core.uninstallModule(address(alternateModule), "");
 
@@ -310,7 +310,7 @@ contract ModularCoreTest is Test {
         core.uninstallModule(address(module), "");
 
         // Required callback function no longer has a call destination
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionRequired.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.CallbackFunctionRequired.selector));
         core.callbackFunctionOne();
     }
 
@@ -320,7 +320,7 @@ contract ModularCoreTest is Test {
 
     function test_installModule_state() public {
         // Check: no modules installed
-        IModularCore.InstalledModule[] memory modulesBefore = core.getInstalledModules();
+        ICore.InstalledModule[] memory modulesBefore = core.getInstalledModules();
         assertEq(modulesBefore.length, 0);
 
         // Install module
@@ -328,7 +328,7 @@ contract ModularCoreTest is Test {
         core.installModule(address(module), "");
 
         // Now 1 module installed
-        IModularCore.InstalledModule[] memory modulesAfter = core.getInstalledModules();
+        ICore.InstalledModule[] memory modulesAfter = core.getInstalledModules();
         assertEq(modulesAfter.length, 1);
 
         // Check module address
@@ -337,7 +337,7 @@ contract ModularCoreTest is Test {
 
         // Check installed config matches config returned by module proxy
         IModuleConfig.ModuleConfig memory installedConfig = modulesAfter[0].config;
-        IModuleConfig.ModuleConfig memory expectedConfig = ModularModule(module).getModuleConfig();
+        IModuleConfig.ModuleConfig memory expectedConfig = Module(module).getModuleConfig();
 
         assertEq(installedConfig.requiredInterfaces.length, expectedConfig.requiredInterfaces.length);
         uint256 len = installedConfig.requiredInterfaces.length;
@@ -401,7 +401,7 @@ contract ModularCoreTest is Test {
         core.installModule(address(module), "");
 
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleAlreadyInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.ModuleAlreadyInstalled.selector));
         core.installModule(address(module), "");
     }
 
@@ -421,7 +421,7 @@ contract ModularCoreTest is Test {
 
         // Install module
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleInterfaceNotCompatible.selector, bytes4(0x12345678)));
+        vm.expectRevert(abi.encodeWithSelector(Core.ModuleInterfaceNotCompatible.selector, bytes4(0x12345678)));
         core.installModule(address(ext), "");
     }
 
@@ -435,7 +435,7 @@ contract ModularCoreTest is Test {
 
         // Install conflicting module
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionAlreadyInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.CallbackFunctionAlreadyInstalled.selector));
         core.installModule(address(ext), "");
     }
 
@@ -445,7 +445,7 @@ contract ModularCoreTest is Test {
 
         // Install module
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionNotSupported.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.CallbackFunctionNotSupported.selector));
         core.installModule(address(ext), "");
     }
 
@@ -459,7 +459,7 @@ contract ModularCoreTest is Test {
 
         // Install conflicting module
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.FallbackFunctionAlreadyInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.FallbackFunctionAlreadyInstalled.selector));
         core.installModule(address(ext), "");
     }
 
@@ -472,7 +472,7 @@ contract ModularCoreTest is Test {
         vm.prank(owner);
         core.installModule(address(module), "");
 
-        IModularCore.InstalledModule[] memory modulesBefore = core.getInstalledModules();
+        ICore.InstalledModule[] memory modulesBefore = core.getInstalledModules();
         assertEq(modulesBefore.length, 1);
 
         vm.expectEmit(true, false, false, false);
@@ -484,15 +484,15 @@ contract ModularCoreTest is Test {
         core.uninstallModule(address(module), "");
 
         // Check no modules installed
-        IModularCore.InstalledModule[] memory modulesAfter = core.getInstalledModules();
+        ICore.InstalledModule[] memory modulesAfter = core.getInstalledModules();
         assertEq(modulesAfter.length, 0);
 
         // No callback function installed
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.CallbackFunctionRequired.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.CallbackFunctionRequired.selector));
         core.callbackFunctionOne();
 
         // No fallback function installed
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.FallbackFunctionNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.FallbackFunctionNotInstalled.selector));
         MockModuleWithFunctions(address(core)).notPermissioned_call();
     }
 
@@ -504,7 +504,7 @@ contract ModularCoreTest is Test {
 
     function test_uninstallModule_revert_moduleNotInstalled() public {
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleNotInstalled.selector));
+        vm.expectRevert(abi.encodeWithSelector(Core.ModuleNotInstalled.selector));
         core.uninstallModule(address(module), "");
     }
 

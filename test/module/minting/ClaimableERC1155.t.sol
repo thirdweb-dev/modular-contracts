@@ -9,13 +9,13 @@ import {Test} from "forge-std/Test.sol";
 
 // Target contract
 
-import {ModularCore} from "src/ModularCore.sol";
-import {ModularModule} from "src/ModularModule.sol";
+import {Core} from "src/Core.sol";
+import {Module} from "src/Module.sol";
 
 import {Role} from "src/Role.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
-import {IModularCore} from "src/interface/IModularCore.sol";
+import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {ClaimableERC1155, ClaimableStorage} from "src/module/token/minting/ClaimableERC1155.sol";
 

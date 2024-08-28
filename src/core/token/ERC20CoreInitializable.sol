@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Initializable} from "@solady/utils/Initializable.sol";
 
-import {ModularCore} from "../../ModularCore.sol";
+import {Core} from "../../Core.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
@@ -16,7 +16,7 @@ import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.so
 
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20CoreInitializable is ERC20, ModularCore, Multicallable, Initializable {
+contract ERC20CoreInitializable is ERC20, Core, Multicallable, Initializable {
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE

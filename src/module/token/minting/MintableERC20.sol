@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularModule} from "../../../ModularModule.sol";
+import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
@@ -34,7 +34,7 @@ library MintableStorage {
 
 }
 
-contract MintableERC20 is ModularModule, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
+contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
 
     using ECDSA for bytes32;
 

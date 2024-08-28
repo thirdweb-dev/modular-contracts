@@ -77,12 +77,12 @@ The `ModuleConfig` struct contains all information that a Core uses to check whe
 
 ### Modular Core
 
-A router contract MUST implement `IModularCore` and ERC-165 interfaces to comply with the Modular Contract architecture.
+A router contract MUST implement `ICore` and ERC-165 interfaces to comply with the Modular Contract architecture.
 
 The `ERC165.supportsInterface` function MUST return true for all interfaces supported by the Core and the supported interfaces expressed in the ModuleConfig of installed modules.
 
 ```solidity
-interface IModularCore is IModuleConfig {
+interface ICore is IModuleConfig {
     /**
      *  @dev Whether execution reverts when the callback function is not implemented by any installed Module.
      *  @param OPTIONAL Execution does not revert when the callback function is not implemented.
@@ -157,7 +157,7 @@ Any given callback function in the ModuleConfig of an installed Module MUST be c
 Any given fallback function in the ModuleConfig of an installed Module MUST be called by the Core via its fallback, when called with the given fallback function’s calldata.
 
 ```solidity
-interface IModularModule is IModuleConfig {
+interface IModule is IModuleConfig {
     /**
      *  @dev Returns the ModuleConfig of the Module contract.
      */
@@ -187,7 +187,7 @@ For example, an Module may be written a stateless logic contract, or a stateful 
 
 An Module is compatible to install in a Core if:
 
-1. all of the Module’s callback functions (specified in ModuleConfig) are included in the Core’s supported callbacks (specified in IModularCore.getSupportedCallbackFunctions).
+1. all of the Module’s callback functions (specified in ModuleConfig) are included in the Core’s supported callbacks (specified in ICore.getSupportedCallbackFunctions).
 
    This is because we assume that an Module only specifies a callback function in its ModuleConfig when it expects a Core to call it.
 
@@ -197,9 +197,9 @@ An Module is compatible to install in a Core if:
 
 ### Pure getter functions
 
-Both IModularCore.getSupportedCallbackFunctions and IModularModule.getModuleConfig are pure functions, which means their return value does not change based on any storage.
+Both ICore.getSupportedCallbackFunctions and IModule.getModuleConfig are pure functions, which means their return value does not change based on any storage.
 
-For a given Module, it is important for the Core’s stored representation of an ModuleConfig to not go out of sync with the actual return value of IModularModule.getModuleConfig at any time, since this may lead to unintended consequences such as the Core calling functions on the Module that no longer exist or be called on the Module contract.
+For a given Module, it is important for the Core’s stored representation of an ModuleConfig to not go out of sync with the actual return value of IModule.getModuleConfig at any time, since this may lead to unintended consequences such as the Core calling functions on the Module that no longer exist or be called on the Module contract.
 
 ### Permissions in FallbackFunction and CallbackFunction structs
 
@@ -215,14 +215,14 @@ This is because a callback function call is specified in the function body of a 
 
 ## Reference Implementation
 
-### IModularCore
+### ICore
 
-https://github.com/thirdweb-dev/modular-contracts/blob/jl/patch-7/core/src/ModularCore.sol
+https://github.com/thirdweb-dev/modular-contracts/blob/jl/patch-7/core/src/Core.sol
 
-### IModularModule
+### IModule
 
 ```solidity
-contract MockModule is IModularModule {
+contract MockModule is IModule {
     mapping(address => uint256) index;
 
     function increment() external {
@@ -286,7 +286,7 @@ thirdweb is rolling out the _Modular Contracts_ architecture with token Core con
 All 3 token core contracts implement:
 
 - The token standard itself. ([ERC-20](https://eips.ethereum.org/EIPS/eip-20) + [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612) Permit / [ERC-721](https://eips.ethereum.org/EIPS/eip-721) / [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155)).
-- `ModularCore` interface
+- `Core` interface
 - [EIP-7572](https://eips.ethereum.org/EIPS/eip-7572) Contract-level metadata via `contractURI()` standard
 - Multicall interface
 - External mint() and burn() functions.
@@ -370,11 +370,11 @@ thirdweb will roll out Token Core contracts with the following Modules available
 
 thirdweb has implemented the Modular Contracts architecture with upgradeability and permissions in mind.
 
-`ModularCoreUpgradeable` is an implementation of the IModularCore interface that works with upgradeable Module contracts, without compromising the security of the Core contract.
+`CoreUpgradeable` is an implementation of the ICore interface that works with upgradeable Module contracts, without compromising the security of the Core contract.
 
-https://github.com/thirdweb-dev/modular-contracts/blob/jl/patch-7/core/src/ModularCoreUpgradeable.sol
+https://github.com/thirdweb-dev/modular-contracts/blob/jl/patch-7/core/src/CoreUpgradeable.sol
 
-1. The `ModularCoreUpgradeable.installModule` function expects you to pass an address of an implementation/logic contract.
+1. The `CoreUpgradeable.installModule` function expects you to pass an address of an implementation/logic contract.
 2. The Core contract then uses the canonical ERC1967 Factory to deploy an ERC-1967 proxy pointing to the provided module *implementation* address.
 
    The "canonical ERC1967 Factory" is 0age's ImmutableCreate2Factory located at `0x0000000000FFe8B47B3e2130213B802212439497` on all EVM chains. Deployment instructions are [here on the Seaport github](https://github.com/ProjectOpenSea/seaport/blob/main/docs/Deployment.md).
@@ -409,7 +409,7 @@ The end user / developer is always dealing with implementation contract addresse
 
 ## Permission Model
 
-`ModularCoreUpgradeable` uses role based permissions implementation of Solady’s [OwnableRoles](https://github.com/Vectorized/solady/blob/main/src/auth/OwnableRoles.sol), and follows [EIP-173: Contract Ownership Standard](https://eips.ethereum.org/EIPS/eip-173).
+`CoreUpgradeable` uses role based permissions implementation of Solady’s [OwnableRoles](https://github.com/Vectorized/solady/blob/main/src/auth/OwnableRoles.sol), and follows [EIP-173: Contract Ownership Standard](https://eips.ethereum.org/EIPS/eip-173).
 
 The contract owner can grant and revoke roles from other addresses.
 

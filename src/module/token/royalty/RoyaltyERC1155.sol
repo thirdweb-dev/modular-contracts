@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularModule} from "../../../ModularModule.sol";
+import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
 
@@ -41,7 +41,7 @@ library RoyaltyStorage {
 }
 
 contract RoyaltyERC1155 is
-    ModularModule,
+    Module,
     IInstallationCallback,
     BeforeTransferCallbackERC1155,
     BeforeBatchTransferCallbackERC1155

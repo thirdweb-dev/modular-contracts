@@ -27,21 +27,21 @@ Add the following in a `remappings.txt` file:
 @modular-contracts/=lib/modular-contracts/src/
 ```
 
-Import `ModularCore` inherit to build a Modular Core contract (e.g. ERC-721 Core):
+Import `Core` inherit to build a Modular Core contract (e.g. ERC-721 Core):
 
 ```solidity
-import {ModularCore} from "@modular-contracts/ModularCore.sol";
+import {Core} from "@modular-contracts/Core.sol";
 import {ERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
 
-contract ModularNFTCollection is ERC721A, ModularCore {}
+contract ModularNFTCollection is ERC721A, Core {}
 ```
 
-Import `ModularModule` to create an Module for your Core contract (e.g. `Soulbound`):
+Import `Module` to create an Module for your Core contract (e.g. `Soulbound`):
 
 ```solidity
-import {ModularModule} from "@modular-contracts/ModularModule.sol";
+import {Module} from "@modular-contracts/Module.sol";
 
-contract SoulboundERC721 is ModularModule {}
+contract SoulboundERC721 is Module {}
 ```
 
 # Run this repo

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularModule} from "../../../ModularModule.sol";
+import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
@@ -31,7 +31,7 @@ library DelayedRevealBatchMetadataStorage {
 
 }
 
-contract DelayedRevealBatchMetadataERC721 is ModularModule {
+contract DelayedRevealBatchMetadataERC721 is Module {
 
     using LibString for uint256;
 

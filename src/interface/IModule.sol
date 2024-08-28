@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {IModuleConfig} from "./IModuleConfig.sol";
 
-interface IModularModule is IModuleConfig {
+interface IModule is IModuleConfig {
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

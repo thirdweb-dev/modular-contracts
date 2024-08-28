@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {ERC721A, ERC721AQueryable, IERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import {ModularCore} from "../../ModularCore.sol";
+import {Core} from "../../Core.sol";
 
 import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
@@ -14,7 +14,7 @@ import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbac
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
+contract ERC721Core is ERC721AQueryable, Core, Multicallable {
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -89,18 +89,13 @@ contract ERC721Core is ERC721AQueryable, ModularCore, Multicallable {
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721A, IERC721A, ModularCore)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721A, IERC721A, Core) returns (bool) {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
             || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
-            || super.supportsInterface(interfaceId); // right-most ModularCore
+            || super.supportsInterface(interfaceId); // right-most Core
     }
 
     function getSupportedCallbackFunctions()

@@ -5,7 +5,7 @@ import {ERC1155} from "@solady/tokens/ERC1155.sol";
 import {Initializable} from "@solady/utils/Initializable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import {ModularCore} from "../../ModularCore.sol";
+import {Core} from "../../Core.sol";
 
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {BeforeBatchTransferCallbackERC1155} from "../../callback/BeforeBatchTransferCallbackERC1155.sol";
@@ -15,7 +15,7 @@ import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallba
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initializable {
+contract ERC1155CoreInitializable is ERC1155, Core, Multicallable, Initializable {
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -113,13 +113,13 @@ contract ERC1155CoreInitializable is ERC1155, ModularCore, Multicallable, Initia
      *  @notice Returns whether the contract implements an interface with the given interface ID.
      *  @param interfaceId The interface ID of the interface to check for
      */
-    function supportsInterface(bytes4 interfaceId) public view override(ERC1155, ModularCore) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC1155, Core) returns (bool) {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
             || interfaceId == 0xd9b67a26 // ERC165 Interface ID for ERC1155
             || interfaceId == 0x0e89341c // ERC165 Interface ID for ERC1155MetadataURI
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
-            || super.supportsInterface(interfaceId); // right-most ModularCore
+            || super.supportsInterface(interfaceId); // right-most Core
     }
 
     function getSupportedCallbackFunctions()

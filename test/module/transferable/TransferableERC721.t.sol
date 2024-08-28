@@ -7,10 +7,10 @@ import {Test} from "forge-std/Test.sol";
 
 // Target contract
 
-import {ModularModule} from "src/ModularModule.sol";
+import {Module} from "src/Module.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 
-import {IModularCore} from "src/interface/IModularCore.sol";
+import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {TransferableERC721} from "src/module/token/transferable/TransferableERC721.sol";
 
@@ -56,7 +56,7 @@ contract TransferableERC721Test is Test {
         vm.prank(owner);
         core.installModule(address(moduleImplementation), "");
 
-        IModularCore.InstalledModule[] memory installedModules = core.getInstalledModules();
+        ICore.InstalledModule[] memory installedModules = core.getInstalledModules();
         installedModule = TransferableExt(installedModules[0].implementation);
 
         // mint tokens

@@ -8,12 +8,12 @@ import {Test} from "forge-std/Test.sol";
 
 // Target contract
 
-import {ModularModule} from "src/ModularModule.sol";
+import {Module} from "src/Module.sol";
 import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
 import {ITransferValidator} from "@limitbreak/creator-token-standards/interfaces/ITransferValidator.sol";
 import {Role} from "src/Role.sol";
-import {IModularCore} from "src/interface/IModularCore.sol";
+import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 
 import {MintableERC1155} from "src/module/token/minting/MintableERC1155.sol";

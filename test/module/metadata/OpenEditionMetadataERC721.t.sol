@@ -7,11 +7,11 @@ import {Test} from "forge-std/Test.sol";
 
 // Target contract
 
-import {ModularCore} from "src/ModularCore.sol";
-import {ModularModule} from "src/ModularModule.sol";
+import {Core} from "src/Core.sol";
+import {Module} from "src/Module.sol";
 import {ERC721Core} from "src/core/token/ERC721Core.sol";
 
-import {IModularCore} from "src/interface/IModularCore.sol";
+import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {
     OpenEditionMetadataERC721,
@@ -58,7 +58,7 @@ contract OpenEditionMetadataERC721Test is Test {
         vm.prank(owner);
         core.installModule(address(moduleImplementation), "");
 
-        IModularCore.InstalledModule[] memory installedModules = core.getInstalledModules();
+        ICore.InstalledModule[] memory installedModules = core.getInstalledModules();
         installedModule = OpenEditionMetadataExt(installedModules[0].implementation);
     }
 

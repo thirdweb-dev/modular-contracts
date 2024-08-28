@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 
-import {ModularCore} from "src/ModularCore.sol";
+import {Core} from "src/Core.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {IModularModule, IModuleConfig} from "src/interface/IModularModule.sol";
+import {IModule, IModuleConfig} from "src/interface/IModule.sol";
 
 contract MockBase {
 
@@ -20,7 +20,7 @@ contract MockBase {
 
 }
 
-contract MockCoreMinimal is MockBase, ModularCore {
+contract MockCoreMinimal is MockBase, Core {
 
     constructor() {
         _initializeOwner(msg.sender);
@@ -44,7 +44,7 @@ contract MockCoreMinimal is MockBase, ModularCore {
 
 }
 
-contract MockCore is MockBase, ModularCore {
+contract MockCore is MockBase, Core {
 
     constructor() {
         _initializeOwner(msg.sender);
@@ -75,7 +75,7 @@ contract MockCore is MockBase, ModularCore {
 
 }
 
-contract MockModule is MockBase, IModularModule {
+contract MockModule is MockBase, IModule {
 
     function onInstall(bytes memory data) external {}
 
@@ -87,7 +87,7 @@ contract MockModule is MockBase, IModularModule {
 
 }
 
-contract MockModuleWithFunctions is MockBase, IModularModule {
+contract MockModuleWithFunctions is MockBase, IModule {
 
     event CallbackFunctionOne();
 
@@ -216,7 +216,7 @@ contract CoreBenchmark is Test {
     }
 
     function test_core_callFunction_callback_callbackFunctionRequired() public {
-        vm.expectRevert(ModularCore.CallbackFunctionRequired.selector);
+        vm.expectRevert(Core.CallbackFunctionRequired.selector);
         address(coreWithModulesNoCallback).call(abi.encodeCall(coreWithModulesNoCallback.callbackFunctionOne, ()));
     }
 
