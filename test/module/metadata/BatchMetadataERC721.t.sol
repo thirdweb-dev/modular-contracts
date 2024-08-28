@@ -80,14 +80,14 @@ contract BatchMetadataERC721Test is Test {
         assertEq(batches[0].baseURI, "ipfs://base/");
     }
 
-    function test_getNextTokenIdRangeStart() public {
+    function test_nextTokenIdToMint() public {
         vm.prank(owner);
         BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
 
         // get metadata batches
-        uint256 nextTokenIdRangeStart = BatchMetadataExt(address(core)).getNextTokenIdRangeStart();
+        uint256 nextTokenIdToMint = BatchMetadataExt(address(core)).nextTokenIdToMint();
 
-        assertEq(nextTokenIdRangeStart, 100);
+        assertEq(nextTokenIdToMint, 100);
     }
 
 }
