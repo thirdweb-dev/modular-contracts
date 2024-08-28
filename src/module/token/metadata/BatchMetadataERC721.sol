@@ -86,8 +86,7 @@ contract BatchMetadataERC721 is Module {
             FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
-        config.fallbackFunctions[2] =
-            FallbackFunction({selector: this.getNextTokenIdRangeStart.selector, permissionBits: 0});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.nextTokenIdToMint.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -148,7 +147,7 @@ contract BatchMetadataERC721 is Module {
         emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
     }
 
-    function getNextTokenIdRangeStart() external view returns (uint256) {
+    function nextTokenIdToMint() external view returns (uint256) {
         return _batchMetadataStorage().nextTokenIdRangeStart;
     }
 
