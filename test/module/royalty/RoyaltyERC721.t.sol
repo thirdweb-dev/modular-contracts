@@ -71,7 +71,6 @@ contract RoyaltyERC721Test is Test {
             _req.quantity,
             _req.currency,
             _req.pricePerUnit,
-            keccak256(bytes(_req.baseURI)),
             _req.uid
         );
         bytes32 structHash = keccak256(encodedRequest);
@@ -110,7 +109,7 @@ contract RoyaltyERC721Test is Test {
         vm.stopPrank();
 
         typehashMintRequest = keccak256(
-            "MintRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string baseURI,bytes32 uid)"
+            "MintRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
         );
         nameHash = keccak256(bytes("MintableERC721"));
         versionHash = keccak256(bytes("1"));
@@ -297,12 +296,11 @@ contract RoyaltyERC721Test is Test {
             quantity: quantity,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
-            uid: bytes32("1"),
-            baseURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);
 
-        MintableERC721.MintParamsERC721 memory params = MintableERC721.MintParamsERC721(mintRequest, sig, "");
+        MintableERC721.MintParamsERC721 memory params = MintableERC721.MintParamsERC721(mintRequest, sig);
 
         vm.prank(owner);
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
