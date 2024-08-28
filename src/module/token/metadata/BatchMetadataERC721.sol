@@ -78,7 +78,7 @@ contract BatchMetadataERC721 is Module {
     /// @notice Returns all implemented callback and module functions.
     function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](2);
+        config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
 
@@ -86,6 +86,8 @@ contract BatchMetadataERC721 is Module {
             FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.getNextTokenIdRangeStart.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -144,6 +146,10 @@ contract BatchMetadataERC721 is Module {
 
         emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
         emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
+    }
+
+    function getNextTokenIdRangeStart() external view returns (uint256) {
+        return _batchMetadataStorage().nextTokenIdRangeStart;
     }
 
     /*//////////////////////////////////////////////////////////////
