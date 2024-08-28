@@ -82,7 +82,6 @@ contract MintableERC1155Test is Test {
             _req.quantity,
             _req.currency,
             _req.pricePerUnit,
-            keccak256(bytes(_req.metadataURI)),
             _req.uid
         );
         bytes32 structHash = keccak256(encodedRequest);
@@ -112,7 +111,7 @@ contract MintableERC1155Test is Test {
 
         // Setup signature vars
         typehashMintRequest = keccak256(
-            "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string metadataURI,bytes32 uid)"
+            "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
         );
         nameHash = keccak256(bytes("MintableERC1155"));
         versionHash = keccak256(bytes("1"));
@@ -165,12 +164,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);
@@ -180,8 +178,6 @@ contract MintableERC1155Test is Test {
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
             mintRequest.recipient, mintRequest.tokenId, mintRequest.quantity, abi.encode(params)
         );
-
-        assertEq(core.uri(0), "https://example.com");
 
         // Check minted balance
         assertEq(core.balanceOf(address(0x123), mintRequest.tokenId), mintRequest.quantity);
@@ -202,12 +198,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert();
@@ -227,12 +222,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestMismatch.selector));
@@ -255,12 +249,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestMismatch.selector));
@@ -283,12 +276,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestMismatch.selector));
@@ -311,12 +303,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestOutOfTimeWindow.selector));
@@ -336,12 +327,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.warp(mintRequest.endTimestamp);
 
@@ -363,12 +353,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
@@ -382,8 +371,7 @@ contract MintableERC1155Test is Test {
 
         bytes memory sigTwo = signMintRequest(mintRequestTwo, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory paramsTwo =
-            MintableERC1155.MintParamsERC1155(mintRequestTwo, sigTwo, "");
+        MintableERC1155.MintParamsERC1155 memory paramsTwo = MintableERC1155.MintParamsERC1155(mintRequestTwo, sigTwo);
 
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestUidReused.selector));
         core.mint(mintRequestTwo.recipient, mintRequestTwo.tokenId, mintRequestTwo.quantity, abi.encode(paramsTwo));
@@ -400,12 +388,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey); // is owner but not MINTER_ROLE holder
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableRequestUnauthorized.selector));
@@ -425,12 +412,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableIncorrectNativeTokenSent.selector));
@@ -448,12 +434,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC1155.MintableIncorrectNativeTokenSent.selector));
@@ -473,12 +458,11 @@ contract MintableERC1155Test is Test {
             quantity: 100,
             currency: address(currency),
             pricePerUnit: 0.1 ether,
-            uid: bytes32("1"),
-            metadataURI: "https://example.com/"
+            uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()

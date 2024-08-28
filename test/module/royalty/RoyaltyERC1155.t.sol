@@ -84,7 +84,6 @@ contract RoyaltyERC1155Test is Test {
             _req.quantity,
             _req.currency,
             _req.pricePerUnit,
-            keccak256(bytes(_req.metadataURI)),
             _req.uid
         );
         bytes32 structHash = keccak256(encodedRequest);
@@ -122,7 +121,7 @@ contract RoyaltyERC1155Test is Test {
         vm.stopPrank();
 
         typehashMintRequest = keccak256(
-            "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,string metadataURI,bytes32 uid)"
+            "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
         );
         nameHash = keccak256(bytes("MintableERC1155"));
         versionHash = keccak256(bytes("1"));
@@ -341,12 +340,11 @@ contract RoyaltyERC1155Test is Test {
             quantity: quantity,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
-            uid: uid,
-            metadataURI: "https://example.com/"
+            uid: uid
         });
         bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig, "");
+        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
 
         vm.prank(owner);
         core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
