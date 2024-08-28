@@ -144,6 +144,8 @@ contract ERC1155Core is ERC1155, ModularCore, Multicallable {
             selector: BeforeApproveForAllCallback.beforeApproveForAll.selector,
             mode: CallbackMode.OPTIONAL
         });
+        supportedCallbackFunctions[5] =
+            SupportedCallbackFunction({selector: OnTokenURICallback.onTokenURI.selector, mode: CallbackMode.REQUIRED});
     }
 
     /*//////////////////////////////////////////////////////////////
