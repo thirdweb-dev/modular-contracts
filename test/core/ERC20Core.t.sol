@@ -14,7 +14,7 @@
 // import {ERC20} from "@solady/tokens/ERC20.sol";
 
 // import {ERC20Core} from "src/token/ERC20Core.sol";
-// import {ModularCore} from "src/ModularCore.sol";
+// import {Core} from "src/Core.sol";
 
 // contract ERC20CoreTest is Test, TestPlus {
 //     bytes32 constant PERMIT_TYPEHASH =
@@ -84,7 +84,7 @@
 //         token.installModule(permissionedCallHook, "");
 //         vm.stopPrank();
 
-//         vm.expectRevert(abi.encodeWithSelector(ModularCore.UnauthorizedFunctionCall.selector));
+//         vm.expectRevert(abi.encodeWithSelector(Core.UnauthorizedFunctionCall.selector));
 //         MockModuleWithPermissionedFallback(address(token)).permissionedFunction();
 
 //         vm.prank(admin);
@@ -96,7 +96,7 @@
 //         vm.startPrank(admin);
 //         address mockHook = address(new MockModuleWithOnTokenURICallback());
 
-//         vm.expectRevert(abi.encodeWithSelector(ModularCore.ModuleUnsupportedCallbackFunction.selector));
+//         vm.expectRevert(abi.encodeWithSelector(Core.ModuleUnsupportedCallbackFunction.selector));
 //         token.installModule(address(mockHook), "");
 //         vm.stopPrank();
 //     }

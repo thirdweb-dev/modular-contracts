@@ -11,7 +11,7 @@
 // import {ERC1155} from "@solady/tokens/ERC1155.sol";
 
 // import {ERC1155Core} from "src/token/ERC1155Core.sol";
-// import {ModularCore} from "src/ModularCore.sol";
+// import {Core} from "src/Core.sol";
 
 // abstract contract ERC1155TokenReceiver {
 //     function onERC1155Received(address, address, uint256, uint256, bytes calldata) external virtual returns (bytes4) {

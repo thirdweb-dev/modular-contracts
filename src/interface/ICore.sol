@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {IERC165} from "./IERC165.sol";
 import {IModuleConfig} from "./IModuleConfig.sol";
 
-interface IModularCore is IModuleConfig, IERC165 {
+interface ICore is IModuleConfig, IERC165 {
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS

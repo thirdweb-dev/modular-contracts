@@ -9,7 +9,7 @@ import {
 import {Initializable} from "@solady/utils/Initializable.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
-import {ModularCore} from "../../ModularCore.sol";
+import {Core} from "../../Core.sol";
 
 import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
@@ -19,7 +19,7 @@ import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbac
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
-contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Multicallable, Initializable {
+contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, Core, Multicallable, Initializable {
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -107,7 +107,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721AUpgradeable, IERC721AUpgradeable, ModularCore)
+        override(ERC721AUpgradeable, IERC721AUpgradeable, Core)
         returns (bool)
     {
         return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
@@ -115,7 +115,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, ModularCore, Mu
             || interfaceId == 0x5b5e139f // ERC165 Interface ID for ERC721Metadata
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173
-            || super.supportsInterface(interfaceId); // right-most ModularCore
+            || super.supportsInterface(interfaceId); // right-most Core
     }
 
     function getSupportedCallbackFunctions()

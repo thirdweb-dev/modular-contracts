@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularModule} from "../../../ModularModule.sol";
+import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 
 import {Base64} from "@solady/utils/Base64.sol";
@@ -27,7 +27,7 @@ library OpenEditionMetadataStorage {
 
 }
 
-contract OpenEditionMetadataERC721 is ModularModule {
+contract OpenEditionMetadataERC721 is Module {
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS

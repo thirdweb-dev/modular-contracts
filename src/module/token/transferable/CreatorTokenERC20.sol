@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2.0
 pragma solidity ^0.8.0;
 
-import {ModularModule} from "../../../ModularModule.sol";
+import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 import {BeforeTransferCallbackERC20} from "../../../callback/BeforeTransferCallbackERC20.sol";
 
@@ -32,7 +32,7 @@ library CreatorTokenStorage {
 
 }
 
-contract CreatorTokenERC20 is ModularModule, BeforeTransferCallbackERC20, ICreatorToken {
+contract CreatorTokenERC20 is Module, BeforeTransferCallbackERC20, ICreatorToken {
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS

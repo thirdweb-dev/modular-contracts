@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {IModularModule} from "./interface/IModularModule.sol";
+import {IModule} from "./interface/IModule.sol";
 
-abstract contract ModularModule is IModularModule {
+abstract contract Module is IModule {
 
     function getModuleConfig() external pure virtual returns (ModuleConfig memory);
 

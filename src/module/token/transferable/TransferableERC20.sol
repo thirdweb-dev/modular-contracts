@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularModule} from "../../../ModularModule.sol";
+import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 import {BeforeTransferCallbackERC20} from "../../../callback/BeforeTransferCallbackERC20.sol";
 
@@ -27,7 +27,7 @@ library TransferableStorage {
 
 }
 
-contract TransferableERC20 is ModularModule, BeforeTransferCallbackERC20 {
+contract TransferableERC20 is Module, BeforeTransferCallbackERC20 {
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS

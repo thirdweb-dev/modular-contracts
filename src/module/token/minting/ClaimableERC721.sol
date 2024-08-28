@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularModule} from "../../../ModularModule.sol";
+import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
@@ -37,7 +37,7 @@ library ClaimableStorage {
 
 }
 
-contract ClaimableERC721 is ModularModule, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
+contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
 
     using ECDSA for bytes32;
 
