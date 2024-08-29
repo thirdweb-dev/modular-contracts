@@ -316,6 +316,7 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
                     if (functions[i].mode == CallbackMode.REQUIRED) {
                         revert CallbackFunctionRequired();
                     }
+                    break;
                 }
             }
         }
@@ -349,6 +350,7 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
                     if (functions[i].mode == CallbackMode.REQUIRED) {
                         revert CallbackFunctionRequired();
                     }
+                    break;
                 }
             }
         }
