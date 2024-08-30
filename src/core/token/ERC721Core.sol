@@ -173,8 +173,6 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
         _setupContractURI(uri);
     }
 
-    receive() external payable {}
-
     /**
      *  @notice Mints a token. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
@@ -209,9 +207,6 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
         address signer = _hashTypedData(
             keccak256(abi.encode(TYPEHASH_SIGNATURE_MINT_ERC721, to, quantity, keccak256(bytes(baseURI)), data))
         ).recover(signature);
-
-        console.log("signer");
-        console.logAddress(signer);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert SignatureMintUnauthorized();
