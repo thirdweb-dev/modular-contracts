@@ -15,7 +15,6 @@ import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackE
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.sol";
 import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
-import {BeforeMintWithSignatureCallbackERC721} from "../../callback/BeforeMintWithSignatureCallbackERC721.sol";
 import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
@@ -118,32 +117,28 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](7);
+        supportedCallbackFunctions = new SupportedCallbackFunction[](6);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: BeforeMintCallbackERC721.beforeMintERC721.selector,
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[1] = SupportedCallbackFunction({
-            selector: BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721.selector,
-            mode: CallbackMode.REQUIRED
-        });
-        supportedCallbackFunctions[2] = SupportedCallbackFunction({
             selector: BeforeTransferCallbackERC721.beforeTransferERC721.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
             selector: BeforeBurnCallbackERC721.beforeBurnERC721.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[4] = SupportedCallbackFunction({
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
             selector: BeforeApproveCallbackERC721.beforeApproveERC721.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[5] = SupportedCallbackFunction({
+        supportedCallbackFunctions[4] = SupportedCallbackFunction({
             selector: BeforeApproveForAllCallback.beforeApproveForAll.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[6] =
+        supportedCallbackFunctions[5] =
             SupportedCallbackFunction({selector: OnTokenURICallback.onTokenURI.selector, mode: CallbackMode.REQUIRED});
     }
 
@@ -258,10 +253,8 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
         virtual
     {
         _executeCallbackFunction(
-            BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721.selector,
-            abi.encodeCall(
-                BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721, (to, startTokenId, quantity, data)
-            )
+            beforeMintWithSignatureCallbackERC721.beforemintwithsignatureerc721.selector,
+            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (to, startTokenId, quantity, data))
         );
     }
 
