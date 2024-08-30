@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Module} from "../../../Module.sol";
+import {console} from "forge-std/console.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
@@ -14,7 +15,6 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeMintWithSignatureCallbackERC721} from "../../../callback/BeforeMintWithSignatureCallbackERC721.sol";
-import {UpdateMetadataCallbackERC721} from "../../../callback/UpdateMetadataCallbackERC721.sol";
 
 library MintableStorage {
 
@@ -43,7 +43,6 @@ contract MintableERC721 is
     EIP712,
     BeforeMintCallbackERC721,
     BeforeMintWithSignatureCallbackERC721,
-    UpdateMetadataCallbackERC721,
     IInstallationCallback
 {
 
@@ -178,10 +177,9 @@ contract MintableERC721 is
     {
         MintRequestERC721 memory _params = abi.decode(_data, (MintRequestERC721));
 
-        _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
-        _distributeMintPrice(
-            msg.sender, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
-        );
+        _mintWithSignatureERC721(_params);
+        console.log("gets in here");
+        _distributeMintPrice(msg.sender, _params.currency, _quantity * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
@@ -212,7 +210,11 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesBeforeMintERC721(MintParamsERC721 memory params) external pure returns (bytes memory) {
+    function encodeBytesBeforeMintWithSignatureERC721(MintRequestERC721 memory params)
+        external
+        pure
+        returns (bytes memory)
+    {
         return abi.encode(params);
     }
 
@@ -256,13 +258,16 @@ contract MintableERC721 is
             }
             return;
         }
+        console.log("passes initial test");
 
         SaleConfig memory saleConfig = _mintableStorage().saleConfig;
 
         if (_currency == NATIVE_TOKEN_ADDRESS) {
+            console.log("native token detected");
             if (msg.value != _price) {
                 revert MintableIncorrectNativeTokenSent();
             }
+            console.log("shouldn't get here");
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
         } else {
             if (msg.value > 0) {

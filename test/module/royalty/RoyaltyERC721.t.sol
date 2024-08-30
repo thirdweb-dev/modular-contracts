@@ -46,7 +46,9 @@ contract RoyaltyERC721Test is Test {
     uint256 unpermissionedActorPrivateKey = 3;
     address public unpermissionedActor;
 
-    address tokenRecipient = address(0x123);
+    address tokenRecipient;
+    uint256 quantity = 100;
+    string baseURI = "";
 
     bytes32 internal typehashMintRequest;
     bytes32 internal nameHash;
@@ -65,13 +67,10 @@ contract RoyaltyERC721Test is Test {
     {
         bytes memory encodedRequest = abi.encode(
             typehashMintRequest,
-            _req.startTimestamp,
-            _req.endTimestamp,
-            _req.recipient,
-            _req.quantity,
-            _req.currency,
-            _req.pricePerUnit,
-            _req.uid
+            tokenRecipient,
+            quantity,
+            keccak256(bytes(baseURI)),
+            abi.encode(_req.startTimestamp, _req.endTimestamp, _req.currency, _req.pricePerUnit, _req.uid)
         );
         bytes32 structHash = keccak256(encodedRequest);
         bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -84,6 +83,7 @@ contract RoyaltyERC721Test is Test {
 
     function setUp() public {
         owner = vm.addr(ownerPrivateKey);
+        tokenRecipient = vm.addr(ownerPrivateKey);
         permissionedActor = vm.addr(permissionedActorPrivateKey);
         unpermissionedActor = vm.addr(unpermissionedActorPrivateKey);
 
@@ -108,10 +108,9 @@ contract RoyaltyERC721Test is Test {
         core.installModule(address(mintablemoduleImplementation), mintableModuleInitializeData);
         vm.stopPrank();
 
-        typehashMintRequest = keccak256(
-            "MintRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-        );
-        nameHash = keccak256(bytes("MintableERC721"));
+        // Setup signature vars
+        typehashMintRequest = keccak256("MintRequestERC721(address to,uint256 quantity,string baseURI,bytes data)");
+        nameHash = keccak256(bytes("ERC721Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
         domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(core)));
@@ -243,7 +242,9 @@ contract RoyaltyERC721Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_allowsTransferWithTransferValidatorAddressZero() public {
-        _mintToken(owner, 1);
+        console.log("owner address");
+        console.logAddress(owner);
+        _mintToken();
 
         assertEq(owner, core.ownerOf(0));
 
@@ -261,7 +262,7 @@ contract RoyaltyERC721Test is Test {
             return;
         }
 
-        _mintToken(owner, 1);
+        _mintToken();
 
         assertEq(owner, core.ownerOf(0));
 
@@ -283,7 +284,7 @@ contract RoyaltyERC721Test is Test {
                         UTILITY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _mintToken(address to, uint256 quantity) internal {
+    function _mintToken() internal {
         address saleRecipient = address(0x987);
 
         vm.prank(owner);
@@ -292,19 +293,15 @@ contract RoyaltyERC721Test is Test {
         MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
-            recipient: to,
-            quantity: quantity,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);
 
-        MintableERC721.MintParamsERC721 memory params = MintableERC721.MintParamsERC721(mintRequest, sig);
-
         vm.prank(owner);
-        core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(
+            tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig
         );
     }
 

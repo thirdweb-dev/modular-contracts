@@ -12,6 +12,7 @@ import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeMintWithSignatureCallbackERC721} from "../../../callback/BeforeMintWithSignatureCallbackERC721.sol";
 
 library ClaimableStorage {
 
@@ -37,7 +38,13 @@ library ClaimableStorage {
 
 }
 
-contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
+contract ClaimableERC721 is
+    Module,
+    EIP712,
+    BeforeMintCallbackERC721,
+    BeforeMintWithSignatureCallbackERC721,
+    IInstallationCallback
+{
 
     using ECDSA for bytes32;
 
@@ -142,10 +149,11 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
 
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC721.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
@@ -181,7 +189,7 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     }
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+    function beforeMintWithSignatureERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
@@ -190,9 +198,9 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     {
         ClaimRequestERC721 memory _params = abi.decode(_data, (ClaimRequestERC721));
 
-        _validateClaimRequest(_to, _quantity, _params.request);
+        _validateClaimRequest(_params, _quantity);
 
-        _distributeMintPrice(msg.sender, _params.request.currency, _quantity * _params.request.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, _quantity * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
@@ -292,7 +300,7 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     }
 
     /// @dev Verifies the claim request and signature.
-    function _validateClaimRequest(ClaimRequestERC721 memory _req) internal {
+    function _validateClaimRequest(ClaimRequestERC721 memory _req, uint256 _quantity) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }
@@ -301,12 +309,12 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
             revert ClaimableRequestUidReused();
         }
 
-        if (_req.quantity > _claimableStorage().claimCondition.availableSupply) {
+        if (_quantity > _claimableStorage().claimCondition.availableSupply) {
             revert ClaimableOutOfSupply();
         }
 
         _claimableStorage().uidUsed[_req.uid] = true;
-        _claimableStorage().claimCondition.availableSupply -= _req.quantity;
+        _claimableStorage().claimCondition.availableSupply -= _quantity;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.

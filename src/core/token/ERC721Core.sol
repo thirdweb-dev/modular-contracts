@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {ERC721A, ERC721AQueryable, IERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
+import {console} from "forge-std/console.sol";
 
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
@@ -126,7 +127,7 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](7);
+        supportedCallbackFunctions = new SupportedCallbackFunction[](8);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: BeforeMintCallbackERC721.beforeMintERC721.selector,
             mode: CallbackMode.REQUIRED
@@ -153,6 +154,10 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
         });
         supportedCallbackFunctions[6] =
             SupportedCallbackFunction({selector: OnTokenURICallback.onTokenURI.selector, mode: CallbackMode.REQUIRED});
+        supportedCallbackFunctions[7] = SupportedCallbackFunction({
+            selector: UpdateMetadataCallbackERC721.updateMetadataERC721.selector,
+            mode: CallbackMode.REQUIRED
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -177,15 +182,24 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
      *  @param quantity The quantity of tokens to mint.
      *  @param data ABI encoded data to pass to the beforeMint hook.
      */
-    function mint(address to, uint256 quantity, string calldata _baseURI, bytes calldata data) external payable {
+    function mint(address to, uint256 quantity, string calldata baseURI, bytes calldata data) external payable {
         uint256 tokenId = _nextTokenId();
-        _updateMetadata(to, tokenId, quantity, _baseURI);
+        if (bytes(baseURI).length > 0) {
+            _updateMetadata(to, tokenId, quantity, baseURI);
+        }
         _beforeMint(to, tokenId, quantity, data);
         _safeMint(to, quantity, "");
     }
 
-    /// @dev Calls the beforeMint hook.
-    function beforeMintWithSignature(
+    /**
+     *  @notice Mints a token with a signature. Calls the beforeMint hook.
+     *  @dev Reverts if beforeMint hook is absent or unsuccessful.
+     *  @param to The address to mint the token to.
+     *  @param quantity The quantity of tokens to mint.
+     *  @param data ABI encoded data to pass to the beforeMint hook.
+     *  @param signature The signature produced from signing the minting request.
+     */
+    function mintWithSignature(
         address to,
         uint256 quantity,
         string calldata baseURI,
@@ -196,12 +210,18 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
             keccak256(abi.encode(TYPEHASH_SIGNATURE_MINT_ERC721, to, quantity, keccak256(bytes(baseURI)), data))
         ).recover(signature);
 
+        console.log("signer");
+        console.logAddress(signer);
+
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert SignatureMintUnauthorized();
         }
 
         uint256 tokenId = _nextTokenId();
-        _updateMetadata(to, tokenId, quantity, baseURI);
+
+        if (bytes(baseURI).length > 0) {
+            _updateMetadata(to, tokenId, quantity, baseURI);
+        }
         _beforeMintWithSignature(to, tokenId, quantity, data);
         _safeMint(to, quantity, "");
     }
@@ -317,15 +337,7 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
         );
     }
 
-    /// @dev Fetches token URI from the token metadata hook.
-    function _getTokenURI(uint256 tokenId) internal view virtual returns (string memory uri) {
-        (, bytes memory returndata) = _executeCallbackFunctionView(
-            OnTokenURICallback.onTokenURI.selector, abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
-        );
-        uri = abi.decode(returndata, (string));
-    }
-
-    /// @dev Calls the beforeMint hook.
+    /// @dev Calls the updateMetadata hook, if installed.
     function _updateMetadata(address to, uint256 startTokenId, uint256 quantity, string calldata baseURI)
         internal
         virtual
@@ -334,6 +346,14 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
             UpdateMetadataCallbackERC721.updateMetadataERC721.selector,
             abi.encodeCall(UpdateMetadataCallbackERC721.updateMetadataERC721, (to, startTokenId, quantity, baseURI))
         );
+    }
+
+    /// @dev Fetches token URI from the token metadata hook.
+    function _getTokenURI(uint256 tokenId) internal view virtual returns (string memory uri) {
+        (, bytes memory returndata) = _executeCallbackFunctionView(
+            OnTokenURICallback.onTokenURI.selector, abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
+        );
+        uri = abi.decode(returndata, (string));
     }
 
     /// @dev Returns the domain name and version for EIP712.
