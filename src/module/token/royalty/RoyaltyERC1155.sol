@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
+import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
 import {BeforeBatchTransferCallbackERC1155} from "../../../callback/BeforeBatchTransferCallbackERC1155.sol";
 import {BeforeTransferCallbackERC1155} from "../../../callback/BeforeTransferCallbackERC1155.sol";
@@ -48,6 +49,12 @@ contract RoyaltyERC1155 is
 {
 
     /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    bytes32 private constant DEFAULT_ACCESS_CONTROL_ADMIN_ROLE = 0x00;
+
+    /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
@@ -82,7 +89,10 @@ contract RoyaltyERC1155 is
     error RoyaltyExceedsMaxBps();
 
     /// @notice Revert with an error if the transfer validator is not valid
-    error InvalidTransferValidatorContract();
+    error RoyaltyInvalidTransferValidatorContract();
+
+    /// @notice Revert with an error if the transfer validator is not valid
+    error RoyaltyNotTransferValidator();
 
     /*//////////////////////////////////////////////////////////////
                                MODULE CONFIG
@@ -91,7 +101,7 @@ contract RoyaltyERC1155 is
     /// @notice Returns all implemented callback and module functions.
     function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](8);
+        config.fallbackFunctions = new FallbackFunction[](9);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC1155.selector);
         config.callbackFunctions[1] = CallbackFunction(this.beforeBatchTransferERC1155.selector);
@@ -105,11 +115,12 @@ contract RoyaltyERC1155 is
             FallbackFunction({selector: this.getTransferValidator.selector, permissionBits: 0});
         config.fallbackFunctions[4] =
             FallbackFunction({selector: this.getTransferValidationFunction.selector, permissionBits: 0});
-        config.fallbackFunctions[5] =
-            FallbackFunction({selector: this.setDefaultRoyaltyInfo.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.hasRole.selector, permissionBits: 0});
         config.fallbackFunctions[6] =
-            FallbackFunction({selector: this.setRoyaltyInfoForToken.selector, permissionBits: Role._MANAGER_ROLE});
+            FallbackFunction({selector: this.setDefaultRoyaltyInfo.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[7] =
+            FallbackFunction({selector: this.setRoyaltyInfoForToken.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[8] =
             FallbackFunction({selector: this.setTransferValidator.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaces = new bytes4[](1);
@@ -250,6 +261,16 @@ contract RoyaltyERC1155 is
         _setTransferValidator(validator);
     }
 
+    function hasRole(bytes32 role, address account) external view returns (bool) {
+        if (msg.sender != _royaltyStorage().transferValidator) {
+            revert RoyaltyNotTransferValidator();
+        }
+        if (role == DEFAULT_ACCESS_CONTROL_ADMIN_ROLE) {
+            return OwnableRoles(address(this)).hasAllRoles(account, Role._MANAGER_ROLE);
+        }
+        return OwnableRoles(address(this)).hasAllRoles(account, uint256(role));
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -268,7 +289,7 @@ contract RoyaltyERC1155 is
         bool isValidTransferValidator = validator.code.length > 0;
 
         if (validator != address(0) && !isValidTransferValidator) {
-            revert InvalidTransferValidatorContract();
+            revert RoyaltyInvalidTransferValidatorContract();
         }
 
         emit TransferValidatorUpdated(address(getTransferValidator()), validator);

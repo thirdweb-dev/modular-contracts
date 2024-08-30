@@ -42,6 +42,10 @@ library RoyaltyStorage {
 
 contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackERC721 {
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
     bytes32 private constant DEFAULT_ACCESS_CONTROL_ADMIN_ROLE = 0x00;
 
     /*//////////////////////////////////////////////////////////////
@@ -91,7 +95,7 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
     /// @notice Returns all implemented callback and module functions.
     function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](8);
+        config.fallbackFunctions = new FallbackFunction[](9);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC721.selector);
 
@@ -111,8 +115,6 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
             FallbackFunction({selector: this.setRoyaltyInfoForToken.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[8] =
             FallbackFunction({selector: this.setTransferValidator.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[9] =
-            FallbackFunction({selector: this.setTransferPolicy.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
