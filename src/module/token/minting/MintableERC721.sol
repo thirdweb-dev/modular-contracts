@@ -14,6 +14,7 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeMintWithSignatureCallbackERC721} from "../../../callback/BeforeMintWithSignatureCallbackERC721.sol";
+import {UpdateMetadataCallbackERC721} from "../../../callback/UpdateMetadataCallbackERC721.sol";
 
 library MintableStorage {
 
@@ -42,6 +43,7 @@ contract MintableERC721 is
     EIP712,
     BeforeMintCallbackERC721,
     BeforeMintWithSignatureCallbackERC721,
+    UpdateMetadataCallbackERC721,
     IInstallationCallback
 {
 
@@ -154,10 +156,11 @@ contract MintableERC721 is
 
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC721.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =

@@ -17,6 +17,7 @@ import {BeforeBurnCallbackERC721} from "../../callback/BeforeBurnCallbackERC721.
 import {BeforeMintCallbackERC721} from "../../callback/BeforeMintCallbackERC721.sol";
 import {BeforeMintWithSignatureCallbackERC721} from "../../callback/BeforeMintWithSignatureCallbackERC721.sol";
 import {BeforeTransferCallbackERC721} from "../../callback/BeforeTransferCallbackERC721.sol";
+import {UpdateMetadataCallbackERC721} from "../../callback/UpdateMetadataCallbackERC721.sol";
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
@@ -167,21 +168,31 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
      *  @param quantity The quantity of tokens to mint.
      *  @param data ABI encoded data to pass to the beforeMint hook.
      */
-    function mint(address to, uint256 quantity, bytes calldata data) external payable {
-        _beforeMint(to, _nextTokenId(), quantity, data);
+    function mint(address to, uint256 quantity, bytes calldata data, string calldata _baseURI) external payable {
+        uint256 tokenId = _nextTokenId();
+        _updateMetadata(to, tokenId, quantity, _baseURI);
+        _beforeMint(to, tokenId, quantity, data);
         _safeMint(to, quantity, "");
     }
 
     /// @dev Calls the beforeMint hook.
-    function beforeMintWithSignature(address to, uint256 quantity, bytes calldata data, bytes memory signature)
-        external
-        payable
-    {
+    function beforeMintWithSignature(
+        address to,
+        uint256 quantity,
+        bytes calldata data,
+        bytes memory signature,
+        string calldata _baseURI
+    ) external payable {
         address signer = _hashTypedData(keccak256(data)).recover(signature);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert SignatureMintUnauthorized();
         }
+
+        uint256 tokenId = _nextTokenId();
+        _updateMetadata(to, tokenId, quantity, _baseURI);
+        _beforeMintWithSignature(to, tokenId, quantity, data);
+        _safeMint(to, quantity, "");
     }
 
     /**
@@ -242,8 +253,6 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
                         CALLBACK INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    receive() external payable {}
-
     /// @dev Calls the beforeMint hook.
     function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal virtual {
         _executeCallbackFunction(
@@ -303,6 +312,17 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
             OnTokenURICallback.onTokenURI.selector, abi.encodeCall(OnTokenURICallback.onTokenURI, (tokenId))
         );
         uri = abi.decode(returndata, (string));
+    }
+
+    /// @dev Calls the beforeMint hook.
+    function _updateMetadata(address to, uint256 startTokenId, uint256 quantity, string calldata baseURI)
+        internal
+        virtual
+    {
+        _executeCallbackFunction(
+            UpdateMetadataCallbackERC721.updateMetadataERC721.selector,
+            abi.encodeCall(UpdateMetadataCallbackERC721.updateMetadataERC721, (to, startTokenId, quantity, baseURI))
+        );
     }
 
     /// @dev Returns the domain name and version for EIP712.
