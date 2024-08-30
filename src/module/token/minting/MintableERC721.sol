@@ -59,8 +59,6 @@ contract MintableERC721 is
      *
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
-     *  @param recipient The address that will receive the minted tokens.
-     *  @param quantity The quantity of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
@@ -68,22 +66,9 @@ contract MintableERC721 is
     struct MintRequestERC721 {
         uint48 startTimestamp;
         uint48 endTimestamp;
-        address recipient;
-        uint256 quantity;
         address currency;
         uint256 pricePerUnit;
         bytes32 uid;
-    }
-
-    /**
-     *  @notice The parameters sent to the `beforeMintERC20` callback function.
-     *
-     *  @param request The minting request.
-     *  @param signature The signature produced from signing the minting request.
-     */
-    struct MintParamsERC721 {
-        MintRequestERC721 request;
-        bytes signature;
     }
 
     /**
@@ -93,16 +78,6 @@ contract MintableERC721 is
      */
     struct SaleConfig {
         address primarySaleRecipient;
-    }
-
-    /**
-     *   @notice MetadataBatch struct to store metadata for a range of tokenIds.
-     *   @param startTokenIdInclusive The first tokenId in the range.
-     *   @param endTokenIdNonInclusive The last tokenId in the range.
-     */
-    struct MetadataBatch {
-        uint256 startTokenIdInclusive;
-        uint256 endTokenIdInclusive;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -201,7 +176,7 @@ contract MintableERC721 is
         override
         returns (bytes memory)
     {
-        MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
+        MintRequestERC721 memory _params = abi.decode(_data, (MintRequestERC721));
 
         _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
         _distributeMintPrice(
@@ -261,42 +236,13 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _mintWithSignatureERC721(
-        address _expectedRecipient,
-        uint256 _expectedAmount,
-        uint256 _startTokenId,
-        MintRequestERC721 memory _req,
-        bytes memory _signature
-    ) internal {
-        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
-            revert MintableRequestMismatch();
-        }
-
+    function _mintWithSignatureERC721(MintRequestERC721 memory _req) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert MintableRequestOutOfTimeWindow();
         }
 
         if (_mintableStorage().uidUsed[_req.uid]) {
             revert MintableRequestUidReused();
-        }
-
-        address signer = _hashTypedData(
-            keccak256(
-                abi.encode(
-                    TYPEHASH_MINTABLE_ERC721,
-                    _req.startTimestamp,
-                    _req.endTimestamp,
-                    _req.recipient,
-                    _req.quantity,
-                    _req.currency,
-                    _req.pricePerUnit,
-                    _req.uid
-                )
-            )
-        ).recover(_signature);
-
-        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert MintableRequestUnauthorized();
         }
 
         _mintableStorage().uidUsed[_req.uid] = true;
