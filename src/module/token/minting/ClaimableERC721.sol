@@ -78,8 +78,6 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
      *
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
-     *  @param recipient The address that will receive the minted tokens.
-     *  @param quantity The quantity of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
@@ -87,8 +85,6 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     struct ClaimRequestERC721 {
         uint48 startTimestamp;
         uint48 endTimestamp;
-        address recipient;
-        uint256 quantity;
         address currency;
         uint256 pricePerUnit;
         bytes32 uid;
@@ -96,13 +92,8 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
 
     /**
      *  @notice The parameters sent to the `beforeMintERC20` callback function.
-     *
-     *  @param request The minting request.
-     *  @param signature The signature produced from signing the minting request.
      */
     struct ClaimParamsERC721 {
-        ClaimRequestERC721 request;
-        bytes signature;
         address currency;
         uint256 pricePerUnit;
         bytes32[] recipientAllowlistProof;
@@ -142,10 +133,6 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
-
-    bytes32 private constant TYPEHASH_CLAIMABLE_ERC721 = keccak256(
-        "ClaimRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-    );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -188,22 +175,24 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     {
         ClaimParamsERC721 memory _params = abi.decode(_data, (ClaimParamsERC721));
 
-        address currency;
-        uint256 pricePerUnit;
+        _validateClaimCondition(_to, _quantity, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof);
 
-        if (_params.signature.length == 0) {
-            _validateClaimCondition(
-                _to, _quantity, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
-            );
-            currency = _params.currency;
-            pricePerUnit = _params.pricePerUnit;
-        } else {
-            _validateClaimRequest(_to, _quantity, _params.request, _params.signature);
-            currency = _params.request.currency;
-            pricePerUnit = _params.request.pricePerUnit;
-        }
+        _distributeMintPrice(msg.sender, _params.currency, _quantity * _params.pricePerUnit);
+    }
 
-        _distributeMintPrice(msg.sender, currency, _quantity * pricePerUnit);
+    /// @notice Callback function for the ERC721Core.mint function.
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
+        ClaimRequestERC721 memory _params = abi.decode(_data, (ClaimRequestERC721));
+
+        _validateClaimRequest(_to, _quantity, _params.request);
+
+        _distributeMintPrice(msg.sender, _params.request.currency, _quantity * _params.request.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
@@ -303,16 +292,7 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     }
 
     /// @dev Verifies the claim request and signature.
-    function _validateClaimRequest(
-        address _expectedRecipient,
-        uint256 _expectedAmount,
-        ClaimRequestERC721 memory _req,
-        bytes memory _signature
-    ) internal {
-        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
-            revert ClaimableRequestMismatch();
-        }
-
+    function _validateClaimRequest(ClaimRequestERC721 memory _req) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }
@@ -323,25 +303,6 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
 
         if (_req.quantity > _claimableStorage().claimCondition.availableSupply) {
             revert ClaimableOutOfSupply();
-        }
-
-        address signer = _hashTypedData(
-            keccak256(
-                abi.encode(
-                    TYPEHASH_CLAIMABLE_ERC721,
-                    _req.startTimestamp,
-                    _req.endTimestamp,
-                    _req.recipient,
-                    _req.quantity,
-                    _req.currency,
-                    _req.pricePerUnit,
-                    _req.uid
-                )
-            )
-        ).recover(_signature);
-
-        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert ClaimableRequestUnauthorizedSignature();
         }
 
         _claimableStorage().uidUsed[_req.uid] = true;

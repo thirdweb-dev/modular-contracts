@@ -26,6 +26,13 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
     using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC721 =
+        keccak256("MintRequestERC721(address to,uint256 quantity,string baseURI,bytes data)");
+
+    /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
@@ -161,6 +168,8 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
         _setupContractURI(uri);
     }
 
+    receive() external payable {}
+
     /**
      *  @notice Mints a token. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
@@ -168,7 +177,7 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
      *  @param quantity The quantity of tokens to mint.
      *  @param data ABI encoded data to pass to the beforeMint hook.
      */
-    function mint(address to, uint256 quantity, bytes calldata data, string calldata _baseURI) external payable {
+    function mint(address to, uint256 quantity, string calldata _baseURI, bytes calldata data) external payable {
         uint256 tokenId = _nextTokenId();
         _updateMetadata(to, tokenId, quantity, _baseURI);
         _beforeMint(to, tokenId, quantity, data);
@@ -179,18 +188,20 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
     function beforeMintWithSignature(
         address to,
         uint256 quantity,
+        string calldata baseURI,
         bytes calldata data,
-        bytes memory signature,
-        string calldata _baseURI
+        bytes memory signature
     ) external payable {
-        address signer = _hashTypedData(keccak256(data)).recover(signature);
+        address signer = _hashTypedData(
+            keccak256(abi.encode(TYPEHASH_SIGNATURE_MINT_ERC721, to, quantity, keccak256(bytes(baseURI)), data))
+        ).recover(signature);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
             revert SignatureMintUnauthorized();
         }
 
         uint256 tokenId = _nextTokenId();
-        _updateMetadata(to, tokenId, quantity, _baseURI);
+        _updateMetadata(to, tokenId, quantity, baseURI);
         _beforeMintWithSignature(to, tokenId, quantity, data);
         _safeMint(to, quantity, "");
     }
