@@ -13,6 +13,7 @@ import {LibString} from "@solady/utils/LibString.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeMintWithSignatureCallbackERC721} from "../../../callback/BeforeMintWithSignatureCallbackERC721.sol";
 
 library MintableStorage {
 
@@ -36,7 +37,13 @@ library MintableStorage {
 
 }
 
-contract MintableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
+contract MintableERC721 is
+    Module,
+    EIP712,
+    BeforeMintCallbackERC721,
+    BeforeMintWithSignatureCallbackERC721,
+    IInstallationCallback
+{
 
     using ECDSA for bytes32;
     using LibString for uint256;
@@ -178,21 +185,25 @@ contract MintableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallati
         override
         returns (bytes memory)
     {
+        if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
+            revert MintableRequestUnauthorized();
+        }
+    }
+
+    /// @notice Callback function for the ERC721Core.mint function.
+    function beforeMintWithSignatureERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
         MintParamsERC721 memory _params = abi.decode(_data, (MintParamsERC721));
 
-        // If the signature is empty, the caller must have the MINTER_ROLE.
-        if (_params.signature.length == 0) {
-            if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
-                revert MintableRequestUnauthorized();
-            }
-
-            // Else read and verify the payload and signature.
-        } else {
-            _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
-            _distributeMintPrice(
-                msg.sender, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
-            );
-        }
+        _mintWithSignatureERC721(_to, _quantity, _startTokenId, _params.request, _params.signature);
+        _distributeMintPrice(
+            msg.sender, _params.request.currency, _params.request.quantity * _params.request.pricePerUnit
+        );
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
