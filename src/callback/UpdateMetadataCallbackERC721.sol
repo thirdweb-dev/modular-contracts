@@ -23,6 +23,7 @@ contract UpdateMetadataCallbackERC721 {
      */
     function updateMetadataERC721(address _to, uint256 _startTokenId, uint256 _quantity, string calldata _baseURI)
         external
+        payable
         virtual
         returns (bytes memory result)
     {

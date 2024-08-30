@@ -3,7 +3,10 @@ pragma solidity ^0.8.20;
 
 import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
+
+import {UpdateMetadataCallbackERC721} from "../../../callback/UpdateMetadataCallbackERC721.sol";
 import {LibString} from "@solady/utils/LibString.sol";
+import {console} from "forge-std/console.sol";
 
 library BatchMetadataStorage {
 
@@ -29,7 +32,7 @@ library BatchMetadataStorage {
 
 }
 
-contract BatchMetadataERC721 is Module {
+contract BatchMetadataERC721 is Module, UpdateMetadataCallbackERC721 {
 
     using LibString for uint256;
 
@@ -112,6 +115,9 @@ contract BatchMetadataERC721 is Module {
     /// @notice Callback function for updating metadata
     function updateMetadataERC721(address _to, uint256 _startTokenId, uint256 _quantity, string calldata _baseURI)
         external
+        payable
+        virtual
+        override
         returns (bytes memory)
     {
         if (_startTokenId < _batchMetadataStorage().nextTokenIdRangeStart) {
