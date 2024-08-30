@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
+import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
 import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
@@ -41,6 +42,8 @@ library RoyaltyStorage {
 
 contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackERC721 {
 
+    bytes32 private constant DEFAULT_ACCESS_CONTROL_ADMIN_ROLE = 0x00;
+
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -76,7 +79,10 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
     error RoyaltyExceedsMaxBps();
 
     /// @notice Revert with an error if the transfer validator is not valid
-    error InvalidTransferValidatorContract();
+    error RoyaltyInvalidTransferValidatorContract();
+
+    /// @notice Revert with an error if the transfer validator is not valid
+    error RoyaltyNotTransferValidator();
 
     /*//////////////////////////////////////////////////////////////
                                MODULE CONFIG
@@ -98,12 +104,15 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
             FallbackFunction({selector: this.getTransferValidator.selector, permissionBits: 0});
         config.fallbackFunctions[4] =
             FallbackFunction({selector: this.getTransferValidationFunction.selector, permissionBits: 0});
-        config.fallbackFunctions[5] =
-            FallbackFunction({selector: this.setDefaultRoyaltyInfo.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.hasRole.selector, permissionBits: 0});
         config.fallbackFunctions[6] =
-            FallbackFunction({selector: this.setRoyaltyInfoForToken.selector, permissionBits: Role._MANAGER_ROLE});
+            FallbackFunction({selector: this.setDefaultRoyaltyInfo.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[7] =
+            FallbackFunction({selector: this.setRoyaltyInfoForToken.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[8] =
             FallbackFunction({selector: this.setTransferValidator.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[9] =
+            FallbackFunction({selector: this.setTransferPolicy.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -228,6 +237,16 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
         _setTransferValidator(validator);
     }
 
+    function hasRole(bytes32 role, address account) external view returns (bool) {
+        if (msg.sender != _royaltyStorage().transferValidator) {
+            revert RoyaltyNotTransferValidator();
+        }
+        if (role == DEFAULT_ACCESS_CONTROL_ADMIN_ROLE) {
+            return OwnableRoles(address(this)).hasAllRoles(account, Role._MANAGER_ROLE);
+        }
+        return OwnableRoles(address(this)).hasAllRoles(account, uint256(role));
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -246,7 +265,7 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
         bool isValidTransferValidator = validator.code.length > 0;
 
         if (validator != address(0) && !isValidTransferValidator) {
-            revert InvalidTransferValidatorContract();
+            revert RoyaltyInvalidTransferValidatorContract();
         }
 
         emit TransferValidatorUpdated(address(getTransferValidator()), validator);
