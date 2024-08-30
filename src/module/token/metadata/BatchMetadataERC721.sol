@@ -59,6 +59,9 @@ contract BatchMetadataERC721 is Module {
     /// @dev Emitted when trying to fetch metadata for a token that has no metadata.
     error BatchMetadataNoMetadataForTokenId();
 
+    /// @dev Emitted when trying to set metadata for a token that has already metadata.
+    error BatchMetadataMetadataAlreadySet();
+
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -77,10 +80,11 @@ contract BatchMetadataERC721 is Module {
 
     /// @notice Returns all implemented callback and module functions.
     function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.updateMetadataERC721.selector);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
@@ -103,6 +107,17 @@ contract BatchMetadataERC721 is Module {
     function onTokenURI(uint256 _id) public view returns (string memory) {
         (string memory batchUri, uint256 indexInBatch) = _getBaseURI(_id);
         return string(abi.encodePacked(batchUri, indexInBatch.toString()));
+    }
+
+    /// @notice Callback function for updating metadata
+    function updateMetadataERC721(address _to, uint256 _startTokenId, uint256 _quantity, string calldata _baseURI)
+        external
+        returns (bytes memory)
+    {
+        if (_startTokenId < _batchMetadataStorage().nextTokenIdRangeStart) {
+            revert BatchMetadataMetadataAlreadySet();
+        }
+        _setMetadata(_quantity, _baseURI);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -130,20 +145,8 @@ contract BatchMetadataERC721 is Module {
     }
 
     /// @notice Uploads metadata for a range of tokenIds.
-    function uploadMetadata(uint256 _amount, string calldata _baseURI) public virtual {
-        if (_amount == 0) {
-            revert BatchMetadataZeroAmount();
-        }
-
-        uint256 rangeStart = _batchMetadataStorage().nextTokenIdRangeStart;
-        uint256 rangeEndNonInclusive = rangeStart + _amount;
-
-        _batchMetadataStorage().nextTokenIdRangeStart = rangeEndNonInclusive;
-        _batchMetadataStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
-        _batchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
-
-        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
-        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
+    function uploadMetadata(uint256 _amount, string calldata _baseURI) external virtual {
+        _setMetadata(_amount, _baseURI);
     }
 
     function nextTokenIdToMint() external view returns (uint256) {
@@ -169,6 +172,23 @@ contract BatchMetadataERC721 is Module {
             }
         }
         revert BatchMetadataNoMetadataForTokenId();
+    }
+
+    /// @notice sets the metadata for a range of tokenIds.
+    function _setMetadata(uint256 _amount, string calldata _baseURI) internal virtual {
+        if (_amount == 0) {
+            revert BatchMetadataZeroAmount();
+        }
+
+        uint256 rangeStart = _batchMetadataStorage().nextTokenIdRangeStart;
+        uint256 rangeEndNonInclusive = rangeStart + _amount;
+
+        _batchMetadataStorage().nextTokenIdRangeStart = rangeEndNonInclusive;
+        _batchMetadataStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
+        _batchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
+
+        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
+        emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
     }
 
     function _batchMetadataStorage() internal pure returns (BatchMetadataStorage.Data storage) {
