@@ -343,9 +343,6 @@ contract ClaimableERC1155Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableIncorrectNativeTokenSent.selector));
-        // fails here
-        console.log("permissionedActorAddress");
-        console.logAddress(permissionedActor);
         core.mintWithSignature{value: (quantity * claimRequest.pricePerUnit)}(
             tokenRecipient, tokenId, quantity, baseURI, abi.encode(claimRequest), sig
         );

@@ -6,7 +6,6 @@ import "lib/forge-std/src/console.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
 
 // Target contract
 

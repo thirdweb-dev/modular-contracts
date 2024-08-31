@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import {ERC721A, ERC721AQueryable, IERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
-import {console} from "forge-std/console.sol";
 
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";

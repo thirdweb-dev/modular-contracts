@@ -19,7 +19,6 @@ import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallba
 import {UpdateMetadataCallbackERC1155} from "../../callback/UpdateMetadataCallbackERC1155.sol";
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
-import {console} from "forge-std/console.sol";
 
 contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
 

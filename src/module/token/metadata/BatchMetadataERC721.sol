@@ -6,7 +6,6 @@ import {Role} from "../../../Role.sol";
 
 import {UpdateMetadataCallbackERC721} from "../../../callback/UpdateMetadataCallbackERC721.sol";
 import {LibString} from "@solady/utils/LibString.sol";
-import {console} from "forge-std/console.sol";
 
 library BatchMetadataStorage {
 
