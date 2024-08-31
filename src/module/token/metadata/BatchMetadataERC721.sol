@@ -162,7 +162,7 @@ contract BatchMetadataERC721 is Module {
         for (uint256 i = 0; i < numOfBatches; i += 1) {
             if (_tokenId < rangeEnds[i]) {
                 uint256 rangeStart = 0;
-                if(i > 0) {
+                if (i > 0) {
                     rangeStart = rangeEnds[i - 1];
                 }
                 return (_batchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]], _tokenId - rangeStart);
