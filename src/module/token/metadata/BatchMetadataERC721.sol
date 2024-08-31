@@ -101,9 +101,8 @@ contract BatchMetadataERC721 is Module {
 
     /// @notice Callback function for ERC721Metadata.tokenURI
     function onTokenURI(uint256 _id) public view returns (string memory) {
-        string memory batchUri = _getBaseURI(_id);
-
-        return string(abi.encodePacked(batchUri, _id.toString()));
+        (string memory batchUri, uint256 indexInBatch) = _getBaseURI(_id);
+        return string(abi.encodePacked(batchUri, indexInBatch.toString()));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -155,14 +154,18 @@ contract BatchMetadataERC721 is Module {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
-    function _getBaseURI(uint256 _tokenId) internal view returns (string memory) {
+    /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + indexInBatch.
+    function _getBaseURI(uint256 _tokenId) internal view returns (string memory baseUri, uint256 indexInBatch) {
         uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd;
         uint256 numOfBatches = rangeEnds.length;
 
         for (uint256 i = 0; i < numOfBatches; i += 1) {
             if (_tokenId < rangeEnds[i]) {
-                return _batchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]];
+                uint256 rangeStart = 0;
+                if(i > 0) {
+                    rangeStart = rangeEnds[i - 1];
+                }
+                return (_batchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]], _tokenId - rangeStart);
             }
         }
         revert BatchMetadataNoMetadataForTokenId();
