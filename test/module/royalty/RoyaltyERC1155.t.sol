@@ -58,7 +58,10 @@ contract RoyaltyERC1155Test is Test {
     uint256 unpermissionedActorPrivateKey = 3;
     address public unpermissionedActor;
 
-    address tokenRecipient = address(0x123);
+    address tokenRecipient;
+    uint256 quantity = 100;
+    uint256 tokenId = 0;
+    string baseURI = "";
 
     bytes32 internal typehashMintRequest;
     bytes32 internal nameHash;
@@ -70,6 +73,7 @@ contract RoyaltyERC1155Test is Test {
 
     bytes32 internal evmVersionHash;
 
+    // Util fn
     function signMintRequest(MintableERC1155.MintRequestERC1155 memory _req, uint256 _privateKey)
         internal
         view
@@ -77,14 +81,11 @@ contract RoyaltyERC1155Test is Test {
     {
         bytes memory encodedRequest = abi.encode(
             typehashMintRequest,
-            _req.tokenId,
-            _req.startTimestamp,
-            _req.endTimestamp,
-            _req.recipient,
-            _req.quantity,
-            _req.currency,
-            _req.pricePerUnit,
-            _req.uid
+            tokenRecipient,
+            tokenId,
+            quantity,
+            keccak256(bytes(baseURI)),
+            abi.encode(_req.startTimestamp, _req.endTimestamp, _req.currency, _req.pricePerUnit, _req.uid)
         );
         bytes32 structHash = keccak256(encodedRequest);
         bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -97,6 +98,7 @@ contract RoyaltyERC1155Test is Test {
 
     function setUp() public {
         owner = vm.addr(ownerPrivateKey);
+        tokenRecipient = vm.addr(ownerPrivateKey);
         permissionedActor = vm.addr(permissionedActorPrivateKey);
         unpermissionedActor = vm.addr(unpermissionedActorPrivateKey);
 
@@ -120,10 +122,9 @@ contract RoyaltyERC1155Test is Test {
         core.installModule(address(mintableModuleImplementation), mintableModuleInitializeData);
         vm.stopPrank();
 
-        typehashMintRequest = keccak256(
-            "MintRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-        );
-        nameHash = keccak256(bytes("MintableERC1155"));
+        typehashMintRequest =
+            keccak256("MintRequestERC1155(address to,uint256 tokenId,uint256 value,string baseURI,bytes data)");
+        nameHash = keccak256(bytes("ERC1155Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
         domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(core)));
@@ -255,31 +256,31 @@ contract RoyaltyERC1155Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_allowsTransferWithTransferValidatorAddressZero() public {
-        _mintToken(owner, 2, 0, bytes32("1"));
-        _mintToken(owner, 1, 1, bytes32("2"));
+        _mintToken(bytes32("1"));
+        _mintToken(bytes32("2"));
 
-        assertEq(2, core.balanceOf(owner, 0));
-        assertEq(1, core.balanceOf(owner, 1));
+        assertEq(200, core.balanceOf(owner, 0));
+        assertEq(0, core.balanceOf(owner, 1));
 
         vm.prank(owner);
         core.setApprovalForAll(address(transferTokenContract), true);
 
-        transferTokenContract.transferToken(payable(address(core)), owner, permissionedActor, 0, 1);
+        transferTokenContract.transferToken(payable(address(core)), owner, permissionedActor, 0, 10);
 
-        assertEq(1, core.balanceOf(permissionedActor, 0));
+        assertEq(10, core.balanceOf(permissionedActor, 0));
 
         uint256[] memory tokenIds = new uint256[](2);
         tokenIds[0] = 0;
         tokenIds[1] = 1;
 
         uint256[] memory values = new uint256[](2);
-        values[0] = 1;
-        values[1] = 1;
+        values[0] = 50;
+        values[1] = 0;
 
         transferTokenContract.batchTransferToken(payable(address(core)), owner, permissionedActor, tokenIds, values);
 
-        assertEq(2, core.balanceOf(permissionedActor, 0));
-        assertEq(1, core.balanceOf(permissionedActor, 1));
+        assertEq(60, core.balanceOf(permissionedActor, 0));
+        assertEq(0, core.balanceOf(permissionedActor, 1));
     }
 
     function test_transferRestrictedWithValidValidator() public {
@@ -288,11 +289,11 @@ contract RoyaltyERC1155Test is Test {
             return;
         }
 
-        _mintToken(owner, 2, 0, bytes32("1"));
-        _mintToken(owner, 1, 1, bytes32("2"));
+        _mintToken(bytes32("1"));
+        _mintToken(bytes32("2"));
 
-        assertEq(2, core.balanceOf(owner, 0));
-        assertEq(1, core.balanceOf(owner, 1));
+        assertEq(200, core.balanceOf(owner, 0));
+        assertEq(0, core.balanceOf(owner, 1));
 
         // set transfer validator
         vm.prank(owner);
@@ -312,8 +313,8 @@ contract RoyaltyERC1155Test is Test {
         tokenIds[1] = 1;
 
         uint256[] memory values = new uint256[](2);
-        values[0] = 1;
-        values[1] = 1;
+        values[0] = 50;
+        values[1] = 0;
 
         vm.expectRevert(0xef28f901);
         transferTokenContract.batchTransferToken(payable(address(core)), owner, permissionedActor, tokenIds, values);
@@ -326,29 +327,24 @@ contract RoyaltyERC1155Test is Test {
                         UTILITY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _mintToken(address to, uint256 quantity, uint256 id, bytes32 uid) internal {
+    function _mintToken(bytes32 uid) internal {
         address saleRecipient = address(0x987);
 
         vm.prank(owner);
         MintableERC1155(address(core)).setSaleConfig(saleRecipient);
 
         MintableERC1155.MintRequestERC1155 memory mintRequest = MintableERC1155.MintRequestERC1155({
-            tokenId: id,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
-            recipient: to,
-            quantity: quantity,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: uid
         });
         bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);
 
-        MintableERC1155.MintParamsERC1155 memory params = MintableERC1155.MintParamsERC1155(mintRequest, sig);
-
         vm.prank(owner);
-        core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
-            mintRequest.recipient, mintRequest.tokenId, mintRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(
+            tokenRecipient, tokenId, quantity, baseURI, abi.encode(mintRequest), sig
         );
     }
 
