@@ -7,10 +7,7 @@ import {console} from "forge-std/console.sol";
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
-import {ECDSA} from "@solady/utils/ECDSA.sol";
-import {EIP712} from "@solady/utils/EIP712.sol";
 
-import {LibString} from "@solady/utils/LibString.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
@@ -40,14 +37,10 @@ library MintableStorage {
 
 contract MintableERC721 is
     Module,
-    EIP712,
     BeforeMintCallbackERC721,
     BeforeMintWithSignatureCallbackERC721,
     IInstallationCallback
 {
-
-    using ECDSA for bytes32;
-    using LibString for uint256;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -105,22 +98,8 @@ contract MintableERC721 is
     error MintableNoMetadataForTokenId();
 
     /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev Emitted when a new metadata batch is uploaded.
-    event NewMetadataBatch(uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive);
-
-    /// @dev ERC-4906 Metadata Update.
-    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
-
-    /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
-
-    bytes32 private constant TYPEHASH_MINTABLE_ERC721 = keccak256(
-        "MintRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-    );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -131,7 +110,7 @@ contract MintableERC721 is
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.fallbackFunctions = new FallbackFunction[](2);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
         config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC721.selector);
@@ -139,15 +118,11 @@ contract MintableERC721 is
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[2] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
 
         config.registerInstallationCallback = true;
-
-        config.supportedInterfaces = new bytes4[](1);
-        config.supportedInterfaces[0] = 0x49064906; // ERC4906.
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -275,12 +250,6 @@ contract MintableERC721 is
             }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
-    }
-
-    /// @dev Returns the domain name and version for EIP712.
-    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "MintableERC721";
-        version = "1";
     }
 
     function _mintableStorage() internal pure returns (MintableStorage.Data storage) {

@@ -8,10 +8,12 @@ contract BatchMetadataERC1155 is BatchMetadataERC721 {
 
     /// @notice Returns all implemented callback and module functions.
     function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](3);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.updateMetadataERC721.selector);
+
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
         config.fallbackFunctions[1] =
