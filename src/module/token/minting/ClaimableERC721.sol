@@ -235,6 +235,15 @@ contract ClaimableERC721 is
         return abi.encode(params);
     }
 
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
+    function encodeBytesBeforeMintWithSignatureERC721(ClaimRequestERC721 memory params)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(params);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/

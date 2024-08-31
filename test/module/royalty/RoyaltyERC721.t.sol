@@ -242,8 +242,6 @@ contract RoyaltyERC721Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_allowsTransferWithTransferValidatorAddressZero() public {
-        console.log("owner address");
-        console.logAddress(owner);
         _mintToken();
 
         assertEq(owner, core.ownerOf(0));
