@@ -19,6 +19,3 @@
 [submodule "lib/PermitC"]
 	path = lib/PermitC
 	url = https://github.com/limitbreakinc/PermitC
-[submodule "lib/contracts"]
-	path = lib/contracts
-	url = https://github.com/immutable/contracts
