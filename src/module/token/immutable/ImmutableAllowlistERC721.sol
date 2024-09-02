@@ -5,7 +5,7 @@ import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 
 import {BeforeApproveCallbackERC721} from "../../../callback/BeforeApproveCallbackERC721.sol";
-import {BeforeApproveForAllCallbackERC721} from "../../../callback/BeforeApproveForAllCallback.sol";
+import {BeforeApproveForAllCallback} from "../../../callback/BeforeApproveForAllCallback.sol";
 import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
 import {OperatorAllowlistEnforced} from "@imtbl/contracts/allowlist/OperatorAllowlistEnforced.sol";
 
@@ -13,7 +13,7 @@ library ImmutableAllowlistStorage {
 
     /// @custom:storage-location erc7201:token.immutableallowlist
     bytes32 public constant IMMUTABLE_ALLOWLIST_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.immutableallowlist")) - 1)) & ~bytes32(uint256(0xff));
+        keccak256(abi.encode(uint256(keccak256("token.immutableAllowlist.ERC721")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
         address operatorAllowlistRegistry;
@@ -31,7 +31,7 @@ library ImmutableAllowlistStorage {
 contract ImmutableAllowlistERC721 is
     Module,
     BeforeApproveCallbackERC721,
-    BeforeApproveForAllCallbackERC721,
+    BeforeApproveForAllCallback,
     BeforeTransferCallbackERC721,
     OperatorAllowlistEnforced
 {
@@ -58,8 +58,8 @@ contract ImmutableAllowlistERC721 is
         config.callbackFunctions = new CallbackFunction[](3);
         config.fallbackFunctions = new FallbackFunction[](2);
 
-        config.callbackFunctions[0] = CallbackFunction(this.beforeApprovalERC721.selector);
-        config.callbackFunctions[1] = CallbackFunction(this.beforeApprovalForAllERC721.selector);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeApproveERC721.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeApproveForAll.selector);
         config.callbackFunctions[2] = CallbackFunction(this.beforeTransferERC721.selector);
 
         config.fallbackFunctions[0] =
@@ -98,16 +98,16 @@ contract ImmutableAllowlistERC721 is
     {}
 
     /// @notice Callback function for ERC721.setApprovalForAll
-    function beforeApproveForAllERC721(address _from, address _to, bool _approved)
+    function beforeApproveForAll(address _from, address _to, bool _approved)
         external
         override
         isOperatorAllowlistSet
-        validateApproval(operator)
+        validateApproval(_to)
         returns (bytes memory)
     {}
 
     /// @notice Callback function for ERC721.transferFrom/safeTransferFrom
-    function beforeTransferERC721(address _from, address _to, uint256)
+    function beforeTransferERC721(address _from, address _to, uint256 _tokenId)
         external
         override
         isOperatorAllowlistSet
@@ -129,8 +129,8 @@ contract ImmutableAllowlistERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(address operatorAllowlistRegistru) external pure returns (bytes memory) {
-        return abi.encode(primarySaleRecipient);
+    function encodeBytesOnInstall(address operatorAllowlistRegistry) external pure returns (bytes memory) {
+        return abi.encode(operatorAllowlistRegistry);
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
