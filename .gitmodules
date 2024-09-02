@@ -19,3 +19,6 @@
 [submodule "lib/PermitC"]
 	path = lib/PermitC
 	url = https://github.com/limitbreakinc/PermitC
+[submodule "lib/contracts.git"]
+	path = lib/contracts.git
+	url = https://github.com/GWSzeto/contracts.git
