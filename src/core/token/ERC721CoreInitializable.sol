@@ -216,7 +216,9 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, Core, Multicall
         bytes memory signature
     ) external payable {
         address signer = _hashTypedData(
-            keccak256(abi.encode(TYPEHASH_SIGNATURE_MINT_ERC721, to, amount, keccak256(bytes(baseURI)), data))
+            keccak256(
+                abi.encode(TYPEHASH_SIGNATURE_MINT_ERC721, to, amount, keccak256(bytes(baseURI)), keccak256(data))
+            )
         ).recover(signature);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {

@@ -237,7 +237,11 @@ contract ERC1155CoreInitializable is ERC1155, Core, Multicallable, Initializable
         bytes memory signature
     ) external payable {
         address signer = _hashTypedData(
-            keccak256(abi.encode(TYPEHASH_SIGNATURE_MINT_ERC1155, to, tokenId, amount, keccak256(bytes(baseURI)), data))
+            keccak256(
+                abi.encode(
+                    TYPEHASH_SIGNATURE_MINT_ERC1155, to, tokenId, amount, keccak256(bytes(baseURI)), keccak256(data)
+                )
+            )
         ).recover(signature);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
