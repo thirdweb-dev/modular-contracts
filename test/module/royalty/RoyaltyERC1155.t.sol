@@ -63,24 +63,24 @@ contract RoyaltyERC1155Test is Test {
     uint256 tokenId = 0;
     string baseURI = "";
 
-    bytes32 internal typehashMintRequest;
+    bytes32 internal typehashMintSignatureParams;
     bytes32 internal nameHash;
     bytes32 internal versionHash;
     bytes32 internal typehashEip712;
     bytes32 internal domainSeparator;
 
-    MintableERC1155.MintRequestERC1155 public mintRequest;
+    MintableERC1155.MintSignatureParamsERC1155 public mintRequest;
 
     bytes32 internal evmVersionHash;
 
     // Util fn
-    function signMintRequest(MintableERC1155.MintRequestERC1155 memory _req, uint256 _privateKey)
+    function signMintSignatureParams(MintableERC1155.MintSignatureParamsERC1155 memory _req, uint256 _privateKey)
         internal
         view
         returns (bytes memory)
     {
         bytes memory encodedRequest = abi.encode(
-            typehashMintRequest,
+            typehashMintSignatureParams,
             tokenRecipient,
             tokenId,
             quantity,
@@ -122,8 +122,8 @@ contract RoyaltyERC1155Test is Test {
         core.installModule(address(mintableModuleImplementation), mintableModuleInitializeData);
         vm.stopPrank();
 
-        typehashMintRequest =
-            keccak256("MintRequestERC1155(address to,uint256 tokenId,uint256 value,string baseURI,bytes data)");
+        typehashMintSignatureParams =
+            keccak256("MintRequestERC1155(address to,uint256 tokenId,uint256 amount,string baseURI,bytes data)");
         nameHash = keccak256(bytes("ERC1155Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -333,14 +333,14 @@ contract RoyaltyERC1155Test is Test {
         vm.prank(owner);
         MintableERC1155(address(core)).setSaleConfig(saleRecipient);
 
-        MintableERC1155.MintRequestERC1155 memory mintRequest = MintableERC1155.MintRequestERC1155({
+        MintableERC1155.MintSignatureParamsERC1155 memory mintRequest = MintableERC1155.MintSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: uid
         });
-        bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);
+        bytes memory sig = signMintSignatureParams(mintRequest, ownerPrivateKey);
 
         vm.prank(owner);
         core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(

@@ -84,7 +84,7 @@ contract ClaimableERC1155 is
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
-    struct ClaimRequestERC1155 {
+    struct ClaimSignatureParamsERC1155 {
         uint48 startTimestamp;
         uint48 endTimestamp;
         address currency;
@@ -200,13 +200,13 @@ contract ClaimableERC1155 is
         bytes memory _data,
         address _signer
     ) external payable virtual override returns (bytes memory) {
-        ClaimRequestERC1155 memory _params = abi.decode(_data, (ClaimRequestERC1155));
+        ClaimSignatureParamsERC1155 memory _params = abi.decode(_data, (ClaimSignatureParamsERC1155));
 
         if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
             revert ClaimableSignatureMintUnauthorized();
         }
 
-        _validateClaimRequest(_amount, _id, _params);
+        _validateClaimSignatureParams(_amount, _id, _params);
 
         _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
@@ -244,7 +244,7 @@ contract ClaimableERC1155 is
     }
 
     /// @dev Returns bytes encoded mintWithSignature params, to be used in `beforeMintWithSignature` fallback function
-    function encodeBytesBeforeMintWithSignatureERC1155(ClaimRequestERC1155 memory params)
+    function encodeBytesBeforeMintWithSignatureERC1155(ClaimSignatureParamsERC1155 memory params)
         external
         pure
         returns (bytes memory)
@@ -318,7 +318,9 @@ contract ClaimableERC1155 is
     }
 
     /// @dev Verifies the claim request and signature.
-    function _validateClaimRequest(uint256 _amount, uint256 _tokenId, ClaimRequestERC1155 memory _req) internal {
+    function _validateClaimSignatureParams(uint256 _amount, uint256 _tokenId, ClaimSignatureParamsERC1155 memory _req)
+        internal
+    {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }

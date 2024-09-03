@@ -55,7 +55,7 @@ contract MintableERC721 is
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
-    struct MintRequestERC721 {
+    struct MintSignatureParamsERC721 {
         uint48 startTimestamp;
         uint48 endTimestamp;
         address currency;
@@ -153,7 +153,7 @@ contract MintableERC721 is
         bytes memory _data,
         address _signer
     ) external payable virtual override returns (bytes memory) {
-        MintRequestERC721 memory _params = abi.decode(_data, (MintRequestERC721));
+        MintSignatureParamsERC721 memory _params = abi.decode(_data, (MintSignatureParamsERC721));
 
         if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
             revert MintableSignatureMintUnauthorized();
@@ -191,7 +191,7 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesBeforeMintWithSignatureERC721(MintRequestERC721 memory params)
+    function encodeBytesBeforeMintWithSignatureERC721(MintSignatureParamsERC721 memory params)
         external
         pure
         returns (bytes memory)
@@ -219,7 +219,7 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _mintWithSignatureERC721(MintRequestERC721 memory _req) internal {
+    function _mintWithSignatureERC721(MintSignatureParamsERC721 memory _req) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert MintableRequestOutOfTimeWindow();
         }

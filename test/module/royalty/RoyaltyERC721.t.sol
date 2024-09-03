@@ -50,23 +50,23 @@ contract RoyaltyERC721Test is Test {
     uint256 quantity = 100;
     string baseURI = "";
 
-    bytes32 internal typehashMintRequest;
+    bytes32 internal typehashMintSignatureParams;
     bytes32 internal nameHash;
     bytes32 internal versionHash;
     bytes32 internal typehashEip712;
     bytes32 internal domainSeparator;
 
-    MintableERC721.MintRequestERC721 public mintRequest;
+    MintableERC721.MintSignatureParamsERC721 public mintRequest;
 
     bytes32 internal evmVersionHash;
 
-    function signMintRequest(MintableERC721.MintRequestERC721 memory _req, uint256 _privateKey)
+    function signMintSignatureParams(MintableERC721.MintSignatureParamsERC721 memory _req, uint256 _privateKey)
         internal
         view
         returns (bytes memory)
     {
         bytes memory encodedRequest = abi.encode(
-            typehashMintRequest,
+            typehashMintSignatureParams,
             tokenRecipient,
             quantity,
             keccak256(bytes(baseURI)),
@@ -109,7 +109,8 @@ contract RoyaltyERC721Test is Test {
         vm.stopPrank();
 
         // Setup signature vars
-        typehashMintRequest = keccak256("MintRequestERC721(address to,uint256 quantity,string baseURI,bytes data)");
+        typehashMintSignatureParams =
+            keccak256("MintRequestERC721(address to,uint256 amount,string baseURI,bytes data)");
         nameHash = keccak256(bytes("ERC721Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -288,14 +289,14 @@ contract RoyaltyERC721Test is Test {
         vm.prank(owner);
         MintableERC721(address(core)).setSaleConfig(saleRecipient);
 
-        MintableERC721.MintRequestERC721 memory mintRequest = MintableERC721.MintRequestERC721({
+        MintableERC721.MintSignatureParamsERC721 memory mintRequest = MintableERC721.MintSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: bytes32("1")
         });
-        bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);
+        bytes memory sig = signMintSignatureParams(mintRequest, ownerPrivateKey);
 
         vm.prank(owner);
         core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(

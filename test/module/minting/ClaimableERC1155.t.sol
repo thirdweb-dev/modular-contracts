@@ -62,26 +62,26 @@ contract ClaimableERC1155Test is Test {
     string baseURI = "ipfs://base/";
 
     // Signature vars
-    bytes32 internal typehashClaimRequest;
+    bytes32 internal typehashClaimSignatureParams;
     bytes32 internal nameHash;
     bytes32 internal versionHash;
     bytes32 internal typehashEip712;
     bytes32 internal domainSeparator;
 
-    ClaimableERC1155.ClaimRequestERC1155 public claimRequest;
+    ClaimableERC1155.ClaimSignatureParamsERC1155 public claimRequest;
     ClaimableERC1155.ClaimCondition public claimCondition;
 
     // Constants
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // Util fn
-    function signMintRequest(ClaimableERC1155.ClaimRequestERC1155 memory _req, uint256 _privateKey)
+    function signMintRequest(ClaimableERC1155.ClaimSignatureParamsERC1155 memory _req, uint256 _privateKey)
         internal
         view
         returns (bytes memory)
     {
         bytes memory encodedRequest = abi.encode(
-            typehashClaimRequest,
+            typehashClaimSignatureParams,
             tokenRecipient,
             tokenId,
             amount,
@@ -120,8 +120,8 @@ contract ClaimableERC1155Test is Test {
         core.installModule(address(batchMetadataModule), encodedBatchMetadataInstallParams);
 
         // Setup signature vars
-        typehashClaimRequest =
-            keccak256("MintRequestERC1155(address to,uint256 tokenId,uint256 value,string baseURI,bytes data)");
+        typehashClaimSignatureParams =
+            keccak256("MintRequestERC1155(address to,uint256 tokenId,uint256 amount,string baseURI,bytes data)");
         nameHash = keccak256(bytes("ERC1155Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -224,7 +224,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: NATIVE_TOKEN_ADDRESS,
@@ -271,7 +271,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: NATIVE_TOKEN_ADDRESS,
@@ -279,6 +279,8 @@ contract ClaimableERC1155Test is Test {
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
+        console.log("permissoned actor address");
+        console.logAddress(permissionedActor);
 
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);
@@ -326,7 +328,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: address(currency), // different currency from condition
@@ -378,7 +380,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: address(0),
@@ -410,7 +412,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp + 100), // tx before validity start
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(0),
@@ -442,7 +444,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             currency: address(0),
@@ -476,7 +478,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             currency: NATIVE_TOKEN_ADDRESS,
@@ -491,7 +493,7 @@ contract ClaimableERC1155Test is Test {
         );
         assertEq(core.balanceOf(tokenRecipient, 0), amount);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequestTwo = claimRequest;
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequestTwo = claimRequest;
         claimRequestTwo.pricePerUnit = 0;
 
         bytes memory sigTwo = signMintRequest(claimRequestTwo, permissionedActorPrivateKey);
@@ -516,7 +518,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(0),
@@ -526,7 +528,7 @@ contract ClaimableERC1155Test is Test {
         bytes memory sig = signMintRequest(claimRequest, ownerPrivateKey); // is owner but not MINTER_ROLE holder
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ERC1155Core.SignatureMintUnauthorized.selector));
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableSignatureMintUnauthorized.selector));
         core.mintWithSignature{value: (amount * condition.pricePerUnit)}(
             tokenRecipient, tokenId, amount, baseURI, abi.encode(claimRequest), sig
         );
@@ -548,7 +550,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: NATIVE_TOKEN_ADDRESS,
@@ -578,7 +580,7 @@ contract ClaimableERC1155Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: NATIVE_TOKEN_ADDRESS,
@@ -610,7 +612,7 @@ contract ClaimableERC1155Test is Test {
 
         assertEq(currency.balanceOf(tokenRecipient), 0);
 
-        ClaimableERC1155.ClaimRequestERC1155 memory claimRequest = ClaimableERC1155.ClaimRequestERC1155({
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(currency),

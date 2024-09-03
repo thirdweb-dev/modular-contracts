@@ -57,7 +57,7 @@ contract MintableERC1155 is
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
-    struct MintRequestERC1155 {
+    struct MintSignatureParamsERC1155 {
         uint48 startTimestamp;
         uint48 endTimestamp;
         address currency;
@@ -147,7 +147,7 @@ contract MintableERC1155 is
         bytes memory _data,
         address _signer
     ) external payable virtual override returns (bytes memory) {
-        MintRequestERC1155 memory _params = abi.decode(_data, (MintRequestERC1155));
+        MintSignatureParamsERC1155 memory _params = abi.decode(_data, (MintSignatureParamsERC1155));
 
         if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
             revert MintableSignatureMintUnauthorized();
@@ -184,7 +184,7 @@ contract MintableERC1155 is
                         Encode mint params
     //////////////////////////////////////////////////////////////*/
 
-    function encodeBytesBeforeMintWithSignatureERC1155(MintRequestERC1155 memory params)
+    function encodeBytesBeforeMintWithSignatureERC1155(MintSignatureParamsERC1155 memory params)
         external
         pure
         returns (bytes memory)
@@ -212,7 +212,7 @@ contract MintableERC1155 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _mintWithSignatureERC1155(MintRequestERC1155 memory _req) internal {
+    function _mintWithSignatureERC1155(MintSignatureParamsERC1155 memory _req) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert MintableRequestOutOfTimeWindow();
         }

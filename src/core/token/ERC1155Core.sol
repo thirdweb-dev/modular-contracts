@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
+import "forge-std/console.sol";
+
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
@@ -210,6 +212,8 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
         _mint(to, tokenId, amount, "");
     }
 
+    receive() external payable {}
+
     /**
      *  @notice Mints tokens with a signature. Calls the beforeMintWithSignature hook.
      *  @dev Reverts if beforeMintWithSignature hook is absent or unsuccessful.
@@ -235,6 +239,8 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
                 )
             )
         ).recover(signature);
+        console.log("signer");
+        console.logAddress(signer);
 
         if (bytes(baseURI).length > 0) {
             _updateMetadata(to, tokenId, amount, baseURI);

@@ -59,26 +59,26 @@ contract ClaimableERC721Test is Test {
     string baseURI = "ipfs://base/";
 
     // Signature vars
-    bytes32 internal typehashClaimRequest;
+    bytes32 internal typehashClaimSignatureParams;
     bytes32 internal nameHash;
     bytes32 internal versionHash;
     bytes32 internal typehashEip712;
     bytes32 internal domainSeparator;
 
-    ClaimableERC721.ClaimRequestERC721 public claimRequest;
+    ClaimableERC721.ClaimSignatureParamsERC721 public claimRequest;
     ClaimableERC721.ClaimCondition public claimCondition;
 
     // Constants
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // Util fn
-    function signMintRequest(ClaimableERC721.ClaimRequestERC721 memory _req, uint256 _privateKey)
+    function signMintRequest(ClaimableERC721.ClaimSignatureParamsERC721 memory _req, uint256 _privateKey)
         internal
         view
         returns (bytes memory)
     {
         bytes memory encodedRequest = abi.encode(
-            typehashClaimRequest,
+            typehashClaimSignatureParams,
             tokenRecipient,
             amount,
             keccak256(bytes(baseURI)),
@@ -115,7 +115,8 @@ contract ClaimableERC721Test is Test {
         core.installModule(address(batchMetadataModule), encodedBatchMetadataInstallParams);
 
         // Setup signature vars
-        typehashClaimRequest = keccak256("MintRequestERC721(address to,uint256 amount,string baseURI,bytes data)");
+        typehashClaimSignatureParams =
+            keccak256("MintRequestERC721(address to,uint256 amount,string baseURI,bytes data)");
         nameHash = keccak256(bytes("ERC721Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -216,7 +217,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: NATIVE_TOKEN_ADDRESS,
@@ -263,7 +264,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: NATIVE_TOKEN_ADDRESS,
@@ -318,7 +319,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: address(currency), // different currency from condition
@@ -370,7 +371,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: address(0),
@@ -402,7 +403,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp + 100), // tx before validity start
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(0),
@@ -434,7 +435,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             currency: address(0),
@@ -468,7 +469,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             currency: NATIVE_TOKEN_ADDRESS,
@@ -483,7 +484,7 @@ contract ClaimableERC721Test is Test {
         );
         assertEq(core.balanceOf(tokenRecipient), amount);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequestTwo = claimRequest;
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequestTwo = claimRequest;
         claimRequestTwo.pricePerUnit = 0;
 
         bytes memory sigTwo = signMintRequest(claimRequestTwo, permissionedActorPrivateKey);
@@ -508,7 +509,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(0),
@@ -518,7 +519,7 @@ contract ClaimableERC721Test is Test {
         bytes memory sig = signMintRequest(claimRequest, ownerPrivateKey); // is owner but not MINTER_ROLE holder
 
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ERC721Core.SignatureMintUnauthorized.selector));
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC721.ClaimableSignatureMintUnauthorized.selector));
         core.mintWithSignature{value: (amount * condition.pricePerUnit)}(
             tokenRecipient, amount, baseURI, abi.encode(claimRequest), sig
         );
@@ -540,7 +541,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: NATIVE_TOKEN_ADDRESS,
@@ -570,7 +571,7 @@ contract ClaimableERC721Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: NATIVE_TOKEN_ADDRESS,
@@ -602,7 +603,7 @@ contract ClaimableERC721Test is Test {
 
         assertEq(currency.balanceOf(tokenRecipient), 0);
 
-        ClaimableERC721.ClaimRequestERC721 memory claimRequest = ClaimableERC721.ClaimRequestERC721({
+        ClaimableERC721.ClaimSignatureParamsERC721 memory claimRequest = ClaimableERC721.ClaimSignatureParamsERC721({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(currency),
