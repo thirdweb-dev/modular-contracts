@@ -14,7 +14,7 @@ import {IERC20} from "../../interface/IERC20.sol";
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
 import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
-import {BeforeMintWithSignatureCallbackERC20} from "../../callback/BeforeMintWithSignatureERC20.sol";
+import {BeforeMintWithSignatureCallbackERC20} from "../../callback/BeforeMintWithSignatureCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
 contract ERC20Core is ERC20, Multicallable, Core, EIP712 {
