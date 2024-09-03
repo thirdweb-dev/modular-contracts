@@ -56,7 +56,7 @@ contract MintableERC721Test is Test {
     address public unpermissionedActor;
 
     address tokenRecipient = address(0x123);
-    uint256 quantity = 100;
+    uint256 amount = 100;
     string baseURI = "ipfs://base/";
 
     // Signature vars
@@ -80,7 +80,7 @@ contract MintableERC721Test is Test {
         bytes memory encodedRequest = abi.encode(
             typehashMintRequest,
             tokenRecipient,
-            quantity,
+            amount,
             keccak256(bytes(baseURI)),
             abi.encode(_req.startTimestamp, _req.endTimestamp, _req.currency, _req.pricePerUnit, _req.uid)
         );
@@ -115,7 +115,7 @@ contract MintableERC721Test is Test {
         core.installModule(address(batchMetadataModule), encodedBatchMetadataInstallParams);
 
         // Setup signature vars
-        typehashMintRequest = keccak256("MintRequestERC721(address to,uint256 quantity,string baseURI,bytes data)");
+        typehashMintRequest = keccak256("MintRequestERC721(address to,uint256 amount,string baseURI,bytes data)");
         nameHash = keccak256(bytes("ERC721Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -173,14 +173,14 @@ contract MintableERC721Test is Test {
         assertEq(saleRecipient.balance, 0);
 
         vm.prank(tokenRecipient);
-        core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(
-            tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig
+        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+            tokenRecipient, amount, baseURI, abi.encode(mintRequest), sig
         );
 
         // Check minted balance
-        assertEq(core.balanceOf(address(0x123)), quantity);
+        assertEq(core.balanceOf(address(0x123)), amount);
 
-        uint256 salePrice = quantity * mintRequest.pricePerUnit;
+        uint256 salePrice = amount * mintRequest.pricePerUnit;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -199,8 +199,8 @@ contract MintableERC721Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert();
-        core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(
-            tokenRecipient, quantity, baseURI, abi.encode(bytes("random mixer")), sig
+        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+            tokenRecipient, amount, baseURI, abi.encode(bytes("random mixer")), sig
         );
     }
 
@@ -218,8 +218,8 @@ contract MintableERC721Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableRequestOutOfTimeWindow.selector));
-        core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(
-            tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig
+        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+            tokenRecipient, amount, baseURI, abi.encode(mintRequest), sig
         );
     }
 
@@ -239,8 +239,8 @@ contract MintableERC721Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableRequestOutOfTimeWindow.selector));
-        core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(
-            tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig
+        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+            tokenRecipient, amount, baseURI, abi.encode(mintRequest), sig
         );
     }
 
@@ -257,10 +257,10 @@ contract MintableERC721Test is Test {
         bytes memory sig = signMintRequest(mintRequest, permissionedActorPrivateKey);
 
         vm.prank(tokenRecipient);
-        core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(
-            tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig
+        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+            tokenRecipient, amount, baseURI, abi.encode(mintRequest), sig
         );
-        assertEq(core.balanceOf(tokenRecipient), quantity);
+        assertEq(core.balanceOf(tokenRecipient), amount);
 
         MintableERC721.MintRequestERC721 memory mintRequestTwo = mintRequest;
         mintRequestTwo.pricePerUnit = 0;
@@ -268,7 +268,7 @@ contract MintableERC721Test is Test {
         bytes memory sigTwo = signMintRequest(mintRequestTwo, permissionedActorPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableRequestUidReused.selector));
-        core.mintWithSignature(tokenRecipient, quantity, baseURI, abi.encode(mintRequestTwo), sigTwo);
+        core.mintWithSignature(tokenRecipient, amount, baseURI, abi.encode(mintRequestTwo), sigTwo);
     }
 
     function test_mint_revert_requestUnauthorizedSigner() public {
@@ -285,8 +285,8 @@ contract MintableERC721Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ERC721Core.SignatureMintUnauthorized.selector));
-        core.mintWithSignature{value: quantity * mintRequest.pricePerUnit}(
-            tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig
+        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+            tokenRecipient, amount, baseURI, abi.encode(mintRequest), sig
         );
     }
 
@@ -304,7 +304,7 @@ contract MintableERC721Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableIncorrectNativeTokenSent.selector));
-        core.mintWithSignature{value: 1 ether}(tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig);
+        core.mintWithSignature{value: 1 ether}(tokenRecipient, amount, baseURI, abi.encode(mintRequest), sig);
     }
 
     function test_mint_revert_incorrectNativeTokenSent() public {
@@ -321,7 +321,7 @@ contract MintableERC721Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC721.MintableIncorrectNativeTokenSent.selector));
-        core.mintWithSignature{value: 1 ether}(tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig);
+        core.mintWithSignature{value: 1 ether}(tokenRecipient, amount, baseURI, abi.encode(mintRequest), sig);
     }
 
     function test_mint_revert_insufficientERC721CurrencyBalance() public {
@@ -340,7 +340,7 @@ contract MintableERC721Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()
-        core.mintWithSignature(tokenRecipient, quantity, baseURI, abi.encode(mintRequest), sig);
+        core.mintWithSignature(tokenRecipient, amount, baseURI, abi.encode(mintRequest), sig);
     }
 
 }

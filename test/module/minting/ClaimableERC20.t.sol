@@ -79,7 +79,7 @@ contract ClaimableERC20Test is Test {
             _req.startTimestamp,
             _req.endTimestamp,
             _req.recipient,
-            _req.quantity,
+            _req.amount,
             _req.currency,
             _req.pricePerUnit,
             _req.uid
@@ -111,7 +111,7 @@ contract ClaimableERC20Test is Test {
 
         // Setup signature vars
         typehashClaimRequest = keccak256(
-            "ClaimRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+            "ClaimRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 amount,address currency,uint256 pricePerUnit,bytes32 uid)"
         );
         nameHash = keccak256(bytes("ClaimableERC20"));
         versionHash = keccak256(bytes("1"));
@@ -217,7 +217,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -232,14 +232,14 @@ contract ClaimableERC20Test is Test {
         assertEq(saleRecipient.balance, 0);
 
         vm.prank(tokenRecipient);
-        core.mint{value: (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mint{value: (claimRequest.amount * claimRequest.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(params)
         );
 
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), 100 ether);
 
-        uint256 salePrice = (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether;
+        uint256 salePrice = (claimRequest.amount * claimRequest.pricePerUnit) / 1 ether;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -269,7 +269,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.2 ether, // different price from condition
             uid: bytes32("1")
@@ -285,19 +285,19 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectNativeTokenSent.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mint{value: (claimRequest.amount * condition.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(params)
         );
 
         vm.prank(tokenRecipient);
-        core.mint{value: (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mint{value: (claimRequest.amount * claimRequest.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(params)
         );
 
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), 100 ether);
 
-        uint256 salePrice = (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether;
+        uint256 salePrice = (claimRequest.amount * claimRequest.pricePerUnit) / 1 ether;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -329,7 +329,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(currency), // different currency from condition
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -347,17 +347,17 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectNativeTokenSent.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mint{value: (claimRequest.amount * condition.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(params)
         );
 
-        uint256 salePrice = (claimRequest.quantity * condition.pricePerUnit) / 1 ether;
+        uint256 salePrice = (claimRequest.amount * condition.pricePerUnit) / 1 ether;
 
         vm.prank(tokenRecipient);
         currency.approve(address(core), salePrice);
 
         vm.prank(tokenRecipient);
-        core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mint(claimRequest.recipient, claimRequest.amount, abi.encode(params));
 
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), 100 ether);
@@ -386,7 +386,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -398,8 +398,8 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert();
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(bytes("random mixer"), params)
+        core.mint{value: (claimRequest.amount * condition.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(bytes("random mixer"), params)
         );
     }
 
@@ -423,7 +423,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -435,9 +435,9 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestMismatch.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
+        core.mint{value: (claimRequest.amount * condition.pricePerUnit) / 1 ether}(
             address(0x456), // recipient mismatch
-            claimRequest.quantity,
+            claimRequest.amount,
             abi.encode(params)
         );
     }
@@ -462,7 +462,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -474,9 +474,9 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestMismatch.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
+        core.mint{value: (claimRequest.amount * condition.pricePerUnit) / 1 ether}(
             claimRequest.recipient,
-            claimRequest.quantity - 1, // quantity mismatch
+            claimRequest.amount - 1, // amount mismatch
             abi.encode(params)
         );
     }
@@ -501,7 +501,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp + 100), // tx before validity start
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -513,8 +513,8 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestOutOfTimeWindow.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mint{value: (claimRequest.amount * condition.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(params)
         );
     }
 
@@ -538,7 +538,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -552,8 +552,8 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestOutOfTimeWindow.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mint{value: (claimRequest.amount * condition.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(params)
         );
     }
 
@@ -577,7 +577,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -588,10 +588,10 @@ contract ClaimableERC20Test is Test {
             ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
-        core.mint{value: (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mint{value: (claimRequest.amount * claimRequest.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(params)
         );
-        assertEq(core.balanceOf(claimRequest.recipient), claimRequest.quantity);
+        assertEq(core.balanceOf(claimRequest.recipient), claimRequest.amount);
 
         ClaimableERC20.ClaimRequestERC20 memory claimRequestTwo = claimRequest;
         claimRequestTwo.recipient = address(0x786);
@@ -603,7 +603,7 @@ contract ClaimableERC20Test is Test {
             ClaimableERC20.ClaimParamsERC20(claimRequestTwo, sigTwo, address(0), 0, new bytes32[](0));
 
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestUidReused.selector));
-        core.mint(claimRequestTwo.recipient, claimRequestTwo.quantity, abi.encode(paramsTwo));
+        core.mint(claimRequestTwo.recipient, claimRequestTwo.amount, abi.encode(paramsTwo));
     }
 
     function test_mint_revert_requestUnauthorizedSigner() public {
@@ -626,7 +626,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -638,8 +638,8 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestUnauthorizedSignature.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mint{value: (claimRequest.amount * condition.pricePerUnit) / 1 ether}(
+            claimRequest.recipient, claimRequest.amount, abi.encode(params)
         );
     }
 
@@ -663,7 +663,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: bytes32("1")
@@ -675,7 +675,7 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectNativeTokenSent.selector));
-        core.mint{value: 1 ether}(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mint{value: 1 ether}(claimRequest.recipient, claimRequest.amount, abi.encode(params));
     }
 
     function test_mint_revert_incorrectNativeTokenSent() public {
@@ -698,7 +698,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -710,7 +710,7 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectNativeTokenSent.selector));
-        core.mint{value: 5 ether}(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mint{value: 5 ether}(claimRequest.recipient, claimRequest.amount, abi.encode(params));
     }
 
     function test_mint_revert_insufficientERC20CurrencyBalance() public {
@@ -735,7 +735,7 @@ contract ClaimableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(currency),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -747,7 +747,7 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()
-        core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mint(claimRequest.recipient, claimRequest.amount, abi.encode(params));
     }
 
     function test_mint_revert_unexpectedPriceOrCurrency() public {
@@ -778,13 +778,13 @@ contract ClaimableERC20Test is Test {
         ); // unexpected currrency
 
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectPriceOrCurrency.selector));
-        core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mint(claimRequest.recipient, claimRequest.amount, abi.encode(params));
 
         params.currency = NATIVE_TOKEN_ADDRESS;
         params.pricePerUnit = 0.1 ether; // unexpected price
 
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectPriceOrCurrency.selector));
-        core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mint(claimRequest.recipient, claimRequest.amount, abi.encode(params));
     }
 
 }

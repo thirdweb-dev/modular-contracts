@@ -52,7 +52,7 @@ contract MintableERC1155 is
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
-     *  @param quantity The quantity of tokens to mint.
+     *  @param amount The amount of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
@@ -125,7 +125,7 @@ contract MintableERC1155 is
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -137,7 +137,7 @@ contract MintableERC1155 is
         }
     }
 
-    function beforeMintWithSignatureERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+    function beforeMintWithSignatureERC1155(address _to, uint256 _id, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -147,7 +147,7 @@ contract MintableERC1155 is
         MintRequestERC1155 memory _params = abi.decode(_data, (MintRequestERC1155));
 
         _mintWithSignatureERC1155(_params);
-        _distributeMintPrice(msg.sender, _params.currency, _quantity * _params.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.

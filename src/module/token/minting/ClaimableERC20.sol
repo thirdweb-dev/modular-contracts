@@ -79,7 +79,7 @@ contract ClaimableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallatio
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
-     *  @param quantity The quantity of tokens to mint.
+     *  @param amount The amount of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
@@ -88,7 +88,7 @@ contract ClaimableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallatio
         uint48 startTimestamp;
         uint48 endTimestamp;
         address recipient;
-        uint256 quantity;
+        uint256 amount;
         address currency;
         uint256 pricePerUnit;
         bytes32 uid;
@@ -144,7 +144,7 @@ contract ClaimableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallatio
     //////////////////////////////////////////////////////////////*/
 
     bytes32 private constant TYPEHASH_CLAIMABLE_ERC20 = keccak256(
-        "ClaimRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+        "ClaimRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 amount,address currency,uint256 pricePerUnit,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -309,7 +309,7 @@ contract ClaimableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallatio
         ClaimRequestERC20 memory _req,
         bytes memory _signature
     ) internal {
-        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
+        if (_req.recipient != _expectedRecipient || _req.amount != _expectedAmount) {
             revert ClaimableRequestMismatch();
         }
 
@@ -321,7 +321,7 @@ contract ClaimableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallatio
             revert ClaimableRequestUidReused();
         }
 
-        if (_req.quantity > _claimableStorage().claimCondition.availableSupply) {
+        if (_req.amount > _claimableStorage().claimCondition.availableSupply) {
             revert ClaimableOutOfSupply();
         }
 
@@ -332,7 +332,7 @@ contract ClaimableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallatio
                     _req.startTimestamp,
                     _req.endTimestamp,
                     _req.recipient,
-                    _req.quantity,
+                    _req.amount,
                     _req.currency,
                     _req.pricePerUnit,
                     _req.uid
@@ -345,7 +345,7 @@ contract ClaimableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallatio
         }
 
         _claimableStorage().uidUsed[_req.uid] = true;
-        _claimableStorage().claimCondition.availableSupply -= _req.quantity;
+        _claimableStorage().claimCondition.availableSupply -= _req.amount;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.

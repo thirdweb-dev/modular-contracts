@@ -48,7 +48,7 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
-     *  @param quantity The quantity of tokens to mint.
+     *  @param amount The amount of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
@@ -57,7 +57,7 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
         uint48 startTimestamp;
         uint48 endTimestamp;
         address recipient;
-        uint256 quantity;
+        uint256 amount;
         address currency;
         uint256 pricePerUnit;
         bytes32 uid;
@@ -107,7 +107,7 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
     //////////////////////////////////////////////////////////////*/
 
     bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC20 = keccak256(
-        "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+        "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 amount,address currency,uint256 pricePerUnit,bytes32 uid)"
     );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -139,7 +139,7 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC20Core.mint function.
-    function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
+    function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -156,9 +156,9 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
 
             // Else read and verify the payload and signature.
         } else {
-            _mintWithSignatureERC20(_to, _quantity, _params.request, _params.signature);
+            _mintWithSignatureERC20(_to, _amount, _params.request, _params.signature);
             _distributeMintPrice(
-                msg.sender, _params.request.currency, (_params.request.quantity * _params.request.pricePerUnit) / 1e18
+                msg.sender, _params.request.currency, (_params.request.amount * _params.request.pricePerUnit) / 1e18
             );
         }
     }
@@ -221,7 +221,7 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
         MintRequestERC20 memory _req,
         bytes memory _signature
     ) internal {
-        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
+        if (_req.recipient != _expectedRecipient || _req.amount != _expectedAmount) {
             revert MintableRequestMismatch();
         }
 
@@ -240,7 +240,7 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
                     _req.startTimestamp,
                     _req.endTimestamp,
                     _req.recipient,
-                    _req.quantity,
+                    _req.amount,
                     _req.currency,
                     _req.pricePerUnit,
                     _req.uid

@@ -74,7 +74,7 @@ contract CreatorTokenERC20Test is Test {
             _req.startTimestamp,
             _req.endTimestamp,
             _req.recipient,
-            _req.quantity,
+            _req.amount,
             _req.currency,
             _req.pricePerUnit,
             _req.uid
@@ -114,7 +114,7 @@ contract CreatorTokenERC20Test is Test {
         vm.stopPrank();
 
         typehashMintRequest = keccak256(
-            "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+            "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 amount,address currency,uint256 pricePerUnit,bytes32 uid)"
         );
         nameHash = keccak256(bytes("MintableERC20"));
         versionHash = keccak256(bytes("1"));
@@ -196,7 +196,7 @@ contract CreatorTokenERC20Test is Test {
         assertEq(0, core.balanceOf(permissionedActor));
     }
 
-    function _mintToken(address to, uint256 quantity) internal {
+    function _mintToken(address to, uint256 amount) internal {
         address saleRecipient = address(0x987);
 
         vm.prank(owner);
@@ -206,7 +206,7 @@ contract CreatorTokenERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: to,
-            quantity: quantity,
+            amount: amount,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: bytes32("1")
@@ -216,8 +216,8 @@ contract CreatorTokenERC20Test is Test {
         MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
 
         vm.prank(owner);
-        core.mint{value: mintRequest.quantity * mintRequest.pricePerUnit}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        core.mint{value: mintRequest.amount * mintRequest.pricePerUnit}(
+            mintRequest.recipient, mintRequest.amount, abi.encode(params)
         );
     }
 

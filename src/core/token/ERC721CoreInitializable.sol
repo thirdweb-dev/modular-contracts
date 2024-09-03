@@ -35,7 +35,7 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, Core, Multicall
     //////////////////////////////////////////////////////////////*/
 
     bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC721 =
-        keccak256("MintRequestERC721(address to,uint256 quantity,string baseURI,bytes data)");
+        keccak256("MintRequestERC721(address to,uint256 amount,string baseURI,bytes data)");
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -188,35 +188,35 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, Core, Multicall
      *  @notice Mints a token. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
      *  @param to The address to mint the token to.
-     *  @param quantity The quantity of tokens to mint.
+     *  @param amount The amount of tokens to mint.
      *  @param data ABI encoded data to pass to the beforeMint hook.
      */
-    function mint(address to, uint256 quantity, string calldata baseURI, bytes calldata data) external payable {
+    function mint(address to, uint256 amount, string calldata baseURI, bytes calldata data) external payable {
         uint256 tokenId = _nextTokenId();
         if (bytes(baseURI).length > 0) {
-            _updateMetadata(to, tokenId, quantity, baseURI);
+            _updateMetadata(to, tokenId, amount, baseURI);
         }
-        _beforeMint(to, tokenId, quantity, data);
-        _safeMint(to, quantity, "");
+        _beforeMint(to, tokenId, amount, data);
+        _safeMint(to, amount, "");
     }
 
     /**
      *  @notice Mints a token with a signature. Calls the beforeMint hook.
      *  @dev Reverts if beforeMint hook is absent or unsuccessful.
      *  @param to The address to mint the token to.
-     *  @param quantity The quantity of tokens to mint.
+     *  @param amount The amount of tokens to mint.
      *  @param data ABI encoded data to pass to the beforeMint hook.
      *  @param signature The signature produced from signing the minting request.
      */
     function mintWithSignature(
         address to,
-        uint256 quantity,
+        uint256 amount,
         string calldata baseURI,
         bytes calldata data,
         bytes memory signature
     ) external payable {
         address signer = _hashTypedData(
-            keccak256(abi.encode(TYPEHASH_SIGNATURE_MINT_ERC721, to, quantity, keccak256(bytes(baseURI)), data))
+            keccak256(abi.encode(TYPEHASH_SIGNATURE_MINT_ERC721, to, amount, keccak256(bytes(baseURI)), data))
         ).recover(signature);
 
         if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
@@ -226,10 +226,10 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, Core, Multicall
         uint256 tokenId = _nextTokenId();
 
         if (bytes(baseURI).length > 0) {
-            _updateMetadata(to, tokenId, quantity, baseURI);
+            _updateMetadata(to, tokenId, amount, baseURI);
         }
-        _beforeMintWithSignature(to, tokenId, quantity, data);
-        _safeMint(to, quantity, "");
+        _beforeMintWithSignature(to, tokenId, amount, data);
+        _safeMint(to, amount, "");
     }
 
     /**
@@ -298,22 +298,22 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, Core, Multicall
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal virtual {
+    function _beforeMint(address to, uint256 startTokenId, uint256 amount, bytes calldata data) internal virtual {
         _executeCallbackFunction(
             BeforeMintCallbackERC721.beforeMintERC721.selector,
-            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (to, startTokenId, quantity, data))
+            abi.encodeCall(BeforeMintCallbackERC721.beforeMintERC721, (to, startTokenId, amount, data))
         );
     }
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMintWithSignature(address to, uint256 startTokenId, uint256 quantity, bytes calldata data)
+    function _beforeMintWithSignature(address to, uint256 startTokenId, uint256 amount, bytes calldata data)
         internal
         virtual
     {
         _executeCallbackFunction(
             BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721.selector,
             abi.encodeCall(
-                BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721, (to, startTokenId, quantity, data)
+                BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721, (to, startTokenId, amount, data)
             )
         );
     }
@@ -351,13 +351,13 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, Core, Multicall
     }
 
     /// @dev Calls the updateMetadata hook, if installed.
-    function _updateMetadata(address to, uint256 startTokenId, uint256 quantity, string calldata baseURI)
+    function _updateMetadata(address to, uint256 startTokenId, uint256 amount, string calldata baseURI)
         internal
         virtual
     {
         _executeCallbackFunction(
             UpdateMetadataCallbackERC721.updateMetadataERC721.selector,
-            abi.encodeCall(UpdateMetadataCallbackERC721.updateMetadataERC721, (to, startTokenId, quantity, baseURI))
+            abi.encodeCall(UpdateMetadataCallbackERC721.updateMetadataERC721, (to, startTokenId, amount, baseURI))
         );
     }
 

@@ -174,7 +174,7 @@ contract ClaimableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -183,13 +183,13 @@ contract ClaimableERC721 is
     {
         ClaimParamsERC721 memory _params = abi.decode(_data, (ClaimParamsERC721));
 
-        _validateClaimCondition(_to, _quantity, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof);
+        _validateClaimCondition(_to, _amount, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof);
 
-        _distributeMintPrice(msg.sender, _params.currency, _quantity * _params.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintWithSignatureERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+    function beforeMintWithSignatureERC721(address _to, uint256 _startTokenId, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -198,9 +198,9 @@ contract ClaimableERC721 is
     {
         ClaimRequestERC721 memory _params = abi.decode(_data, (ClaimRequestERC721));
 
-        _validateClaimRequest(_params, _quantity);
+        _validateClaimRequest(_params, _amount);
 
-        _distributeMintPrice(msg.sender, _params.currency, _quantity * _params.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
@@ -309,7 +309,7 @@ contract ClaimableERC721 is
     }
 
     /// @dev Verifies the claim request and signature.
-    function _validateClaimRequest(ClaimRequestERC721 memory _req, uint256 _quantity) internal {
+    function _validateClaimRequest(ClaimRequestERC721 memory _req, uint256 _amount) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }
@@ -318,12 +318,12 @@ contract ClaimableERC721 is
             revert ClaimableRequestUidReused();
         }
 
-        if (_quantity > _claimableStorage().claimCondition.availableSupply) {
+        if (_amount > _claimableStorage().claimCondition.availableSupply) {
             revert ClaimableOutOfSupply();
         }
 
         _claimableStorage().uidUsed[_req.uid] = true;
-        _claimableStorage().claimCondition.availableSupply -= _quantity;
+        _claimableStorage().claimCondition.availableSupply -= _amount;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.

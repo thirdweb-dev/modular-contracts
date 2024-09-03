@@ -203,14 +203,14 @@ contract ERC20CoreInitializable is ERC20, Core, Multicallable, Initializable {
      *
      *  @param owner The account approving the tokens
      *  @param spender The address to approve
-     *  @param value Amount of tokens to approve
+     *  @param amount Amount of tokens to approve
      */
-    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+    function permit(address owner, address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
         public
         override
     {
-        _beforeApprove(owner, spender, value);
-        super.permit(owner, spender, value, deadline, v, r, s);
+        _beforeApprove(owner, spender, amount);
+        super.permit(owner, spender, amount, deadline, v, r, s);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -79,7 +79,7 @@ contract MintableERC20Test is Test {
             _req.startTimestamp,
             _req.endTimestamp,
             _req.recipient,
-            _req.quantity,
+            _req.amount,
             _req.currency,
             _req.pricePerUnit,
             _req.uid
@@ -111,7 +111,7 @@ contract MintableERC20Test is Test {
 
         // Setup signature vars
         typehashMintRequest = keccak256(
-            "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
+            "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 amount,address currency,uint256 pricePerUnit,bytes32 uid)"
         );
         nameHash = keccak256(bytes("MintableERC20"));
         versionHash = keccak256(bytes("1"));
@@ -160,7 +160,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -174,14 +174,14 @@ contract MintableERC20Test is Test {
         assertEq(saleRecipient.balance, 0);
 
         vm.prank(tokenRecipient);
-        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        core.mint{value: (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.amount, abi.encode(params)
         );
 
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), 100 ether);
 
-        uint256 salePrice = (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether;
+        uint256 salePrice = (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -193,7 +193,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -204,8 +204,8 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert();
-        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(bytes("random mixer"), params)
+        core.mint{value: (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.amount, abi.encode(bytes("random mixer"), params)
         );
     }
 
@@ -216,7 +216,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -227,9 +227,9 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestMismatch.selector));
-        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+        core.mint{value: (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether}(
             address(0x456), // recipient mismatch
-            mintRequest.quantity,
+            mintRequest.amount,
             abi.encode(params)
         );
     }
@@ -241,7 +241,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -252,9 +252,9 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestMismatch.selector));
-        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
+        core.mint{value: (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether}(
             mintRequest.recipient,
-            mintRequest.quantity - 1, // quantity mismatch
+            mintRequest.amount - 1, // amount mismatch
             abi.encode(params)
         );
     }
@@ -266,7 +266,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp + 100), // tx before validity start
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -277,8 +277,8 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestOutOfTimeWindow.selector));
-        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        core.mint{value: (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.amount, abi.encode(params)
         );
     }
 
@@ -289,7 +289,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -302,8 +302,8 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestOutOfTimeWindow.selector));
-        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        core.mint{value: (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.amount, abi.encode(params)
         );
     }
 
@@ -314,7 +314,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -324,10 +324,10 @@ contract MintableERC20Test is Test {
         MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
 
         vm.prank(tokenRecipient);
-        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        core.mint{value: (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.amount, abi.encode(params)
         );
-        assertEq(core.balanceOf(mintRequest.recipient), mintRequest.quantity);
+        assertEq(core.balanceOf(mintRequest.recipient), mintRequest.amount);
 
         MintableERC20.MintRequestERC20 memory mintRequestTwo = mintRequest;
         mintRequestTwo.recipient = address(0x786);
@@ -338,7 +338,7 @@ contract MintableERC20Test is Test {
         MintableERC20.MintParamsERC20 memory paramsTwo = MintableERC20.MintParamsERC20(mintRequestTwo, sigTwo);
 
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestUidReused.selector));
-        core.mint(mintRequestTwo.recipient, mintRequestTwo.quantity, abi.encode(paramsTwo));
+        core.mint(mintRequestTwo.recipient, mintRequestTwo.amount, abi.encode(paramsTwo));
     }
 
     function test_mint_revert_requestUnauthorizedSigner() public {
@@ -348,7 +348,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -359,8 +359,8 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestUnauthorized.selector));
-        core.mint{value: (mintRequest.quantity * mintRequest.pricePerUnit) / 1 ether}(
-            mintRequest.recipient, mintRequest.quantity, abi.encode(params)
+        core.mint{value: (mintRequest.amount * mintRequest.pricePerUnit) / 1 ether}(
+            mintRequest.recipient, mintRequest.amount, abi.encode(params)
         );
     }
 
@@ -371,7 +371,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: bytes32("1")
@@ -382,7 +382,7 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableIncorrectNativeTokenSent.selector));
-        core.mint{value: 1 ether}(mintRequest.recipient, mintRequest.quantity, abi.encode(params));
+        core.mint{value: 1 ether}(mintRequest.recipient, mintRequest.amount, abi.encode(params));
     }
 
     function test_mint_revert_incorrectNativeTokenSent() public {
@@ -392,7 +392,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -403,7 +403,7 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableIncorrectNativeTokenSent.selector));
-        core.mint{value: 1 ether}(mintRequest.recipient, mintRequest.quantity, abi.encode(params));
+        core.mint{value: 1 ether}(mintRequest.recipient, mintRequest.amount, abi.encode(params));
     }
 
     function test_mint_revert_insufficientERC20CurrencyBalance() public {
@@ -415,7 +415,7 @@ contract MintableERC20Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             recipient: tokenRecipient,
-            quantity: 100 ether,
+            amount: 100 ether,
             currency: address(currency),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
@@ -426,7 +426,7 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()
-        core.mint(mintRequest.recipient, mintRequest.quantity, abi.encode(params));
+        core.mint(mintRequest.recipient, mintRequest.amount, abi.encode(params));
     }
 
 }

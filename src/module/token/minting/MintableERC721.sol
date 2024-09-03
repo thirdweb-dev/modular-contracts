@@ -129,7 +129,7 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -142,7 +142,7 @@ contract MintableERC721 is
     }
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintWithSignatureERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+    function beforeMintWithSignatureERC721(address _to, uint256 _startTokenId, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -152,7 +152,7 @@ contract MintableERC721 is
         MintRequestERC721 memory _params = abi.decode(_data, (MintRequestERC721));
 
         _mintWithSignatureERC721(_params);
-        _distributeMintPrice(msg.sender, _params.currency, _quantity * _params.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
