@@ -68,11 +68,6 @@ contract BatchMetadataERC721 is Module, UpdateMetadataCallbackERC721 {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Emitted when a new metadata batch is uploaded.
-    event NewMetadataBatch(
-        uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
-    );
-
     /// @dev ERC-4906 Metadata Update.
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
@@ -192,7 +187,6 @@ contract BatchMetadataERC721 is Module, UpdateMetadataCallbackERC721 {
         _batchMetadataStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
         _batchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
-        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
         emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
     }
 
