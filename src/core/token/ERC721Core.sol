@@ -3,13 +3,11 @@ pragma solidity ^0.8.20;
 
 import {ERC721A, ERC721AQueryable, IERC721A} from "@erc721a/extensions/ERC721AQueryable.sol";
 
-import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {Core} from "../../Core.sol";
-import {Role} from "../../Role.sol";
 
 import {BeforeApproveCallbackERC721} from "../../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
@@ -45,12 +43,6 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
 
     /// @notice Emitted when the contract URI is updated.
     event ContractURIUpdated();
-
-    /*//////////////////////////////////////////////////////////////
-                               ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error SignatureMintUnauthorized();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -209,16 +201,12 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
             )
         ).recover(signature);
 
-        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert SignatureMintUnauthorized();
-        }
-
         uint256 tokenId = _nextTokenId();
 
         if (bytes(baseURI).length > 0) {
             _updateMetadata(to, tokenId, amount, baseURI);
         }
-        _beforeMintWithSignature(to, tokenId, amount, data);
+        _beforeMintWithSignature(to, tokenId, amount, data, signer);
         _safeMint(to, amount, "");
     }
 
@@ -289,14 +277,18 @@ contract ERC721Core is ERC721AQueryable, Core, Multicallable, EIP712 {
     }
 
     /// @dev Calls the beforeMint hook.
-    function _beforeMintWithSignature(address to, uint256 startTokenId, uint256 amount, bytes calldata data)
-        internal
-        virtual
-    {
+    function _beforeMintWithSignature(
+        address to,
+        uint256 startTokenId,
+        uint256 amount,
+        bytes calldata data,
+        address signer
+    ) internal virtual {
         _executeCallbackFunction(
             BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721.selector,
             abi.encodeCall(
-                BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721, (to, startTokenId, amount, data)
+                BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721,
+                (to, startTokenId, amount, data, signer)
             )
         );
     }

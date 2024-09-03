@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Module} from "../../../Module.sol";
+import {console} from "forge-std/console.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
@@ -96,6 +97,9 @@ contract MintableERC721 is
     /// @dev Emitted when trying to fetch metadata for a token that has no metadata.
     error MintableNoMetadataForTokenId();
 
+    /// @dev Emitted when the minting request signature is unauthorized.
+    error MintableSignatureMintUnauthorized();
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -129,7 +133,7 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _amount, bytes memory _data)
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
         external
         payable
         virtual
@@ -142,17 +146,21 @@ contract MintableERC721 is
     }
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintWithSignatureERC721(address _to, uint256 _startTokenId, uint256 _amount, bytes memory _data)
-        external
-        payable
-        virtual
-        override
-        returns (bytes memory)
-    {
+    function beforeMintWithSignatureERC721(
+        address _to,
+        uint256 _startTokenId,
+        uint256 _quantity,
+        bytes memory _data,
+        address _signer
+    ) external payable virtual override returns (bytes memory) {
         MintRequestERC721 memory _params = abi.decode(_data, (MintRequestERC721));
 
+        if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
+            revert MintableSignatureMintUnauthorized();
+        }
+
         _mintWithSignatureERC721(_params);
-        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, _quantity * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.

@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {ERC1155} from "@solady/tokens/ERC1155.sol";
 import {ECDSA} from "@solady/utils/ECDSA.sol";
 import {EIP712} from "@solady/utils/EIP712.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {Core} from "../../Core.sol";
-import {Role} from "../../Role.sol";
 
 import {BeforeApproveForAllCallback} from "../../callback/BeforeApproveForAllCallback.sol";
 import {BeforeBatchTransferCallbackERC1155} from "../../callback/BeforeBatchTransferCallbackERC1155.sol";
@@ -238,14 +236,10 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
             )
         ).recover(signature);
 
-        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert SignatureMintUnauthorized();
-        }
-
         if (bytes(baseURI).length > 0) {
             _updateMetadata(to, tokenId, amount, baseURI);
         }
-        _beforeMintWithSignature(to, tokenId, amount, data);
+        _beforeMintWithSignature(to, tokenId, amount, data, signer);
 
         _totalSupply[tokenId] += amount;
         _mint(to, tokenId, amount, "");
@@ -335,14 +329,15 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
     }
 
     /// @dev Calls the beforeMintWithSignature hook.
-    function _beforeMintWithSignature(address to, uint256 tokenId, uint256 amount, bytes calldata data)
+    function _beforeMintWithSignature(address to, uint256 tokenId, uint256 amount, bytes calldata data, address signer)
         internal
         virtual
     {
         _executeCallbackFunction(
             BeforeMintWithSignatureCallbackERC1155.beforeMintWithSignatureERC1155.selector,
             abi.encodeCall(
-                BeforeMintWithSignatureCallbackERC1155.beforeMintWithSignatureERC1155, (to, tokenId, amount, data)
+                BeforeMintWithSignatureCallbackERC1155.beforeMintWithSignatureERC1155,
+                (to, tokenId, amount, data, signer)
             )
         );
     }

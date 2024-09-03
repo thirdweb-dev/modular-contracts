@@ -93,6 +93,9 @@ contract MintableERC1155 is
     /// @dev Emitted when the minting request signature is unauthorized.
     error MintableRequestUnauthorized();
 
+    /// @dev Emitted when the minting request signature is unauthorized.
+    error MintableSignatureMintUnauthorized();
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -137,14 +140,18 @@ contract MintableERC1155 is
         }
     }
 
-    function beforeMintWithSignatureERC1155(address _to, uint256 _id, uint256 _amount, bytes memory _data)
-        external
-        payable
-        virtual
-        override
-        returns (bytes memory)
-    {
+    function beforeMintWithSignatureERC1155(
+        address _to,
+        uint256 _id,
+        uint256 _amount,
+        bytes memory _data,
+        address _signer
+    ) external payable virtual override returns (bytes memory) {
         MintRequestERC1155 memory _params = abi.decode(_data, (MintRequestERC1155));
+
+        if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
+            revert MintableSignatureMintUnauthorized();
+        }
 
         _mintWithSignatureERC1155(_params);
         _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);

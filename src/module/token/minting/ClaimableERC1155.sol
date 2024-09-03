@@ -6,8 +6,6 @@ import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
-import {ECDSA} from "@solady/utils/ECDSA.sol";
-import {EIP712} from "@solady/utils/EIP712.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
@@ -40,13 +38,10 @@ library ClaimableStorage {
 
 contract ClaimableERC1155 is
     Module,
-    EIP712,
     BeforeMintCallbackERC1155,
     BeforeMintWithSignatureCallbackERC1155,
     IInstallationCallback
 {
-
-    using ECDSA for bytes32;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -143,6 +138,9 @@ contract ClaimableERC1155 is
     /// @dev Emitted when the minter is not in the allowlist.
     error ClaimableNotInAllowlist();
 
+    /// @dev Emitted when the minting request signature is unauthorized.
+    error ClaimableSignatureMintUnauthorized();
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -168,7 +166,6 @@ contract ClaimableERC1155 is
             FallbackFunction({selector: this.getClaimConditionByTokenId.selector, permissionBits: 0});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setClaimConditionByTokenId.selector, permissionBits: Role._MINTER_ROLE});
-        config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
@@ -196,14 +193,18 @@ contract ClaimableERC1155 is
         _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
 
-    function beforeMintWithSignatureERC1155(address _to, uint256 _id, uint256 _amount, bytes memory _data)
-        external
-        payable
-        virtual
-        override
-        returns (bytes memory)
-    {
+    function beforeMintWithSignatureERC1155(
+        address _to,
+        uint256 _id,
+        uint256 _amount,
+        bytes memory _data,
+        address _signer
+    ) external payable virtual override returns (bytes memory) {
         ClaimRequestERC1155 memory _params = abi.decode(_data, (ClaimRequestERC1155));
+
+        if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
+            revert ClaimableSignatureMintUnauthorized();
+        }
 
         _validateClaimRequest(_amount, _id, _params);
 
@@ -356,12 +357,6 @@ contract ClaimableERC1155 is
             }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
-    }
-
-    /// @dev Returns the domain name and version for EIP712.
-    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "ClaimableERC1155";
-        version = "1";
     }
 
     function _claimableStorage() internal pure returns (ClaimableStorage.Data storage) {
