@@ -72,20 +72,22 @@ contract BatchMetadataERC721Test is Test {
     }
 
     /*///////////////////////////////////////////////////////////////
-                        Unit tests: `getBatchStartId`
+                        Unit tests: `getBatchRange`
     //////////////////////////////////////////////////////////////*/
 
-    function test_state_getBatchStartId() public {
+    function test_state_getBatchRange() public {
         vm.startPrank(owner);
         BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
         BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
         vm.stopPrank();
 
-        uint256 batchId1 = BatchMetadataExt(address(core)).getBatchStartId(100);
-        uint256 batchId2 = BatchMetadataExt(address(core)).getBatchStartId(200);
+        (uint256 startTokenId1, uint256 endTokenId1) = BatchMetadataExt(address(core)).getBatchRange(100);
+        (uint256 startTokenId2, uint256 endTokenId2) = BatchMetadataExt(address(core)).getBatchRange(200);
 
-        assertEq(batchId1, 0);
-        assertEq(batchId2, 100);
+        assertEq(startTokenId1, 0);
+        assertEq(endTokenId1, 99);
+        assertEq(startTokenId2, 100);
+        assertEq(endTokenId2, 199);
     }
 
     function test_revert_getBatchStartId() public {
@@ -94,7 +96,7 @@ contract BatchMetadataERC721Test is Test {
 
         vm.expectRevert(BatchMetadataERC721.BatchMetadataNoMetadataForTokenId.selector);
         vm.prank(owner);
-        uint256 batchId = BatchMetadataExt(address(core)).getBatchStartId(101);
+        BatchMetadataExt(address(core)).getBatchRange(101);
     }
 
     /*///////////////////////////////////////////////////////////////

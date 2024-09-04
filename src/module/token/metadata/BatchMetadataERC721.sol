@@ -91,7 +91,7 @@ contract BatchMetadataERC721 is Module, UpdateMetadataCallbackERC721 {
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
         config.fallbackFunctions[3] = FallbackFunction({selector: this.nextTokenIdToMint.selector, permissionBits: 0});
         config.fallbackFunctions[4] = FallbackFunction({selector: this.getBatchId.selector, permissionBits: 0});
-        config.fallbackFunctions[5] = FallbackFunction({selector: this.getBatchStartId.selector, permissionBits: 0});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.getBatchRange.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -174,16 +174,16 @@ contract BatchMetadataERC721 is Module, UpdateMetadataCallbackERC721 {
     }
 
     /// @dev returns the starting tokenId of a given batchId.
-    function getBatchStartId(uint256 _batchID) public view returns (uint256) {
+    function getBatchRange(uint256 _batchID) public view returns (uint256, uint256) {
         uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd;
         uint256 numOfBatches = rangeEnds.length;
 
         for (uint256 i = 0; i < numOfBatches; i += 1) {
             if (_batchID == rangeEnds[i]) {
                 if (i > 0) {
-                    return rangeEnds[i - 1];
+                    return (rangeEnds[i - 1], rangeEnds[i] - 1);
                 }
-                return 0;
+                return (0, rangeEnds[i] - 1);
             }
         }
 
@@ -193,7 +193,8 @@ contract BatchMetadataERC721 is Module, UpdateMetadataCallbackERC721 {
     /// @dev Sets the base URI for the batch of tokens with the given batchId.
     function setBaseURI(uint256 _batchId, string memory _baseURI) external virtual {
         _batchMetadataStorage().baseURIOfTokenIdRange[_batchId] = _baseURI;
-        emit BatchMetadataUpdate(getBatchStartId(_batchId), _batchId);
+        (uint256 startTokenId,) = getBatchRange(_batchId);
+        emit BatchMetadataUpdate(startTokenId, _batchId);
     }
 
     /*//////////////////////////////////////////////////////////////
