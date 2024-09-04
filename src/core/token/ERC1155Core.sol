@@ -176,7 +176,7 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
         });
         supportedCallbackFunctions[8] = SupportedCallbackFunction({
             selector: UpdateTokenIdCallbackERC1155.updateTokenIdERC1155.selector,
-            mode: CallbackMode.REQUIRED
+            mode: CallbackMode.OPTIONAL
         });
     }
 
@@ -401,11 +401,17 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
     }
 
     /// @dev Calls the updateTokenId hook, if installed.
-    function _updateTokenId(uint256 tokenId, uint256 amount) internal virtual returns (uint256) {
-        _executeCallbackFunction(
+    function _updateTokenId(uint256 tokenId, uint256 amount) internal virtual returns (uint256 tokenIdToMint) {
+        (bool success, bytes memory returndata) = _executeCallbackFunction(
             UpdateTokenIdCallbackERC1155.updateTokenIdERC1155.selector,
             abi.encodeCall(UpdateTokenIdCallbackERC1155.updateTokenIdERC1155, (tokenId, amount))
         );
+        if (success) {
+            tokenIdToMint = abi.decode(returndata, (uint256));
+        } else {
+            // this will only occur when the callback is not implemented
+            tokenIdToMint = tokenId;
+        }
     }
 
     /// @dev Returns the domain name and version for EIP712.

@@ -21,7 +21,6 @@ import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {BatchMetadataERC1155} from "src/module/token/metadata/BatchMetadataERC1155.sol";
 import {BatchMetadataERC721} from "src/module/token/metadata/BatchMetadataERC721.sol";
 import {MintableERC1155} from "src/module/token/minting/MintableERC1155.sol";
-import {TokenIdERC1155} from "src/module/token/tokenId/tokenIdERC1155.sol";
 
 contract MockCurrency is ERC20 {
 
@@ -47,7 +46,6 @@ contract MintableERC1155Test is Test {
 
     MintableERC1155 public mintableModule;
     BatchMetadataERC1155 public batchMetadataModule;
-    TokenIdERC1155 public tokenIdModule;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -109,7 +107,6 @@ contract MintableERC1155Test is Test {
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
         mintableModule = new MintableERC1155();
         batchMetadataModule = new BatchMetadataERC1155();
-        tokenIdModule = new TokenIdERC1155();
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);
@@ -118,9 +115,6 @@ contract MintableERC1155Test is Test {
 
         vm.prank(owner);
         core.installModule(address(batchMetadataModule), "");
-
-        vm.prank(owner);
-        core.installModule(address(tokenIdModule), "");
 
         // Setup signature vars
         typehashMintSignatureParams =
