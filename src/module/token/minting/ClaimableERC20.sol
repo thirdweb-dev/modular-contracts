@@ -164,7 +164,6 @@ contract ClaimableERC20 is
         config.fallbackFunctions[2] = FallbackFunction({selector: this.getClaimCondition.selector, permissionBits: 0});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
-        config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x36372b07; // ERC20
@@ -223,6 +222,20 @@ contract ClaimableERC20 is
                     Encode install / uninstall data
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
+    function encodeBytesOnInstall(address primarySaleRecipient) external pure returns (bytes memory) {
+        return abi.encode(primarySaleRecipient);
+    }
+
+    /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
+    function encodeBytesOnUninstall() external pure returns (bytes memory) {
+        return "";
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        Encode mint params
+    //////////////////////////////////////////////////////////////*/
+
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
     function encodeBytesBeforeMintERC20(ClaimParamsERC20 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
@@ -234,15 +247,6 @@ contract ClaimableERC20 is
         pure
         returns (bytes memory)
     {
-        return abi.encode(params);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        Encode mint params
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesBeforeMintERC20(ClaimParamsERC20 memory params) external pure returns (bytes memory) {
         return abi.encode(params);
     }
 
@@ -311,12 +315,7 @@ contract ClaimableERC20 is
     }
 
     /// @dev Verifies the claim request and signature.
-    function _validateClaimSignatureParams(
-        address _expectedRecipient,
-        uint256 _expectedAmount,
-        ClaimSignatureParamsERC20 memory _req,
-        bytes memory _signature
-    ) internal {
+    function _validateClaimSignatureParams(ClaimSignatureParamsERC20 memory _req, uint256 _amount) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }
@@ -325,12 +324,12 @@ contract ClaimableERC20 is
             revert ClaimableRequestUidReused();
         }
 
-        if (_req.amount > _claimableStorage().claimCondition.availableSupply) {
+        if (_amount > _claimableStorage().claimCondition.availableSupply) {
             revert ClaimableOutOfSupply();
         }
 
         _claimableStorage().uidUsed[_req.uid] = true;
-        _claimableStorage().claimCondition.availableSupply -= _req.amount;
+        _claimableStorage().claimCondition.availableSupply -= _amount;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.

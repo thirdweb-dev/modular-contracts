@@ -212,12 +212,7 @@ contract MintableERC20 is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _mintWithSignatureERC20(
-        address _expectedRecipient,
-        uint256 _expectedAmount,
-        MintSignatureParamsERC20 memory _req,
-        bytes memory _signature
-    ) internal {
+    function _mintWithSignatureERC20(MintSignatureParamsERC20 memory _req) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert MintableRequestOutOfTimeWindow();
         }

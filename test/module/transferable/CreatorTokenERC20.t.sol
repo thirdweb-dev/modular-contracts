@@ -52,32 +52,29 @@ contract CreatorTokenERC20Test is Test {
     uint256 unpermissionedActorPrivateKey = 3;
     address public unpermissionedActor;
 
-    address tokenRecipient = address(0x123);
+    address tokenRecipient;
+    uint256 amount = 100;
 
-    bytes32 internal typehashMintRequest;
+    bytes32 internal typehashMintSignatureParams;
     bytes32 internal nameHash;
     bytes32 internal versionHash;
     bytes32 internal typehashEip712;
     bytes32 internal domainSeparator;
 
-    MintableERC20.MintRequestERC20 public mintRequest;
+    MintableERC20.MintSignatureParamsERC20 public mintRequest;
 
     bytes32 internal evmVersionHash;
 
-    function signMintRequest(MintableERC20.MintRequestERC20 memory _req, uint256 _privateKey)
+    function signMintSignatureParams(MintableERC20.MintSignatureParamsERC20 memory _req, uint256 _privateKey)
         internal
         view
         returns (bytes memory)
     {
         bytes memory encodedRequest = abi.encode(
-            typehashMintRequest,
-            _req.startTimestamp,
-            _req.endTimestamp,
-            _req.recipient,
-            _req.amount,
-            _req.currency,
-            _req.pricePerUnit,
-            _req.uid
+            typehashMintSignatureParams,
+            tokenRecipient,
+            amount,
+            keccak256(abi.encode(_req.startTimestamp, _req.endTimestamp, _req.currency, _req.pricePerUnit, _req.uid))
         );
         bytes32 structHash = keccak256(encodedRequest);
         bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -90,6 +87,7 @@ contract CreatorTokenERC20Test is Test {
 
     function setUp() public {
         owner = vm.addr(ownerPrivateKey);
+        tokenRecipient = vm.addr(ownerPrivateKey);
         permissionedActor = vm.addr(permissionedActorPrivateKey);
         unpermissionedActor = vm.addr(unpermissionedActorPrivateKey);
 
@@ -113,10 +111,8 @@ contract CreatorTokenERC20Test is Test {
         core.installModule(address(mintableModuleImplementation), mintableModuleInitializeData);
         vm.stopPrank();
 
-        typehashMintRequest = keccak256(
-            "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 amount,address currency,uint256 pricePerUnit,bytes32 uid)"
-        );
-        nameHash = keccak256(bytes("MintableERC20"));
+        typehashMintSignatureParams = keccak256("MintRequestERC20(address to,uint256 amount,bytes data)");
+        nameHash = keccak256(bytes("ERC20Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
         domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(core)));
@@ -161,9 +157,9 @@ contract CreatorTokenERC20Test is Test {
     }
 
     function test_allowsTransferWithTransferValidatorAddressZero() public {
-        _mintToken(owner, 1);
+        _mintToken();
 
-        assertEq(1, core.balanceOf(owner));
+        assertEq(100, core.balanceOf(owner));
 
         vm.prank(owner);
         core.approve(address(transferTokenContract), 1);
@@ -178,7 +174,7 @@ contract CreatorTokenERC20Test is Test {
             //skip test if evm version is not cancun
             return;
         }
-        _mintToken(owner, 1);
+        _mintToken();
 
         assertEq(1, core.balanceOf(owner));
 
@@ -196,28 +192,24 @@ contract CreatorTokenERC20Test is Test {
         assertEq(0, core.balanceOf(permissionedActor));
     }
 
-    function _mintToken(address to, uint256 amount) internal {
+    function _mintToken() internal {
         address saleRecipient = address(0x987);
 
         vm.prank(owner);
         MintableERC20(address(core)).setSaleConfig(saleRecipient);
 
-        MintableERC20.MintRequestERC20 memory mintRequest = MintableERC20.MintRequestERC20({
+        MintableERC20.MintSignatureParamsERC20 memory mintRequest = MintableERC20.MintSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
-            recipient: to,
-            amount: amount,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: bytes32("1")
         });
-        bytes memory sig = signMintRequest(mintRequest, ownerPrivateKey);
-
-        MintableERC20.MintParamsERC20 memory params = MintableERC20.MintParamsERC20(mintRequest, sig);
+        bytes memory sig = signMintSignatureParams(mintRequest, ownerPrivateKey);
 
         vm.prank(owner);
-        core.mint{value: mintRequest.amount * mintRequest.pricePerUnit}(
-            mintRequest.recipient, mintRequest.amount, abi.encode(params)
+        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(mintRequest), sig
         );
     }
 
