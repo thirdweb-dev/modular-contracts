@@ -11,7 +11,7 @@ contract BatchMetadataERC1155 is BatchMetadataERC721, UpdateMetadataCallbackERC1
     /// @notice Returns all implemented callback and module functions.
     function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.fallbackFunctions = new FallbackFunction[](6);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
         config.callbackFunctions[1] = CallbackFunction(this.updateMetadataERC1155.selector);
@@ -19,8 +19,12 @@ contract BatchMetadataERC1155 is BatchMetadataERC721, UpdateMetadataCallbackERC1
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
         config.fallbackFunctions[1] =
+            FallbackFunction({selector: this.setBaseURI.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[2] =
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
-        config.fallbackFunctions[2] = FallbackFunction({selector: this.nextTokenIdToMint.selector, permissionBits: 0});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.nextTokenIdToMint.selector, permissionBits: 0});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.getBatchId.selector, permissionBits: 0});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.getBatchRange.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155

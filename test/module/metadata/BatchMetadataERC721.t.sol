@@ -51,7 +51,80 @@ contract BatchMetadataERC721Test is Test {
     }
 
     /*///////////////////////////////////////////////////////////////
-                        Unit tests: `uploadMetadata`
+                        Unit tests: `getBatchId`
+    //////////////////////////////////////////////////////////////*/
+
+    function test_state_getBatchId() public {
+        vm.prank(owner);
+        BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
+        (uint256 batchId, uint256 index) = BatchMetadataExt(address(core)).getBatchId(0);
+
+        assertEq(batchId, 100);
+        assertEq(index, 0);
+    }
+
+    function test_revert_getBatchId() public {
+        vm.prank(owner);
+        BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
+
+        vm.expectRevert(BatchMetadataERC721.BatchMetadataNoMetadataForTokenId.selector);
+        (uint256 batchId, uint256 index) = BatchMetadataExt(address(core)).getBatchId(101);
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                        Unit tests: `getBatchRange`
+    //////////////////////////////////////////////////////////////*/
+
+    function test_state_getBatchRange() public {
+        vm.startPrank(owner);
+        BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
+        BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
+        vm.stopPrank();
+
+        (uint256 startTokenId1, uint256 endTokenId1) = BatchMetadataExt(address(core)).getBatchRange(100);
+        (uint256 startTokenId2, uint256 endTokenId2) = BatchMetadataExt(address(core)).getBatchRange(200);
+
+        assertEq(startTokenId1, 0);
+        assertEq(endTokenId1, 99);
+        assertEq(startTokenId2, 100);
+        assertEq(endTokenId2, 199);
+    }
+
+    function test_revert_getBatchStartId() public {
+        vm.prank(owner);
+        BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
+
+        vm.expectRevert(BatchMetadataERC721.BatchMetadataNoMetadataForTokenId.selector);
+        vm.prank(owner);
+        BatchMetadataExt(address(core)).getBatchRange(101);
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                        Unit tests: `setBaseURI`
+    //////////////////////////////////////////////////////////////*/
+
+    function test_state_setBaseURI() public {
+        vm.prank(owner);
+        BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
+
+        // get metadata batches
+        BatchMetadataExt.MetadataBatch[] memory batches = BatchMetadataExt(address(core)).getAllMetadataBatches();
+
+        assertEq(batches.length, 1);
+        assertEq(batches[0].baseURI, "ipfs://base/");
+
+        vm.prank(owner);
+        BatchMetadataExt(address(core)).setBaseURI(100, "ipfs://base2/");
+
+        // get metadata batches
+        BatchMetadataExt.MetadataBatch[] memory batches2 = BatchMetadataExt(address(core)).getAllMetadataBatches();
+
+        assertEq(batches2.length, 1);
+        assertEq(batches2[0].baseURI, "ipfs://base2/");
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                        Unit tests: `updateMetadata`
     //////////////////////////////////////////////////////////////*/
 
     function test_state_updateMetadata() public {
