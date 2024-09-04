@@ -113,9 +113,8 @@ contract MintableERC1155Test is Test {
         vm.prank(owner);
         core.installModule(address(mintableModule), encodedInstallParams);
 
-        bytes memory encodedBatchMetadataInstallParams = "";
         vm.prank(owner);
-        core.installModule(address(batchMetadataModule), encodedBatchMetadataInstallParams);
+        core.installModule(address(batchMetadataModule), "");
 
         // Setup signature vars
         typehashMintSignatureParams =

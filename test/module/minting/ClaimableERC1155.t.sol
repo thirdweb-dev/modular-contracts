@@ -115,9 +115,8 @@ contract ClaimableERC1155Test is Test {
         core.installModule(address(claimableModule), encodedInstallParams);
 
         // install module
-        bytes memory encodedBatchMetadataInstallParams = "";
         vm.prank(owner);
-        core.installModule(address(batchMetadataModule), encodedBatchMetadataInstallParams);
+        core.installModule(address(batchMetadataModule), "");
 
         // Setup signature vars
         typehashClaimSignatureParams =
