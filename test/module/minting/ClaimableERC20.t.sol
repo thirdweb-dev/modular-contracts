@@ -677,4 +677,43 @@ contract ClaimableERC20Test is Test {
         core.mint(tokenRecipient, amount, abi.encode(claimRequest));
     }
 
+    function test_mint_revert_maxMintPerWalletExceeded() public {
+        ClaimableERC20.ClaimCondition memory condition = ClaimableERC20.ClaimCondition({
+            availableSupply: 1000 ether,
+            pricePerUnit: 0.2 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            auxData: "",
+            allowlistMerkleRoot: bytes32(0)
+        });
+
+        vm.prank(owner);
+        ClaimableERC20(address(core)).setClaimCondition(condition);
+
+        address saleRecipient = address(0x987);
+
+        vm.prank(owner);
+        ClaimableERC20(address(core)).setSaleConfig(saleRecipient);
+
+        vm.deal(tokenRecipient, 100 ether);
+
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: 10,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableMaxMintPerWalletExceeded.selector));
+        core.mintWithSignature{value: amount * claimRequest.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
+        );
+    }
+
 }
