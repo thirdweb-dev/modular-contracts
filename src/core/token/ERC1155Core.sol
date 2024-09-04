@@ -143,7 +143,7 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](8);
+        supportedCallbackFunctions = new SupportedCallbackFunction[](9);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: BeforeMintCallbackERC1155.beforeMintERC1155.selector,
             mode: CallbackMode.REQUIRED

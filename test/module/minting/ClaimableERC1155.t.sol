@@ -21,6 +21,7 @@ import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {BatchMetadataERC1155} from "src/module/token/metadata/BatchMetadataERC1155.sol";
 import {BatchMetadataERC721} from "src/module/token/metadata/BatchMetadataERC721.sol";
 import {ClaimableERC1155} from "src/module/token/minting/ClaimableERC1155.sol";
+import {TokenIdERC1155} from "src/module/token/tokenId/tokenIdERC1155.sol";
 
 contract MockCurrency is ERC20 {
 
@@ -46,6 +47,7 @@ contract ClaimableERC1155Test is Test {
 
     ClaimableERC1155 public claimableModule;
     BatchMetadataERC1155 public batchMetadataModule;
+    TokenIdERC1155 public tokenIdModule;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -108,6 +110,7 @@ contract ClaimableERC1155Test is Test {
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
         claimableModule = new ClaimableERC1155();
         batchMetadataModule = new BatchMetadataERC1155();
+        tokenIdModule = new TokenIdERC1155();
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);
@@ -115,9 +118,11 @@ contract ClaimableERC1155Test is Test {
         core.installModule(address(claimableModule), encodedInstallParams);
 
         // install module
-        bytes memory encodedBatchMetadataInstallParams = "";
         vm.prank(owner);
-        core.installModule(address(batchMetadataModule), encodedBatchMetadataInstallParams);
+        core.installModule(address(batchMetadataModule), "");
+
+        vm.prank(owner);
+        core.installModule(address(tokenIdModule), "");
 
         // Setup signature vars
         typehashClaimSignatureParams =

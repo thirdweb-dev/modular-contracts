@@ -45,7 +45,7 @@ contract TokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](1);
 
-        config.callbackFunctions[0] = CallbackFunction(this.updateTokenId.selector);
+        config.callbackFunctions[0] = CallbackFunction(this.updateTokenIdERC1155.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getNextTokenId.selector, permissionBits: 0});
 
@@ -57,7 +57,7 @@ contract TokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
                             CALLBACK FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    function updateTokenId(uint256 _tokenId, uint256 _amount) external returns (uint256) {
+    function updateTokenIdERC1155(uint256 _tokenId, uint256 _amount) external payable override returns (uint256) {
         uint256 _nextTokenId = _tokenIdStorage().nextTokenId;
 
         if (_tokenId == type(uint256).max) {
@@ -66,7 +66,7 @@ contract TokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
             return _nextTokenId;
         }
 
-        if (_tokenId >= _nextTokenId) {
+        if (_tokenId > _nextTokenId) {
             revert TokenIdInvalidTokenId();
         }
 
