@@ -15,6 +15,7 @@ import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC115
 import {BeforeMintWithSignatureCallbackERC1155} from "../../callback/BeforeMintWithSignatureCallbackERC1155.sol";
 import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
 import {UpdateMetadataCallbackERC1155} from "../../callback/UpdateMetadataCallbackERC1155.sol";
+import {UpdateTokenIdCallbackERC1155} from "../../callback/UpdateTokenIdERC1155.sol";
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
@@ -142,7 +143,7 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](8);
+        supportedCallbackFunctions = new SupportedCallbackFunction[](9);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: BeforeMintCallbackERC1155.beforeMintERC1155.selector,
             mode: CallbackMode.REQUIRED
@@ -173,6 +174,10 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
             selector: UpdateMetadataCallbackERC1155.updateMetadataERC1155.selector,
             mode: CallbackMode.REQUIRED
         });
+        supportedCallbackFunctions[8] = SupportedCallbackFunction({
+            selector: UpdateTokenIdCallbackERC1155.updateTokenIdERC1155.selector,
+            mode: CallbackMode.OPTIONAL
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -201,13 +206,14 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
         external
         payable
     {
+        uint256 tokenIdToMint = _updateTokenId(tokenId);
         if (bytes(baseURI).length > 0) {
-            _updateMetadata(to, tokenId, amount, baseURI);
+            _updateMetadata(to, tokenIdToMint, amount, baseURI);
         }
-        _beforeMint(to, tokenId, amount, data);
+        _beforeMint(to, tokenIdToMint, amount, data);
 
-        _totalSupply[tokenId] += amount;
-        _mint(to, tokenId, amount, "");
+        _totalSupply[tokenIdToMint] += amount;
+        _mint(to, tokenIdToMint, amount, "");
     }
 
     /**
@@ -236,13 +242,14 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
             )
         ).recover(signature);
 
+        uint256 tokenIdToMint = _updateTokenId(tokenId);
         if (bytes(baseURI).length > 0) {
-            _updateMetadata(to, tokenId, amount, baseURI);
+            _updateMetadata(to, tokenIdToMint, amount, baseURI);
         }
-        _beforeMintWithSignature(to, tokenId, amount, data, signer);
+        _beforeMintWithSignature(to, tokenIdToMint, amount, data, signer);
 
-        _totalSupply[tokenId] += amount;
-        _mint(to, tokenId, amount, "");
+        _totalSupply[tokenIdToMint] += amount;
+        _mint(to, tokenIdToMint, amount, "");
     }
 
     /**
@@ -391,6 +398,20 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
             UpdateMetadataCallbackERC1155.updateMetadataERC1155.selector,
             abi.encodeCall(UpdateMetadataCallbackERC1155.updateMetadataERC1155, (to, tokenId, amount, baseURI))
         );
+    }
+
+    /// @dev Calls the updateTokenId hook, if installed.
+    function _updateTokenId(uint256 tokenId) internal virtual returns (uint256 tokenIdToMint) {
+        (bool success, bytes memory returndata) = _executeCallbackFunction(
+            UpdateTokenIdCallbackERC1155.updateTokenIdERC1155.selector,
+            abi.encodeCall(UpdateTokenIdCallbackERC1155.updateTokenIdERC1155, (tokenId))
+        );
+        if (success) {
+            tokenIdToMint = abi.decode(returndata, (uint256));
+        } else {
+            // this will only occur when the callback is not implemented
+            tokenIdToMint = tokenId;
+        }
     }
 
     /// @dev Returns the domain name and version for EIP712.
