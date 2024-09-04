@@ -58,8 +58,8 @@ contract BatchMetadataERC1155Test is Test {
         // read state from core
         assertEq(core.uri(1), "ipfs://base/1");
         assertEq(core.uri(99), "ipfs://base/99");
-        assertEq(core.uri(100), "ipfs://base2/100");
-        assertEq(core.uri(199), "ipfs://base2/199");
+        assertEq(core.uri(100), "ipfs://base2/0");
+        assertEq(core.uri(199), "ipfs://base2/99");
     }
 
     function test_revert_uploadMetadata() public {

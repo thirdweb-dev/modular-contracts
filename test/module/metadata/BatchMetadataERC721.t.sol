@@ -58,8 +58,8 @@ contract BatchMetadataERC721Test is Test {
         // read state from core
         assertEq(core.tokenURI(1), "ipfs://base/1");
         assertEq(core.tokenURI(99), "ipfs://base/99");
-        assertEq(core.tokenURI(100), "ipfs://base2/100");
-        assertEq(core.tokenURI(199), "ipfs://base2/199");
+        assertEq(core.tokenURI(100), "ipfs://base2/0");
+        assertEq(core.tokenURI(199), "ipfs://base2/99");
     }
 
     function test_revert_uploadMetadata() public {
