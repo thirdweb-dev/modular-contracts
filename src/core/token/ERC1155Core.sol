@@ -206,7 +206,7 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
         external
         payable
     {
-        uint256 tokenIdToMint = _updateTokenId(tokenId, amount);
+        uint256 tokenIdToMint = _updateTokenId(tokenId);
         if (bytes(baseURI).length > 0) {
             _updateMetadata(to, tokenIdToMint, amount, baseURI);
         }
@@ -242,7 +242,7 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
             )
         ).recover(signature);
 
-        uint256 tokenIdToMint = _updateTokenId(tokenId, amount);
+        uint256 tokenIdToMint = _updateTokenId(tokenId);
         if (bytes(baseURI).length > 0) {
             _updateMetadata(to, tokenIdToMint, amount, baseURI);
         }
@@ -401,10 +401,10 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
     }
 
     /// @dev Calls the updateTokenId hook, if installed.
-    function _updateTokenId(uint256 tokenId, uint256 amount) internal virtual returns (uint256 tokenIdToMint) {
+    function _updateTokenId(uint256 tokenId) internal virtual returns (uint256 tokenIdToMint) {
         (bool success, bytes memory returndata) = _executeCallbackFunction(
             UpdateTokenIdCallbackERC1155.updateTokenIdERC1155.selector,
-            abi.encodeCall(UpdateTokenIdCallbackERC1155.updateTokenIdERC1155, (tokenId, amount))
+            abi.encodeCall(UpdateTokenIdCallbackERC1155.updateTokenIdERC1155, (tokenId))
         );
         if (success) {
             tokenIdToMint = abi.decode(returndata, (uint256));

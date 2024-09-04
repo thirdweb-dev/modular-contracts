@@ -17,6 +17,7 @@ import {BeforeMintCallbackERC1155} from "../../callback/BeforeMintCallbackERC115
 import {BeforeMintWithSignatureCallbackERC1155} from "../../callback/BeforeMintWithSignatureCallbackERC1155.sol";
 import {BeforeTransferCallbackERC1155} from "../../callback/BeforeTransferCallbackERC1155.sol";
 import {UpdateMetadataCallbackERC1155} from "../../callback/UpdateMetadataCallbackERC1155.sol";
+import {UpdateTokenIdCallbackERC1155} from "../../callback/UpdateTokenIdERC1155.sol";
 
 import {OnTokenURICallback} from "../../callback/OnTokenURICallback.sol";
 
@@ -142,7 +143,7 @@ contract ERC1155CoreInitializable is ERC1155, Core, Multicallable, Initializable
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](8);
+        supportedCallbackFunctions = new SupportedCallbackFunction[](9);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: BeforeMintCallbackERC1155.beforeMintERC1155.selector,
             mode: CallbackMode.REQUIRED
@@ -172,6 +173,10 @@ contract ERC1155CoreInitializable is ERC1155, Core, Multicallable, Initializable
         supportedCallbackFunctions[7] = SupportedCallbackFunction({
             selector: UpdateMetadataCallbackERC1155.updateMetadataERC1155.selector,
             mode: CallbackMode.REQUIRED
+        });
+        supportedCallbackFunctions[8] = SupportedCallbackFunction({
+            selector: UpdateTokenIdCallbackERC1155.updateTokenIdERC1155.selector,
+            mode: CallbackMode.OPTIONAL
         });
     }
 

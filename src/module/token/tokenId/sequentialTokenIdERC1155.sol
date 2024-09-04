@@ -8,10 +8,10 @@ import {Role} from "../../../Role.sol";
 import {UpdateTokenIdCallbackERC1155} from "../../../callback/UpdateTokenIdERC1155.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 
-library TokenIdStorage {
+library SequentialTokenIdStorage {
 
     /// @custom:storage-location erc7201:token.minting.tokenId
-    bytes32 public constant TOKEN_ID_STORAGE_POSITION =
+    bytes32 public constant SEQUENTIAL_TOKEN_ID_STORAGE_POSITION =
         keccak256(abi.encode(uint256(keccak256("token.tokenId.erc1155")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
@@ -19,7 +19,7 @@ library TokenIdStorage {
     }
 
     function data() internal pure returns (Data storage data_) {
-        bytes32 position = TOKEN_ID_STORAGE_POSITION;
+        bytes32 position = SEQUENTIAL_TOKEN_ID_STORAGE_POSITION;
         assembly {
             data_.slot := position
         }
@@ -27,14 +27,14 @@ library TokenIdStorage {
 
 }
 
-contract TokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
+contract SequentialTokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Emitted when the tokenId is invalid.
-    error TokenIdInvalidTokenId();
+    error SequentialTokenIdInvalidTokenId();
 
     /*//////////////////////////////////////////////////////////////
                                 MODULE CONFIG
@@ -57,17 +57,17 @@ contract TokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
                             CALLBACK FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    function updateTokenIdERC1155(uint256 _tokenId, uint256 _amount) external payable override returns (uint256) {
+    function updateTokenIdERC1155(uint256 _tokenId) external payable override returns (uint256) {
         uint256 _nextTokenId = _tokenIdStorage().nextTokenId;
 
         if (_tokenId == type(uint256).max) {
-            _tokenIdStorage().nextTokenId = _nextTokenId + _amount;
+            _tokenIdStorage().nextTokenId = _nextTokenId + 1;
 
             return _nextTokenId;
         }
 
         if (_tokenId > _nextTokenId) {
-            revert TokenIdInvalidTokenId();
+            revert SequentialTokenIdInvalidTokenId();
         }
 
         return _tokenId;
@@ -82,8 +82,8 @@ contract TokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
         return _tokenIdStorage().nextTokenId;
     }
 
-    function _tokenIdStorage() internal pure returns (TokenIdStorage.Data storage) {
-        return TokenIdStorage.data();
+    function _tokenIdStorage() internal pure returns (SequentialTokenIdStorage.Data storage) {
+        return SequentialTokenIdStorage.data();
     }
 
 }

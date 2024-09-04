@@ -18,7 +18,6 @@ import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 
 import {MintableERC1155} from "src/module/token/minting/MintableERC1155.sol";
 import {RoyaltyERC1155} from "src/module/token/royalty/RoyaltyERC1155.sol";
-import {TokenIdERC1155} from "src/module/token/tokenId/tokenIdERC1155.sol";
 
 contract RoyaltyExt is RoyaltyERC1155 {}
 
@@ -50,7 +49,6 @@ contract RoyaltyERC1155Test is Test {
 
     MintableERC1155 public mintableModuleImplementation;
     TransferToken public transferTokenContract;
-    TokenIdERC1155 public tokenIdModule;
     ITransferValidator public mockTransferValidator;
 
     uint256 ownerPrivateKey = 1;
@@ -112,7 +110,6 @@ contract RoyaltyERC1155Test is Test {
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
         moduleImplementation = new RoyaltyExt();
         mintableModuleImplementation = new MintableERC1155();
-        tokenIdModule = new TokenIdERC1155();
 
         transferTokenContract = new TransferToken();
 
@@ -123,7 +120,6 @@ contract RoyaltyERC1155Test is Test {
         vm.startPrank(owner);
         core.installModule(address(moduleImplementation), moduleInitializeData);
         core.installModule(address(mintableModuleImplementation), mintableModuleInitializeData);
-        core.installModule(address(tokenIdModule), "");
         vm.stopPrank();
 
         typehashMintSignatureParams =

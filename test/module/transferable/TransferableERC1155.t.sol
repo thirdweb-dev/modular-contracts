@@ -31,7 +31,7 @@ contract Core is ERC1155Core {
     function _beforeMint(address to, uint256 tokenId, uint256 value, bytes memory data) internal override {}
     function _beforeApproveForAll(address from, address to, bool approved) internal override {}
 
-    function _updateTokenId(uint256 tokenId, uint256 amount) internal override returns (uint256) {
+    function _updateTokenId(uint256 tokenId) internal override returns (uint256) {
         return tokenId;
     }
 

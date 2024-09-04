@@ -19,10 +19,9 @@ contract UpdateTokenIdCallbackERC1155 {
      *  @dev If the tokenId is type(uint256).max, the next tokenId will be set to the current next tokenId + amount.
      *
      *  @param _tokenId The tokenId to mint.
-     *  @param _amount The amount of tokens to mint.
      *  @return result tokenId to mint.
      */
-    function updateTokenIdERC1155(uint256 _tokenId, uint256 _amount) external payable virtual returns (uint256) {
+    function updateTokenIdERC1155(uint256 _tokenId) external payable virtual returns (uint256) {
         revert UpdateTokenIdCallbackERC1155NotImplemented();
     }
 

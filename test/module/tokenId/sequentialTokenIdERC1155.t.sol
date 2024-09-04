@@ -21,7 +21,7 @@ import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {BatchMetadataERC1155} from "src/module/token/metadata/BatchMetadataERC1155.sol";
 import {BatchMetadataERC721} from "src/module/token/metadata/BatchMetadataERC721.sol";
 import {MintableERC1155} from "src/module/token/minting/MintableERC1155.sol";
-import {TokenIdERC1155} from "src/module/token/tokenId/tokenIdERC1155.sol";
+import {SequentialTokenIdERC1155} from "src/module/token/tokenId/sequentialTokenIdERC1155.sol";
 
 contract MockCurrency is ERC20 {
 
@@ -47,7 +47,7 @@ contract MintableERC1155Test is Test {
 
     MintableERC1155 public mintableModule;
     BatchMetadataERC1155 public batchMetadataModule;
-    TokenIdERC1155 public tokenIdModule;
+    SequentialTokenIdERC1155 public sequentialTokenIdModule;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -68,7 +68,7 @@ contract MintableERC1155Test is Test {
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
         mintableModule = new MintableERC1155();
         batchMetadataModule = new BatchMetadataERC1155();
-        tokenIdModule = new TokenIdERC1155();
+        sequentialTokenIdModule = new SequentialTokenIdERC1155();
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);
@@ -79,7 +79,7 @@ contract MintableERC1155Test is Test {
         core.installModule(address(batchMetadataModule), "");
 
         vm.prank(owner);
-        core.installModule(address(tokenIdModule), "");
+        core.installModule(address(sequentialTokenIdModule), "");
 
         // Give permissioned actor minter role
         vm.prank(owner);
@@ -91,23 +91,23 @@ contract MintableERC1155Test is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_state_updateTokenId() public {
-        assertEq(TokenIdERC1155(address(core)).getNextTokenId(), 0);
+        assertEq(SequentialTokenIdERC1155(address(core)).getNextTokenId(), 0);
 
         // increments the tokenId
         vm.prank(owner);
-        core.mint(owner, type(uint256).max, 1, "", "");
+        core.mint(owner, type(uint256).max, 10, "", "");
 
-        assertEq(TokenIdERC1155(address(core)).getNextTokenId(), 1);
+        assertEq(SequentialTokenIdERC1155(address(core)).getNextTokenId(), 1);
 
         // does not increment the tokenId
         vm.prank(owner);
-        core.mint(owner, 1, 1, "", "");
+        core.mint(owner, 1, 10, "", "");
 
-        assertEq(TokenIdERC1155(address(core)).getNextTokenId(), 1);
+        assertEq(SequentialTokenIdERC1155(address(core)).getNextTokenId(), 1);
     }
 
     function test_revert_updateTokenId() public {
-        vm.expectRevert(TokenIdERC1155.TokenIdInvalidTokenId.selector);
+        vm.expectRevert(SequentialTokenIdERC1155.SequentialTokenIdInvalidTokenId.selector);
         vm.prank(owner);
         core.mint(owner, 2, 1, "", "");
     }
