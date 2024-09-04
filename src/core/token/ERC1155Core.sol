@@ -208,7 +208,8 @@ contract ERC1155Core is ERC1155, Core, Multicallable, EIP712 {
     {
         uint256 tokenIdToMint = _updateTokenId(tokenId);
         if (bytes(baseURI).length > 0) {
-            _updateMetadata(to, tokenIdToMint, amount, baseURI);
+            // 1 since we are minting multiple copies of the same token
+            _updateMetadata(to, tokenIdToMint, 1, baseURI);
         }
         _beforeMint(to, tokenIdToMint, amount, data);
 
