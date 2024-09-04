@@ -6,12 +6,11 @@ import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
-import {ECDSA} from "@solady/utils/ECDSA.sol";
-import {EIP712} from "@solady/utils/EIP712.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC721} from "../../../callback/BeforeMintCallbackERC721.sol";
+import {BeforeMintWithSignatureCallbackERC721} from "../../../callback/BeforeMintWithSignatureCallbackERC721.sol";
 
 library ClaimableStorage {
 
@@ -37,9 +36,12 @@ library ClaimableStorage {
 
 }
 
-contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallationCallback {
-
-    using ECDSA for bytes32;
+contract ClaimableERC721 is
+    Module,
+    BeforeMintCallbackERC721,
+    BeforeMintWithSignatureCallbackERC721,
+    IInstallationCallback
+{
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -78,17 +80,13 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
      *
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
-     *  @param recipient The address that will receive the minted tokens.
-     *  @param quantity The quantity of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
-    struct ClaimRequestERC721 {
+    struct ClaimSignatureParamsERC721 {
         uint48 startTimestamp;
         uint48 endTimestamp;
-        address recipient;
-        uint256 quantity;
         address currency;
         uint256 pricePerUnit;
         bytes32 uid;
@@ -96,13 +94,8 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
 
     /**
      *  @notice The parameters sent to the `beforeMintERC20` callback function.
-     *
-     *  @param request The minting request.
-     *  @param signature The signature produced from signing the minting request.
      */
     struct ClaimParamsERC721 {
-        ClaimRequestERC721 request;
-        bytes signature;
         address currency;
         uint256 pricePerUnit;
         bytes32[] recipientAllowlistProof;
@@ -139,13 +132,12 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     /// @dev Emitted when the minter is not in the allowlist.
     error ClaimableNotInAllowlist();
 
+    /// @dev Emitted when the minting request signature is unauthorized.
+    error ClaimableSignatureMintUnauthorized();
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
-
-    bytes32 private constant TYPEHASH_CLAIMABLE_ERC721 = keccak256(
-        "ClaimRequestERC721(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-    );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -155,10 +147,11 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
 
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC721.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC721.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
@@ -166,7 +159,6 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
         config.fallbackFunctions[2] = FallbackFunction({selector: this.getClaimCondition.selector, permissionBits: 0});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setClaimCondition.selector, permissionBits: Role._MINTER_ROLE});
-        config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -179,7 +171,7 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _quantity, bytes memory _data)
+    function beforeMintERC721(address _to, uint256 _startTokenId, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -188,22 +180,28 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     {
         ClaimParamsERC721 memory _params = abi.decode(_data, (ClaimParamsERC721));
 
-        address currency;
-        uint256 pricePerUnit;
+        _validateClaimCondition(_to, _amount, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof);
 
-        if (_params.signature.length == 0) {
-            _validateClaimCondition(
-                _to, _quantity, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
-            );
-            currency = _params.currency;
-            pricePerUnit = _params.pricePerUnit;
-        } else {
-            _validateClaimRequest(_to, _quantity, _params.request, _params.signature);
-            currency = _params.request.currency;
-            pricePerUnit = _params.request.pricePerUnit;
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
+    }
+
+    /// @notice Callback function for the ERC721Core.mint function.
+    function beforeMintWithSignatureERC721(
+        address _to,
+        uint256 _startTokenId,
+        uint256 _amount,
+        bytes memory _data,
+        address _signer
+    ) external payable virtual override returns (bytes memory) {
+        if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
+            revert ClaimableSignatureMintUnauthorized();
         }
 
-        _distributeMintPrice(msg.sender, currency, _quantity * pricePerUnit);
+        ClaimSignatureParamsERC721 memory _params = abi.decode(_data, (ClaimSignatureParamsERC721));
+
+        _validateClaimSignatureParams(_params, _amount);
+
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
@@ -235,6 +233,15 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
     function encodeBytesBeforeMintERC721(ClaimParamsERC721 memory params) external pure returns (bytes memory) {
+        return abi.encode(params);
+    }
+
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
+    function encodeBytesBeforeMintWithSignatureERC721(ClaimSignatureParamsERC721 memory params)
+        external
+        pure
+        returns (bytes memory)
+    {
         return abi.encode(params);
     }
 
@@ -303,16 +310,7 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
     }
 
     /// @dev Verifies the claim request and signature.
-    function _validateClaimRequest(
-        address _expectedRecipient,
-        uint256 _expectedAmount,
-        ClaimRequestERC721 memory _req,
-        bytes memory _signature
-    ) internal {
-        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
-            revert ClaimableRequestMismatch();
-        }
-
+    function _validateClaimSignatureParams(ClaimSignatureParamsERC721 memory _req, uint256 _amount) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }
@@ -321,31 +319,12 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
             revert ClaimableRequestUidReused();
         }
 
-        if (_req.quantity > _claimableStorage().claimCondition.availableSupply) {
+        if (_amount > _claimableStorage().claimCondition.availableSupply) {
             revert ClaimableOutOfSupply();
         }
 
-        address signer = _hashTypedData(
-            keccak256(
-                abi.encode(
-                    TYPEHASH_CLAIMABLE_ERC721,
-                    _req.startTimestamp,
-                    _req.endTimestamp,
-                    _req.recipient,
-                    _req.quantity,
-                    _req.currency,
-                    _req.pricePerUnit,
-                    _req.uid
-                )
-            )
-        ).recover(_signature);
-
-        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert ClaimableRequestUnauthorizedSignature();
-        }
-
         _claimableStorage().uidUsed[_req.uid] = true;
-        _claimableStorage().claimCondition.availableSupply -= _req.quantity;
+        _claimableStorage().claimCondition.availableSupply -= _amount;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.
@@ -370,12 +349,6 @@ contract ClaimableERC721 is Module, EIP712, BeforeMintCallbackERC721, IInstallat
             }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
-    }
-
-    /// @dev Returns the domain name and version for EIP712.
-    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "ClaimableERC721";
-        version = "1";
     }
 
     function _claimableStorage() internal pure returns (ClaimableStorage.Data storage) {

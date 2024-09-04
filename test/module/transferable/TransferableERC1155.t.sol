@@ -61,13 +61,13 @@ contract TransferableERC1155Test is Test {
 
         // mint tokens
         // tokenId 0
-        core.mint(actorOne, 0, 10, "");
-        core.mint(actorTwo, 0, 10, "");
-        core.mint(actorThree, 0, 10, "");
+        core.mint(actorOne, 0, 10, "", "");
+        core.mint(actorTwo, 0, 10, "", "");
+        core.mint(actorThree, 0, 10, "", "");
         // tokenId 1
-        core.mint(actorOne, 1, 10, "");
-        core.mint(actorTwo, 1, 10, "");
-        core.mint(actorThree, 1, 10, "");
+        core.mint(actorOne, 1, 10, "", "");
+        core.mint(actorTwo, 1, 10, "", "");
+        core.mint(actorThree, 1, 10, "", "");
     }
 
     /*///////////////////////////////////////////////////////////////

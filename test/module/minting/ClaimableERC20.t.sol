@@ -17,7 +17,7 @@ import {ERC20Core} from "src/core/token/ERC20Core.sol";
 
 import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
-import {ClaimableERC20, ClaimableStorage} from "src/module/token/minting/ClaimableERC20.sol";
+import {ClaimableERC20} from "src/module/token/minting/ClaimableERC20.sol";
 
 contract MockCurrency is ERC20 {
 
@@ -41,8 +41,7 @@ contract ClaimableERC20Test is Test {
 
     ERC20Core public core;
 
-    ClaimableERC20 public moduleImplementation;
-    ClaimableERC20 public installedModule;
+    ClaimableERC20 public claimableModule;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -54,35 +53,32 @@ contract ClaimableERC20Test is Test {
     address public unpermissionedActor;
 
     address tokenRecipient = address(0x123);
+    uint256 amount = 100;
 
     // Signature vars
-    bytes32 internal typehashClaimRequest;
+    bytes32 internal typehashClaimSignatureParams;
     bytes32 internal nameHash;
     bytes32 internal versionHash;
     bytes32 internal typehashEip712;
     bytes32 internal domainSeparator;
 
-    ClaimableERC20.ClaimRequestERC20 public claimRequest;
+    ClaimableERC20.ClaimSignatureParamsERC20 public claimRequest;
     ClaimableERC20.ClaimCondition public claimCondition;
 
     // Constants
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // Util fn
-    function signMintRequest(ClaimableERC20.ClaimRequestERC20 memory _req, uint256 _privateKey)
+    function signMintRequest(ClaimableERC20.ClaimSignatureParamsERC20 memory _req, uint256 _privateKey)
         internal
         view
         returns (bytes memory)
     {
         bytes memory encodedRequest = abi.encode(
-            typehashClaimRequest,
-            _req.startTimestamp,
-            _req.endTimestamp,
-            _req.recipient,
-            _req.quantity,
-            _req.currency,
-            _req.pricePerUnit,
-            _req.uid
+            typehashClaimSignatureParams,
+            tokenRecipient,
+            amount,
+            keccak256(abi.encode(_req.startTimestamp, _req.endTimestamp, _req.currency, _req.pricePerUnit, _req.uid))
         );
         bytes32 structHash = keccak256(encodedRequest);
         bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -102,18 +98,16 @@ contract ClaimableERC20Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC20Core("test", "TEST", "", owner, modules, moduleData);
-        moduleImplementation = new ClaimableERC20();
+        claimableModule = new ClaimableERC20();
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);
         vm.prank(owner);
-        core.installModule(address(moduleImplementation), encodedInstallParams);
+        core.installModule(address(claimableModule), encodedInstallParams);
 
         // Setup signature vars
-        typehashClaimRequest = keccak256(
-            "ClaimRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-        );
-        nameHash = keccak256(bytes("ClaimableERC20"));
+        typehashClaimSignatureParams = keccak256("MintRequestERC20(address to,uint256 amount,bytes data)");
+        nameHash = keccak256(bytes("ERC20Core"));
         versionHash = keccak256(bytes("1"));
         typehashEip712 = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
         domainSeparator = keccak256(abi.encode(typehashEip712, nameHash, versionHash, block.chainid, address(core)));
@@ -213,33 +207,28 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);
         assertEq(saleRecipient.balance, 0);
 
         vm.prank(tokenRecipient);
-        core.mint{value: (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: amount * claimRequest.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
         );
 
         // Check minted balance
-        assertEq(core.balanceOf(address(0x123)), 100 ether);
+        assertEq(core.balanceOf(address(0x123)), amount);
 
-        uint256 salePrice = (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether;
+        uint256 salePrice = amount * claimRequest.pricePerUnit;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -265,19 +254,14 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.2 ether, // different price from condition
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
-
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);
@@ -285,19 +269,19 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectNativeTokenSent.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: amount * condition.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
         );
 
         vm.prank(tokenRecipient);
-        core.mint{value: (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: amount * claimRequest.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
         );
 
         // Check minted balance
-        assertEq(core.balanceOf(address(0x123)), 100 ether);
+        assertEq(core.balanceOf(tokenRecipient), amount);
 
-        uint256 salePrice = (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether;
+        uint256 salePrice = amount * claimRequest.pricePerUnit;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -325,19 +309,14 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: address(currency), // different currency from condition
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
-
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         currency.mintTo(tokenRecipient, 100 ether);
 
@@ -347,20 +326,20 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectNativeTokenSent.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: amount * condition.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
         );
 
-        uint256 salePrice = (claimRequest.quantity * condition.pricePerUnit) / 1 ether;
+        uint256 salePrice = amount * condition.pricePerUnit;
 
         vm.prank(tokenRecipient);
         currency.approve(address(core), salePrice);
 
         vm.prank(tokenRecipient);
-        core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mintWithSignature(tokenRecipient, amount, abi.encode(claimRequest), sig);
 
         // Check minted balance
-        assertEq(core.balanceOf(address(0x123)), 100 ether);
+        assertEq(core.balanceOf(address(0x123)), amount);
 
         assertEq(currency.balanceOf(tokenRecipient), balBefore - salePrice);
         assertEq(currency.balanceOf(saleRecipient), salePrice);
@@ -382,102 +361,19 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
-
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
 
         vm.prank(tokenRecipient);
         vm.expectRevert();
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(bytes("random mixer"), params)
-        );
-    }
-
-    function test_mint_revert_requestInvalidRecipient() public {
-        ClaimableERC20.ClaimCondition memory condition = ClaimableERC20.ClaimCondition({
-            availableSupply: 1000 ether,
-            pricePerUnit: 0.2 ether,
-            currency: NATIVE_TOKEN_ADDRESS,
-            startTimestamp: uint48(block.timestamp),
-            endTimestamp: uint48(block.timestamp + 100),
-            auxData: "",
-            allowlistMerkleRoot: bytes32(0)
-        });
-
-        vm.prank(owner);
-        ClaimableERC20(address(core)).setClaimCondition(condition);
-
-        vm.deal(tokenRecipient, 100 ether);
-
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            startTimestamp: uint48(block.timestamp),
-            endTimestamp: uint48(block.timestamp + 100),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
-            currency: address(0),
-            pricePerUnit: 0.1 ether,
-            uid: bytes32("1")
-        });
-        bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
-
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
-        vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestMismatch.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            address(0x456), // recipient mismatch
-            claimRequest.quantity,
-            abi.encode(params)
-        );
-    }
-
-    function test_mint_revert_requestInvalidAmount() public {
-        ClaimableERC20.ClaimCondition memory condition = ClaimableERC20.ClaimCondition({
-            availableSupply: 1000 ether,
-            pricePerUnit: 0.2 ether,
-            currency: NATIVE_TOKEN_ADDRESS,
-            startTimestamp: uint48(block.timestamp),
-            endTimestamp: uint48(block.timestamp + 100),
-            auxData: "",
-            allowlistMerkleRoot: bytes32(0)
-        });
-
-        vm.prank(owner);
-        ClaimableERC20(address(core)).setClaimCondition(condition);
-
-        vm.deal(tokenRecipient, 100 ether);
-
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
-            startTimestamp: uint48(block.timestamp),
-            endTimestamp: uint48(block.timestamp + 100),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
-            currency: address(0),
-            pricePerUnit: 0.1 ether,
-            uid: bytes32("1")
-        });
-        bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
-
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
-        vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestMismatch.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient,
-            claimRequest.quantity - 1, // quantity mismatch
-            abi.encode(params)
+        core.mintWithSignature{value: amount * condition.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(bytes("random mixer")), sig
         );
     }
 
@@ -497,24 +393,19 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp + 100), // tx before validity start
             endTimestamp: uint48(block.timestamp + 200),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestOutOfTimeWindow.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: amount * condition.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
         );
     }
 
@@ -534,26 +425,21 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
         vm.warp(claimRequest.endTimestamp);
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestOutOfTimeWindow.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: amount * condition.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
         );
     }
 
@@ -573,37 +459,28 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
         vm.prank(tokenRecipient);
-        core.mint{value: (claimRequest.quantity * claimRequest.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        core.mintWithSignature{value: amount * claimRequest.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
         );
-        assertEq(core.balanceOf(claimRequest.recipient), claimRequest.quantity);
+        assertEq(core.balanceOf(tokenRecipient), amount);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequestTwo = claimRequest;
-        claimRequestTwo.recipient = address(0x786);
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequestTwo = claimRequest;
         claimRequestTwo.pricePerUnit = 0;
 
         bytes memory sigTwo = signMintRequest(claimRequestTwo, permissionedActorPrivateKey);
 
-        ClaimableERC20.ClaimParamsERC20 memory paramsTwo =
-            ClaimableERC20.ClaimParamsERC20(claimRequestTwo, sigTwo, address(0), 0, new bytes32[](0));
-
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestUidReused.selector));
-        core.mint(claimRequestTwo.recipient, claimRequestTwo.quantity, abi.encode(paramsTwo));
+        core.mintWithSignature(tokenRecipient, amount, abi.encode(claimRequestTwo), sigTwo);
     }
 
     function test_mint_revert_requestUnauthorizedSigner() public {
@@ -622,24 +499,19 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: address(0),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, ownerPrivateKey); // is owner but not MINTER_ROLE holder
 
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
         vm.prank(tokenRecipient);
-        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableRequestUnauthorizedSignature.selector));
-        core.mint{value: (claimRequest.quantity * condition.pricePerUnit) / 1 ether}(
-            claimRequest.recipient, claimRequest.quantity, abi.encode(params)
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableSignatureMintUnauthorized.selector));
+        core.mintWithSignature{value: amount * condition.pricePerUnit}(
+            tokenRecipient, amount, abi.encode(claimRequest), sig
         );
     }
 
@@ -659,23 +531,18 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectNativeTokenSent.selector));
-        core.mint{value: 1 ether}(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mintWithSignature{value: 1 ether}(tokenRecipient, amount, abi.encode(claimRequest), sig);
     }
 
     function test_mint_revert_incorrectNativeTokenSent() public {
@@ -694,23 +561,18 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: NATIVE_TOKEN_ADDRESS,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectNativeTokenSent.selector));
-        core.mint{value: 5 ether}(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mintWithSignature{value: 5 ether}(tokenRecipient, amount, abi.encode(claimRequest), sig);
     }
 
     function test_mint_revert_insufficientERC20CurrencyBalance() public {
@@ -731,23 +593,18 @@ contract ClaimableERC20Test is Test {
 
         assertEq(currency.balanceOf(tokenRecipient), 0);
 
-        ClaimableERC20.ClaimRequestERC20 memory claimRequest = ClaimableERC20.ClaimRequestERC20({
+        ClaimableERC20.ClaimSignatureParamsERC20 memory claimRequest = ClaimableERC20.ClaimSignatureParamsERC20({
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
-            recipient: tokenRecipient,
-            quantity: 100 ether,
             currency: address(currency),
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
-        ClaimableERC20.ClaimParamsERC20 memory params =
-            ClaimableERC20.ClaimParamsERC20(claimRequest, sig, address(0), 0, new bytes32[](0));
-
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(0x7939f424)); // TransferFromFailed()
-        core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mintWithSignature(tokenRecipient, amount, abi.encode(claimRequest), sig);
     }
 
     function test_mint_revert_unexpectedPriceOrCurrency() public {
@@ -773,18 +630,17 @@ contract ClaimableERC20Test is Test {
 
         vm.deal(tokenRecipient, 100 ether);
 
-        ClaimableERC20.ClaimParamsERC20 memory params = ClaimableERC20.ClaimParamsERC20(
-            claimRequest, "", address(currency), condition.pricePerUnit, new bytes32[](0)
-        ); // unexpected currrency
+        ClaimableERC20.ClaimParamsERC20 memory params =
+            ClaimableERC20.ClaimParamsERC20(address(currency), condition.pricePerUnit, new bytes32[](0)); // unexpected currrency
 
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectPriceOrCurrency.selector));
-        core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mint(tokenRecipient, amount, abi.encode(claimRequest));
 
         params.currency = NATIVE_TOKEN_ADDRESS;
         params.pricePerUnit = 0.1 ether; // unexpected price
 
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableIncorrectPriceOrCurrency.selector));
-        core.mint(claimRequest.recipient, claimRequest.quantity, abi.encode(params));
+        core.mint(tokenRecipient, amount, abi.encode(claimRequest));
     }
 
 }
