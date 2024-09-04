@@ -6,12 +6,11 @@ import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
-import {ECDSA} from "@solady/utils/ECDSA.sol";
-import {EIP712} from "@solady/utils/EIP712.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC1155} from "../../../callback/BeforeMintCallbackERC1155.sol";
+import {BeforeMintWithSignatureCallbackERC1155} from "../../../callback/BeforeMintWithSignatureCallbackERC1155.sol";
 
 library ClaimableStorage {
 
@@ -37,9 +36,12 @@ library ClaimableStorage {
 
 }
 
-contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstallationCallback {
-
-    using ECDSA for bytes32;
+contract ClaimableERC1155 is
+    Module,
+    BeforeMintCallbackERC1155,
+    BeforeMintWithSignatureCallbackERC1155,
+    IInstallationCallback
+{
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -76,21 +78,15 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
     /**
      *  @notice The request struct signed by an authorized party to mint tokens.
      *
-     *  @param tokenId The ID of the token being minted.
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
-     *  @param recipient The address that will receive the minted tokens.
-     *  @param quantity The quantity of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
-    struct ClaimRequestERC1155 {
-        uint256 tokenId;
+    struct ClaimSignatureParamsERC1155 {
         uint48 startTimestamp;
         uint48 endTimestamp;
-        address recipient;
-        uint256 quantity;
         address currency;
         uint256 pricePerUnit;
         bytes32 uid;
@@ -103,8 +99,6 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
      *  @param signature The signature produced from signing the minting request.
      */
     struct ClaimParamsERC1155 {
-        ClaimRequestERC1155 request;
-        bytes signature;
         address currency;
         uint256 pricePerUnit;
         bytes32[] recipientAllowlistProof;
@@ -144,13 +138,12 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
     /// @dev Emitted when the minter is not in the allowlist.
     error ClaimableNotInAllowlist();
 
+    /// @dev Emitted when the minting request signature is unauthorized.
+    error ClaimableSignatureMintUnauthorized();
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
-
-    bytes32 private constant TYPEHASH_CLAIMABLE_ERC1155 = keccak256(
-        "ClaimRequestERC1155(uint256 tokenId,uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-    );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -160,10 +153,11 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
 
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
+        config.callbackFunctions = new CallbackFunction[](2);
         config.fallbackFunctions = new FallbackFunction[](5);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC1155.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
@@ -172,7 +166,6 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
             FallbackFunction({selector: this.getClaimConditionByTokenId.selector, permissionBits: 0});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setClaimConditionByTokenId.selector, permissionBits: Role._MINTER_ROLE});
-        config.fallbackFunctions[4] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
@@ -184,8 +177,7 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Callback function for the ERC721Core.mint function.
-    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
@@ -194,22 +186,29 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
     {
         ClaimParamsERC1155 memory _params = abi.decode(_data, (ClaimParamsERC1155));
 
-        address currency;
-        uint256 pricePerUnit;
+        _validateClaimCondition(
+            _to, _amount, _id, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
+        );
 
-        if (_params.signature.length == 0) {
-            _validateClaimCondition(
-                _to, _quantity, _id, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof
-            );
-            currency = _params.currency;
-            pricePerUnit = _params.pricePerUnit;
-        } else {
-            _validateClaimRequest(_to, _quantity, _id, _params.request, _params.signature);
-            currency = _params.request.currency;
-            pricePerUnit = _params.request.pricePerUnit;
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
+    }
+
+    function beforeMintWithSignatureERC1155(
+        address _to,
+        uint256 _id,
+        uint256 _amount,
+        bytes memory _data,
+        address _signer
+    ) external payable virtual override returns (bytes memory) {
+        if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
+            revert ClaimableSignatureMintUnauthorized();
         }
 
-        _distributeMintPrice(msg.sender, currency, _quantity * pricePerUnit);
+        ClaimSignatureParamsERC1155 memory _params = abi.decode(_data, (ClaimSignatureParamsERC1155));
+
+        _validateClaimSignatureParams(_amount, _id, _params);
+
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
@@ -241,6 +240,15 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
 
     /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
     function encodeBytesBeforeMintERC1155(ClaimParamsERC1155 memory params) external pure returns (bytes memory) {
+        return abi.encode(params);
+    }
+
+    /// @dev Returns bytes encoded mintWithSignature params, to be used in `beforeMintWithSignature` fallback function
+    function encodeBytesBeforeMintWithSignatureERC1155(ClaimSignatureParamsERC1155 memory params)
+        external
+        pure
+        returns (bytes memory)
+    {
         return abi.encode(params);
     }
 
@@ -310,19 +318,9 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
     }
 
     /// @dev Verifies the claim request and signature.
-    function _validateClaimRequest(
-        address _expectedRecipient,
-        uint256 _expectedAmount,
-        uint256 _expectedTokenId,
-        ClaimRequestERC1155 memory _req,
-        bytes memory _signature
-    ) internal {
-        if (
-            _req.recipient != _expectedRecipient || _req.quantity != _expectedAmount || _req.tokenId != _expectedTokenId
-        ) {
-            revert ClaimableRequestMismatch();
-        }
-
+    function _validateClaimSignatureParams(uint256 _amount, uint256 _tokenId, ClaimSignatureParamsERC1155 memory _req)
+        internal
+    {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }
@@ -331,32 +329,12 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
             revert ClaimableRequestUidReused();
         }
 
-        if (_req.quantity > _claimableStorage().claimConditionByTokenId[_expectedTokenId].availableSupply) {
+        if (_amount > _claimableStorage().claimConditionByTokenId[_tokenId].availableSupply) {
             revert ClaimableOutOfSupply();
         }
 
-        address signer = _hashTypedData(
-            keccak256(
-                abi.encode(
-                    TYPEHASH_CLAIMABLE_ERC1155,
-                    _req.tokenId,
-                    _req.startTimestamp,
-                    _req.endTimestamp,
-                    _req.recipient,
-                    _req.quantity,
-                    _req.currency,
-                    _req.pricePerUnit,
-                    _req.uid
-                )
-            )
-        ).recover(_signature);
-
-        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert ClaimableRequestUnauthorizedSignature();
-        }
-
         _claimableStorage().uidUsed[_req.uid] = true;
-        _claimableStorage().claimConditionByTokenId[_expectedTokenId].availableSupply -= _req.quantity;
+        _claimableStorage().claimConditionByTokenId[_tokenId].availableSupply -= _amount;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.
@@ -381,12 +359,6 @@ contract ClaimableERC1155 is Module, EIP712, BeforeMintCallbackERC1155, IInstall
             }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
-    }
-
-    /// @dev Returns the domain name and version for EIP712.
-    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "ClaimableERC1155";
-        version = "1";
     }
 
     function _claimableStorage() internal pure returns (ClaimableStorage.Data storage) {

@@ -4,6 +4,8 @@ pragma solidity ^0.8.20;
 import {Core} from "../../Core.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
+import {ECDSA} from "@solady/utils/ECDSA.sol";
+import {EIP712} from "@solady/utils/EIP712.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {IERC20} from "../../interface/IERC20.sol";
@@ -11,10 +13,19 @@ import {IERC20} from "../../interface/IERC20.sol";
 import {BeforeApproveCallbackERC20} from "../../callback/BeforeApproveCallbackERC20.sol";
 import {BeforeBurnCallbackERC20} from "../../callback/BeforeBurnCallbackERC20.sol";
 import {BeforeMintCallbackERC20} from "../../callback/BeforeMintCallbackERC20.sol";
-
+import {BeforeMintWithSignatureCallbackERC20} from "../../callback/BeforeMintWithSignatureCallbackERC20.sol";
 import {BeforeTransferCallbackERC20} from "../../callback/BeforeTransferCallbackERC20.sol";
 
-contract ERC20Core is ERC20, Multicallable, Core {
+contract ERC20Core is ERC20, Multicallable, Core, EIP712 {
+
+    using ECDSA for bytes32;
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC20 =
+        keccak256("MintRequestERC20(address to,uint256 amount,bytes data)");
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -89,20 +100,24 @@ contract ERC20Core is ERC20, Multicallable, Core {
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](4);
+        supportedCallbackFunctions = new SupportedCallbackFunction[](5);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: BeforeMintCallbackERC20.beforeMintERC20.selector,
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[1] = SupportedCallbackFunction({
+            selector: BeforeMintWithSignatureCallbackERC20.beforeMintWithSignatureERC20.selector,
+            mode: CallbackMode.REQUIRED
+        });
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
             selector: BeforeTransferCallbackERC20.beforeTransferERC20.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[2] = SupportedCallbackFunction({
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
             selector: BeforeBurnCallbackERC20.beforeBurnERC20.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+        supportedCallbackFunctions[4] = SupportedCallbackFunction({
             selector: BeforeApproveCallbackERC20.beforeApproveERC20.selector,
             mode: CallbackMode.OPTIONAL
         });
@@ -137,6 +152,26 @@ contract ERC20Core is ERC20, Multicallable, Core {
      */
     function mint(address to, uint256 amount, bytes calldata data) external payable {
         _beforeMint(to, amount, data);
+        _mint(to, amount);
+    }
+
+    /**
+     *  @notice Mints a token with a signature. Calls the beforeMint hook.
+     *  @dev Reverts if beforeMint hook is absent or unsuccessful.
+     *  @param to The address to mint the token to.
+     *  @param amount The amount of tokens to mint.
+     *  @param data ABI encoded data to pass to the beforeMint hook.
+     *  @param signature The signature produced from signing the minting request.
+     */
+    function mintWithSignature(address to, uint256 amount, bytes calldata data, bytes memory signature)
+        external
+        payable
+    {
+        address signer = _hashTypedData(
+            keccak256(abi.encode(TYPEHASH_SIGNATURE_MINT_ERC20, to, amount, keccak256(data)))
+        ).recover(signature);
+
+        _beforeMintWithSignature(to, amount, data, signer);
         _mint(to, amount);
     }
 
@@ -196,14 +231,14 @@ contract ERC20Core is ERC20, Multicallable, Core {
      *
      *  @param owner The account approving the tokens
      *  @param spender The address to approve
-     *  @param value Amount of tokens to approve
+     *  @param amount Amount of tokens to approve
      */
-    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+    function permit(address owner, address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
         public
         override
     {
-        _beforeApprove(owner, spender, value);
-        super.permit(owner, spender, value, deadline, v, r, s);
+        _beforeApprove(owner, spender, amount);
+        super.permit(owner, spender, amount, deadline, v, r, s);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -225,6 +260,19 @@ contract ERC20Core is ERC20, Multicallable, Core {
         _executeCallbackFunction(
             BeforeMintCallbackERC20.beforeMintERC20.selector,
             abi.encodeCall(BeforeMintCallbackERC20.beforeMintERC20, (to, amount, data))
+        );
+    }
+
+    /// @dev Calls the beforeMint hook.
+    function _beforeMintWithSignature(address to, uint256 amount, bytes calldata data, address signer)
+        internal
+        virtual
+    {
+        _executeCallbackFunction(
+            BeforeMintWithSignatureCallbackERC20.beforeMintWithSignatureERC20.selector,
+            abi.encodeCall(
+                BeforeMintWithSignatureCallbackERC20.beforeMintWithSignatureERC20, (to, amount, data, signer)
+            )
         );
     }
 
@@ -250,6 +298,12 @@ contract ERC20Core is ERC20, Multicallable, Core {
             BeforeApproveCallbackERC20.beforeApproveERC20.selector,
             abi.encodeCall(BeforeApproveCallbackERC20.beforeApproveERC20, (from, to, amount))
         );
+    }
+
+    /// @dev Returns the domain name and version for EIP712.
+    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
+        name = "ERC20Core";
+        version = "1";
     }
 
 }

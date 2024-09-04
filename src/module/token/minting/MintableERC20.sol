@@ -6,11 +6,10 @@ import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
-import {ECDSA} from "@solady/utils/ECDSA.sol";
-import {EIP712} from "@solady/utils/EIP712.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
+import {BeforeMintWithSignatureCallbackERC20} from "../../../callback/BeforeMintWithSignatureCallbackERC20.sol";
 
 library MintableStorage {
 
@@ -34,9 +33,12 @@ library MintableStorage {
 
 }
 
-contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallationCallback {
-
-    using ECDSA for bytes32;
+contract MintableERC20 is
+    Module,
+    BeforeMintCallbackERC20,
+    BeforeMintWithSignatureCallbackERC20,
+    IInstallationCallback
+{
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTS & ENUMS
@@ -48,30 +50,17 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
      *  @param recipient The address that will receive the minted tokens.
-     *  @param quantity The quantity of tokens to mint.
+     *  @param amount The amount of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
-    struct MintRequestERC20 {
+    struct MintSignatureParamsERC20 {
         uint48 startTimestamp;
         uint48 endTimestamp;
-        address recipient;
-        uint256 quantity;
         address currency;
         uint256 pricePerUnit;
         bytes32 uid;
-    }
-
-    /**
-     *  @notice The parameters sent to the `beforeMintERC20` callback function.
-     *
-     *  @param request The minting request.
-     *  @param signature The signature produced from signing the minting request.
-     */
-    struct MintParamsERC20 {
-        MintRequestERC20 request;
-        bytes signature;
     }
 
     /**
@@ -102,13 +91,12 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
     /// @dev Emitted when the minting request signature is unauthorized.
     error MintableRequestUnauthorized();
 
+    /// @dev Emitted when the minting request signature is unauthorized.
+    error MintableSignatureMintUnauthorized();
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
-
-    bytes32 private constant TYPEHASH_SIGNATURE_MINT_ERC20 = keccak256(
-        "MintRequestERC20(uint48 startTimestamp,uint48 endTimestamp,address recipient,uint256 quantity,address currency,uint256 pricePerUnit,bytes32 uid)"
-    );
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -116,17 +104,16 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.callbackFunctions = new CallbackFunction[](2);
+        config.fallbackFunctions = new FallbackFunction[](2);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC20.selector);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getSaleConfig.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setSaleConfig.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[2] = FallbackFunction({selector: this.eip712Domain.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x36372b07; // ERC20
@@ -139,28 +126,34 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for the ERC20Core.mint function.
-    function beforeMintERC20(address _to, uint256 _quantity, bytes memory _data)
+    function beforeMintERC20(address _to, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
         override
         returns (bytes memory)
     {
-        MintParamsERC20 memory _params = abi.decode(_data, (MintParamsERC20));
-
-        // If the signature is empty, the caller must have the MINTER_ROLE.
-        if (_params.signature.length == 0) {
-            if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
-                revert MintableRequestUnauthorized();
-            }
-
-            // Else read and verify the payload and signature.
-        } else {
-            _mintWithSignatureERC20(_to, _quantity, _params.request, _params.signature);
-            _distributeMintPrice(
-                msg.sender, _params.request.currency, (_params.request.quantity * _params.request.pricePerUnit) / 1e18
-            );
+        if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
+            revert MintableRequestUnauthorized();
         }
+    }
+
+    /// @notice Callback function for the ERC20Core.mint function.
+    function beforeMintWithSignatureERC20(address _to, uint256 _amount, bytes memory _data, address _signer)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
+        if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
+            revert MintableSignatureMintUnauthorized();
+        }
+
+        MintSignatureParamsERC20 memory _params = abi.decode(_data, (MintSignatureParamsERC20));
+
+        _mintWithSignatureERC20(_params);
+        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
@@ -190,8 +183,12 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
                         Encode mint params
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Returns bytes encoded mint params, to be used in `beforeMint` fallback function
-    function encodeBytesBeforeMintERC20(MintParamsERC20 memory params) external pure returns (bytes memory) {
+    /// @dev Returns bytes encoded mint params, to be used in `beforeMintWithSignature` fallback function
+    function encodeBytesBeforeMintWithSignatureERC20(MintSignatureParamsERC20 memory params)
+        external
+        pure
+        returns (bytes memory)
+    {
         return abi.encode(params);
     }
 
@@ -215,41 +212,13 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Mints tokens on verifying a signature from an authorized party.
-    function _mintWithSignatureERC20(
-        address _expectedRecipient,
-        uint256 _expectedAmount,
-        MintRequestERC20 memory _req,
-        bytes memory _signature
-    ) internal {
-        if (_req.recipient != _expectedRecipient || _req.quantity != _expectedAmount) {
-            revert MintableRequestMismatch();
-        }
-
+    function _mintWithSignatureERC20(MintSignatureParamsERC20 memory _req) internal {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert MintableRequestOutOfTimeWindow();
         }
 
         if (_mintableStorage().uidUsed[_req.uid]) {
             revert MintableRequestUidReused();
-        }
-
-        address signer = _hashTypedData(
-            keccak256(
-                abi.encode(
-                    TYPEHASH_SIGNATURE_MINT_ERC20,
-                    _req.startTimestamp,
-                    _req.endTimestamp,
-                    _req.recipient,
-                    _req.quantity,
-                    _req.currency,
-                    _req.pricePerUnit,
-                    _req.uid
-                )
-            )
-        ).recover(_signature);
-
-        if (!OwnableRoles(address(this)).hasAllRoles(signer, Role._MINTER_ROLE)) {
-            revert MintableRequestUnauthorized();
         }
 
         _mintableStorage().uidUsed[_req.uid] = true;
@@ -277,12 +246,6 @@ contract MintableERC20 is Module, EIP712, BeforeMintCallbackERC20, IInstallation
             }
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
         }
-    }
-
-    /// @dev Returns the domain name and version for EIP712.
-    function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
-        name = "MintableERC20";
-        version = "1";
     }
 
     function _mintableStorage() internal pure returns (MintableStorage.Data storage) {

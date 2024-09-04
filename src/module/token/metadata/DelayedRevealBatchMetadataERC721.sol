@@ -72,11 +72,6 @@ contract DelayedRevealBatchMetadataERC721 is Module {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Emitted when a new metadata batch is uploaded.
-    event NewMetadataBatch(
-        uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
-    );
-
     /// @dev ERC-4906 Metadata Update.
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
@@ -167,7 +162,6 @@ contract DelayedRevealBatchMetadataERC721 is Module {
         _delayedRevealBatchMetadataStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
         _delayedRevealBatchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
-        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
         emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
     }
 
