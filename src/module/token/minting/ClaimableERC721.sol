@@ -193,11 +193,11 @@ contract ClaimableERC721 is
         bytes memory _data,
         address _signer
     ) external payable virtual override returns (bytes memory) {
-        ClaimSignatureParamsERC721 memory _params = abi.decode(_data, (ClaimSignatureParamsERC721));
-
         if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
             revert ClaimableSignatureMintUnauthorized();
         }
+
+        ClaimSignatureParamsERC721 memory _params = abi.decode(_data, (ClaimSignatureParamsERC721));
 
         _validateClaimSignatureParams(_params, _amount);
 

@@ -147,11 +147,11 @@ contract MintableERC1155 is
         bytes memory _data,
         address _signer
     ) external payable virtual override returns (bytes memory) {
-        MintSignatureParamsERC1155 memory _params = abi.decode(_data, (MintSignatureParamsERC1155));
-
         if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
             revert MintableSignatureMintUnauthorized();
         }
+
+        MintSignatureParamsERC1155 memory _params = abi.decode(_data, (MintSignatureParamsERC1155));
 
         _mintWithSignatureERC1155(_params);
         _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);

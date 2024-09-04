@@ -146,11 +146,11 @@ contract MintableERC20 is
         override
         returns (bytes memory)
     {
-        MintSignatureParamsERC20 memory _params = abi.decode(_data, (MintSignatureParamsERC20));
-
         if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
             revert MintableSignatureMintUnauthorized();
         }
+
+        MintSignatureParamsERC20 memory _params = abi.decode(_data, (MintSignatureParamsERC20));
 
         _mintWithSignatureERC20(_params);
         _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);

@@ -198,11 +198,11 @@ contract ClaimableERC20 is
         override
         returns (bytes memory)
     {
-        ClaimSignatureParamsERC20 memory _params = abi.decode(_data, (ClaimSignatureParamsERC20));
-
         if (!OwnableRoles(address(this)).hasAllRoles(_signer, Role._MINTER_ROLE)) {
             revert ClaimableSignatureMintUnauthorized();
         }
+
+        ClaimSignatureParamsERC20 memory _params = abi.decode(_data, (ClaimSignatureParamsERC20));
 
         _validateClaimSignatureParams(_params, _amount);
 
