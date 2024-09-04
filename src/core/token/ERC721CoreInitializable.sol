@@ -137,29 +137,37 @@ contract ERC721CoreInitializable is ERC721AQueryableUpgradeable, Core, Multicall
         override
         returns (SupportedCallbackFunction[] memory supportedCallbackFunctions)
     {
-        supportedCallbackFunctions = new SupportedCallbackFunction[](6);
+        supportedCallbackFunctions = new SupportedCallbackFunction[](8);
         supportedCallbackFunctions[0] = SupportedCallbackFunction({
             selector: BeforeMintCallbackERC721.beforeMintERC721.selector,
             mode: CallbackMode.REQUIRED
         });
         supportedCallbackFunctions[1] = SupportedCallbackFunction({
+            selector: BeforeMintWithSignatureCallbackERC721.beforeMintWithSignatureERC721.selector,
+            mode: CallbackMode.REQUIRED
+        });
+        supportedCallbackFunctions[2] = SupportedCallbackFunction({
             selector: BeforeTransferCallbackERC721.beforeTransferERC721.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[2] = SupportedCallbackFunction({
+        supportedCallbackFunctions[3] = SupportedCallbackFunction({
             selector: BeforeBurnCallbackERC721.beforeBurnERC721.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[3] = SupportedCallbackFunction({
+        supportedCallbackFunctions[4] = SupportedCallbackFunction({
             selector: BeforeApproveCallbackERC721.beforeApproveERC721.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[4] = SupportedCallbackFunction({
+        supportedCallbackFunctions[5] = SupportedCallbackFunction({
             selector: BeforeApproveForAllCallback.beforeApproveForAll.selector,
             mode: CallbackMode.OPTIONAL
         });
-        supportedCallbackFunctions[5] =
+        supportedCallbackFunctions[6] =
             SupportedCallbackFunction({selector: OnTokenURICallback.onTokenURI.selector, mode: CallbackMode.REQUIRED});
+        supportedCallbackFunctions[7] = SupportedCallbackFunction({
+            selector: UpdateMetadataCallbackERC721.updateMetadataERC721.selector,
+            mode: CallbackMode.REQUIRED
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
