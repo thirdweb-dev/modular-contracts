@@ -114,8 +114,7 @@ contract ERC1155CoreInitializable is ERC1155, Core, Multicallable, Initializable
      *  @param interfaceId The interface ID of the interface to check for
      */
     function supportsInterface(bytes4 interfaceId) public view override(ERC1155, Core) returns (bool) {
-        return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
-            || interfaceId == 0xd9b67a26 // ERC165 Interface ID for ERC1155
+        return interfaceId == 0xd9b67a26 // ERC165 Interface ID for ERC1155
             || interfaceId == 0x0e89341c // ERC165 Interface ID for ERC1155MetadataURI
             || interfaceId == 0xe8a3d485 // ERC-7572
             || interfaceId == 0x7f5828d0 // ERC-173

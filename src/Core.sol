@@ -150,6 +150,10 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
         if (interfaceId == 0xffffffff) {
             return false;
         }
+        if (interfaceId == 0x01ffc9a7) {
+            // ERC165 Interface ID for ERC165
+            return true;
+        }
         if (supportedInterfaceRefCounter[interfaceId] > 0) {
             return true;
         }
