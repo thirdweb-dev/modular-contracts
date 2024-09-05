@@ -86,7 +86,16 @@ contract ClaimableERC1155Test is Test {
             tokenId,
             amount,
             keccak256(bytes(baseURI)),
-            keccak256(abi.encode(_req.startTimestamp, _req.endTimestamp, _req.currency, _req.pricePerUnit, _req.uid))
+            keccak256(
+                abi.encode(
+                    _req.startTimestamp,
+                    _req.endTimestamp,
+                    _req.currency,
+                    _req.maxMintPerWallet,
+                    _req.pricePerUnit,
+                    _req.uid
+                )
+            )
         );
         bytes32 structHash = keccak256(encodedRequest);
         bytes32 typedDataHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -140,6 +149,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -169,6 +179,7 @@ contract ClaimableERC1155Test is Test {
                 availableSupply: 100 ether,
                 pricePerUnit: 0.1 ether,
                 currency: NATIVE_TOKEN_ADDRESS,
+                maxMintPerWallet: type(uint256).max,
                 startTimestamp: uint48(block.timestamp),
                 endTimestamp: uint48(block.timestamp + 100),
                 auxData: "",
@@ -207,6 +218,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -227,6 +239,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -254,6 +267,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.1 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -274,6 +288,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.2 ether, // different price from condition
             uid: bytes32("1")
         });
@@ -311,6 +326,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.1 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -331,6 +347,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: address(currency), // different currency from condition
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -368,6 +385,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -383,6 +401,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             currency: address(0),
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -400,6 +419,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -415,6 +435,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp + 100), // tx before validity start
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(0),
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -432,6 +453,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -447,6 +469,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             currency: address(0),
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -466,6 +489,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -481,6 +505,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200), // tx at / after validity end
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -506,6 +531,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -521,6 +547,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(0),
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -538,6 +565,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -553,6 +581,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0,
             uid: bytes32("1")
         });
@@ -568,6 +597,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -583,6 +613,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -600,6 +631,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: address(0),
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -615,6 +647,7 @@ contract ClaimableERC1155Test is Test {
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 200),
             currency: address(currency),
+            maxMintPerWallet: type(uint256).max,
             pricePerUnit: 0.1 ether,
             uid: bytes32("1")
         });
@@ -632,6 +665,7 @@ contract ClaimableERC1155Test is Test {
             availableSupply: 1000 ether,
             pricePerUnit: 0.2 ether,
             currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
             startTimestamp: uint48(block.timestamp),
             endTimestamp: uint48(block.timestamp + 100),
             auxData: "",
@@ -659,6 +693,45 @@ contract ClaimableERC1155Test is Test {
 
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableIncorrectPriceOrCurrency.selector));
         core.mint(tokenRecipient, tokenId, amount, baseURI, abi.encode(params));
+    }
+
+    function test_mint_revert_maxMintPerWalletExceeded() public {
+        ClaimableERC1155.ClaimCondition memory condition = ClaimableERC1155.ClaimCondition({
+            availableSupply: 1000 ether,
+            pricePerUnit: 0.2 ether,
+            currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: type(uint256).max,
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            auxData: "",
+            allowlistMerkleRoot: bytes32(0)
+        });
+
+        vm.prank(owner);
+        ClaimableERC1155(address(core)).setClaimConditionByTokenId(0, condition);
+
+        address saleRecipient = address(0x987);
+
+        vm.prank(owner);
+        ClaimableERC1155(address(core)).setSaleConfig(saleRecipient);
+
+        vm.deal(tokenRecipient, 100 ether);
+
+        ClaimableERC1155.ClaimSignatureParamsERC1155 memory claimRequest = ClaimableERC1155.ClaimSignatureParamsERC1155({
+            startTimestamp: uint48(block.timestamp),
+            endTimestamp: uint48(block.timestamp + 100),
+            currency: NATIVE_TOKEN_ADDRESS,
+            maxMintPerWallet: 10,
+            pricePerUnit: 0.1 ether,
+            uid: bytes32("1")
+        });
+        bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
+
+        vm.prank(tokenRecipient);
+        vm.expectRevert(abi.encodeWithSelector(ClaimableERC1155.ClaimableMaxMintPerWalletExceeded.selector));
+        core.mintWithSignature{value: (amount * claimRequest.pricePerUnit)}(
+            tokenRecipient, tokenId, amount, baseURI, abi.encode(claimRequest), sig
+        );
     }
 
 }

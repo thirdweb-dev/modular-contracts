@@ -25,6 +25,8 @@ library ClaimableStorage {
         ClaimableERC721.ClaimCondition claimCondition;
         // UID => whether it has been used
         mapping(bytes32 => bool) uidUsed;
+        // address => how many tokens have been minted
+        mapping(address => uint256) totalMinted;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -70,6 +72,7 @@ contract ClaimableERC721 is
         bytes32 allowlistMerkleRoot;
         uint256 pricePerUnit;
         address currency;
+        uint256 maxMintPerWallet;
         uint48 startTimestamp;
         uint48 endTimestamp;
         string auxData;
@@ -88,6 +91,7 @@ contract ClaimableERC721 is
         uint48 startTimestamp;
         uint48 endTimestamp;
         address currency;
+        uint256 maxMintPerWallet;
         uint256 pricePerUnit;
         bytes32 uid;
     }
@@ -134,6 +138,9 @@ contract ClaimableERC721 is
 
     /// @dev Emitted when the minting request signature is unauthorized.
     error ClaimableSignatureMintUnauthorized();
+
+    /// @dev Emitted when the max mint per wallet is exceeded.
+    error ClaimableMaxMintPerWalletExceeded();
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -199,7 +206,7 @@ contract ClaimableERC721 is
 
         ClaimSignatureParamsERC721 memory _params = abi.decode(_data, (ClaimSignatureParamsERC721));
 
-        _validateClaimSignatureParams(_params, _amount);
+        _validateClaimSignatureParams(_params, _to, _amount);
 
         _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
     }
@@ -296,6 +303,10 @@ contract ClaimableERC721 is
             revert ClaimableOutOfSupply();
         }
 
+        if (_amount + _claimableStorage().totalMinted[_recipient] > condition.maxMintPerWallet) {
+            revert ClaimableMaxMintPerWalletExceeded();
+        }
+
         if (condition.allowlistMerkleRoot != bytes32(0)) {
             bool isAllowlisted = MerkleProofLib.verify(
                 _allowlistProof, condition.allowlistMerkleRoot, keccak256(abi.encodePacked(_recipient))
@@ -307,10 +318,13 @@ contract ClaimableERC721 is
         }
 
         _claimableStorage().claimCondition.availableSupply -= _amount;
+        _claimableStorage().totalMinted[_recipient] += _amount;
     }
 
     /// @dev Verifies the claim request and signature.
-    function _validateClaimSignatureParams(ClaimSignatureParamsERC721 memory _req, uint256 _amount) internal {
+    function _validateClaimSignatureParams(ClaimSignatureParamsERC721 memory _req, address _recipient, uint256 _amount)
+        internal
+    {
         if (block.timestamp < _req.startTimestamp || _req.endTimestamp <= block.timestamp) {
             revert ClaimableRequestOutOfTimeWindow();
         }
@@ -323,8 +337,13 @@ contract ClaimableERC721 is
             revert ClaimableOutOfSupply();
         }
 
+        if (_amount + _claimableStorage().totalMinted[_recipient] > _req.maxMintPerWallet) {
+            revert ClaimableMaxMintPerWalletExceeded();
+        }
+
         _claimableStorage().uidUsed[_req.uid] = true;
         _claimableStorage().claimCondition.availableSupply -= _amount;
+        _claimableStorage().totalMinted[_recipient] += _amount;
     }
 
     /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.
