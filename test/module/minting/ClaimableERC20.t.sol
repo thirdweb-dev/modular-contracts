@@ -234,14 +234,14 @@ contract ClaimableERC20Test is Test {
         assertEq(saleRecipient.balance, 0);
 
         vm.prank(tokenRecipient);
-        core.mintWithSignature{value: amount * claimRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * claimRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(claimRequest), sig
         );
 
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), amount);
 
-        uint256 salePrice = amount * claimRequest.pricePerUnit;
+        uint256 salePrice = (amount * claimRequest.pricePerUnit) / 1e18;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -289,14 +289,14 @@ contract ClaimableERC20Test is Test {
         );
 
         vm.prank(tokenRecipient);
-        core.mintWithSignature{value: amount * claimRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * claimRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(claimRequest), sig
         );
 
         // Check minted balance
         assertEq(core.balanceOf(tokenRecipient), amount);
 
-        uint256 salePrice = amount * claimRequest.pricePerUnit;
+        uint256 salePrice = (amount * claimRequest.pricePerUnit) / 1e18;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -347,7 +347,7 @@ contract ClaimableERC20Test is Test {
             tokenRecipient, amount, abi.encode(claimRequest), sig
         );
 
-        uint256 salePrice = amount * condition.pricePerUnit;
+        uint256 salePrice = (amount * condition.pricePerUnit) / 1e18;
 
         vm.prank(tokenRecipient);
         currency.approve(address(core), salePrice);
@@ -356,7 +356,7 @@ contract ClaimableERC20Test is Test {
         core.mintWithSignature(tokenRecipient, amount, abi.encode(claimRequest), sig);
 
         // Check minted balance
-        assertEq(core.balanceOf(address(0x123)), amount);
+        assertEq(core.balanceOf(tokenRecipient), amount);
 
         assertEq(currency.balanceOf(tokenRecipient), balBefore - salePrice);
         assertEq(currency.balanceOf(saleRecipient), salePrice);
@@ -494,7 +494,7 @@ contract ClaimableERC20Test is Test {
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
 
         vm.prank(tokenRecipient);
-        core.mintWithSignature{value: amount * claimRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * claimRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(claimRequest), sig
         );
         assertEq(core.balanceOf(tokenRecipient), amount);
@@ -711,7 +711,7 @@ contract ClaimableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(ClaimableERC20.ClaimableMaxMintPerWalletExceeded.selector));
-        core.mintWithSignature{value: amount * claimRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * claimRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(claimRequest), sig
         );
     }

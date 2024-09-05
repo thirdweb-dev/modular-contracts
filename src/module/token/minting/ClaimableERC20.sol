@@ -194,7 +194,7 @@ contract ClaimableERC20 is
 
         _validateClaimCondition(_to, _amount, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof);
 
-        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, (_amount * _params.pricePerUnit) / 1e18);
     }
 
     /// @notice Callback function for the ERC20Core.mint function.
@@ -213,7 +213,7 @@ contract ClaimableERC20 is
 
         _validateClaimSignatureParams(_params, _to, _amount);
 
-        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, (_amount * _params.pricePerUnit) / 1e18);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
