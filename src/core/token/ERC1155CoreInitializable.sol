@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {ERC1155Base} from "./ERC1155Base.sol";
 import {Initializable} from "@solady/utils/Initializable.sol";
 
-contract ERC1155Core is ERC1155Base, Initializable {
+contract ERC1155CoreInitializable is ERC1155Base, Initializable {
 
     constructor() {
         _disableInitializers();
