@@ -17,7 +17,7 @@ contract ERC721CoreInitializable is ERC721Base, Initializable {
         address _owner,
         address[] memory _modules,
         bytes[] memory _moduleInstallData
-    ) external payable initializer initializerERC721A {
+    ) external payable initializer {
         _initialize(_name, _symbol, _contractURI, _owner, _modules, _moduleInstallData);
     }
 
