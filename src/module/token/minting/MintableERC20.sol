@@ -153,7 +153,7 @@ contract MintableERC20 is
         MintSignatureParamsERC20 memory _params = abi.decode(_data, (MintSignatureParamsERC20));
 
         _mintWithSignatureERC20(_params);
-        _distributeMintPrice(msg.sender, _params.currency, _amount * _params.pricePerUnit);
+        _distributeMintPrice(msg.sender, _params.currency, (_amount * _params.pricePerUnit) / 1e18);
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.

@@ -164,14 +164,14 @@ contract MintableERC20Test is Test {
         assertEq(saleRecipient.balance, 0);
 
         vm.prank(tokenRecipient);
-        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * mintRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(mintRequest), sig
         );
 
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), amount);
 
-        uint256 salePrice = amount * mintRequest.pricePerUnit;
+        uint256 salePrice = (amount * mintRequest.pricePerUnit) / 1e18;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
     }
@@ -190,7 +190,7 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert();
-        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * mintRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(bytes("random mixer")), sig
         );
     }
@@ -209,7 +209,7 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestOutOfTimeWindow.selector));
-        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * mintRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(mintRequest), sig
         );
     }
@@ -230,7 +230,7 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableRequestOutOfTimeWindow.selector));
-        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * mintRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(mintRequest), sig
         );
     }
@@ -248,7 +248,7 @@ contract MintableERC20Test is Test {
         bytes memory sig = signMintSignatureParams(mintRequest, permissionedActorPrivateKey);
 
         vm.prank(tokenRecipient);
-        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * mintRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(mintRequest), sig
         );
         assertEq(core.balanceOf(tokenRecipient), amount);
@@ -276,7 +276,7 @@ contract MintableERC20Test is Test {
 
         vm.prank(tokenRecipient);
         vm.expectRevert(abi.encodeWithSelector(MintableERC20.MintableSignatureMintUnauthorized.selector));
-        core.mintWithSignature{value: amount * mintRequest.pricePerUnit}(
+        core.mintWithSignature{value: (amount * mintRequest.pricePerUnit) / 1e18}(
             tokenRecipient, amount, abi.encode(mintRequest), sig
         );
     }
