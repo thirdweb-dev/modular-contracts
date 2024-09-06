@@ -39,7 +39,7 @@ library RoyaltyStorage {
 
 }
 
-contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackERC721 {
+contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackERC721, ICreatorToken {
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
@@ -64,9 +64,6 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
 
     /// @notice Emitted when the royalty info for a specific NFT is updated.
     event TokenRoyaltyUpdated(uint256 indexed tokenId, address indexed recipient, uint16 bps);
-
-    /// @notice Emitted when the transfer validator is updated.
-    event TransferValidatorUpdated(address oldValidator, address newValidator);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -108,8 +105,10 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
 
-        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces = new bytes4[](3);
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
+        config.supportedInterfaces[1] = 0xad0d7f6c; // ICreatorToken
+        config.supportedInterfaces[2] = 0xa07d229a; // ICreatorTokenLegacy
 
         config.registerInstallationCallback = true;
     }
