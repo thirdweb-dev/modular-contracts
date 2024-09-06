@@ -83,7 +83,7 @@ contract CreatorTokenERC20 is Module, BeforeTransferCallbackERC20, ICreatorToken
 
     /// @notice Returns the transfer validator contract address for this token contract.
     function getTransferValidator() public view returns (address validator) {
-        return _creatorTokenStorage().transferValidator;
+        validator = _creatorTokenStorage().transferValidator;
     }
 
     /**

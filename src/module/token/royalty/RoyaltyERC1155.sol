@@ -237,7 +237,7 @@ contract RoyaltyERC1155 is
 
     /// @notice Returns the transfer validator contract address for this token contract.
     function getTransferValidator() public view returns (address validator) {
-        return _royaltyStorage().transferValidator;
+        validator = _royaltyStorage().transferValidator;
     }
 
     /**
