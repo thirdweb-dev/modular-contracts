@@ -44,7 +44,8 @@ contract RoyaltyERC1155 is
     Module,
     IInstallationCallback,
     BeforeTransferCallbackERC1155,
-    BeforeBatchTransferCallbackERC1155
+    BeforeBatchTransferCallbackERC1155,
+    ICreatorToken
 {
 
     /*//////////////////////////////////////////////////////////////
@@ -70,9 +71,6 @@ contract RoyaltyERC1155 is
 
     /// @notice Emitted when the royalty info for a specific NFT is updated.
     event TokenRoyaltyUpdated(uint256 indexed tokenId, address indexed recipient, uint16 bps);
-
-    /// @notice Emitted when the transfer validator is updated.
-    event TransferValidatorUpdated(address oldValidator, address newValidator);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -117,6 +115,11 @@ contract RoyaltyERC1155 is
 
         config.supportedInterfaces = new bytes4[](1);
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
+
+        config.supportedInterfaces = new bytes4[](3);
+        config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
+        config.supportedInterfaces[1] = 0xad0d7f6c; // ICreatorToken
+        config.supportedInterfaces[2] = 0xa07d229a; // ICreatorTokenLegacy
 
         config.registerInstallationCallback = true;
     }
@@ -234,7 +237,7 @@ contract RoyaltyERC1155 is
 
     /// @notice Returns the transfer validator contract address for this token contract.
     function getTransferValidator() public view returns (address validator) {
-        return _royaltyStorage().transferValidator;
+        validator = _royaltyStorage().transferValidator;
     }
 
     /**
