@@ -3,7 +3,6 @@
 pragma solidity ^0.8.24;
 
 // Access Control
-
 import {Role} from "../../../../src/Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
@@ -58,6 +57,7 @@ contract OperatorAllowlist is ERC165, OwnableRoles, IOperatorAllowlist {
      * @param admin the address to grant `Role._MANAGER_ROLE` to
      */
     constructor(address admin) {
+        _initializeOwner(admin);
         _grantRoles(admin, Role._MANAGER_ROLE);
     }
 
