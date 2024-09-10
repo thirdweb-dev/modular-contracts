@@ -1,10 +1,10 @@
 // Copyright Immutable Pty Ltd 2018 - 2023
 // SPDX-License-Identifier: Apache 2.0
-pragma solidity 0.8.19;
+pragma solidity ^0.8.24;
 
 // Access Control
 
-import {Role} from "../../../Role.sol";
+import {Role} from "../../../../src/Role.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
 // Interfaces
@@ -19,7 +19,7 @@ interface IProxy {
 
 }
 
-interface IERC165 {
+interface ERC165 {
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 
@@ -32,7 +32,7 @@ interface IERC165 {
     OperatorAllowlist is not designed to be upgradeable or extended.
 */
 
-contract OperatorAllowlist is ERC165, AccessControl, IOperatorAllowlist {
+contract OperatorAllowlist is ERC165, OwnableRoles, IOperatorAllowlist {
 
     /// @notice Mapping of Allowlisted addresses
     mapping(address aContract => bool allowed) private addressAllowlist;
@@ -54,11 +54,11 @@ contract OperatorAllowlist is ERC165, AccessControl, IOperatorAllowlist {
     ///     =====   Constructor  =====
 
     /**
-     * @notice Grants `_MANAGER_ROLE` to the supplied `admin` address
-     * @param admin the address to grant `_MANAGER_ROLE` to
+     * @notice Grants `Role._MANAGER_ROLE` to the supplied `admin` address
+     * @param admin the address to grant `Role._MANAGER_ROLE` to
      */
     constructor(address admin) {
-        _grantRoles(admin, _MANAGER_ROLE);
+        _grantRoles(admin, Role._MANAGER_ROLE);
     }
 
     ///     =====  External functions  =====
@@ -67,7 +67,7 @@ contract OperatorAllowlist is ERC165, AccessControl, IOperatorAllowlist {
      * @notice Add a target address to Allowlist
      * @param addressTargets the addresses to be added to the allowlist
      */
-    function addAddressToAllowlist(address[] calldata addressTargets) external onlyRoles(_REGISTRAR_ROLE) {
+    function addAddressToAllowlist(address[] calldata addressTargets) external onlyRoles(Role._REGISTRAR_ROLE) {
         for (uint256 i; i < addressTargets.length; i++) {
             addressAllowlist[addressTargets[i]] = true;
             emit AddressAllowlistChanged(addressTargets[i], true);
@@ -78,7 +78,7 @@ contract OperatorAllowlist is ERC165, AccessControl, IOperatorAllowlist {
      * @notice Remove a target address from Allowlist
      * @param addressTargets the addresses to be removed from the allowlist
      */
-    function removeAddressFromAllowlist(address[] calldata addressTargets) external onlyRoles(_REGISTRAR_ROLE) {
+    function removeAddressFromAllowlist(address[] calldata addressTargets) external onlyRoles(Role._REGISTRAR_ROLE) {
         for (uint256 i; i < addressTargets.length; i++) {
             delete addressAllowlist[addressTargets[i]];
             emit AddressAllowlistChanged(addressTargets[i], false);
@@ -93,7 +93,7 @@ contract OperatorAllowlist is ERC165, AccessControl, IOperatorAllowlist {
      * implementation address allowlist.
      * @param walletAddr the wallet address to be added to the allowlist
      */
-    function addWalletToAllowlist(address walletAddr) external onlyRoles(_REGISTRAR_ROLE) {
+    function addWalletToAllowlist(address walletAddr) external onlyRoles(Role._REGISTRAR_ROLE) {
         // get bytecode of wallet
         bytes32 codeHash;
         // solhint-disable-next-line no-inline-assembly
@@ -113,7 +113,7 @@ contract OperatorAllowlist is ERC165, AccessControl, IOperatorAllowlist {
      * This will remove the proxy bytecode hash and implementation contract address pair from the allowlist
      * @param walletAddr the wallet address to be removed from the allowlist
      */
-    function removeWalletFromAllowlist(address walletAddr) external onlyRoles(_REGISTRAR_ROLE) {
+    function removeWalletFromAllowlist(address walletAddr) external onlyRoles(Role._REGISTRAR_ROLE) {
         // get bytecode of wallet
         bytes32 codeHash;
         // solhint-disable-next-line no-inline-assembly
@@ -129,19 +129,19 @@ contract OperatorAllowlist is ERC165, AccessControl, IOperatorAllowlist {
     }
 
     /**
-     * @notice Allows admin to grant `user` `_REGISTRAR_ROLE` role
-     * @param user the address that `_REGISTRAR_ROLE` will be granted to
+     * @notice Allows admin to grant `user` `Role._REGISTRAR_ROLE` role
+     * @param user the address that `Role._REGISTRAR_ROLE` will be granted to
      */
-    function grantRegistrarRole(address user) external onlyRoles(_MANAGER_ROLE) {
-        grantRoles(user, _REGISTRAR_ROLE);
+    function grantRegistrarRole(address user) external onlyRoles(Role._MANAGER_ROLE) {
+        grantRoles(user, Role._REGISTRAR_ROLE);
     }
 
     /**
-     * @notice Allows admin to revoke `_REGISTRAR_ROLE` role from `user`
-     * @param user the address that `_REGISTRAR_ROLE` will be revoked from
+     * @notice Allows admin to revoke `Role._REGISTRAR_ROLE` role from `user`
+     * @param user the address that `Role._REGISTRAR_ROLE` will be revoked from
      */
-    function revokeRegistrarRole(address user) external onlyRoles(_MANAGER_ROLE) {
-        revokeRole(user, _REGISTRAR_ROLE);
+    function revokeRegistrarRole(address user) external onlyRoles(Role._MANAGER_ROLE) {
+        revokeRoles(user, Role._REGISTRAR_ROLE);
     }
 
     ///     =====   View functions  =====
@@ -175,8 +175,8 @@ contract OperatorAllowlist is ERC165, AccessControl, IOperatorAllowlist {
      * @notice ERC-165 interface support
      * @param interfaceId The interface identifier, which is a 4-byte selector.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, AccessControl) returns (bool) {
-        return interfaceId == type(IOperatorAllowlist).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165) returns (bool) {
+        return interfaceId == type(IOperatorAllowlist).interfaceId;
     }
 
 }
