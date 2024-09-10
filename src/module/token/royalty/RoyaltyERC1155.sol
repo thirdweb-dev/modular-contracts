@@ -113,9 +113,6 @@ contract RoyaltyERC1155 is
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
 
-        config.supportedInterfaces = new bytes4[](1);
-        config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
-
         config.supportedInterfaces = new bytes4[](3);
         config.supportedInterfaces[0] = 0x2a55205a; // IERC2981.
         config.supportedInterfaces[1] = 0xad0d7f6c; // ICreatorToken
