@@ -4,29 +4,13 @@ pragma solidity ^0.8.20;
 import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 
+import {
+    OperatorAllowlistEnforced,
+    OperatorAllowlistEnforcedStorage
+} from "../../../../dependecies/immutable/allowlist/OperatorAllowlistEnforced.sol";
 import {BeforeApproveCallbackERC721} from "../../../callback/BeforeApproveCallbackERC721.sol";
 import {BeforeApproveForAllCallback} from "../../../callback/BeforeApproveForAllCallback.sol";
 import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
-import {OperatorAllowlistEnforced} from "@imtbl/contracts/allowlist/OperatorAllowlistEnforced.sol";
-
-library ImmutableAllowlistStorage {
-
-    /// @custom:storage-location erc7201:token.immutableallowlist
-    bytes32 public constant IMMUTABLE_ALLOWLIST_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.immutableAllowlist.ERC721")) - 1)) & ~bytes32(uint256(0xff));
-
-    struct Data {
-        address operatorAllowlistRegistry;
-    }
-
-    function data() internal pure returns (Data storage data_) {
-        bytes32 position = IMMUTABLE_ALLOWLIST_STORAGE_POSITION;
-        assembly {
-            data_.slot := position
-        }
-    }
-
-}
 
 contract ImmutableAllowlistERC721 is
     Module,
@@ -64,24 +48,12 @@ contract ImmutableAllowlistERC721 is
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.setOperatorAllowlistRegistry.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[1] =
-            FallbackFunction({selector: this.getOperatorAllowlistRegistry.selector, permissionBits: 0});
+        config.fallbackFunctions[1] = FallbackFunction({selector: this.operatorAllowlist.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721
 
         config.registerInstallationCallback = true;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    modifier isOperatorAllowlistSet() {
-        if (_immutableAllowlistStorage().operatorAllowlistRegistry == address(0)) {
-            revert OperatorAllowlistNotSet();
-        }
-        _;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -92,7 +64,6 @@ contract ImmutableAllowlistERC721 is
     function beforeApproveERC721(address _from, address _to, uint256 _tokenId, bool _approve)
         external
         override
-        isOperatorAllowlistSet
         validateApproval(_to)
         returns (bytes memory)
     {}
@@ -101,7 +72,6 @@ contract ImmutableAllowlistERC721 is
     function beforeApproveForAll(address _from, address _to, bool _approved)
         external
         override
-        isOperatorAllowlistSet
         validateApproval(_to)
         returns (bytes memory)
     {}
@@ -110,7 +80,6 @@ contract ImmutableAllowlistERC721 is
     function beforeTransferERC721(address _from, address _to, uint256 _tokenId)
         external
         override
-        isOperatorAllowlistSet
         validateTransfer(_from, _to)
         returns (bytes memory)
     {}
@@ -118,7 +87,7 @@ contract ImmutableAllowlistERC721 is
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         address registry = abi.decode(data, (address));
-        _immutableAllowlistStorage().operatorAllowlistRegistry = registry;
+        _setOperatorAllowlistRegistry(registry);
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -144,20 +113,7 @@ contract ImmutableAllowlistERC721 is
 
     /// @notice Set the operator allowlist registry address
     function setOperatorAllowlistRegistry(address newRegistry) external {
-        _immutableAllowlistStorage().operatorAllowlistRegistry = newRegistry;
-    }
-
-    /// @notice Get the current operator allowlist registry address
-    function getOperatorAllowlistRegistry() external view returns (address) {
-        return _immutableAllowlistStorage().operatorAllowlistRegistry;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function _immutableAllowlistStorage() internal pure returns (ImmutableAllowlistStorage.Data storage) {
-        return ImmutableAllowlistStorage.data();
+        _setOperatorAllowlistRegistry(newRegistry);
     }
 
 }

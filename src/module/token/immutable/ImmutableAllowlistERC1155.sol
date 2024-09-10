@@ -4,30 +4,13 @@ pragma solidity ^0.8.20;
 import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
 
+import {
+    OperatorAllowlistEnforced,
+    OperatorAllowlistEnforcedStorage
+} from "../../../../dependecies/immutable/allowlist/OperatorAllowlistEnforced.sol";
 import {BeforeApproveForAllCallback} from "../../../callback/BeforeApproveForAllCallback.sol";
-
 import {BeforeBatchTransferCallbackERC1155} from "../../../callback/BeforeBatchTransferCallbackERC1155.sol";
 import {BeforeTransferCallbackERC1155} from "../../../callback/BeforeTransferCallbackERC1155.sol";
-import {OperatorAllowlistEnforced} from "@imtbl/contracts/allowlist/OperatorAllowlistEnforced.sol";
-
-library ImmutableAllowlistStorage {
-
-    /// @custom:storage-location erc7201:token.immutableallowlist
-    bytes32 public constant IMMUTABLE_ALLOWLIST_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.immutableAllowlist.ERC1155")) - 1)) & ~bytes32(uint256(0xff));
-
-    struct Data {
-        address operatorAllowlistRegistry;
-    }
-
-    function data() internal pure returns (Data storage data_) {
-        bytes32 position = IMMUTABLE_ALLOWLIST_STORAGE_POSITION;
-        assembly {
-            data_.slot := position
-        }
-    }
-
-}
 
 contract ImmutableAllowlistERC1155 is
     Module,
@@ -59,30 +42,18 @@ contract ImmutableAllowlistERC1155 is
         config.callbackFunctions = new CallbackFunction[](3);
         config.fallbackFunctions = new FallbackFunction[](2);
 
-        config.callbackFunctions[1] = CallbackFunction(this.beforeApproveForAll.selector);
-        config.callbackFunctions[2] = CallbackFunction(this.beforeTransferERC1155.selector);
-        config.callbackFunctions[3] = CallbackFunction(this.beforeBatchTransferERC1155.selector);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeApproveForAll.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.beforeTransferERC1155.selector);
+        config.callbackFunctions[2] = CallbackFunction(this.beforeBatchTransferERC1155.selector);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.setOperatorAllowlistRegistry.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[1] =
-            FallbackFunction({selector: this.getOperatorAllowlistRegistry.selector, permissionBits: 0});
+        config.fallbackFunctions[1] = FallbackFunction({selector: this.operatorAllowlist.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC1155
 
         config.registerInstallationCallback = true;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    modifier isOperatorAllowlistSet() {
-        if (_immutableAllowlistStorage().operatorAllowlistRegistry == address(0)) {
-            revert OperatorAllowlistNotSet();
-        }
-        _;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -93,7 +64,6 @@ contract ImmutableAllowlistERC1155 is
     function beforeApproveForAll(address _from, address _to, bool _approved)
         external
         override
-        isOperatorAllowlistSet
         validateApproval(_to)
         returns (bytes memory)
     {}
@@ -102,7 +72,6 @@ contract ImmutableAllowlistERC1155 is
     function beforeTransferERC1155(address _from, address _to, uint256 _id, uint256 _value)
         external
         override
-        isOperatorAllowlistSet
         validateTransfer(_from, _to)
         returns (bytes memory)
     {}
@@ -111,7 +80,6 @@ contract ImmutableAllowlistERC1155 is
     function beforeBatchTransferERC1155(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values)
         external
         override
-        isOperatorAllowlistSet
         validateTransfer(_from, _to)
         returns (bytes memory)
     {}
@@ -119,7 +87,7 @@ contract ImmutableAllowlistERC1155 is
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         address registry = abi.decode(data, (address));
-        _immutableAllowlistStorage().operatorAllowlistRegistry = registry;
+        _setOperatorAllowlistRegistry(registry);
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -145,20 +113,7 @@ contract ImmutableAllowlistERC1155 is
 
     /// @notice Set the operator allowlist registry address
     function setOperatorAllowlistRegistry(address newRegistry) external {
-        _immutableAllowlistStorage().operatorAllowlistRegistry = newRegistry;
-    }
-
-    /// @notice Get the current operator allowlist registry address
-    function getOperatorAllowlistRegistry() external view returns (address) {
-        return _immutableAllowlistStorage().operatorAllowlistRegistry;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function _immutableAllowlistStorage() internal pure returns (ImmutableAllowlistStorage.Data storage) {
-        return ImmutableAllowlistStorage.data();
+        _setOperatorAllowlistRegistry(newRegistry);
     }
 
 }
