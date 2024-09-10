@@ -293,8 +293,6 @@ contract ClaimableERC1155Test is Test {
             uid: bytes32("1")
         });
         bytes memory sig = signMintRequest(claimRequest, permissionedActorPrivateKey);
-        console.log("permissoned actor address");
-        console.logAddress(permissionedActor);
 
         uint256 balBefore = tokenRecipient.balance;
         assertEq(balBefore, 100 ether);

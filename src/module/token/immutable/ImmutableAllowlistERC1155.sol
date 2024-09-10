@@ -51,7 +51,7 @@ contract ImmutableAllowlistERC1155 is
         config.fallbackFunctions[1] = FallbackFunction({selector: this.operatorAllowlist.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
-        config.requiredInterfaces[0] = 0x80ac58cd; // ERC1155
+        config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
 
         config.registerInstallationCallback = true;
     }

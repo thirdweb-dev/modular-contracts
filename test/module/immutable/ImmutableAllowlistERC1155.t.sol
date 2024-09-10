@@ -9,17 +9,17 @@ import {Role} from "src/Role.sol";
 // Target contract
 
 import {Module} from "src/Module.sol";
-import {ERC721Core} from "src/core/token/ERC721Core.sol";
+import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 
 import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
-import {ImmutableAllowlistERC721} from "src/module/token/immutable/ImmutableAllowlistERC721.sol";
+import {ImmutableAllowlistERC1155} from "src/module/token/immutable/ImmutableAllowlistERC1155.sol";
 
 import {OperatorAllowlistEnforced} from "dependecies/immutable/allowlist/OperatorAllowlistEnforced.sol";
 import {OperatorAllowlistEnforcementErrors} from "dependecies/immutable/errors/Errors.sol";
 import {OperatorAllowlist} from "dependecies/immutable/test/allowlist/OperatorAllowlist.sol";
 
-contract Core is ERC721Core {
+contract Core is ERC1155Core {
 
     constructor(
         string memory name,
@@ -28,40 +28,71 @@ contract Core is ERC721Core {
         address owner,
         address[] memory modules,
         bytes[] memory moduleInstallData
-    ) ERC721Core(name, symbol, contractURI, owner, modules, moduleInstallData) {}
+    ) ERC1155Core(name, symbol, contractURI, owner, modules, moduleInstallData) {}
 
-    // disable mint and approve callbacks for these tests
-    function _beforeMint(address to, uint256 startTokenId, uint256 quantity, bytes calldata data) internal override {}
+    // disable mint, approve and tokenId callbacks for these tests
+    function _beforeMint(address to, uint256 tokenId, uint256 value, bytes memory data) internal override {}
+
+    function _updateTokenId(uint256 tokenId) internal override returns (uint256) {
+        return tokenId;
+    }
 
 }
 
 contract DummyContract {
 
-    ERC721Core public immutable erc721Core;
+    ERC1155Core public immutable erc1155Core;
 
-    constructor(address payable _erc721Core) {
-        erc721Core = ERC721Core(_erc721Core);
+    constructor(address payable _erc1155Core) {
+        erc1155Core = ERC1155Core(_erc1155Core);
     }
 
-    function approve(address _to, uint256 _tokenId) external {
-        erc721Core.approve(_to, _tokenId);
+    // Implement the IERC1155Receiver functions to accept ERC1155 tokens
+
+    function onERC1155Received(address operator, address from, uint256 id, uint256 value, bytes calldata data)
+        external
+        returns (bytes4)
+    {
+        return this.onERC1155Received.selector;
     }
 
+    function onERC1155BatchReceived(
+        address operator,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata values,
+        bytes calldata data
+    ) external returns (bytes4) {
+        return this.onERC1155BatchReceived.selector;
+    }
+
+    // Required to declare support for the ERC1155Receiver interface
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
+        return interfaceId == 0x4e2312e0;
+    }
+
+    // Set approval for the operator to manage tokens
     function setApprovalForAll(address _operator) external {
-        erc721Core.setApprovalForAll(_operator, true);
+        erc1155Core.setApprovalForAll(_operator, true);
     }
 
+    // Transfer a single token
     function transfer(address _to, uint256 _tokenId) external {
-        erc721Core.transferFrom(address(this), _to, _tokenId);
+        erc1155Core.safeTransferFrom(address(this), _to, _tokenId, 1, "");
+    }
+
+    // Batch transfer multiple tokens
+    function batchTransfer(address _to, uint256[] calldata tokenIds, uint256[] calldata amounts) external {
+        erc1155Core.safeBatchTransferFrom(address(this), _to, tokenIds, amounts, "");
     }
 
 }
 
-contract ImmutableAllowlistERC721Test is Test {
+contract ImmutableAllowlistERC1155Test is Test {
 
     Core public core;
 
-    ImmutableAllowlistERC721 public immutableAllowlistModule;
+    ImmutableAllowlistERC1155 public immutableAllowlistModule;
     OperatorAllowlist public operatorAllowlist;
     DummyContract public dummyContract1;
     DummyContract public dummyContract2;
@@ -78,7 +109,7 @@ contract ImmutableAllowlistERC721Test is Test {
         bytes[] memory moduleData;
 
         core = new Core("test", "TEST", "", owner, modules, moduleData);
-        immutableAllowlistModule = new ImmutableAllowlistERC721();
+        immutableAllowlistModule = new ImmutableAllowlistERC1155();
 
         vm.prank(owner);
         operatorAllowlist = new OperatorAllowlist(owner);
@@ -99,9 +130,9 @@ contract ImmutableAllowlistERC721Test is Test {
         dummyContract2 = new DummyContract(payable(address(core)));
 
         // mint tokens
-        core.mint(actorOne, 1, string(""), ""); // tokenId 0
-        core.mint(actorTwo, 1, string(""), ""); // tokenId 1
-        core.mint(actorThree, 1, string(""), ""); // tokenId 2
+        core.mint(actorOne, 0, 1, string(""), ""); // tokenId 0
+        core.mint(actorTwo, 1, 1, string(""), ""); // tokenId 1
+        core.mint(actorThree, 3, 1, string(""), ""); // tokenId 2
 
         vm.prank(owner);
         core.grantRoles(owner, Role._MANAGER_ROLE);
@@ -124,9 +155,9 @@ contract ImmutableAllowlistERC721Test is Test {
         vm.prank(owner);
         vm.expectEmit(true, true, true, true);
         emit OperatorAllowlistRegistryUpdated(address(operatorAllowlist), address(operatorAllowlist2));
-        ImmutableAllowlistERC721(address(core)).setOperatorAllowlistRegistry(address(operatorAllowlist2));
+        ImmutableAllowlistERC1155(address(core)).setOperatorAllowlistRegistry(address(operatorAllowlist2));
 
-        assertEq(ImmutableAllowlistERC721(address(core)).operatorAllowlist(), address(operatorAllowlist2));
+        assertEq(ImmutableAllowlistERC1155(address(core)).operatorAllowlist(), address(operatorAllowlist2));
     }
 
     function test_revert_setOperatorAllowlistRegistry() public {
@@ -134,51 +165,14 @@ contract ImmutableAllowlistERC721Test is Test {
         // should revert since the allowlist does not implement the IOperatorAllowlist interface
         // and that it doesn't implement supportsInterface
         vm.expectRevert();
-        ImmutableAllowlistERC721(address(core)).setOperatorAllowlistRegistry(address(0x123));
-    }
-
-    /*///////////////////////////////////////////////////////////////
-                        Unit tests: `beforeApproveERC721`
-    //////////////////////////////////////////////////////////////*/
-
-    function test_state_beforeApproveERC721() public {
-        // passes when msg.sender is an EOA and targetApproval is an EOA
-        vm.prank(actorOne);
-        core.approve(actorTwo, 0);
-
-        // set allowlist for dummy contract
-        address[] memory allowlist = new address[](3);
-        allowlist[0] = address(dummyContract1);
-        allowlist[1] = address(dummyContract2);
-        allowlist[2] = address(actorThree);
-        vm.prank(owner);
-        operatorAllowlist.addAddressToAllowlist(allowlist);
-
-        vm.startPrank(actorThree);
-        core.mint(actorThree, 2, string(""), ""); // tokenId 3
-        core.transferFrom(actorThree, address(dummyContract1), 3);
-        vm.stopPrank();
-
-        // passes when msg.sender is a contract and is allowlisted
-        // and when targetApproval is a contract and is allowlisted
-        dummyContract1.approve(address(dummyContract2), 3);
-    }
-
-    function test_revert_beforeApproveERC721() public {
-        vm.prank(actorOne);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                OperatorAllowlistEnforcementErrors.ApproveTargetNotInAllowlist.selector, address(dummyContract1)
-            )
-        );
-        core.approve(address(dummyContract1), 0);
+        ImmutableAllowlistERC1155(address(core)).setOperatorAllowlistRegistry(address(0x123));
     }
 
     /*///////////////////////////////////////////////////////////////
                         Unit tests: `beforeApproveForAll`
     //////////////////////////////////////////////////////////////*/
 
-    function test_state_beforeApproveForAllERC721() public {
+    function test_state_beforeApproveForAllERC1155() public {
         // passes when msg.sender is an EOA and targetApproval is an EOA
         vm.prank(actorOne);
         core.setApprovalForAll(actorTwo, true);
@@ -192,8 +186,8 @@ contract ImmutableAllowlistERC721Test is Test {
         operatorAllowlist.addAddressToAllowlist(allowlist);
 
         vm.startPrank(actorThree);
-        core.mint(actorThree, 1, string(""), ""); // tokenId 3
-        core.transferFrom(actorThree, address(dummyContract1), 3);
+        core.mint(actorThree, 3, 1, string(""), ""); // tokenId 3
+        core.safeTransferFrom(actorThree, address(dummyContract1), 3, 1, "");
         vm.stopPrank();
 
         // passes when msg.sender is a contract and is allowlisted
@@ -201,7 +195,7 @@ contract ImmutableAllowlistERC721Test is Test {
         dummyContract1.setApprovalForAll(address(dummyContract2));
     }
 
-    function test_revert_beforeApproveForAllERC721() public {
+    function test_revert_beforeApproveForAllERC1155() public {
         vm.prank(actorOne);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -212,10 +206,10 @@ contract ImmutableAllowlistERC721Test is Test {
     }
 
     /*///////////////////////////////////////////////////////////////
-                   Unit tests: `beforeTransferERC721`
+                   Unit tests: `beforeTransferERC1155`
     //////////////////////////////////////////////////////////////*/
 
-    function test_state_beforeTransferERC721() public {
+    function test_state_beforeTransferERC1155() public {
         // set allowlist
         address[] memory allowlist = new address[](5);
         allowlist[0] = address(dummyContract1);
@@ -227,12 +221,12 @@ contract ImmutableAllowlistERC721Test is Test {
         operatorAllowlist.addAddressToAllowlist(allowlist);
 
         vm.prank(actorOne);
-        core.transferFrom(actorOne, actorTwo, 0);
+        core.safeTransferFrom(actorOne, actorTwo, 0, 1, "");
 
         // passes when msg.sender is an EOA and targetApproval is a contract and is allowlisted
-        core.mint(actorThree, 1, string(""), ""); // tokenId 3
+        core.mint(actorThree, 3, 1, string(""), ""); // tokenId 3
         vm.startPrank(actorThree);
-        core.transferFrom(actorThree, address(dummyContract1), 3);
+        core.safeTransferFrom(actorThree, address(dummyContract1), 3, 1, "");
         vm.stopPrank();
 
         // passes when msg.sender is a contract and is allowlisted
@@ -240,13 +234,13 @@ contract ImmutableAllowlistERC721Test is Test {
         dummyContract1.transfer(address(dummyContract2), 3);
     }
 
-    function test_revert_beforeTransferERC721() public {
+    function test_revert_beforeTransferERC1155() public {
         // fails when msg.sender is not allowlisted
         vm.prank(actorOne);
         vm.expectRevert(
             abi.encodeWithSelector(OperatorAllowlistEnforcementErrors.CallerNotInAllowlist.selector, actorOne)
         );
-        core.transferFrom(actorOne, actorTwo, 0);
+        core.safeTransferFrom(actorOne, actorTwo, 0, 1, "");
 
         // fails when target is not allowlisted
         allowlist(actorOne);
@@ -256,7 +250,71 @@ contract ImmutableAllowlistERC721Test is Test {
                 OperatorAllowlistEnforcementErrors.TransferToNotInAllowlist.selector, address(dummyContract1)
             )
         );
-        core.transferFrom(actorOne, address(dummyContract1), 0);
+        core.safeTransferFrom(actorOne, address(dummyContract1), 0, 1, "");
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                   Unit tests: `beforeTransferERC1155`
+    //////////////////////////////////////////////////////////////*/
+
+    function test_state_beforeBatchTransferERC1155() public {
+        // set allowlist
+        address[] memory allowlist = new address[](5);
+        allowlist[0] = address(dummyContract1);
+        allowlist[1] = address(dummyContract2);
+        allowlist[2] = address(actorOne);
+        allowlist[3] = address(actorTwo);
+        allowlist[4] = address(actorThree);
+        vm.prank(owner);
+        operatorAllowlist.addAddressToAllowlist(allowlist);
+
+        uint256[] memory tokenIds = new uint256[](1);
+        tokenIds[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1;
+        vm.prank(actorOne);
+        core.safeBatchTransferFrom(actorOne, actorTwo, tokenIds, amounts, "");
+
+        // passes when msg.sender is an EOA and targetApproval is a contract and is allowlisted
+        core.mint(actorThree, 3, 1, string(""), ""); // tokenId 3
+        vm.startPrank(actorThree);
+        core.safeTransferFrom(actorThree, address(dummyContract1), 3, 1, "");
+        vm.stopPrank();
+
+        // passes when msg.sender is a contract and is allowlisted
+        // and when targetApproval is a contract and is allowlisted
+        uint256[] memory _tokenIds = new uint256[](1);
+        tokenIds[0] = 3;
+        uint256[] memory _amounts = new uint256[](1);
+        amounts[0] = 1;
+        dummyContract1.batchTransfer(address(dummyContract2), _tokenIds, _amounts);
+    }
+
+    function test_revert_beforeBatchTransferERC1155() public {
+        // fails when msg.sender is not allowlisted
+        uint256[] memory tokenIds = new uint256[](1);
+        tokenIds[0] = 0;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1;
+        vm.prank(actorOne);
+        vm.expectRevert(
+            abi.encodeWithSelector(OperatorAllowlistEnforcementErrors.CallerNotInAllowlist.selector, actorOne)
+        );
+        core.safeBatchTransferFrom(actorOne, actorTwo, tokenIds, amounts, "");
+
+        // fails when target is not allowlisted
+        uint256[] memory _tokenIds = new uint256[](1);
+        tokenIds[0] = 3;
+        uint256[] memory _amounts = new uint256[](1);
+        amounts[0] = 1;
+        allowlist(actorOne);
+        vm.prank(actorOne);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OperatorAllowlistEnforcementErrors.TransferToNotInAllowlist.selector, address(dummyContract1)
+            )
+        );
+        core.safeBatchTransferFrom(actorOne, address(dummyContract1), _tokenIds, _amounts, "");
     }
 
 }
