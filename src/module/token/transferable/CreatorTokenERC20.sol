@@ -83,7 +83,7 @@ contract CreatorTokenERC20 is Module, BeforeTransferCallbackERC20, ICreatorToken
 
     /// @notice Returns the transfer validator contract address for this token contract.
     function getTransferValidator() public view returns (address validator) {
-        return _creatorTokenStorage().transferValidator;
+        validator = _creatorTokenStorage().transferValidator;
     }
 
     /**
@@ -91,7 +91,7 @@ contract CreatorTokenERC20 is Module, BeforeTransferCallbackERC20, ICreatorToken
      * @notice for transaction simulation.
      */
     function getTransferValidationFunction() external pure returns (bytes4 functionSignature, bool isViewFunction) {
-        functionSignature = bytes4(keccak256("validateTransfer(address,address,address,uint256, uint256)"));
+        functionSignature = bytes4(keccak256("validateTransfer(address,address,address,uint256,uint256)"));
         isViewFunction = true;
     }
 
