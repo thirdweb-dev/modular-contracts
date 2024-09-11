@@ -41,6 +41,31 @@ contract TransferToken {
 
 }
 
+struct CollectionSecurityPolicyV3 {
+    bool disableAuthorizationMode;
+    bool authorizersCannotSetWildcardOperators;
+    uint8 transferSecurityLevel;
+    uint120 listId;
+    bool enableAccountFreezingMode;
+    uint16 tokenType;
+}
+
+interface CreatorTokenTransferValidator is ITransferValidator {
+
+    function setTransferSecurityLevelOfCollection(
+        address collection,
+        uint8 transferSecurityLevel,
+        bool isTransferRestricted,
+        bool isTransferWithRestrictedRecipient,
+        bool isTransferWithRestrictedToken
+    ) external;
+    function getCollectionSecurityPolicy(address collection)
+        external
+        view
+        returns (CollectionSecurityPolicyV3 memory);
+
+}
+
 contract RoyaltyERC1155Test is Test {
 
     ERC1155Core public core;
@@ -49,7 +74,8 @@ contract RoyaltyERC1155Test is Test {
 
     MintableERC1155 public mintableModuleImplementation;
     TransferToken public transferTokenContract;
-    ITransferValidator public mockTransferValidator;
+    CreatorTokenTransferValidator public mockTransferValidator;
+    uint8 TRANSFER_SECURITY_LEVEL_SEVEN = 7;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -133,7 +159,7 @@ contract RoyaltyERC1155Test is Test {
         core.grantRoles(owner, Role._MINTER_ROLE);
 
         // set up transfer validator
-        mockTransferValidator = ITransferValidator(0x721C0078c2328597Ca70F5451ffF5A7B38D4E947);
+        mockTransferValidator = CreatorTokenTransferValidator(0x721C0078c2328597Ca70F5451ffF5A7B38D4E947);
         vm.etch(address(mockTransferValidator), TRANSFER_VALIDATOR_DEPLOYED_BYTECODE);
     }
 
@@ -247,7 +273,7 @@ contract RoyaltyERC1155Test is Test {
     function test_revert_setTransferValidator_invalidContract() public {
         // attempt to set the transfer validator to an invalid contract
         vm.prank(owner);
-        vm.expectRevert(RoyaltyERC1155.InvalidTransferValidatorContract.selector);
+        vm.expectRevert(RoyaltyERC1155.RoyaltyInvalidTransferValidatorContract.selector);
         RoyaltyERC1155(address(core)).setTransferValidator(address(11_111));
     }
 
@@ -321,6 +347,61 @@ contract RoyaltyERC1155Test is Test {
 
         assertEq(0, core.balanceOf(permissionedActor, 0));
         assertEq(0, core.balanceOf(permissionedActor, 1));
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                        Unit tests: `setTransferPolicy`
+    //////////////////////////////////////////////////////////////*/
+
+    function test_setTransferSecurityLevel() public {
+        if (evmVersionHash != keccak256(abi.encode('evm_version = "cancun"'))) {
+            //skip test if evm version is not cancun
+            return;
+        }
+
+        // set transfer validator
+        vm.prank(owner);
+        RoyaltyERC1155(address(core)).setTransferValidator(address(mockTransferValidator));
+
+        vm.prank(owner);
+        core.grantRoles(permissionedActor, Role._MANAGER_ROLE);
+
+        vm.prank(permissionedActor);
+        mockTransferValidator.setTransferSecurityLevelOfCollection(
+            address(core), TRANSFER_SECURITY_LEVEL_SEVEN, true, false, false
+        );
+
+        assertEq(
+            mockTransferValidator.getCollectionSecurityPolicy(address(core)).transferSecurityLevel,
+            TRANSFER_SECURITY_LEVEL_SEVEN
+        );
+    }
+
+    function test_revert_setTransferSecurityLevel() public {
+        if (evmVersionHash != keccak256(abi.encode('evm_version = "cancun"'))) {
+            //skip test if evm version is not cancun
+            return;
+        }
+        vm.prank(owner);
+        core.grantRoles(permissionedActor, Role._MANAGER_ROLE);
+
+        // revert due to msg.sender not being the transfer validator
+        vm.expectRevert();
+        vm.prank(permissionedActor);
+        mockTransferValidator.setTransferSecurityLevelOfCollection(
+            address(core), TRANSFER_SECURITY_LEVEL_SEVEN, true, false, false
+        );
+
+        // set transfer validator
+        vm.prank(owner);
+        RoyaltyERC1155(address(core)).setTransferValidator(address(mockTransferValidator));
+
+        // revert due to incorrect permissions
+        vm.prank(unpermissionedActor);
+        vm.expectRevert();
+        mockTransferValidator.setTransferSecurityLevelOfCollection(
+            address(core), TRANSFER_SECURITY_LEVEL_SEVEN, true, false, false
+        );
     }
 
     /*///////////////////////////////////////////////////////////////
