@@ -21,7 +21,7 @@ import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {BatchMetadataERC1155} from "src/module/token/metadata/BatchMetadataERC1155.sol";
 import {BatchMetadataERC721} from "src/module/token/metadata/BatchMetadataERC721.sol";
 import {MintableERC1155} from "src/module/token/minting/MintableERC1155.sol";
-import {SequentialTokenIdERC1155} from "src/module/token/tokenId/sequentialTokenIdERC1155.sol";
+import {SequentialTokenIdERC1155} from "src/module/token/tokenId/SequentialTokenIdERC1155.sol";
 
 contract MockCurrency is ERC20 {
 
