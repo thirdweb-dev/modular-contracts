@@ -60,9 +60,9 @@ contract TransferableERC721Test is Test {
         installedModule = TransferableExt(installedModules[0].implementation);
 
         // mint tokens
-        core.mint(actorOne, 1, ""); // tokenId 0
-        core.mint(actorTwo, 1, ""); // tokenId 1
-        core.mint(actorThree, 1, ""); // tokenId 2
+        core.mint(actorOne, 1, string(""), ""); // tokenId 0
+        core.mint(actorTwo, 1, string(""), ""); // tokenId 1
+        core.mint(actorThree, 1, string(""), ""); // tokenId 2
     }
 
     /*///////////////////////////////////////////////////////////////

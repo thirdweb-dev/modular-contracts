@@ -52,9 +52,6 @@ contract OpenEditionMetadataERC721 is Module {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Emittted when shared metadata is updated
-    event SharedMetadataUpdated(string name, string description, string imageURI, string animationURI);
-
     /// @dev EIP-4906: Emitted when shared metadata is updated
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
@@ -111,7 +108,6 @@ contract OpenEditionMetadataERC721 is Module {
         OpenEditionMetadataStorage.data().sharedMetadata = _metadata;
 
         emit BatchMetadataUpdate(0, type(uint256).max);
-        emit SharedMetadataUpdated(_metadata.name, _metadata.description, _metadata.imageURI, _metadata.animationURI);
     }
 
     /*//////////////////////////////////////////////////////////////

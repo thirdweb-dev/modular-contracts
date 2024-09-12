@@ -27,9 +27,13 @@ contract Core is ERC1155Core {
         bytes[] memory moduleInstallData
     ) ERC1155Core(name, symbol, contractURI, owner, modules, moduleInstallData) {}
 
-    // disable mint and approve callbacks for these tests
+    // disable mint, approve and tokenId callbacks for these tests
     function _beforeMint(address to, uint256 tokenId, uint256 value, bytes memory data) internal override {}
     function _beforeApproveForAll(address from, address to, bool approved) internal override {}
+
+    function _updateTokenId(uint256 tokenId) internal override returns (uint256) {
+        return tokenId;
+    }
 
 }
 
@@ -61,13 +65,13 @@ contract TransferableERC1155Test is Test {
 
         // mint tokens
         // tokenId 0
-        core.mint(actorOne, 0, 10, "");
-        core.mint(actorTwo, 0, 10, "");
-        core.mint(actorThree, 0, 10, "");
+        core.mint(actorOne, 0, 10, "", "");
+        core.mint(actorTwo, 0, 10, "", "");
+        core.mint(actorThree, 0, 10, "", "");
         // tokenId 1
-        core.mint(actorOne, 1, 10, "");
-        core.mint(actorTwo, 1, 10, "");
-        core.mint(actorThree, 1, 10, "");
+        core.mint(actorOne, 1, 10, "", "");
+        core.mint(actorTwo, 1, 10, "", "");
+        core.mint(actorThree, 1, 10, "", "");
     }
 
     /*///////////////////////////////////////////////////////////////

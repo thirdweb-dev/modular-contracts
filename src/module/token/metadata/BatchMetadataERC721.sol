@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
+
+import {UpdateMetadataCallbackERC721} from "../../../callback/UpdateMetadataCallbackERC721.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 library BatchMetadataStorage {
@@ -29,7 +31,7 @@ library BatchMetadataStorage {
 
 }
 
-contract BatchMetadataERC721 is Module {
+contract BatchMetadataERC721 is Module, UpdateMetadataCallbackERC721 {
 
     using LibString for uint256;
 
@@ -59,14 +61,12 @@ contract BatchMetadataERC721 is Module {
     /// @dev Emitted when trying to fetch metadata for a token that has no metadata.
     error BatchMetadataNoMetadataForTokenId();
 
+    /// @dev Emitted when trying to set metadata for a token that has already metadata.
+    error BatchMetadataMetadataAlreadySet();
+
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
-
-    /// @dev Emitted when a new metadata batch is uploaded.
-    event NewMetadataBatch(
-        uint256 indexed startTokenIdInclusive, uint256 indexed endTokenIdNonInclusive, string baseURI
-    );
 
     /// @dev ERC-4906 Metadata Update.
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
@@ -77,17 +77,21 @@ contract BatchMetadataERC721 is Module {
 
     /// @notice Returns all implemented callback and module functions.
     function getModuleConfig() external pure virtual override returns (ModuleConfig memory config) {
-        config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.callbackFunctions = new CallbackFunction[](2);
+        config.fallbackFunctions = new FallbackFunction[](6);
 
         config.callbackFunctions[0] = CallbackFunction(this.onTokenURI.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.updateMetadataERC721.selector);
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.uploadMetadata.selector, permissionBits: Role._MINTER_ROLE});
         config.fallbackFunctions[1] =
-            FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
+            FallbackFunction({selector: this.setBaseURI.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[2] =
-            FallbackFunction({selector: this.getNextTokenIdRangeStart.selector, permissionBits: 0});
+            FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.nextTokenIdToMint.selector, permissionBits: 0});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.getBatchId.selector, permissionBits: 0});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.getBatchRange.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -102,9 +106,22 @@ contract BatchMetadataERC721 is Module {
 
     /// @notice Callback function for ERC721Metadata.tokenURI
     function onTokenURI(uint256 _id) public view returns (string memory) {
-        string memory batchUri = _getBaseURI(_id);
+        (string memory batchUri, uint256 indexInBatch) = _getBaseURI(_id);
+        return string(abi.encodePacked(batchUri, indexInBatch.toString()));
+    }
 
-        return string(abi.encodePacked(batchUri, _id.toString()));
+    /// @notice Callback function for updating metadata
+    function updateMetadataERC721(address _to, uint256 _startTokenId, uint256 _quantity, string calldata _baseURI)
+        external
+        payable
+        virtual
+        override
+        returns (bytes memory)
+    {
+        if (_startTokenId < _batchMetadataStorage().nextTokenIdRangeStart) {
+            revert BatchMetadataMetadataAlreadySet();
+        }
+        _setMetadata(_quantity, _baseURI);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -132,7 +149,77 @@ contract BatchMetadataERC721 is Module {
     }
 
     /// @notice Uploads metadata for a range of tokenIds.
-    function uploadMetadata(uint256 _amount, string calldata _baseURI) public virtual {
+    function uploadMetadata(uint256 _amount, string calldata _baseURI) external virtual {
+        _setMetadata(_amount, _baseURI);
+    }
+
+    function nextTokenIdToMint() external view returns (uint256) {
+        return _batchMetadataStorage().nextTokenIdRangeStart;
+    }
+
+    /// @dev Returns the id for the batch of tokens the given tokenId belongs to.
+    function getBatchId(uint256 _tokenId) public view virtual returns (uint256 batchId, uint256 index) {
+        uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd;
+        uint256 numOfBatches = rangeEnds.length;
+
+        for (uint256 i = 0; i < numOfBatches; i += 1) {
+            if (_tokenId < rangeEnds[i]) {
+                index = i;
+                batchId = rangeEnds[i];
+
+                return (batchId, index);
+            }
+        }
+        revert BatchMetadataNoMetadataForTokenId();
+    }
+
+    /// @dev returns the starting tokenId of a given batchId.
+    function getBatchRange(uint256 _batchID) public view returns (uint256, uint256) {
+        uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd;
+        uint256 numOfBatches = rangeEnds.length;
+
+        for (uint256 i = 0; i < numOfBatches; i += 1) {
+            if (_batchID == rangeEnds[i]) {
+                if (i > 0) {
+                    return (rangeEnds[i - 1], rangeEnds[i] - 1);
+                }
+                return (0, rangeEnds[i] - 1);
+            }
+        }
+
+        revert BatchMetadataNoMetadataForTokenId();
+    }
+
+    /// @dev Sets the base URI for the batch of tokens with the given batchId.
+    function setBaseURI(uint256 _batchId, string memory _baseURI) external virtual {
+        _batchMetadataStorage().baseURIOfTokenIdRange[_batchId] = _baseURI;
+        (uint256 startTokenId,) = getBatchRange(_batchId);
+        emit BatchMetadataUpdate(startTokenId, _batchId);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + indexInBatch.
+    function _getBaseURI(uint256 _tokenId) internal view returns (string memory baseUri, uint256 indexInBatch) {
+        uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd;
+        uint256 numOfBatches = rangeEnds.length;
+
+        for (uint256 i = 0; i < numOfBatches; i += 1) {
+            if (_tokenId < rangeEnds[i]) {
+                uint256 rangeStart = 0;
+                if (i > 0) {
+                    rangeStart = rangeEnds[i - 1];
+                }
+                return (_batchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]], _tokenId - rangeStart);
+            }
+        }
+        revert BatchMetadataNoMetadataForTokenId();
+    }
+
+    /// @notice sets the metadata for a range of tokenIds.
+    function _setMetadata(uint256 _amount, string calldata _baseURI) internal virtual {
         if (_amount == 0) {
             revert BatchMetadataZeroAmount();
         }
@@ -144,29 +231,7 @@ contract BatchMetadataERC721 is Module {
         _batchMetadataStorage().tokenIdRangeEnd.push(rangeEndNonInclusive);
         _batchMetadataStorage().baseURIOfTokenIdRange[rangeEndNonInclusive] = _baseURI;
 
-        emit NewMetadataBatch(rangeStart, rangeEndNonInclusive, _baseURI);
         emit BatchMetadataUpdate(rangeStart, rangeEndNonInclusive - 1);
-    }
-
-    function getNextTokenIdRangeStart() external view returns (uint256) {
-        return _batchMetadataStorage().nextTokenIdRangeStart;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev Returns the baseURI for a token. The intended metadata URI for the token is baseURI + tokenId.
-    function _getBaseURI(uint256 _tokenId) internal view returns (string memory) {
-        uint256[] memory rangeEnds = _batchMetadataStorage().tokenIdRangeEnd;
-        uint256 numOfBatches = rangeEnds.length;
-
-        for (uint256 i = 0; i < numOfBatches; i += 1) {
-            if (_tokenId < rangeEnds[i]) {
-                return _batchMetadataStorage().baseURIOfTokenIdRange[rangeEnds[i]];
-            }
-        }
-        revert BatchMetadataNoMetadataForTokenId();
     }
 
     function _batchMetadataStorage() internal pure returns (BatchMetadataStorage.Data storage) {

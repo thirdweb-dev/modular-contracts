@@ -38,10 +38,10 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when an module is installed.
+    /// @notice Emitted when a module is installed.
     event ModuleInstalled(address caller, address implementation, address installedModule);
 
-    /// @notice Emitted when an module is uninstalled.
+    /// @notice Emitted when a module is uninstalled.
     event ModuleUninstalled(address caller, address implementation, address installedModule);
 
     /*//////////////////////////////////////////////////////////////
@@ -125,7 +125,7 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Installs an module contract.
+    /// @notice Installs a module contract.
     function installModule(address _module, bytes calldata _data)
         external
         payable
@@ -135,7 +135,7 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
         _installModule(_module, _data);
     }
 
-    /// @notice Uninstalls an module contract.
+    /// @notice Uninstalls a module contract.
     function uninstallModule(address _module, bytes calldata _data)
         external
         payable
@@ -175,7 +175,7 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
         return false;
     }
 
-    /// @dev Installs an module contract.
+    /// @dev Installs a module contract.
     function _installModule(address _module, bytes memory _data) internal {
         if (!modules.add(_module)) {
             revert ModuleAlreadyInstalled();
@@ -257,7 +257,7 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
         emit ModuleInstalled(msg.sender, _module, _module);
     }
 
-    /// @notice Uninstalls an module contract.
+    /// @notice Uninstalls a module contract.
     function _uninstallModule(address _module, bytes memory _data) internal {
         // Check: remove and check if the module is installed
         if (!modules.remove(_module)) {
@@ -292,7 +292,7 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
         emit ModuleUninstalled(msg.sender, _module, _module);
     }
 
-    /// @dev Calls an module callback function and checks whether it is optional or required.
+    /// @dev Calls a module callback function and checks whether it is optional or required.
     function _executeCallbackFunction(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
         nonReentrant
@@ -305,29 +305,28 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
             revert CallbackFunctionNotSupported();
         }
 
-        // Get callback mode -- required or not required.
-        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
-        uint256 len = functions.length;
-
-        CallbackMode callbackMode;
-        for (uint256 i = 0; i < len; i++) {
-            if (functions[i].selector == _selector) {
-                callbackMode = functions[i].mode;
-                break;
-            }
-        }
-
         if (callbackFunction.implementation != address(0)) {
             (success, returndata) = callbackFunction.implementation.delegatecall(_abiEncodedCalldata);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
-        } else if (callbackMode == CallbackMode.REQUIRED) {
-            revert CallbackFunctionRequired();
+        } else {
+            // Get callback mode -- required or not required.
+            SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
+            uint256 len = functions.length;
+
+            for (uint256 i = 0; i < len; i++) {
+                if (functions[i].selector == _selector) {
+                    if (functions[i].mode == CallbackMode.REQUIRED) {
+                        revert CallbackFunctionRequired();
+                    }
+                    break;
+                }
+            }
         }
     }
 
-    /// @dev Calls an module callback function and checks whether it is optional or required.
+    /// @dev Calls a module callback function and checks whether it is optional or required.
     function _executeCallbackFunctionView(bytes4 _selector, bytes memory _abiEncodedCalldata)
         internal
         view
@@ -340,25 +339,24 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
             revert CallbackFunctionNotSupported();
         }
 
-        // Get callback mode -- required or not required.
-        SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
-        uint256 len = functions.length;
-
-        CallbackMode callbackMode;
-        for (uint256 i = 0; i < len; i++) {
-            if (functions[i].selector == _selector) {
-                callbackMode = functions[i].mode;
-                break;
-            }
-        }
-
         if (callbackFunction.implementation != address(0)) {
             (success, returndata) = address(this).staticcall(_abiEncodedCalldata);
             if (!success) {
                 _revert(returndata, CallbackExecutionReverted.selector);
             }
-        } else if (callbackMode == CallbackMode.REQUIRED) {
-            revert CallbackFunctionRequired();
+        } else {
+            // Get callback mode -- required or not required.
+            SupportedCallbackFunction[] memory functions = getSupportedCallbackFunctions();
+            uint256 len = functions.length;
+
+            for (uint256 i = 0; i < len; i++) {
+                if (functions[i].selector == _selector) {
+                    if (functions[i].mode == CallbackMode.REQUIRED) {
+                        revert CallbackFunctionRequired();
+                    }
+                    break;
+                }
+            }
         }
     }
 

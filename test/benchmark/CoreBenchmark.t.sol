@@ -217,7 +217,9 @@ contract CoreBenchmark is Test {
 
     function test_core_callFunction_callback_callbackFunctionRequired() public {
         vm.expectRevert(Core.CallbackFunctionRequired.selector);
-        address(coreWithModulesNoCallback).call(abi.encodeCall(coreWithModulesNoCallback.callbackFunctionOne, ()));
+        (bool revertsAsExpected,) =
+            address(coreWithModulesNoCallback).call(abi.encodeCall(coreWithModulesNoCallback.callbackFunctionOne, ()));
+        vm.assertTrue(revertsAsExpected);
     }
 
 }

@@ -18,11 +18,11 @@ contract BeforeMintCallbackERC1155 {
      *
      *  @param _to The address that is minting tokens.
      *  @param _id The token ID being minted.
-     *  @param _quantity The quantity of tokens to mint.
+     *  @param _amount The amount of tokens to mint.
      *  @param _data Optional extra data passed to the hook.
      *  @return result Abi encoded bytes result of the hook.
      */
-    function beforeMintERC1155(address _to, uint256 _id, uint256 _quantity, bytes memory _data)
+    function beforeMintERC1155(address _to, uint256 _id, uint256 _amount, bytes memory _data)
         external
         payable
         virtual
