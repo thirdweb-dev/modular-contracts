@@ -85,13 +85,18 @@ contract ZetaChainCrossChain is Module {
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function sendMessage(address recipient, address token, uint256 value, bytes memory data) external {
+    function sendMessage(address callAddress, address recipient, address token, uint256 value, bytes memory data)
+        external
+    {
+        // Mimics the encoding of the ZetaChain client library
+        // https://github.com/zeta-chain/toolkit/tree/main/packages/client/src
+        bytes memory encodedData = abi.encodePacked(callAddress, data);
         if (token == address(0)) {
-            (bool success,) = payable(_zetaChainCrossChainStorage().tss).call{value: value}(data);
+            (bool success,) = payable(_zetaChainCrossChainStorage().tss).call{value: value}(encodedData);
             require(success, "Failed to send message");
         } else {
             IERC20Custody(_zetaChainCrossChainStorage().erc20Custody).deposit(
-                abi.encode(recipient), IERC20(token), value, data
+                abi.encode(recipient), IERC20(token), value, encodedData
             );
         }
     }
