@@ -103,12 +103,12 @@ contract ChainlinkCrossChain is Module {
 
     function sendCrossChainTransaction(
         uint64 _destinationChain,
+        address _callAddress,
         address _recipient,
-        bytes calldata _data,
         address _token,
         uint256 _amount,
-        address _callAddress,
-        bytes memory _extraArgs
+        bytes calldata _data,
+        bytes calldata _extraArgs
     ) external {
         (address _feeTokenAddress, bytes memory ccipMessageExtraArgs) = abi.decode(_extraArgs, (address, bytes));
 
