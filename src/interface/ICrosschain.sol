@@ -13,4 +13,7 @@ interface ICrosschain {
         bytes calldata _extraArgs
     ) external;
 
+    function setBridge(address _bridge) external;
+    function getBridge(address _bridge) external;
+
 }
