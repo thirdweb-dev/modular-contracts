@@ -42,7 +42,8 @@ contract ZetaChainCrossChain is Module {
         config.callbackFunctions = new CallbackFunction[](1);
         config.fallbackFunctions = new FallbackFunction[](5);
 
-        config.fallbackFunctions[0] = FallbackFunction({selector: this.sendMessage.selector, permissionBits: 0});
+        config.fallbackFunctions[0] =
+            FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
         config.fallbackFunctions[2] = FallbackFunction({selector: this.getTss.selector, permissionBits: 0});
         config.fallbackFunctions[4] = FallbackFunction({selector: this.getERC20Custody.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
@@ -85,18 +86,24 @@ contract ZetaChainCrossChain is Module {
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function sendMessage(address callAddress, address recipient, address token, uint256 value, bytes memory data)
-        external
-    {
+    function sendCrossChainTransaction(
+        uint64 _destinationChain,
+        address _callAddress,
+        address _recipient,
+        address _token,
+        uint256 _amount,
+        bytes calldata _data,
+        bytes memory _extraArgs
+    ) external {
         // Mimics the encoding of the ZetaChain client library
         // https://github.com/zeta-chain/toolkit/tree/main/packages/client/src
-        bytes memory encodedData = abi.encodePacked(callAddress, data);
-        if (token == address(0)) {
-            (bool success,) = payable(_zetaChainCrossChainStorage().tss).call{value: value}(encodedData);
+        bytes memory encodedData = abi.encodePacked(_callAddress, _data);
+        if (_token == address(0)) {
+            (bool success,) = payable(_zetaChainCrossChainStorage().tss).call{value: _amount}(encodedData);
             require(success, "Failed to send message");
         } else {
             IERC20Custody(_zetaChainCrossChainStorage().erc20Custody).deposit(
-                abi.encode(recipient), IERC20(token), value, encodedData
+                abi.encode(_recipient), IERC20(_token), _amount, encodedData
             );
         }
     }
