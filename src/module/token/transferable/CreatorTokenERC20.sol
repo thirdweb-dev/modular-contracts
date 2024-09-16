@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 
 import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
+
 import {BeforeTransferCallbackERC20} from "../../../callback/BeforeTransferCallbackERC20.sol";
+import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
 import {ICreatorToken} from "@limitbreak/creator-token-standards/interfaces/ICreatorToken.sol";
 
@@ -35,11 +37,20 @@ library CreatorTokenStorage {
 contract CreatorTokenERC20 is Module, BeforeTransferCallbackERC20, ICreatorToken {
 
     /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    bytes32 private constant DEFAULT_ACCESS_CONTROL_ADMIN_ROLE = 0x00;
+
+    /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Revert with an error if the transfer validator is not valid
     error InvalidTransferValidatorContract();
+
+    /// @notice Revert with an error if the transfer validator is not valid
+    error NotTransferValidator();
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
@@ -48,7 +59,7 @@ contract CreatorTokenERC20 is Module, BeforeTransferCallbackERC20, ICreatorToken
     /// @notice Returns all implemented callback and extension functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](1);
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeTransferERC20.selector);
 
@@ -58,6 +69,7 @@ contract CreatorTokenERC20 is Module, BeforeTransferCallbackERC20, ICreatorToken
             FallbackFunction({selector: this.getTransferValidationFunction.selector, permissionBits: 0});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.setTransferValidator.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.hasRole.selector, permissionBits: 0});
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -97,6 +109,16 @@ contract CreatorTokenERC20 is Module, BeforeTransferCallbackERC20, ICreatorToken
 
     function setTransferValidator(address validator) external {
         _setTransferValidator(validator);
+    }
+
+    function hasRole(bytes32 role, address account) external view returns (bool) {
+        if (msg.sender != _creatorTokenStorage().transferValidator) {
+            revert NotTransferValidator();
+        }
+        if (role == DEFAULT_ACCESS_CONTROL_ADMIN_ROLE) {
+            return OwnableRoles(address(this)).hasAllRoles(account, Role._MANAGER_ROLE);
+        }
+        return OwnableRoles(address(this)).hasAllRoles(account, uint256(role));
     }
 
     /*//////////////////////////////////////////////////////////////
