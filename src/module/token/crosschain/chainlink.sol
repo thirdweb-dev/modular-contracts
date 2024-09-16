@@ -1,13 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.20;
+
+import {Module} from "../../../Module.sol";
+
+import {Role} from "../../../Role.sol";
+
+import {IERC20} from "../../../interface/IERC20.sol";
+import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
+
+import {IRouterClient} from "@chainlink/ccip/interfaces/IRouterClient.sol";
+import {Client} from "@chainlink/ccip/libraries/Client.sol";
 
 library ChainlinkCrossChainStorage {
 
     /// @custom:storage-location erc7201:token.minting.chainlinkcrosschain
-    bytes32 public constant CHAINLINKCROSSCHAIN_STORAGE_POSITION =
-        keccak256(abi.encode(uint256(keccak256("token.minting.chainlinkcrosschain.erc721")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 public constant CHAINLINKCROSSCHAIN_STORAGE_POSITION = keccak256(
+        abi.encode(uint256(keccak256("token.minting.chainlinkcrosschain.erc721")) - 1)
+    ) & ~bytes32(uint256(0xff));
 
     struct Data {
         address router;
-        address s_linkToken;
+        address linkToken;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -19,134 +33,159 @@ library ChainlinkCrossChainStorage {
 
 }
 
+contract ChainlinkCrossChain is Module {
 
-contract ChainlinkCrossChain is CCIPReceiver, OwnerIsCreator {
+    error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees);
 
-    address immutable s_linkToken;
-    address immutable router;
+    /*//////////////////////////////////////////////////////////////
+                            MODULE CONFIG
+    //////////////////////////////////////////////////////////////*/
 
-    constructor(address _router, address _link) {
-        s_linkToken = _link;
-        router = _router;
+    /// @notice Returns all implemented callback and fallback functions.
+    function getModuleConfig() external pure override returns (ModuleConfig memory config) {
+        config.fallbackFunctions = new FallbackFunction[](5);
+
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getRouter.selector, permissionBits: 0});
+        config.fallbackFunctions[1] = FallbackFunction({selector: this.getLinkToken.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.setRouter.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setLinkToken.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[4] =
+            FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
+
+        config.registerInstallationCallback = true;
     }
 
-    function bridgeWithToken(
-        address _destinationChain,
+    /*//////////////////////////////////////////////////////////////
+                    INSTALL / UNINSTALL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Called by a Core into an Module during the installation of the Module.
+    function onInstall(bytes calldata data) external {
+        (address router, address linkToken) = abi.decode(data, (address, address));
+        _chainlinkCrossChainStorage().router = router;
+        _chainlinkCrossChainStorage().linkToken = linkToken;
+    }
+
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
+    function onUninstall(bytes calldata data) external {}
+
+    /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
+    function encodeBytesOnInstall(address router, address linkToken) external pure returns (bytes memory) {
+        return abi.encode(router, linkToken);
+    }
+
+    /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
+    function encodeBytesOnUninstall() external pure returns (bytes memory) {
+        return "";
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            FALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function getRouter() external view returns (address) {
+        return _chainlinkCrossChainStorage().router;
+    }
+
+    function getLinkToken() external view returns (address) {
+        return _chainlinkCrossChainStorage().linkToken;
+    }
+
+    function setRouter(address router) external {
+        _chainlinkCrossChainStorage().router = router;
+    }
+
+    function setLinkToken(address linkToken) external {
+        _chainlinkCrossChainStorage().linkToken = linkToken;
+    }
+
+    function sendCrossChainTransaction(
+        uint64 _destinationChain,
         address _recipient,
-        bytes memory _data,
+        bytes calldata _data,
         address _token,
         uint256 _amount,
-        bytes memory _extraArgs,
+        address _callAddress,
+        bytes memory _extraArgs
     ) external {
-        (uint256 _feeTokenAddress, ccipMessageExtraArgs) = abi.decode(_extraArgs, (uint256, bytes));
+        (address _feeTokenAddress, bytes memory ccipMessageExtraArgs) = abi.decode(_extraArgs, (address, bytes));
 
-        Client.EVM2AnyMessage memory evm2AnyMessage =
-            _buildCCIPMessage(_receiver, _text, _token, _amount, _feeTokenAddress, ccipMessageExtraArgs);
-
-        // Initialize a router client instance to interact with cross-chain router
-        IRouterClient router = IRouterClient(_chainLinkCrossChainStorage().router);
-
-        // Get the fee required to send the CCIP message
-        uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
-
-        if (fees > s_linkToken.balanceOf(address(this))) {
-            revert NotEnoughBalance(s_linkToken.balanceOf(address(this)), fees);
+        if (_feeTokenAddress == address(0)) {
+            _sendMessagePayNative(_destinationChain, _recipient, _data, _token, _amount, ccipMessageExtraArgs);
+        } else {
+            _sendMessagePayToken(
+                _destinationChain, _recipient, _data, _token, _amount, _feeTokenAddress, ccipMessageExtraArgs
+            );
         }
-
-        // approve the Router to transfer LINK tokens on contract's behalf. It will spend the fees in LINK
-        s_linkToken.approve(address(router), fees);
-
-        // approve the Router to spend tokens on contract's behalf. It will spend the amount of the given token
-        IERC20(_token).approve(address(router), _amount);
-
-        // Send the message through the router and store the returned message ID
-        messageId = router.ccipSend(_destinationChainSelector, evm2AnyMessage);
-
-        // Emit an event with message details
-        emit MessageSent(
-            messageId, _destinationChainSelector, _receiver, _text, _token, _amount, address(s_linkToken), fees
-        );
-
-        // Return the message ID
-        return messageId;
     }
 
-    /// @notice Sends data and transfer tokens to receiver on the destination chain.
-    /// @notice Pay for fees in native gas.
-    /// @dev Assumes your contract has sufficient native gas like ETH on Ethereum or POL on Polygon.
-    /// @param _destinationChainSelector The identifier (aka selector) for the destination blockchain.
-    /// @param _receiver The address of the recipient on the destination blockchain.
-    /// @param _text The string data to be sent.
-    /// @param _token token address.
-    /// @param _amount token amount.
-    /// @return messageId The ID of the CCIP message that was sent.
-    function sendMessagePayNative(
-        uint64 _destinationChainSelector,
-        address _receiver,
-        string calldata _text,
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _sendMessagePayToken(
+        uint64 _destinationChain,
+        address _recipient,
+        bytes calldata _data,
         address _token,
-        uint256 _amount
-    )
-        external
-        onlyOwner
-        onlyAllowlistedDestinationChain(_destinationChainSelector)
-        validateReceiver(_receiver)
-        returns (bytes32 messageId)
-    {
-        // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-        // address(0) means fees are paid in native gas
-        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(_receiver, _text, _token, _amount, address(0));
+        uint256 _amount,
+        address _feeTokenAddress,
+        bytes memory _extraArgs
+    ) internal {
+        Client.EVM2AnyMessage memory evm2AnyMessage =
+            _buildCCIPMessage(_recipient, _data, _token, _amount, _feeTokenAddress, _extraArgs);
+        IRouterClient router = IRouterClient(_chainlinkCrossChainStorage().router);
+        uint256 fees = router.getFee(_destinationChain, evm2AnyMessage);
+        IERC20 linkToken = IERC20(_chainlinkCrossChainStorage().linkToken);
 
-        // Initialize a router client instance to interact with cross-chain router
-        IRouterClient router = IRouterClient(this.getRouter());
+        if (fees > linkToken.balanceOf(address(this))) {
+            revert NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
+        }
 
-        // Get the fee required to send the CCIP message
-        uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
+        IERC20(linkToken).approve(address(router), fees);
+        IERC20(_token).approve(address(router), _amount);
+        router.ccipSend(_destinationChain, evm2AnyMessage);
+    }
+
+    function _sendMessagePayNative(
+        uint64 _destinationChain,
+        address _recipient,
+        bytes calldata _data,
+        address _token,
+        uint256 _amount,
+        bytes memory _extraArgs
+    ) internal {
+        Client.EVM2AnyMessage memory evm2AnyMessage =
+            _buildCCIPMessage(_recipient, _data, _token, _amount, address(0), _extraArgs);
+        IRouterClient router = IRouterClient(_chainlinkCrossChainStorage().router);
+        uint256 fees = router.getFee(_destinationChain, evm2AnyMessage);
 
         if (fees > address(this).balance) {
             revert NotEnoughBalance(address(this).balance, fees);
         }
 
-        // approve the Router to spend tokens on contract's behalf. It will spend the amount of the given token
         IERC20(_token).approve(address(router), _amount);
-
-        // Send the message through the router and store the returned message ID
-        messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
-
-        // Emit an event with message details
-        emit MessageSent(messageId, _destinationChainSelector, _receiver, _text, _token, _amount, address(0), fees);
-
-        // Return the message ID
-        return messageId;
+        router.ccipSend{value: fees}(_destinationChain, evm2AnyMessage);
     }
 
-
-    /// @notice Construct a CCIP message.
-    /// @dev This function will create an EVM2AnyMessage struct with all the necessary information for programmable tokens transfer.
-    /// @param _receiver The address of the receiver.
-    /// @param _text The string data to be sent.
-    /// @param _token The token to be transferred.
-    /// @param _amount The amount of the token to be transferred.
-    /// @param _feeTokenAddress The address of the token used for fees. Set address(0) for native gas.
-    /// @return Client.EVM2AnyMessage Returns an EVM2AnyMessage struct which contains information for sending a CCIP message.
     function _buildCCIPMessage(
-        address _recipient
+        address _recipient,
         bytes calldata _data,
         address _token,
         uint256 _amount,
         address _feeTokenAddress,
-        bytes calldata _extraArgs
+        bytes memory _extraArgs
     ) private pure returns (Client.EVM2AnyMessage memory) {
-        // Set the token amounts
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: _token, amount: _amount});
-        // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
+
         return Client.EVM2AnyMessage({
-            receiver: abi.encode(_recipient), // ABI-encoded receiver address
+            receiver: abi.encode(_recipient),
             data: _data,
-            tokenAmounts: tokenAmounts, // The amount and type of token being transferred
+            tokenAmounts: tokenAmounts,
             extraArgs: _extraArgs,
-            // Set the feeToken to a feeTokenAddress, indicating specific asset will be used for fees
             feeToken: _feeTokenAddress
         });
     }
