@@ -6,7 +6,7 @@ import {Role} from "../../../Role.sol";
 import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
 import {IBridgeAndCall} from "@lxly-bridge-and-call/IBridgeAndCall.sol";
 
-library BridgeAndCallStorage {
+library PolygonAgglayerCrossChainStorage {
 
     /// @custom:storage-location erc7201:token.bridgeAndCall
     bytes32 public constant BRIDGE_AND_CALL_STORAGE_POSITION =
@@ -25,7 +25,7 @@ library BridgeAndCallStorage {
 
 }
 
-contract BridgeAndCallERC721 is ModularModule, BeforeTransferCallbackERC721 {
+contract PolygonAgglayerCrossChainERC721 is ModularModule, BeforeTransferCallbackERC721 {
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -45,7 +45,8 @@ contract BridgeAndCallERC721 is ModularModule, BeforeTransferCallbackERC721 {
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getBridgeModule.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setBridgeModule.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[2] = FallbackFunction({selector: this.bridgeAndCall.selector, permissionBits: 0});
+        config.fallbackFunctions[2] =
+            FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
@@ -56,7 +57,7 @@ contract BridgeAndCallERC721 is ModularModule, BeforeTransferCallbackERC721 {
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         address bridgeModule = abi.decode(data, (address));
-        _bridgeAndCallStorage().bridgeModule = bridgeModule;
+        _polygonAgglayerStorage().bridgeModule = bridgeModule;
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -68,30 +69,37 @@ contract BridgeAndCallERC721 is ModularModule, BeforeTransferCallbackERC721 {
 
     /// @notice Returns whether transfers is enabled for the token.
     function getBridgeModule() external view returns (address) {
-        return _bridgeAndCallStorage().bridgeModule;
+        return _polygonAgglayerStorage().bridgeModule;
     }
 
     /// @notice Set transferability for a token.
-    function setBridgeModule(address enableTransfer) external {
-        _bridgeAndCallStorage().bridgeModule = enableTransfer;
+    function setBridgeModule(address bridgeModule) external {
+        _polygonAgglayerStorage().bridgeModule = bridgeModule;
     }
 
-    /// @notice Set transferability for a token.
-    function bridgeAndCall(
-        uint256 amount,
-        uint32 destinationNetwork,
-        address callAddress,
-        address fallbackAddress,
-        bytes calldata callData,
-        bool forceUpdateGlobalExitRoot
+    function sendCrossChainTransaction(
+        uint64 _destinationChain,
+        address _callAddress,
+        address _recipient,
+        address _token,
+        uint256 _amount,
+        bytes calldata _data,
+        bytes calldata _extraArgs
     ) external {
-        address bridgeModule = _bridgeAndCallStorage().bridgeModule;
+        address bridgeModule = _polygonAgglayerStorage().bridgeModule;
         if (bridgeModule == address(0)) {
             revert bridgeModuleNotSet();
         }
+        (address _fallbackAddress, bool _forceUpdateGlobalExitRoot) = abi.decode(_extraArgs, (address, bool));
 
         IBridgeAndCall(bridgeModule).bridgeAndCall(
-            address(this), amount, destinationNetwork, callAddress, fallbackAddress, callData, forceUpdateGlobalExitRoot
+            address(this),
+            _amount,
+            uint32(_destinationChain),
+            _callAddress,
+            _fallbackAddress,
+            _data,
+            _forceUpdateGlobalExitRoot
         );
     }
 
@@ -99,8 +107,8 @@ contract BridgeAndCallERC721 is ModularModule, BeforeTransferCallbackERC721 {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _bridgeAndCallStorage() internal pure returns (BridgeAndCallStorage.Data storage) {
-        return BridgeAndCallStorage.data();
+    function _polygonAgglayerStorage() internal pure returns (PolygonAgglayerCrossChainStorage.Data storage) {
+        return PolygonAgglayerCrossChainStorage.data();
     }
 
 }
