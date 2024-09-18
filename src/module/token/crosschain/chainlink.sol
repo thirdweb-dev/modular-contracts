@@ -7,8 +7,10 @@ import {Role} from "../../../Role.sol";
 
 import {IERC20} from "../../../interface/IERC20.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+import {CrossChain} from "./CrossChain.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
+import {CCIPReceiver} from "@chainlink/ccip/applications/CCIPReceiver.sol";
 import {IRouterClient} from "@chainlink/ccip/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/ccip/libraries/Client.sol";
 
@@ -33,9 +35,11 @@ library ChainlinkCrossChainStorage {
 
 }
 
-contract ChainlinkCrossChain is Module {
+contract ChainlinkCrossChain is Module, CrossChain, CCIPReceiver {
 
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees);
+
+    constructor(address _router, address _link) CCIPReceiver(_router) {}
 
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
@@ -85,7 +89,7 @@ contract ChainlinkCrossChain is Module {
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getRouter() external view returns (address) {
+    function getRouter() public view override(CrossChain, CCIPReceiver) returns (address) {
         return _chainlinkCrossChainStorage().router;
     }
 
@@ -93,7 +97,7 @@ contract ChainlinkCrossChain is Module {
         return _chainlinkCrossChainStorage().linkToken;
     }
 
-    function setRouter(address router) external {
+    function setRouter(address router) external override {
         _chainlinkCrossChainStorage().router = router;
     }
 
@@ -104,13 +108,16 @@ contract ChainlinkCrossChain is Module {
     function sendCrossChainTransaction(
         uint64 _destinationChain,
         address _callAddress,
-        address _recipient,
-        address _token,
-        uint256 _amount,
         bytes calldata _data,
         bytes calldata _extraArgs
-    ) external {
-        (address _feeTokenAddress, bytes memory ccipMessageExtraArgs) = abi.decode(_extraArgs, (address, bytes));
+    ) external payable override {
+        (
+            address _recipient,
+            address _token,
+            uint256 _amount,
+            address _feeTokenAddress,
+            bytes memory ccipMessageExtraArgs
+        ) = abi.decode(_extraArgs, (address, address, uint256, address, bytes));
 
         if (_feeTokenAddress == address(0)) {
             _sendMessagePayNative(_destinationChain, _recipient, _data, _token, _amount, ccipMessageExtraArgs);
@@ -119,11 +126,31 @@ contract ChainlinkCrossChain is Module {
                 _destinationChain, _recipient, _data, _token, _amount, _feeTokenAddress, ccipMessageExtraArgs
             );
         }
+
+        onCrossChainTransactionSent(_destinationChain, _callAddress, _data, _extraArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function onCrossChainTransactionSent(
+        uint64 _destinationChain,
+        address _callAddress,
+        bytes calldata _payload,
+        bytes calldata _extraArgs
+    ) internal override {
+        /// post cross chain transaction sent logic goes here
+    }
+
+    function onCrossChainTransactionReceived(
+        uint64 _sourceChain,
+        address _sourceAddress,
+        bytes memory _payload,
+        bytes memory _extraArgs
+    ) internal override {
+        /// post cross chain transaction received logic goes here
+    }
 
     function _sendMessagePayToken(
         uint64 _destinationChain,
@@ -188,6 +215,12 @@ contract ChainlinkCrossChain is Module {
             extraArgs: _extraArgs,
             feeToken: _feeTokenAddress
         });
+    }
+
+    function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
+        address sender = abi.decode(message.sender, (address));
+        bytes memory payload = "";
+        onCrossChainTransactionReceived(message.sourceChainSelector, sender, message.data, payload);
     }
 
     function _chainlinkCrossChainStorage() internal pure returns (ChainlinkCrossChainStorage.Data storage) {
