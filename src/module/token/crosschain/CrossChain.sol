@@ -55,8 +55,8 @@ abstract contract CrossChain {
     function onCrossChainTransactionReceived(
         uint64 _sourceChain,
         address _sourceAddress,
-        bytes calldata _payload,
-        bytes calldata _extraArgs
+        bytes memory _payload,
+        bytes memory _extraArgs
     ) internal virtual {
         revert OnCrossChainTransactionReceivedNotImplemented();
     }
