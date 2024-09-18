@@ -30,7 +30,7 @@ interface ICrosschain {
         address _callAddress,
         bytes calldata _payload,
         bytes calldata _extraArgs
-    ) external;
+    ) internal;
 
     /**
      * @notice callback function for when a cross-chain transaction is received.
@@ -44,9 +44,9 @@ interface ICrosschain {
         address _sourceAddress,
         bytes calldata _payload,
         bytes calldata _extraArgs
-    ) external;
+    ) internal;
 
     function setRouter(address _router) external;
-    function getRouter(address _router) external view returns (address);
+    function getRouter() external view returns (address);
 
 }
