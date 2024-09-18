@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-interface ICrosschain {
+abstract contract CrossChain {
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error OnCrossChainTransactionSentNotImplemented();
+    error OnCrossChainTransactionReceivedNotImplemented();
+
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Sends a cross-chain transaction.
@@ -16,7 +27,7 @@ interface ICrosschain {
         address _callAddress,
         bytes calldata _payload,
         bytes calldata _extraArgs
-    ) external payable;
+    ) external payable virtual;
 
     /**
      * @notice callback function for when a cross-chain transaction is sent.
@@ -30,7 +41,9 @@ interface ICrosschain {
         address _callAddress,
         bytes calldata _payload,
         bytes calldata _extraArgs
-    ) internal;
+    ) internal virtual {
+        revert OnCrossChainTransactionSentNotImplemented();
+    }
 
     /**
      * @notice callback function for when a cross-chain transaction is received.
@@ -44,9 +57,11 @@ interface ICrosschain {
         address _sourceAddress,
         bytes calldata _payload,
         bytes calldata _extraArgs
-    ) internal;
+    ) internal virtual {
+        revert OnCrossChainTransactionReceivedNotImplemented();
+    }
 
-    function setRouter(address _router) external;
-    function getRouter() external view returns (address);
+    function setRouter(address _router) external virtual;
+    function getRouter() external view virtual returns (address);
 
 }
