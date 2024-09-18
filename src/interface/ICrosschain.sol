@@ -4,15 +4,14 @@ pragma solidity ^0.8.20;
 interface ICrosschain {
 
     /**
-     * @notice Sends a cross-chain payload.
+     * @notice Sends a cross-chain transaction.
      * @param _destinationChain The destination chain ID.
      * @param _callAddress The address of the contract on the destination chain.
      * @param _payload The payload to send to the destination chain.
      * @param _extraArgs The extra arguments to pass
-     * @dev extraArgs may contain items such as feeTokenAddress, receipient, gasLimit, etc
-     * @dev uint64 since that is the upper range used by the protocols (ie: chainlink)
+     * @dev extraArgs may contain items such as token, amount, feeTokenAddress, receipient, gasLimit, etc
      */
-    function sendCrossChainPayload(
+    function sendCrossChainTransaction(
         uint64 _destinationChain,
         address _callAddress,
         bytes calldata _payload,
@@ -20,33 +19,13 @@ interface ICrosschain {
     ) external payable;
 
     /**
-     * @notice Sends a cross-chain payload with a token transfer.
-     * @param _destinationChain The destination chain ID.
-     * @param _callAddress The address of the contract on the destination chain.
-     * @param _token The token address.
-     * @param _amount The amount of tokens to transfer.
-     * @param _payload The payload to send to the destination chain.
-     * @param _extraArgs The extra arguments to pass to the callAddress on the destination chain.
-     * @dev extraArgs may contain items such as feeTokenAddress, receipient, gasLimit, etc
-     * @dev uint64 since that is the upper range used by the protocols (ie: chainlink)
-     */
-    function sendCrossChainPayloadWithToken(
-        uint64 _destinationChain,
-        address _callAddress,
-        address _token,
-        uint256 _amount,
-        bytes calldata _payload,
-        bytes calldata _extraArgs
-    ) external payable;
-
-    /**
-     * @notice callback function for when a cross-chain payload is sent.
+     * @notice callback function for when a cross-chain transaction is sent.
      * @param _destinationChain The destination chain ID.
      * @param _callAddress The address of the contract on the destination chain.
      * @param _payload The payload sent to the destination chain.
      * @param _extraArgs The extra arguments sent to the callAddress on the destination chain.
      */
-    function onMessageSent(
+    function onCrossChainTransactionSent(
         uint64 _destinationChain,
         address _callAddress,
         bytes calldata _payload,
@@ -54,13 +33,13 @@ interface ICrosschain {
     ) external;
 
     /**
-     * @notice callback function for when a cross-chain payload is received.
+     * @notice callback function for when a cross-chain transaction is received.
      * @param _sourceChain The source chain ID.
      * @param _sourceAddress The address of the contract on the source chain.
      * @param _payload The payload sent to the destination chain.
      * @param _extraArgs The extra arguments sent to the callAddress on the destination chain.
      */
-    function onMessageReceived(
+    function onCrossChainTransactionReceived(
         uint64 _sourceChain,
         address _sourceAddress,
         bytes calldata _payload,
