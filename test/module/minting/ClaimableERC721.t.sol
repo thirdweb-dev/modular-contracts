@@ -59,7 +59,7 @@ contract ClaimableERC721Test is Test {
     address tokenRecipient = address(0x123);
     uint256 amount = 100;
     string baseURI = "ipfs://base/";
-    address platformFeeRecipient = address(0x3);
+    address platformFeeRecipient;
 
     // Signature vars
     bytes32 internal typehashClaimSignatureParams;
@@ -317,8 +317,11 @@ contract ClaimableERC721Test is Test {
         assertEq(core.balanceOf(address(0x123)), 100);
 
         uint256 salePrice = (amount * claimRequest.pricePerUnit);
-        assertEq(tokenRecipient.balance, balBefore - salePrice);
-        assertEq(saleRecipient.balance, salePrice);
+        (uint256 primarySaleAmount, uint256 platformFeeAmount) =
+            mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
+        assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
+        assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
+        assertEq(platformFeeRecipient.balance, platformFeeAmount, "platformFeeRecipient balance");
     }
 
     function test_mint_state_overrideCurrency() public {
@@ -378,8 +381,11 @@ contract ClaimableERC721Test is Test {
         // Check minted balance
         assertEq(core.balanceOf(address(0x123)), 100);
 
-        assertEq(currency.balanceOf(tokenRecipient), balBefore - salePrice);
-        assertEq(currency.balanceOf(saleRecipient), salePrice);
+        (uint256 primarySaleAmount, uint256 platformFeeAmount) =
+            mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
+        assertEq(currency.balanceOf(tokenRecipient), balBefore - salePrice, "tokenRecipient balance");
+        assertEq(currency.balanceOf(saleRecipient), primarySaleAmount, "saleRecipient balance");
+        assertEq(currency.balanceOf(platformFeeRecipient), platformFeeAmount, "platformFeeRecipient balance");
     }
 
     function test_mint_revert_unableToDecodeArgs() public {

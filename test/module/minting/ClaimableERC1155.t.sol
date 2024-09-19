@@ -18,6 +18,7 @@ import {ERC1155Core} from "src/core/token/ERC1155Core.sol";
 import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 
+import {MockMintFeeManager} from "../../mock/MockMintFeeManager.sol";
 import {BatchMetadataERC1155} from "src/module/token/metadata/BatchMetadataERC1155.sol";
 import {BatchMetadataERC721} from "src/module/token/metadata/BatchMetadataERC721.sol";
 import {ClaimableERC1155} from "src/module/token/minting/ClaimableERC1155.sol";
@@ -46,6 +47,7 @@ contract ClaimableERC1155Test is Test {
 
     ClaimableERC1155 public claimableModule;
     BatchMetadataERC1155 public batchMetadataModule;
+    MockMintFeeManager public mintFeeManager;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -60,6 +62,7 @@ contract ClaimableERC1155Test is Test {
     uint256 amount = 100;
     uint256 tokenId = 0;
     string baseURI = "ipfs://base/";
+    address platformFeeRecipient;
 
     // Signature vars
     bytes32 internal typehashClaimSignatureParams;
@@ -115,7 +118,8 @@ contract ClaimableERC1155Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
-        claimableModule = new ClaimableERC1155(address(0x0));
+        mintFeeManager = new MockMintFeeManager();
+        claimableModule = new ClaimableERC1155(address(mintFeeManager));
         batchMetadataModule = new BatchMetadataERC1155();
 
         // install module
@@ -126,6 +130,9 @@ contract ClaimableERC1155Test is Test {
         // install module
         vm.prank(owner);
         core.installModule(address(batchMetadataModule), "");
+
+        // setup platform fee receipient
+        platformFeeRecipient = mintFeeManager.getPlatformFeeReceipient();
 
         // Setup signature vars
         typehashClaimSignatureParams =
@@ -258,8 +265,11 @@ contract ClaimableERC1155Test is Test {
         assertEq(core.balanceOf(address(0x123), 0), 100);
 
         uint256 salePrice = (amount * claimRequest.pricePerUnit);
-        assertEq(tokenRecipient.balance, balBefore - salePrice);
-        assertEq(saleRecipient.balance, salePrice);
+        (uint256 primarySaleAmount, uint256 platformFeeAmount) =
+            mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
+        assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
+        assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
+        assertEq(platformFeeRecipient.balance, platformFeeAmount, "platformFeeRecipient balance");
     }
 
     function test_mint_state_overridePrice() public {
@@ -315,8 +325,11 @@ contract ClaimableERC1155Test is Test {
         assertEq(core.balanceOf(address(0x123), 0), 100);
 
         uint256 salePrice = (amount * claimRequest.pricePerUnit);
-        assertEq(tokenRecipient.balance, balBefore - salePrice);
-        assertEq(saleRecipient.balance, salePrice);
+        (uint256 primarySaleAmount, uint256 platformFeeAmount) =
+            mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
+        assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
+        assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
+        assertEq(platformFeeRecipient.balance, platformFeeAmount, "platformFeeRecipient balance");
     }
 
     function test_mint_state_overrideCurrency() public {
@@ -376,8 +389,11 @@ contract ClaimableERC1155Test is Test {
         // Check minted balance
         assertEq(core.balanceOf(address(0x123), 0), 100);
 
-        assertEq(currency.balanceOf(tokenRecipient), balBefore - salePrice);
-        assertEq(currency.balanceOf(saleRecipient), salePrice);
+        (uint256 primarySaleAmount, uint256 platformFeeAmount) =
+            mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
+        assertEq(currency.balanceOf(tokenRecipient), balBefore - salePrice, "tokenRecipient balance");
+        assertEq(currency.balanceOf(saleRecipient), primarySaleAmount, "saleRecipient balance");
+        assertEq(currency.balanceOf(platformFeeRecipient), platformFeeAmount, "platformFeeRecipient balance");
     }
 
     function test_mint_revert_unableToDecodeArgs() public {
