@@ -26,10 +26,10 @@ contract MintFeeManager is Ownable {
      * @dev a mint fee of 0 means they are registered under the default mint fee
      */
     function updateTokenMintFee(address _token, uint256 _mintFee) external onlyOwner {
-        if (_mintFee > 10_000) {
+        if (_mintFee > 10_000 && _mintFee != type(uint256).max) {
             revert MintFeeExceedsMaxBps();
         }
-        tokenMintFees[_token] = _mintFee == 0 ? type(uint256).max : _mintFee;
+        tokenMintFees[_token] = _mintFee;
 
         emit MintFeeUpdated(_token, _mintFee);
     }
@@ -46,6 +46,7 @@ contract MintFeeManager is Ownable {
         if (tokenMintFees[_token] == type(uint256).max) {
             return 0;
         }
+
         return tokenMintFees[_token];
     }
 
