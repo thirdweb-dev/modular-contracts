@@ -29,10 +29,7 @@ contract MintFeeManager is Ownable {
         if (_mintFee > 10_000) {
             revert MintFeeExceedsMaxBps();
         }
-        if (_mintFee == 0) {
-            tokenMintFees[_token] = DEFAULT_MINT_FEE;
-        }
-        tokenMintFees[_token] = _mintFee;
+        tokenMintFees[_token] = _mintFee == 0 ? type(uint256).max : _mintFee;
 
         emit MintFeeUpdated(_token, _mintFee);
     }
@@ -43,7 +40,10 @@ contract MintFeeManager is Ownable {
      * @dev a mint fee of 1 means they are subject to zero mint feedo not have a mint fee sets
      */
     function getTokenMintFee(address _token) external view returns (uint256) {
-        if (tokenMintFees[_token] == 1) {
+        if (tokenMintFees[_token] == 0) {
+            return DEFAULT_MINT_FEE;
+        }
+        if (tokenMintFees[_token] == type(uint256).max) {
             return 0;
         }
         return tokenMintFees[_token];
