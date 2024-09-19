@@ -5,6 +5,7 @@ import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+import {IMintFeeManager} from "../../../interface/IMintFeeManager.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
@@ -147,6 +148,7 @@ contract ClaimableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private immutable mintFeeManager;
 
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
@@ -346,7 +348,7 @@ contract ClaimableERC721 is
         _claimableStorage().totalMinted[_recipient] += _amount;
     }
 
-    /// @dev Distributes the mint price to the primary sale recipient and the platform fee recipient.
+    /// @dev Distributes the minting price to the primary sale recipient and platform fee recipient.
     function _distributeMintPrice(address _owner, address _currency, uint256 _price) internal {
         if (_price == 0) {
             if (msg.value > 0) {
@@ -361,12 +363,20 @@ contract ClaimableERC721 is
             if (msg.value != _price) {
                 revert ClaimableIncorrectNativeTokenSent();
             }
-            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
+            (uint256 platformFee, address platformFeeRecipient) =
+                IMintFeeManager(mintFeeManager).getPlatformFeeAndRecipient();
+            uint256 primarySaleAmount = _price - platformFee;
+            SafeTransferLib.safeTransferETH(platformFeeRecipient, platformFee);
+            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, primarySaleAmount);
         } else {
             if (msg.value > 0) {
                 revert ClaimableIncorrectNativeTokenSent();
             }
-            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
+            (uint256 platformFee, address platformFeeRecipient) =
+                IMintFeeManager(mintFeeManager).getPlatformFeeAndRecipient();
+            uint256 primarySaleAmount = _price - platformFee;
+            SafeTransferLib.safeTransferFrom(_currency, _owner, platformFeeRecipient, platformFee);
+            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, primarySaleAmount);
         }
     }
 

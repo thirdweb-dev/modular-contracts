@@ -6,6 +6,7 @@ import {console} from "forge-std/console.sol";
 
 import {Role} from "../../../Role.sol";
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
+import {IMintFeeManager} from "../../../interface/IMintFeeManager.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
@@ -105,6 +106,15 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private immutable mintFeeManager;
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(address _mintFeeManager) {
+        mintFeeManager = _mintFeeManager;
+    }
 
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
@@ -246,12 +256,20 @@ contract MintableERC721 is
             if (msg.value != _price) {
                 revert MintableIncorrectNativeTokenSent();
             }
-            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, _price);
+            (uint256 platformFee, address platformFeeRecipient) =
+                IMintFeeManager(mintFeeManager).getPlatformFeeAndRecipient();
+            uint256 primarySaleAmount = _price - platformFee;
+            SafeTransferLib.safeTransferETH(platformFeeRecipient, platformFee);
+            SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, primarySaleAmount);
         } else {
             if (msg.value > 0) {
                 revert MintableIncorrectNativeTokenSent();
             }
-            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, _price);
+            (uint256 platformFee, address platformFeeRecipient) =
+                IMintFeeManager(mintFeeManager).getPlatformFeeAndRecipient();
+            uint256 primarySaleAmount = _price - platformFee;
+            SafeTransferLib.safeTransferFrom(_currency, _owner, platformFeeRecipient, platformFee);
+            SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, primarySaleAmount);
         }
     }
 
