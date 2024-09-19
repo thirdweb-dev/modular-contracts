@@ -105,7 +105,7 @@ contract MintableERC1155Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
-        mintableModule = new MintableERC1155();
+        mintableModule = new MintableERC1155(address(0x0));
         batchMetadataModule = new BatchMetadataERC1155();
 
         // install module

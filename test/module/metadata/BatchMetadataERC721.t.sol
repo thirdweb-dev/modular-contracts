@@ -36,7 +36,7 @@ contract BatchMetadataERC721Test is Test {
 
         core = new ERC721Core("test", "TEST", "", owner, modules, moduleData);
         batchMetadataModule = new BatchMetadataExt();
-        mintableModule = new MintableERC721();
+        mintableModule = new MintableERC721(address(0x0));
 
         // install module
         vm.prank(owner);

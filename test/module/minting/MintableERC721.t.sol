@@ -102,7 +102,7 @@ contract MintableERC721Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC721Core("test", "TEST", "", owner, modules, moduleData);
-        mintableModule = new MintableERC721();
+        mintableModule = new MintableERC721(address(0x0));
         batchMetadataModule = new BatchMetadataERC721();
 
         // install module

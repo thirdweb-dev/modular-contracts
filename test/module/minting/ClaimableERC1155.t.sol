@@ -115,7 +115,7 @@ contract ClaimableERC1155Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
-        claimableModule = new ClaimableERC1155();
+        claimableModule = new ClaimableERC1155(address(0x0));
         batchMetadataModule = new BatchMetadataERC1155();
 
         // install module

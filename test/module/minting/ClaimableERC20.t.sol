@@ -107,7 +107,7 @@ contract ClaimableERC20Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC20Core("test", "TEST", "", owner, modules, moduleData);
-        claimableModule = new ClaimableERC20();
+        claimableModule = new ClaimableERC20(address(0x0));
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);

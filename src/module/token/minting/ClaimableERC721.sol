@@ -151,6 +151,14 @@ contract ClaimableERC721 is
     address private immutable mintFeeManager;
 
     /*//////////////////////////////////////////////////////////////
+                            CONSTRUTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(address _mintFeeManager) {
+        mintFeeManager = _mintFeeManager;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -363,19 +371,19 @@ contract ClaimableERC721 is
             if (msg.value != _price) {
                 revert ClaimableIncorrectNativeTokenSent();
             }
-            (uint256 platformFee, address platformFeeRecipient) =
-                IMintFeeManager(mintFeeManager).getPlatformFeeAndRecipient();
-            uint256 primarySaleAmount = _price - platformFee;
-            SafeTransferLib.safeTransferETH(platformFeeRecipient, platformFee);
+            (uint256 platformFeeAmount, address platformFeeRecipient) =
+                IMintFeeManager(mintFeeManager).getPlatformFeeAndRecipient(_price);
+            uint256 primarySaleAmount = _price - platformFeeAmount;
+            SafeTransferLib.safeTransferETH(platformFeeRecipient, platformFeeAmount);
             SafeTransferLib.safeTransferETH(saleConfig.primarySaleRecipient, primarySaleAmount);
         } else {
             if (msg.value > 0) {
                 revert ClaimableIncorrectNativeTokenSent();
             }
-            (uint256 platformFee, address platformFeeRecipient) =
-                IMintFeeManager(mintFeeManager).getPlatformFeeAndRecipient();
-            uint256 primarySaleAmount = _price - platformFee;
-            SafeTransferLib.safeTransferFrom(_currency, _owner, platformFeeRecipient, platformFee);
+            (uint256 platformFeeAmount, address platformFeeRecipient) =
+                IMintFeeManager(mintFeeManager).getPlatformFeeAndRecipient(_price);
+            uint256 primarySaleAmount = _price - platformFeeAmount;
+            SafeTransferLib.safeTransferFrom(_currency, _owner, platformFeeRecipient, platformFeeAmount);
             SafeTransferLib.safeTransferFrom(_currency, _owner, saleConfig.primarySaleRecipient, primarySaleAmount);
         }
     }

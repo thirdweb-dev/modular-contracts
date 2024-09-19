@@ -53,20 +53,21 @@ contract MintFeeManager is Ownable, Initializable {
 
     /**
      * @notice returns the mint fee for the specified contract and the platform fee recipient
+     * @param _price the price of the token to be minted
      * @return the mint fee for the specified contract and the platform fee recipient
      * @dev a mint fee of 1 means they are subject to zero mint feedo not have a mint fee sets
      */
-    function getPlatformFeeAndRecipient() external view returns (uint256, address) {
+    function getPlatformFeeAndRecipient(uint256 _price) external view returns (uint256, address) {
         uint256 mintFee;
 
         if (mintFees[msg.sender] == 0) {
-            return (defaultMintFee, platformFeeRecipient);
+            mintFee = (_price * defaultMintFee) / 10_000;
         }
-        if (mintFees[msg.sender] == type(uint256).max) {
-            return (0, platformFeeRecipient);
+        if (mintFees[msg.sender] != type(uint256).max) {
+            mintFee = (_price * mintFees[msg.sender]) / 10_000;
         }
 
-        return (mintFees[msg.sender], platformFeeRecipient);
+        return (mintFee, platformFeeRecipient);
     }
 
 }

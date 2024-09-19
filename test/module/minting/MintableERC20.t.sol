@@ -98,7 +98,7 @@ contract MintableERC20Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC20Core("test", "TEST", "", owner, modules, moduleData);
-        mintableModule = new MintableERC20();
+        mintableModule = new MintableERC20(address(0x0));
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);
