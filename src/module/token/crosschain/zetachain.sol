@@ -5,6 +5,7 @@ import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
 import {IERC20} from "../../../interface/IERC20.sol";
+import {CrossChain} from "./CrossChain.sol";
 
 library ZetaChainCrossChainStorage {
 
@@ -32,7 +33,7 @@ interface IERC20Custody {
 
 }
 
-contract ZetaChainCrossChain is Module {
+contract ZetaChainCrossChain is Module, CrossChain {
 
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
@@ -44,10 +45,10 @@ contract ZetaChainCrossChain is Module {
 
         config.fallbackFunctions[0] =
             FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
-        config.fallbackFunctions[2] = FallbackFunction({selector: this.getTss.selector, permissionBits: 0});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.getRouter.selector, permissionBits: 0});
         config.fallbackFunctions[4] = FallbackFunction({selector: this.getERC20Custody.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
-            FallbackFunction({selector: this.setTss.selector, permissionBits: Role._MANAGER_ROLE});
+            FallbackFunction({selector: this.setRouter.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setERC20Custody.selector, permissionBits: Role._MANAGER_ROLE});
 
@@ -89,15 +90,14 @@ contract ZetaChainCrossChain is Module {
     function sendCrossChainTransaction(
         uint64 _destinationChain,
         address _callAddress,
-        address _recipient,
-        address _token,
-        uint256 _amount,
-        bytes calldata _data,
-        bytes memory _extraArgs
-    ) external {
+        bytes calldata _payload,
+        bytes calldata _extraArgs
+    ) external payable override {
+        (address _recipient, address _token, uint256 _amount) = abi.decode(_extraArgs, (address, address, uint256));
+
         // Mimics the encoding of the ZetaChain client library
         // https://github.com/zeta-chain/toolkit/tree/main/packages/client/src
-        bytes memory encodedData = abi.encodePacked(_callAddress, _data);
+        bytes memory encodedData = abi.encodePacked(_callAddress, _payload);
         if (_token == address(0)) {
             (bool success,) = payable(_zetaChainCrossChainStorage().tss).call{value: _amount}(encodedData);
             require(success, "Failed to send message");
@@ -106,13 +106,15 @@ contract ZetaChainCrossChain is Module {
                 abi.encode(_recipient), IERC20(_token), _amount, encodedData
             );
         }
+
+        onCrossChainTransactionSent(_destinationChain, _callAddress, _payload, _extraArgs);
     }
 
-    function getTss() external view returns (address) {
+    function getRouter() external view override returns (address) {
         return _zetaChainCrossChainStorage().tss;
     }
 
-    function setTss(address _tss) external {
+    function setRouter(address _tss) external override {
         _zetaChainCrossChainStorage().tss = _tss;
     }
 
@@ -126,6 +128,19 @@ contract ZetaChainCrossChain is Module {
 
     function _zetaChainCrossChainStorage() internal pure returns (ZetaChainCrossChainStorage.Data storage) {
         return ZetaChainCrossChainStorage.data();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function onCrossChainTransactionSent(
+        uint64 _destinationChain,
+        address _callAddress,
+        bytes calldata _payload,
+        bytes calldata _extraArgs
+    ) internal override {
+        // implementation goes here
     }
 
 }
