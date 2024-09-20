@@ -7,15 +7,16 @@ import {Initializable} from "@solady/utils/Initializable.sol";
 
 contract MintFeeManager is Ownable, Initializable {
 
+    uint256 private constant MINT_FEE_MAX_BPS = 10_000;
     address public platformFeeRecipient;
+    uint256 public defaultMintFee;
 
-    mapping(address => uint256) private mintFees;
+    mapping(address => uint256) public mintFees;
 
-    event MintFeeUpdated(address indexed token, uint256 mintFee);
+    event MintFeeUpdated(address indexed contractAddress, uint256 mintFee);
+    event DefaultMintFeeUpdated(uint256 mintFee);
 
     error MintFeeExceedsMaxBps();
-
-    uint256 public defaultMintFee;
 
     constructor() {
         _disableInitializers();
@@ -33,7 +34,12 @@ contract MintFeeManager is Ownable, Initializable {
     }
 
     function setDefaultMintFee(uint256 _defaultMintFee) external onlyOwner {
+        if (_defaultMintFee > MINT_FEE_MAX_BPS) {
+            revert MintFeeExceedsMaxBps();
+        }
         defaultMintFee = _defaultMintFee;
+
+        emit DefaultMintFeeUpdated(_defaultMintFee);
     }
 
     /**
@@ -43,7 +49,7 @@ contract MintFeeManager is Ownable, Initializable {
      * @dev a mint fee of 0 means they are registered under the default mint fee
      */
     function updateMintFee(address _contract, uint256 _mintFee) external onlyOwner {
-        if (_mintFee > 10_000 && _mintFee != type(uint256).max) {
+        if (_mintFee > MINT_FEE_MAX_BPS && _mintFee != type(uint256).max) {
             revert MintFeeExceedsMaxBps();
         }
         mintFees[_contract] = _mintFee;
@@ -55,16 +61,15 @@ contract MintFeeManager is Ownable, Initializable {
      * @notice returns the mint fee for the specified contract and the platform fee recipient
      * @param _price the price of the token to be minted
      * @return the mint fee for the specified contract and the platform fee recipient
-     * @dev a mint fee of 1 means they are subject to zero mint feedo not have a mint fee sets
+     * @dev a mint fee of uint256 max means they are subject to zero mint fees
      */
     function getPlatformFeeAndRecipient(uint256 _price) external view returns (uint256, address) {
         uint256 mintFee;
 
         if (mintFees[msg.sender] == 0) {
-            mintFee = (_price * defaultMintFee) / 10_000;
-        }
-        if (mintFees[msg.sender] != type(uint256).max) {
-            mintFee = (_price * mintFees[msg.sender]) / 10_000;
+            mintFee = (_price * defaultMintFee) / MINT_FEE_MAX_BPS;
+        } else if (mintFees[msg.sender] != type(uint256).max) {
+            mintFee = (_price * mintFees[msg.sender]) / MINT_FEE_MAX_BPS;
         }
 
         return (mintFee, platformFeeRecipient);
