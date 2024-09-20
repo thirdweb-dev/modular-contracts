@@ -51,6 +51,8 @@ contract SequentialTokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
+
+        config.registerInstallationCallback = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -71,6 +73,29 @@ contract SequentialTokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
         }
 
         return _tokenId;
+    }
+
+    /// @dev Called by a Core into an Module during the installation of the Module.
+    function onInstall(bytes calldata data) external {
+        uint256 nextTokenId = abi.decode(data, (uint256));
+        _tokenIdStorage().nextTokenId = nextTokenId;
+    }
+
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
+    function onUninstall(bytes calldata data) external {}
+
+    /*//////////////////////////////////////////////////////////////
+                    Encode install / uninstall data
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
+    function encodeBytesOnInstall(uint256 nextTokenId) external pure returns (bytes memory) {
+        return abi.encode(nextTokenId);
+    }
+
+    /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
+    function encodeBytesOnUninstall() external pure returns (bytes memory) {
+        return "";
     }
 
     /*//////////////////////////////////////////////////////////////
