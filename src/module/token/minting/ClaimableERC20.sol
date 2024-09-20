@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
+
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
@@ -11,6 +12,12 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
 import {BeforeMintWithSignatureCallbackERC20} from "../../../callback/BeforeMintWithSignatureCallbackERC20.sol";
+
+interface IERC20 {
+
+    function decimals() external view returns (uint8);
+
+}
 
 library ClaimableStorage {
 
@@ -194,7 +201,9 @@ contract ClaimableERC20 is
 
         _validateClaimCondition(_to, _amount, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof);
 
-        _distributeMintPrice(msg.sender, _params.currency, (_amount * _params.pricePerUnit) / 1e18);
+        _distributeMintPrice(
+            msg.sender, _params.currency, (_amount * _params.pricePerUnit) / (10 ** IERC20(address(this)).decimals())
+        );
     }
 
     /// @notice Callback function for the ERC20Core.mint function.
@@ -213,7 +222,9 @@ contract ClaimableERC20 is
 
         _validateClaimSignatureParams(_params, _to, _amount);
 
-        _distributeMintPrice(msg.sender, _params.currency, (_amount * _params.pricePerUnit) / 1e18);
+        _distributeMintPrice(
+            msg.sender, _params.currency, (_amount * _params.pricePerUnit) / (10 ** IERC20(address(this)).decimals())
+        );
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
