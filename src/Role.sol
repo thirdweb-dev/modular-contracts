@@ -9,6 +9,7 @@ library Role {
 
     uint256 internal constant _MINTER_ROLE = 1 << 0;
     uint256 internal constant _MANAGER_ROLE = 1 << 1;
+    uint256 internal constant _REGISTRAR_ROLE = 1 << 2;
 
     uint256 internal constant _INSTALLER_ROLE = 1 << 255;
 
