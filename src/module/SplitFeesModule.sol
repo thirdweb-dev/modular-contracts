@@ -3,7 +3,9 @@ pragma solidity ^0.8.20;
 import {Split} from "../libraries/Split.sol";
 
 import {SplitFeesCore} from "../core/SplitFeesCore.sol";
-import {IERC20} from "./interface/IERC20.sol";
+
+import {IERC20} from "../interface/IERC20.sol";
+import {ISplitWallet} from "../interface/ISplitWallet.sol";
 
 import {LibClone} from "@solady/utils/LibClone.sol";
 
@@ -28,7 +30,14 @@ library SplitFeesStorage {
 
 }
 
-contract SplitFeesModule {
+contract SplitFeesModule is Module {
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice address of the native token, inline with ERC 7528.
+    address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
@@ -57,7 +66,7 @@ contract SplitFeesModule {
     //////////////////////////////////////////////////////////////*/
 
     modifier onlyController(address _splitWallet) {
-        if (splits[_splitWallet].controller != msg.sender) {
+        if (_splitFeesStorage().splits[_splitWallet].controller != msg.sender) {
             revert SplitFeesNotController();
         }
         _;
@@ -77,45 +86,36 @@ contract SplitFeesModule {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
+                            MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    // Core contract calls this in constructor
-    function createSplit(address[] memory _recipients, uint256[] memory _allocations, address _controller)
-        external
-        validateSplits(_recipients, _allocations, _controller)
-    {
-        Split memory _split = _setSplits(_split, _recipients, _allocations, _controller);
-        address splitWalletImplementation = SplitFeesCore(address(this)).splitWalletImplementation();
+    function getModuleConfig() external pure virtual override returns (ModuleConfig memory) {
+        ModuleConfig memory config;
+        config.callbackFunctions = new CallbackFunction[](2);
+        config.callbackFunctions[0] = CallbackFunction(this.beforeDistribute.selector);
+        config.callbackFunctions[1] = CallbackFunction(this.afterWithdraw.selector);
 
-        address splitWallet = LibClone.clone(_splitFeesStorage().splitWalletImplementation);
-        splits[splitWallet] = _split;
+        config.fallbackFunctions = new FallbackFunction[](2);
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.createSplit.selector, permissionBits: 0});
+        config.fallbackFunctions[1] = FallbackFunction({selector: this.updateSplit.selector, permissionBits: 0});
 
-        emit SplitCreated(splitWallet, _recipients, _allocations, _controller);
+        return config;
     }
 
-    function updateSplit(
-        address _splitWallet,
-        address[] memory _recipients,
-        uint256[] memory _allocations,
-        address _controller
-    ) external onlyController(_splitWallet) validateSplits(_recipients, _allocations, _controller) {
-        Split memory _split = _setSplits(_split, _recipients, _allocations, _controller);
-        splits[_splitWallet] = _split;
-
-        emit SplitsUpdated(_splitWallet, _recipients, _allocations, _controller);
-    }
+    /*//////////////////////////////////////////////////////////////
+                            CALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     function beforeDistribute(address _splitWallet, address _token) external returns (uint256, Split memory) {
-        Split memory _split = splits[_splitWallet];
+        Split memory _split = _splitFeesStorage().splits[_splitWallet];
         uint256 amountToSplit;
 
         if (_token == NATIVE_TOKEN_ADDRESS) {
             amountToSplit = _splitWallet.balance;
-            SplitWallet(_splitWallet).transferETH(amountToSplit);
+            ISplitWallet(payable(_splitWallet)).transferETH(amountToSplit);
         } else {
             amountToSplit = IERC20(_token).balanceOf(_splitWallet);
-            SplitWallet(_splitWallet).transferERC20(_token, amountToSplit);
+            ISplitWallet(payable(_splitWallet)).transferERC20(_token, amountToSplit);
         }
 
         emit SplitsDistributed(_splitWallet, _token, amountToSplit);
@@ -138,6 +138,36 @@ contract SplitFeesModule {
         }
 
         emit SplitsWithdrawn(account, _token, amountToWithdraw);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            FALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    // Core contract calls this in constructor
+    function createSplit(address[] memory _recipients, uint256[] memory _allocations, address _controller)
+        external
+        validateSplits(_recipients, _allocations, _controller)
+    {
+        Split memory _split = _setSplits(_recipients, _allocations, _controller);
+        address splitWalletImplementation = SplitFeesCore(payable(address(this))).splitWalletImplementation();
+
+        address splitWallet = LibClone.clone(splitWalletImplementation);
+        _splitFeesStorage().splits[splitWallet] = _split;
+
+        emit SplitCreated(splitWallet, _recipients, _allocations, _controller);
+    }
+
+    function updateSplit(
+        address _splitWallet,
+        address[] memory _recipients,
+        uint256[] memory _allocations,
+        address _controller
+    ) external onlyController(_splitWallet) validateSplits(_recipients, _allocations, _controller) {
+        Split memory _split = _setSplits(_recipients, _allocations, _controller);
+        _splitFeesStorage().splits[_splitWallet] = _split;
+
+        emit SplitsUpdated(_splitWallet, _recipients, _allocations, _controller);
     }
 
     /*//////////////////////////////////////////////////////////////
