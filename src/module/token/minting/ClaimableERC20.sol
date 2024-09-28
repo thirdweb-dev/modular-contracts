@@ -90,9 +90,8 @@ contract ClaimableERC20 is
      *
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
-     *  @param recipient The address that will receive the minted tokens.
-     *  @param amount The amount of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
+     *  @param maxMintPerWallet The maximum number of tokens that can be minted per wallet.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
@@ -108,8 +107,9 @@ contract ClaimableERC20 is
     /**
      *  @notice The parameters sent to the `beforeMintERC20` callback function.
      *
-     *  @param request The minting request.
-     *  @param signature The signature produced from signing the minting request.
+     *  @param currency The address of the currency used to pay for the minted tokens.
+     *  @param pricePerUnit The price per unit of the minted tokens.
+     *  @param recipientAllowlistProof The proof of the recipient's address in the allowlist.
      */
     struct ClaimParamsERC20 {
         address currency;
@@ -206,7 +206,7 @@ contract ClaimableERC20 is
         );
     }
 
-    /// @notice Callback function for the ERC20Core.mint function.
+    /// @notice Callback function for the ERC20Core.mintWithSignature function.
     function beforeMintWithSignatureERC20(address _to, uint256 _amount, bytes memory _data, address _signer)
         external
         payable

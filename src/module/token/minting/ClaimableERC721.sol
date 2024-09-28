@@ -23,7 +23,7 @@ library ClaimableStorage {
         mapping(bytes32 => bool) uidUsed;
         // address => how many tokens have been minted
         mapping(address => uint256) totalMinted;
-        // sale config: primary sale recipient, and platform fee recipient + BPS.
+        // sale config: primary sale recipient
         ClaimableERC721.SaleConfig saleConfig;
         // claim condition
         ClaimableERC721.ClaimCondition claimCondition;

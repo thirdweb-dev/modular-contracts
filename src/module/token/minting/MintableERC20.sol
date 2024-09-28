@@ -56,8 +56,6 @@ contract MintableERC20 is
      *
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
-     *  @param recipient The address that will receive the minted tokens.
-     *  @param amount The amount of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
