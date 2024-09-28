@@ -161,7 +161,7 @@ contract ClaimableERC1155 is
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](5);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
         config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC1155.selector);
