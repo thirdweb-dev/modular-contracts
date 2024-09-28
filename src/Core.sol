@@ -30,8 +30,8 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
     /// @dev Internal representation of a fallback function callable via fallback().
     struct InstalledFunction {
         address implementation;
-        uint256 permissionBits;
         FunctionType fnType;
+        uint256 permissionBits;
     }
 
     /*//////////////////////////////////////////////////////////////
