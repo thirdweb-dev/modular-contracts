@@ -89,8 +89,8 @@ contract SequentialTokenIdERC1155 is Module, UpdateTokenIdCallbackERC1155 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(uint256 nextTokenId) external pure returns (bytes memory) {
-        return abi.encode(nextTokenId);
+    function encodeBytesOnInstall(uint256 startTokenId) external pure returns (bytes memory) {
+        return abi.encode(startTokenId);
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function

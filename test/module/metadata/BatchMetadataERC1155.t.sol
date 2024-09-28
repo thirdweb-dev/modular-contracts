@@ -53,52 +53,53 @@ contract BatchMetadataERC1155Test is Test {
     }
 
     /*///////////////////////////////////////////////////////////////
-                        Unit tests: `getBatchId`
+                        Unit tests: `getBatchIndex`
     //////////////////////////////////////////////////////////////*/
 
-    function test_state_getBatchId() public {
+    function test_state_getBatchIndex() public {
         vm.prank(owner);
         BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
-        (uint256 batchId, uint256 index) = BatchMetadataExt(address(core)).getBatchId(0);
+        uint256 batchIndex = BatchMetadataExt(address(core)).getBatchIndex(50);
 
-        assertEq(batchId, 100);
-        assertEq(index, 0);
+        assertEq(batchIndex, 0);
     }
 
-    function test_revert_getBatchId() public {
+    function test_revert_getBatchIndex_noMetadata() public {
         vm.prank(owner);
         BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
 
         vm.expectRevert(BatchMetadataERC721.BatchMetadataNoMetadataForTokenId.selector);
-        (uint256 batchId, uint256 index) = BatchMetadataExt(address(core)).getBatchId(101);
+        BatchMetadataExt(address(core)).getBatchIndex(101);
     }
 
     /*///////////////////////////////////////////////////////////////
-                        Unit tests: `getBatchRange`
+                        Unit tests: `getMetadataBatch`
     //////////////////////////////////////////////////////////////*/
 
-    function test_state_getBatchRange() public {
+    function test_state_getMetadataBatch() public {
         vm.startPrank(owner);
         BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
-        BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
+        BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base2/");
         vm.stopPrank();
 
-        (uint256 startTokenId1, uint256 endTokenId1) = BatchMetadataExt(address(core)).getBatchRange(100);
-        (uint256 startTokenId2, uint256 endTokenId2) = BatchMetadataExt(address(core)).getBatchRange(200);
+        BatchMetadataERC1155.MetadataBatch memory batch = BatchMetadataExt(address(core)).getMetadataBatch(0);
+        BatchMetadataERC1155.MetadataBatch memory batch2 = BatchMetadataExt(address(core)).getMetadataBatch(1);
 
-        assertEq(startTokenId1, 0);
-        assertEq(endTokenId1, 99);
-        assertEq(startTokenId2, 100);
-        assertEq(endTokenId2, 199);
+        assertEq(batch.startTokenIdInclusive, 0);
+        assertEq(batch.endTokenIdInclusive, 99);
+        assertEq(batch.baseURI, "ipfs://base/");
+        assertEq(batch2.startTokenIdInclusive, 100);
+        assertEq(batch2.endTokenIdInclusive, 199);
+        assertEq(batch2.baseURI, "ipfs://base2/");
     }
 
-    function test_revert_getBatchRange() public {
+    function test_revert_getMetadataBatch_invalidIndex() public {
         vm.prank(owner);
         BatchMetadataExt(address(core)).uploadMetadata(100, "ipfs://base/");
 
-        vm.expectRevert(BatchMetadataERC721.BatchMetadataNoMetadataForTokenId.selector);
+        vm.expectRevert();
         vm.prank(owner);
-        BatchMetadataExt(address(core)).getBatchRange(101);
+        BatchMetadataExt(address(core)).getMetadataBatch(1);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -116,7 +117,7 @@ contract BatchMetadataERC1155Test is Test {
         assertEq(batches[0].baseURI, "ipfs://base/");
 
         vm.prank(owner);
-        BatchMetadataExt(address(core)).setBaseURI(100, "ipfs://base2/");
+        BatchMetadataExt(address(core)).setBaseURI(0, "ipfs://base2/");
 
         // get metadata batches
         BatchMetadataExt.MetadataBatch[] memory batches2 = BatchMetadataExt(address(core)).getAllMetadataBatches();
