@@ -25,10 +25,10 @@ library RoyaltyStorage {
     struct Data {
         // default royalty info
         RoyaltyERC721.RoyaltyInfo defaultRoyaltyInfo;
-        // tokenId => royalty info
-        mapping(uint256 => RoyaltyERC721.RoyaltyInfo) royaltyInfoForToken;
         // the addresss of the transfer validator
         address transferValidator;
+        // tokenId => royalty info
+        mapping(uint256 => RoyaltyERC721.RoyaltyInfo) royaltyInfoForToken;
     }
 
     function data() internal pure returns (Data storage data_) {
