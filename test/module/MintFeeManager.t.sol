@@ -17,7 +17,7 @@ contract MintFeeManagerTest is Test {
     address payable public mintFeeManagerProxy;
 
     address public owner = address(0x123);
-    address public platformFeeRecipient = address(0x456);
+    address public feeRecipient = address(0x456);
     uint256 public defaultMintFee = 100;
     address public unauthorizedActor = address(0x3);
 
@@ -36,7 +36,7 @@ contract MintFeeManagerTest is Test {
         MintFeeManagerCore(mintFeeManagerProxy).initialize(owner);
 
         bytes memory initializeData =
-            mintFeeManagerModuleImplementation.encodeBytesOnInstall(platformFeeRecipient, defaultMintFee);
+            mintFeeManagerModuleImplementation.encodeBytesOnInstall(feeRecipient, defaultMintFee);
         vm.prank(owner);
         MintFeeManagerCore(mintFeeManagerProxy).installModule(
             address(mintFeeManagerModuleImplementation), initializeData
@@ -47,20 +47,20 @@ contract MintFeeManagerTest is Test {
     }
 
     /*///////////////////////////////////////////////////////////////
-                        Unit tests: `setPlatformFeeRecipient`
+                        Unit tests: `setfeeRecipient`
     //////////////////////////////////////////////////////////////*/
 
-    function test_state_setPlatformFeeRecipient() public {
+    function test_state_setfeeRecipient() public {
         vm.prank(owner);
-        MintFeeManagerModule(mintFeeManagerProxy).setPlatformFeeRecipient(address(0x456));
+        MintFeeManagerModule(mintFeeManagerProxy).setfeeRecipient(address(0x456));
 
-        assertEq(MintFeeManagerModule(mintFeeManagerProxy).getPlatformFeeRecipient(), address(0x456));
+        assertEq(MintFeeManagerModule(mintFeeManagerProxy).getfeeRecipient(), address(0x456));
     }
 
-    function test_revert_setPlatformFeeRecipient_unauthorizedCaller() public {
+    function test_revert_setfeeRecipient_unauthorizedCaller() public {
         vm.prank(unauthorizedActor);
         vm.expectRevert(abi.encodeWithSelector(0x82b42900)); // Unauthorized()
-        MintFeeManagerModule(mintFeeManagerProxy).setPlatformFeeRecipient(address(0x456));
+        MintFeeManagerModule(mintFeeManagerProxy).setfeeRecipient(address(0x456));
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -120,40 +120,40 @@ contract MintFeeManagerTest is Test {
     }
 
     /*///////////////////////////////////////////////////////////////
-                        Unit tests: `getPlatformFeeAndRecipient`
+                        Unit tests: `calculatePlatformFeeAndRecipient`
     //////////////////////////////////////////////////////////////*/
 
-    function test_state_getPlatformFeeAndRecipient() public {
+    function test_state_calculatePlatformFeeAndRecipient() public {
         vm.prank(owner);
         MintFeeManagerModule(mintFeeManagerProxy).updateMintFee(contract1, 500);
 
         vm.prank(contract1);
-        (uint256 mintFee, address _platformFeeRecipient) =
-            MintFeeManagerModule(mintFeeManagerProxy).getPlatformFeeAndRecipient(100);
+        (uint256 mintFee, address _feeRecipient) =
+            MintFeeManagerModule(mintFeeManagerProxy).calculatePlatformFeeAndRecipient(100);
 
         assertEq(mintFee, 5);
-        assertEq(_platformFeeRecipient, platformFeeRecipient);
+        assertEq(_feeRecipient, feeRecipient);
     }
 
-    function test_state_getPlatformFeeAndRecipient_defaultMintFee() public {
+    function test_state_calculatePlatformFeeAndRecipient_defaultMintFee() public {
         vm.prank(contract1);
-        (uint256 mintFee, address _platformFeeRecipient) =
-            MintFeeManagerModule(mintFeeManagerProxy).getPlatformFeeAndRecipient(100);
+        (uint256 mintFee, address _feeRecipient) =
+            MintFeeManagerModule(mintFeeManagerProxy).calculatePlatformFeeAndRecipient(100);
 
         assertEq(mintFee, 1);
-        assertEq(_platformFeeRecipient, platformFeeRecipient);
+        assertEq(_feeRecipient, feeRecipient);
     }
 
-    function test_state_getPlatformFeeAndRecipient_zeroMintFee() public {
+    function test_state_calculatePlatformFeeAndRecipient_zeroMintFee() public {
         vm.prank(owner);
         MintFeeManagerModule(mintFeeManagerProxy).updateMintFee(contract1, type(uint256).max);
 
         vm.prank(contract1);
-        (uint256 mintFee, address _platformFeeRecipient) =
-            MintFeeManagerModule(mintFeeManagerProxy).getPlatformFeeAndRecipient(100);
+        (uint256 mintFee, address _feeRecipient) =
+            MintFeeManagerModule(mintFeeManagerProxy).calculatePlatformFeeAndRecipient(100);
 
         assertEq(mintFee, 0);
-        assertEq(_platformFeeRecipient, platformFeeRecipient);
+        assertEq(_feeRecipient, feeRecipient);
     }
 
 }

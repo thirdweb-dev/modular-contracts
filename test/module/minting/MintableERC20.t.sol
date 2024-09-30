@@ -57,7 +57,7 @@ contract MintableERC20Test is Test {
 
     address tokenRecipient = address(0x123);
     uint256 amount = 100;
-    address platformFeeRecipient;
+    address feeRecipient;
 
     // Signature vars
     bytes32 internal typehashMintSignatureParams;
@@ -110,7 +110,7 @@ contract MintableERC20Test is Test {
         core.installModule(address(mintableModule), encodedInstallParams);
 
         // setup platform fee receipient
-        platformFeeRecipient = mintFeeManager.getPlatformFeeReceipient();
+        feeRecipient = mintFeeManager.getPlatformFeeReceipient();
 
         // Setup signature vars
         typehashMintSignatureParams = keccak256("MintRequestERC20(address to,uint256 amount,bytes data)");
@@ -183,7 +183,7 @@ contract MintableERC20Test is Test {
             mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
         assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
         assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
-        assertEq(platformFeeRecipient.balance, platformFeeAmount, "platformFeeRecipient balance");
+        assertEq(feeRecipient.balance, platformFeeAmount, "feeRecipient balance");
     }
 
     function test_mint_revert_unableToDecodeArgs() public {

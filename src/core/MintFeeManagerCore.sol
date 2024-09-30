@@ -3,7 +3,6 @@ pragma solidity ^0.8.20;
 
 import {Core} from "../Core.sol";
 
-// OZ libraries
 import {Initializable} from "@solady/utils/Initializable.sol";
 
 contract MintFeeManagerCore is Core, Initializable {

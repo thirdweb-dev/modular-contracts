@@ -11,9 +11,9 @@ library MintFeeManagerStorage {
         keccak256(abi.encode(uint256(keccak256("mint.fee.manager")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        address platformFeeRecipient;
+        address feeRecipient;
         uint256 defaultMintFee;
-        mapping(address => uint256) mintFees;
+        mapping(address _contract => uint256 mintFee) mintFees;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -31,17 +31,16 @@ contract MintFeeManagerModule is Module {
 
     event MintFeeUpdated(address indexed contractAddress, uint256 mintFee);
     event DefaultMintFeeUpdated(uint256 mintFee);
-    event PlatformFeeRecipientUpdated(address platformFeeRecipient);
+    event feeRecipientUpdated(address feeRecipient);
 
     error MintFeeExceedsMaxBps();
 
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.fallbackFunctions = new FallbackFunction[](7);
 
-        config.fallbackFunctions[0] =
-            FallbackFunction({selector: this.getPlatformFeeRecipient.selector, permissionBits: 0});
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getfeeRecipient.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
-            FallbackFunction({selector: this.setPlatformFeeRecipient.selector, permissionBits: Role._MANAGER_ROLE});
+            FallbackFunction({selector: this.setfeeRecipient.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[2] = FallbackFunction({selector: this.getDefaultMintFee.selector, permissionBits: 0});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setDefaultMintFee.selector, permissionBits: Role._MANAGER_ROLE});
@@ -49,15 +48,15 @@ contract MintFeeManagerModule is Module {
         config.fallbackFunctions[5] =
             FallbackFunction({selector: this.updateMintFee.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[6] =
-            FallbackFunction({selector: this.getPlatformFeeAndRecipient.selector, permissionBits: 0});
+            FallbackFunction({selector: this.calculatePlatformFeeAndRecipient.selector, permissionBits: 0});
 
         config.registerInstallationCallback = true;
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        (address _platformFeeRecipient, uint256 _defaultMintFee) = abi.decode(data, (address, uint256));
-        setPlatformFeeRecipient(_platformFeeRecipient);
+        (address _feeRecipient, uint256 _defaultMintFee) = abi.decode(data, (address, uint256));
+        setfeeRecipient(_feeRecipient);
         setDefaultMintFee(_defaultMintFee);
     }
 
@@ -69,12 +68,12 @@ contract MintFeeManagerModule is Module {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
-    function encodeBytesOnInstall(address _platformFeeRecipient, uint256 _defaultMintFee)
+    function encodeBytesOnInstall(address _feeRecipient, uint256 _defaultMintFee)
         external
         pure
         returns (bytes memory)
     {
-        return abi.encode(_platformFeeRecipient, _defaultMintFee);
+        return abi.encode(_feeRecipient, _defaultMintFee);
     }
 
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
@@ -86,14 +85,14 @@ contract MintFeeManagerModule is Module {
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getPlatformFeeRecipient() external view returns (address) {
-        return _mintFeeManagerStorage().platformFeeRecipient;
+    function getfeeRecipient() external view returns (address) {
+        return _mintFeeManagerStorage().feeRecipient;
     }
 
-    function setPlatformFeeRecipient(address _platformFeeRecipient) public {
-        _mintFeeManagerStorage().platformFeeRecipient = _platformFeeRecipient;
+    function setfeeRecipient(address _feeRecipient) public {
+        _mintFeeManagerStorage().feeRecipient = _feeRecipient;
 
-        emit PlatformFeeRecipientUpdated(_platformFeeRecipient);
+        emit feeRecipientUpdated(_feeRecipient);
     }
 
     function getDefaultMintFee() external view returns (uint256) {
@@ -116,7 +115,7 @@ contract MintFeeManagerModule is Module {
     /**
      * @notice updates the mint fee for the specified contract
      * @param _contract the address of the token to be updated
-     * @param _mintFee the new mint fee for the token
+     * @param _mintFee the new mint fee for the contract
      * @dev a mint fee of 0 means they are registered under the default mint fee
      */
     function updateMintFee(address _contract, uint256 _mintFee) external {
@@ -134,7 +133,7 @@ contract MintFeeManagerModule is Module {
      * @return the mint fee for the specified contract and the platform fee recipient
      * @dev a mint fee of uint256 max means they are subject to zero mint fees
      */
-    function getPlatformFeeAndRecipient(uint256 _price) external view returns (uint256, address) {
+    function calculatePlatformFeeAndRecipient(uint256 _price) external view returns (uint256, address) {
         uint256 mintFee;
 
         if (_mintFeeManagerStorage().mintFees[msg.sender] == 0) {
@@ -143,7 +142,7 @@ contract MintFeeManagerModule is Module {
             mintFee = (_price * _mintFeeManagerStorage().mintFees[msg.sender]) / MINT_FEE_MAX_BPS;
         }
 
-        return (mintFee, _mintFeeManagerStorage().platformFeeRecipient);
+        return (mintFee, _mintFeeManagerStorage().feeRecipient);
     }
 
     function _mintFeeManagerStorage() internal pure returns (MintFeeManagerStorage.Data storage) {

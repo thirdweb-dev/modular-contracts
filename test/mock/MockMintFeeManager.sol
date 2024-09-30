@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 contract MockMintFeeManager {
 
-    function getPlatformFeeAndRecipient(uint256 _price) external view returns (uint256, address) {
+    function calculatePlatformFeeAndRecipient(uint256 _price) external view returns (uint256, address) {
         return ((_price * 100) / 10_000, address(0x3));
     }
 

@@ -62,7 +62,7 @@ contract MintableERC1155Test is Test {
     uint256 amount = 100;
     uint256 tokenId = 0;
     string baseURI = "ipfs://base/";
-    address platformFeeRecipient;
+    address feeRecipient;
 
     // Signature vars
     bytes32 internal typehashMintSignatureParams;
@@ -121,7 +121,7 @@ contract MintableERC1155Test is Test {
         core.installModule(address(batchMetadataModule), "");
 
         // setup platform fee receipient
-        platformFeeRecipient = mintFeeManager.getPlatformFeeReceipient();
+        feeRecipient = mintFeeManager.getPlatformFeeReceipient();
 
         // Setup signature vars
         typehashMintSignatureParams =
@@ -195,7 +195,7 @@ contract MintableERC1155Test is Test {
             mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
         assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
         assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
-        assertEq(platformFeeRecipient.balance, platformFeeAmount, "platformFeeRecipient balance");
+        assertEq(feeRecipient.balance, platformFeeAmount, "feeRecipient balance");
     }
 
     function test_mint_revert_unableToDecodeArgs() public {

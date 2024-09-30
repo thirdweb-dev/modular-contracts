@@ -59,7 +59,7 @@ contract ClaimableERC721Test is Test {
     address tokenRecipient = address(0x123);
     uint256 amount = 100;
     string baseURI = "ipfs://base/";
-    address platformFeeRecipient;
+    address feeRecipient;
 
     // Signature vars
     bytes32 internal typehashClaimSignatureParams;
@@ -128,7 +128,7 @@ contract ClaimableERC721Test is Test {
         core.installModule(address(batchMetadataModule), encodedBatchMetadataInstallParams);
 
         // setup platform fee receipient
-        platformFeeRecipient = mintFeeManager.getPlatformFeeReceipient();
+        feeRecipient = mintFeeManager.getPlatformFeeReceipient();
 
         // Setup signature vars
         typehashClaimSignatureParams =
@@ -263,7 +263,7 @@ contract ClaimableERC721Test is Test {
             mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
         assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
         assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
-        assertEq(platformFeeRecipient.balance, platformFeeAmount, "platformFeeRecipient balance");
+        assertEq(feeRecipient.balance, platformFeeAmount, "feeRecipient balance");
     }
 
     function test_mint_state_overridePrice() public {
@@ -321,7 +321,7 @@ contract ClaimableERC721Test is Test {
             mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
         assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
         assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
-        assertEq(platformFeeRecipient.balance, platformFeeAmount, "platformFeeRecipient balance");
+        assertEq(feeRecipient.balance, platformFeeAmount, "feeRecipient balance");
     }
 
     function test_mint_state_overrideCurrency() public {
@@ -385,7 +385,7 @@ contract ClaimableERC721Test is Test {
             mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
         assertEq(currency.balanceOf(tokenRecipient), balBefore - salePrice, "tokenRecipient balance");
         assertEq(currency.balanceOf(saleRecipient), primarySaleAmount, "saleRecipient balance");
-        assertEq(currency.balanceOf(platformFeeRecipient), platformFeeAmount, "platformFeeRecipient balance");
+        assertEq(currency.balanceOf(feeRecipient), platformFeeAmount, "feeRecipient balance");
     }
 
     function test_mint_revert_unableToDecodeArgs() public {
