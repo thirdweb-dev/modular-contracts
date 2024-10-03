@@ -13,20 +13,12 @@ import {AfterWithdrawCallback} from "../callback/AfterWithdrawCallback.sol";
 import {BeforeDistributeCallback} from "../callback/BeforeDistributeCallback.sol";
 
 import {ERC6909} from "@solady/tokens/ERC6909.sol";
-import {Initializable} from "@solady/utils/Initializable.sol";
 import {LibClone} from "@solady/utils/LibClone.sol";
 import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {Core} from "../Core.sol";
 
-contract SplitFeesCore is
-    Core,
-    Multicallable,
-    ERC6909,
-    Initializable,
-    BeforeDistributeCallback,
-    AfterWithdrawCallback
-{
+contract SplitFeesCore is Core, Multicallable, ERC6909, BeforeDistributeCallback, AfterWithdrawCallback {
 
     using ShortStrings for string;
     using ShortStrings for ShortString;
@@ -61,11 +53,7 @@ contract SplitFeesCore is
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor() {
-        _disableInitializers();
-    }
-
-    function _initialize(address _owner) external initializer {
+    constructor(address _owner) {
         _initializeOwner(_owner);
 
         SplitWalletModule splitWalletModule = new SplitWalletModule();
