@@ -3,15 +3,9 @@ pragma solidity ^0.8.20;
 
 import {Core} from "../Core.sol";
 
-import {Initializable} from "@solady/utils/Initializable.sol";
+contract MintFeeManagerCore is Core {
 
-contract MintFeeManagerCore is Core, Initializable {
-
-    constructor() {
-        _disableInitializers();
-    }
-
-    function initialize(address _owner) external initializer {
+    constructor(address _owner) {
         _initializeOwner(_owner);
     }
 
