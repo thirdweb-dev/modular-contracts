@@ -5,7 +5,11 @@ import {Split} from "../libraries/Split.sol";
 import {SplitFeesCore} from "../core/SplitFeesCore.sol";
 
 import {IERC20} from "../interface/IERC20.sol";
-import {ISplitWallet} from "../interface/ISplitWallet.sol";
+// import {ISplitWallet} from "../interface/ISplitWallet.sol";
+import {SplitWalletModule} from "../module/SplitWalletModule.sol";
+
+import {AfterWithdrawCallback} from "../callback/AfterWithdrawCallback.sol";
+import {BeforeDistributeCallback} from "../callback/BeforeDistributeCallback.sol";
 
 import {LibClone} from "@solady/utils/LibClone.sol";
 
@@ -30,7 +34,7 @@ library SplitFeesStorage {
 
 }
 
-contract SplitFeesModule is Module {
+contract SplitFeesModule is Module, BeforeDistributeCallback, AfterWithdrawCallback {
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -43,11 +47,11 @@ contract SplitFeesModule is Module {
                             EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event SplitCreated(address indexed owner, address[] recipients, uint256[] allocations, address controller);
-    event SplitsUpdated(address indexed owner, address[] recipients, uint256[] allocations, address controller);
-    event ControllerUpdated(address indexed owner, address controller);
-    event SplitsDistributed(address indexed reciever, address token, uint256 amount);
-    event SplitsWithdrawn(address indexed owner, address token, uint256 amount);
+    event SplitCreated(address indexed splitWallet, address[] recipients, uint256[] allocations, address controller);
+    event SplitsUpdated(address indexed splitWallet, address[] recipients, uint256[] allocations, address controller);
+    event ControllerUpdated(address indexed splitWallet, address controller);
+    event SplitsDistributed(address indexed splitWallet, address token, uint256 amount);
+    event SplitsWithdrawn(address indexed recipient, address token, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -95,9 +99,10 @@ contract SplitFeesModule is Module {
         config.callbackFunctions[0] = CallbackFunction(this.beforeDistribute.selector);
         config.callbackFunctions[1] = CallbackFunction(this.afterWithdraw.selector);
 
-        config.fallbackFunctions = new FallbackFunction[](2);
+        config.fallbackFunctions = new FallbackFunction[](3);
         config.fallbackFunctions[0] = FallbackFunction({selector: this.createSplit.selector, permissionBits: 0});
         config.fallbackFunctions[1] = FallbackFunction({selector: this.updateSplit.selector, permissionBits: 0});
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.getSplit.selector, permissionBits: 0});
 
         return config;
     }
@@ -106,16 +111,16 @@ contract SplitFeesModule is Module {
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function beforeDistribute(address _splitWallet, address _token) external returns (uint256, Split memory) {
+    function beforeDistribute(address _splitWallet, address _token) external override returns (uint256, Split memory) {
         Split memory _split = _splitFeesStorage().splits[_splitWallet];
         uint256 amountToSplit;
 
         if (_token == NATIVE_TOKEN_ADDRESS) {
             amountToSplit = _splitWallet.balance;
-            ISplitWallet(payable(_splitWallet)).transferETH(amountToSplit);
+            SplitWalletModule(_splitWallet).transferETH(amountToSplit);
         } else {
             amountToSplit = IERC20(_token).balanceOf(_splitWallet);
-            ISplitWallet(payable(_splitWallet)).transferERC20(_token, amountToSplit);
+            SplitWalletModule(_splitWallet).transferERC20(_token, amountToSplit);
         }
 
         emit SplitsDistributed(_splitWallet, _token, amountToSplit);
@@ -123,7 +128,7 @@ contract SplitFeesModule is Module {
         return (amountToSplit, _split);
     }
 
-    function afterWithdraw(uint256 amountToWithdraw, address account, address _token) external {
+    function afterWithdraw(uint256 amountToWithdraw, address account, address _token) external override {
         if (amountToWithdraw == 0) {
             revert SplitFeesNothingToWithdraw();
         }
@@ -168,6 +173,10 @@ contract SplitFeesModule is Module {
         _splitFeesStorage().splits[_splitWallet] = _split;
 
         emit SplitsUpdated(_splitWallet, _recipients, _allocations, _controller);
+    }
+
+    function getSplit(address _splitWallet) external view returns (Split memory) {
+        return _splitFeesStorage().splits[_splitWallet];
     }
 
     /*//////////////////////////////////////////////////////////////

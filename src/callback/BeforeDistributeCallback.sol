@@ -22,7 +22,7 @@ contract BeforeDistributeCallback {
      *  @param _token The address of the token to distribute.
      *  @return amountToSplit The amount of tokens to distribute.
      */
-    function beforeDistribute(address _splitWallet, address _token) external returns (uint256, Split memory) {
+    function beforeDistribute(address _splitWallet, address _token) external virtual returns (uint256, Split memory) {
         revert BeforeDistributeNotImplemented();
     }
 

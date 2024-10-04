@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import {Core} from "../Core.sol";
-import {IERC20} from "../interface/IERC20.sol";
 
 contract SplitWalletCore is Core {
 

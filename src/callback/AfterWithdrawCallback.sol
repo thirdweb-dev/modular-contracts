@@ -22,7 +22,7 @@ contract AfterWithdrawCallback {
      *  @param account The address of the account to withdraw tokens to.
      *  @param _token The address of the token to withdraw.
      */
-    function afterWithdraw(uint256 amountToWithdraw, address account, address _token) external {
+    function afterWithdraw(uint256 amountToWithdraw, address account, address _token) external virtual {
         revert AfterWithdrawNotImplemented();
     }
 

@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {SplitWalletCore} from "../core/SplitWalletCore.sol";
 
-import {IERC20} from "../interface/IERC20.sol";
+import {IERC20Metadata} from "../interface/IERC20Metadata.sol";
 import {Cast} from "../libraries/Cast.sol";
 import {ShortString, ShortStrings} from "../libraries/ShortString.sol";
 import {Split} from "../libraries/Split.sol";
@@ -18,7 +18,7 @@ import {Multicallable} from "@solady/utils/Multicallable.sol";
 
 import {Core} from "../Core.sol";
 
-contract SplitFeesCore is Core, Multicallable, ERC6909, BeforeDistributeCallback, AfterWithdrawCallback {
+contract SplitFeesCore is Core, Multicallable, ERC6909 {
 
     using ShortStrings for string;
     using ShortStrings for ShortString;
@@ -114,7 +114,7 @@ contract SplitFeesCore is Core, Multicallable, ERC6909, BeforeDistributeCallback
         if (id == NATIVE_TOKEN_ID) {
             return NATIVE_TOKEN_NAME.toString();
         }
-        return string.concat(METADATA_PREFIX_NAME, IERC20(id.toAddress()).name());
+        return string.concat(METADATA_PREFIX_NAME, IERC20Metadata(id.toAddress()).name());
     }
 
     /**
@@ -126,7 +126,7 @@ contract SplitFeesCore is Core, Multicallable, ERC6909, BeforeDistributeCallback
         if (id == NATIVE_TOKEN_ID) {
             return NATIVE_TOKEN_SYMBOL.toString();
         }
-        return string.concat(METADATA_PREFIX_SYMBOL, IERC20(id.toAddress()).symbol());
+        return string.concat(METADATA_PREFIX_SYMBOL, IERC20Metadata(id.toAddress()).symbol());
     }
 
     /// @dev Returns the Uniform Resource Identifier (URI) for token `id`.

@@ -26,7 +26,7 @@ contract SplitWalletModule is Module {
     }
 
     function transferETH(uint256 amount) external payable onlySplitFees {
-        address payable splitFees = payable(SplitWalletCore(payable(address(this))).splitFees());
+        address payable splitFees = payable(SplitWalletCore(address(this)).splitFees());
         (bool success,) = splitFees.call{value: amount}("");
         require(success, "Failed to send Ether");
     }
