@@ -54,7 +54,9 @@ contract SplitFeesModuleTest is Test {
 
     function setUp() public {
         // Instantiate SplitFeesCore and install SplitFeesModule
-        splitFeesCore = new SplitFeesCore(owner);
+        address[] memory modules;
+        bytes[] memory moduleData;
+        splitFeesCore = new SplitFeesCore(owner, modules, moduleData);
         splitFeesModule = new SplitFeesModule();
 
         vm.prank(owner);

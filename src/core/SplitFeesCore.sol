@@ -54,10 +54,16 @@ contract SplitFeesCore is Core, Multicallable, ERC6909 {
 
     receive() external payable {}
 
-    constructor(address _owner) {
+    constructor(address _owner, address[] memory _modules, bytes[] memory _moduleInstallData) {
         _initializeOwner(_owner);
 
         splitWalletImplementation = address(new SplitWallet(_owner));
+
+        // Install and initialize modules
+        require(_modules.length == _moduleInstallData.length);
+        for (uint256 i = 0; i < _modules.length; i++) {
+            _installModule(_modules[i], _moduleInstallData[i]);
+        }
     }
 
     function getSupportedCallbackFunctions()
