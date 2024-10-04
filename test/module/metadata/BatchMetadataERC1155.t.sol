@@ -38,7 +38,7 @@ contract BatchMetadataERC1155Test is Test {
 
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
         moduleImplementation = new BatchMetadataExt();
-        mintableModule = new MintableERC1155();
+        mintableModule = new MintableERC1155(address(0x0));
 
         // install module
         vm.prank(owner);

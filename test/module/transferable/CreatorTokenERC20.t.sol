@@ -98,7 +98,7 @@ contract CreatorTokenERC20Test is Test {
 
         core = new ERC20Core("test", "TEST", "", owner, modules, moduleData);
         moduleImplementation = new CreatorTokenERC20Ext();
-        mintableModuleImplementation = new MintableERC20();
+        mintableModuleImplementation = new MintableERC20(address(0x0));
 
         transferTokenContract = new TransferToken();
 

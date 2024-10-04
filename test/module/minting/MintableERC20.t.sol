@@ -16,6 +16,7 @@ import {Module} from "src/Module.sol";
 import {Role} from "src/Role.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
 
+import {MockMintFeeManager} from "../../mock/MockMintFeeManager.sol";
 import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
 import {MintableERC20} from "src/module/token/minting/MintableERC20.sol";
@@ -43,6 +44,7 @@ contract MintableERC20Test is Test {
     ERC20Core public core;
 
     MintableERC20 public mintableModule;
+    MockMintFeeManager public mintFeeManager;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -55,6 +57,7 @@ contract MintableERC20Test is Test {
 
     address tokenRecipient = address(0x123);
     uint256 amount = 100;
+    address feeRecipient;
 
     // Signature vars
     bytes32 internal typehashMintSignatureParams;
@@ -98,12 +101,16 @@ contract MintableERC20Test is Test {
         bytes[] memory moduleData;
 
         core = new ERC20Core("test", "TEST", "", owner, modules, moduleData);
-        mintableModule = new MintableERC20();
+        mintFeeManager = new MockMintFeeManager();
+        mintableModule = new MintableERC20(address(mintFeeManager));
 
         // install module
         bytes memory encodedInstallParams = abi.encode(owner);
         vm.prank(owner);
         core.installModule(address(mintableModule), encodedInstallParams);
+
+        // setup platform fee receipient
+        feeRecipient = mintFeeManager.getPlatformFeeReceipient();
 
         // Setup signature vars
         typehashMintSignatureParams = keccak256("MintRequestERC20(address to,uint256 amount,bytes data)");
@@ -172,8 +179,11 @@ contract MintableERC20Test is Test {
         assertEq(core.balanceOf(address(0x123)), amount);
 
         uint256 salePrice = (amount * mintRequest.pricePerUnit) / 1e18;
-        assertEq(tokenRecipient.balance, balBefore - salePrice);
-        assertEq(saleRecipient.balance, salePrice);
+        (uint256 primarySaleAmount, uint256 platformFeeAmount) =
+            mintFeeManager.getPrimarySaleAndPlatformFeeAmount(salePrice);
+        assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
+        assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
+        assertEq(feeRecipient.balance, platformFeeAmount, "feeRecipient balance");
     }
 
     function test_mint_revert_unableToDecodeArgs() public {

@@ -135,7 +135,7 @@ contract RoyaltyERC1155Test is Test {
 
         core = new ERC1155Core("test", "TEST", "", owner, modules, moduleData);
         moduleImplementation = new RoyaltyExt();
-        mintableModuleImplementation = new MintableERC1155();
+        mintableModuleImplementation = new MintableERC1155(address(0x0));
 
         transferTokenContract = new TransferToken();
 
