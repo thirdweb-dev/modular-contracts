@@ -5,8 +5,7 @@ import {Split} from "../libraries/Split.sol";
 import {SplitFeesCore} from "../core/SplitFeesCore.sol";
 
 import {IERC20} from "../interface/IERC20.sol";
-// import {ISplitWallet} from "../interface/ISplitWallet.sol";
-import {SplitWalletModule} from "../module/SplitWalletModule.sol";
+import {ISplitWallet} from "../interface/ISplitWallet.sol";
 
 import {AfterWithdrawCallback} from "../callback/AfterWithdrawCallback.sol";
 import {BeforeDistributeCallback} from "../callback/BeforeDistributeCallback.sol";
@@ -58,7 +57,6 @@ contract SplitFeesModule is Module, BeforeDistributeCallback, AfterWithdrawCallb
     //////////////////////////////////////////////////////////////*/
 
     error SplitFeesTooFewRecipients();
-    error SplitFeesEmptyRecipientsOrAllocations();
     error SplitFeesLengthMismatch();
     error SplitFeesNotController();
     error SplitFeesAmountMismatch();
@@ -79,9 +77,6 @@ contract SplitFeesModule is Module, BeforeDistributeCallback, AfterWithdrawCallb
     modifier validateSplits(address[] memory _recipients, uint256[] memory _allocations, address _controller) {
         if (_recipients.length < 2) {
             revert SplitFeesTooFewRecipients();
-        }
-        if (_recipients.length == 0 || _allocations.length == 0) {
-            revert SplitFeesEmptyRecipientsOrAllocations();
         }
         if (_recipients.length != _allocations.length) {
             revert SplitFeesLengthMismatch();
@@ -117,10 +112,10 @@ contract SplitFeesModule is Module, BeforeDistributeCallback, AfterWithdrawCallb
 
         if (_token == NATIVE_TOKEN_ADDRESS) {
             amountToSplit = _splitWallet.balance;
-            SplitWalletModule(_splitWallet).transferETH(amountToSplit);
+            ISplitWallet(_splitWallet).transferETH(amountToSplit);
         } else {
             amountToSplit = IERC20(_token).balanceOf(_splitWallet);
-            SplitWalletModule(_splitWallet).transferERC20(_token, amountToSplit);
+            ISplitWallet(_splitWallet).transferERC20(_token, amountToSplit);
         }
 
         emit SplitsDistributed(_splitWallet, _token, amountToSplit);
@@ -190,15 +185,16 @@ contract SplitFeesModule is Module, BeforeDistributeCallback, AfterWithdrawCallb
     {
         Split memory _split;
         uint256 _totalAllocation;
-        _split.recipients = _recipients;
-        _split.allocations = _allocations;
-        _split.totalAllocation = _totalAllocation;
-        _split.controller = _controller;
 
         uint256 length = _recipients.length;
         for (uint256 i = 0; i < length; i++) {
             _totalAllocation += _allocations[i];
         }
+
+        _split.recipients = _recipients;
+        _split.allocations = _allocations;
+        _split.totalAllocation = _totalAllocation;
+        _split.controller = _controller;
 
         return _split;
     }

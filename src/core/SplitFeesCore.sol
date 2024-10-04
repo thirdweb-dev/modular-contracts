@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {SplitWalletCore} from "../core/SplitWalletCore.sol";
+import {SplitWallet} from "../core/SplitWallet.sol";
 
 import {IERC20Metadata} from "../interface/IERC20Metadata.sol";
 import {Cast} from "../libraries/Cast.sol";
 import {ShortString, ShortStrings} from "../libraries/ShortString.sol";
 import {Split} from "../libraries/Split.sol";
-import {SplitWalletModule} from "../module/SplitWalletModule.sol";
 
 import {AfterWithdrawCallback} from "../callback/AfterWithdrawCallback.sol";
 import {BeforeDistributeCallback} from "../callback/BeforeDistributeCallback.sol";
@@ -53,17 +52,12 @@ contract SplitFeesCore is Core, Multicallable, ERC6909 {
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    receive() external payable {}
+
     constructor(address _owner) {
         _initializeOwner(_owner);
 
-        SplitWalletModule splitWalletModule = new SplitWalletModule();
-
-        address[] memory modules = new address[](1);
-        bytes[] memory moduleInstallData = new bytes[](1);
-        modules[0] = address(splitWalletModule);
-
-        SplitWalletCore splitWalletCore = new SplitWalletCore(_owner, modules, moduleInstallData);
-        splitWalletImplementation = address(splitWalletCore);
+        splitWalletImplementation = address(new SplitWallet(_owner));
     }
 
     function getSupportedCallbackFunctions()
@@ -139,7 +133,7 @@ contract SplitFeesCore is Core, Multicallable, ERC6909 {
         internal
         returns (uint256 amountToSplit, Split memory _split)
     {
-        (, bytes memory returndata) = _executeCallbackFunctionView(
+        (, bytes memory returndata) = _executeCallbackFunction(
             BeforeDistributeCallback.beforeDistribute.selector,
             abi.encodeCall(BeforeDistributeCallback.beforeDistribute, (_splitWallet, _token))
         );
@@ -148,7 +142,7 @@ contract SplitFeesCore is Core, Multicallable, ERC6909 {
 
     /// @dev Fetches token URI from the token metadata hook.
     function _afterWithdraw(uint256 amountToWithdraw, address account, address _token) internal {
-        _executeCallbackFunctionView(
+        _executeCallbackFunction(
             AfterWithdrawCallback.afterWithdraw.selector,
             abi.encodeCall(AfterWithdrawCallback.afterWithdraw, (amountToWithdraw, account, _token))
         );

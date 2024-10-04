@@ -11,9 +11,8 @@ import {Module} from "src/Module.sol";
 import {Role} from "src/Role.sol";
 import {SplitFeesCore} from "src/core/SplitFeesCore.sol";
 
-import {SplitWalletCore} from "src/core/SplitWalletCore.sol";
+import {SplitWallet} from "src/core/SplitWallet.sol";
 import {SplitFeesModule} from "src/module/SplitFeesModule.sol";
-import {SplitWalletModule} from "src/module/SplitWalletModule.sol";
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 import {ISplitWallet} from "src/interface/ISplitWallet.sol";
@@ -41,8 +40,6 @@ contract SplitFeesModuleTest is Test {
 
     SplitFeesCore public splitFeesCore;
     SplitFeesModule public splitFeesModule;
-    SplitWalletCore public splitWalletCore;
-    SplitWalletModule public splitWalletModule;
 
     MockCurrency public token;
 
@@ -92,8 +89,6 @@ contract SplitFeesModuleTest is Test {
             }
         }
 
-        splitWalletCore = SplitWalletCore(payable(splitWallet));
-
         token = new MockCurrency();
     }
 
@@ -136,10 +131,7 @@ contract SplitFeesModuleTest is Test {
             }
         }
 
-        // Check that the splitWallet's splitFees is correct
-        SplitWalletCore newSplitWalletCore = SplitWalletCore(payable(newSplitWallet));
-
-        address splitFees = newSplitWalletCore.splitFees();
+        address splitFees = SplitWallet(newSplitWallet).splitFees();
 
         assertEq(splitFees, address(splitFeesCore), "splitWallet splitFees incorrect");
     }
@@ -169,16 +161,6 @@ contract SplitFeesModuleTest is Test {
         vm.prank(owner);
 
         vm.expectRevert(abi.encodeWithSelector(SplitFeesModule.SplitFeesLengthMismatch.selector));
-        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner);
-    }
-
-    function test_revert_createSplit_EmptyRecipientsOrAllocations() public {
-        // Empty recipients and allocations
-        address[] memory recipients;
-        uint256[] memory allocations;
-
-        vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SplitFeesModule.SplitFeesEmptyRecipientsOrAllocations.selector));
         SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner);
     }
 
