@@ -17,6 +17,8 @@ abstract contract Core is ICore, OwnableRoles, ReentrancyGuard {
 
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
+    receive() external payable {}
+
     /*//////////////////////////////////////////////////////////////
                                 TYPES
     //////////////////////////////////////////////////////////////*/
