@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ModularModule} from "../../../ModularModule.sol";
+import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
-import {BeforeTransferCallbackERC721} from "../../../callback/BeforeTransferCallbackERC721.sol";
+
+import {CrossChain} from "./CrossChain.sol";
 import {IBridgeAndCall} from "@lxly-bridge-and-call/IBridgeAndCall.sol";
 
 library PolygonAgglayerCrossChainStorage {
@@ -13,7 +14,7 @@ library PolygonAgglayerCrossChainStorage {
         keccak256(abi.encode(uint256(keccak256("token.bridgeAndCall")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        address bridgeModule;
+        address router;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -25,87 +26,100 @@ library PolygonAgglayerCrossChainStorage {
 
 }
 
-contract PolygonAgglayerCrossChainERC721 is ModularModule, BeforeTransferCallbackERC721 {
-
-    /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted on attempt to transfer a token when the bridge extension is not set.
-    error bridgeModuleNotSet();
+contract PolygonAgglayerCrossChainERC721 is Module, CrossChain {
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns all implemented callback and extension functions.
+    /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.fallbackFunctions = new FallbackFunction[](4);
+        config.fallbackFunctions = new FallbackFunction[](3);
 
-        config.fallbackFunctions[0] = FallbackFunction({selector: this.getBridgeModule.selector, permissionBits: 0});
+        config.fallbackFunctions[0] = FallbackFunction({selector: this.getRouter.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
-            FallbackFunction({selector: this.setBridgeModule.selector, permissionBits: Role._MANAGER_ROLE});
+            FallbackFunction({selector: this.setRouter.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
-
-        config.requiredInterfaces = new bytes4[](1);
-        config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
-
-        config.registerInstallationCallback = true;
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        address bridgeModule = abi.decode(data, (address));
-        _polygonAgglayerStorage().bridgeModule = bridgeModule;
+        address router = abi.decode(data, (address));
+        _polygonAgglayerStorage().router = router;
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
     function onUninstall(bytes calldata data) external {}
+
+    /// @dev Returns bytes encoded install params, to be sent to `onInstall` function
+    function encodeBytesOnInstall(address router) external pure returns (bytes memory) {
+        return abi.encode(router);
+    }
+
+    /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
+    function encodeBytesOnUninstall() external pure returns (bytes memory) {
+        return "";
+    }
 
     /*//////////////////////////////////////////////////////////////
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns whether transfers is enabled for the token.
-    function getBridgeModule() external view returns (address) {
-        return _polygonAgglayerStorage().bridgeModule;
+    function getRouter() external view override returns (address) {
+        return _polygonAgglayerStorage().router;
     }
 
     /// @notice Set transferability for a token.
-    function setBridgeModule(address bridgeModule) external {
-        _polygonAgglayerStorage().bridgeModule = bridgeModule;
+    function setRouter(address router) external override {
+        _polygonAgglayerStorage().router = router;
     }
 
     function sendCrossChainTransaction(
         uint64 _destinationChain,
         address _callAddress,
-        address _recipient,
-        address _token,
-        uint256 _amount,
-        bytes calldata _data,
+        bytes calldata _payload,
         bytes calldata _extraArgs
-    ) external {
-        address bridgeModule = _polygonAgglayerStorage().bridgeModule;
-        if (bridgeModule == address(0)) {
-            revert bridgeModuleNotSet();
-        }
-        (address _fallbackAddress, bool _forceUpdateGlobalExitRoot) = abi.decode(_extraArgs, (address, bool));
+    ) external payable override {
+        address router = _polygonAgglayerStorage().router;
+        (address _fallbackAddress, bool _forceUpdateGlobalExitRoot, address _token, uint256 _amount) =
+            abi.decode(_extraArgs, (address, bool, address, uint256));
 
-        IBridgeAndCall(bridgeModule).bridgeAndCall(
-            address(this),
+        IBridgeAndCall(router).bridgeAndCall(
+            _token,
             _amount,
             uint32(_destinationChain),
             _callAddress,
             _fallbackAddress,
-            _data,
+            _payload,
             _forceUpdateGlobalExitRoot
         );
+
+        onCrossChainTransactionSent(_destinationChain, _callAddress, _payload, _extraArgs);
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function onCrossChainTransactionSent(
+        uint64 _destinationChain,
+        address _callAddress,
+        bytes calldata _payload,
+        bytes calldata _extraArgs
+    ) internal override {
+        /// post cross chain transaction sent logic goes here
+    }
+
+    function onCrossChainTransactionReceived(
+        uint64 _sourceChain,
+        address _sourceAddress,
+        bytes memory _payload,
+        bytes memory _extraArgs
+    ) internal override {
+        /// post cross chain transaction received logic goes here
+    }
 
     function _polygonAgglayerStorage() internal pure returns (PolygonAgglayerCrossChainStorage.Data storage) {
         return PolygonAgglayerCrossChainStorage.data();
