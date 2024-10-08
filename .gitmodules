@@ -19,3 +19,9 @@
 [submodule "lib/PermitC"]
 	path = lib/PermitC
 	url = https://github.com/limitbreakinc/PermitC
+[submodule "lib/devtools"]
+	path = lib/devtools
+	url = https://github.com/LayerZero-Labs/devtools
+[submodule "lib/layerzero-v2"]
+	path = lib/layerzero-v2
+	url = https://github.com/LayerZero-Labs/layerzero-v2
