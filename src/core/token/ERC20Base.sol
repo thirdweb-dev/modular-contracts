@@ -234,6 +234,10 @@ contract ERC20Base is ERC20, Multicallable, Core, EIP712 {
      *  @param owner The account approving the tokens
      *  @param spender The address to approve
      *  @param amount Amount of tokens to approve
+     *  @param deadline Deadline after which the approval is no longer valid
+     *  @param v Signature param
+     *  @param r Signature param
+     *  @param s Signature param
      */
     function permit(address owner, address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
         public

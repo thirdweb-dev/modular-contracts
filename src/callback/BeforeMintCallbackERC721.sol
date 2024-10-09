@@ -17,6 +17,7 @@ contract BeforeMintCallbackERC721 {
      *  @notice The beforeMintERC721 hook that is called by a core token before minting tokens.
      *
      *  @param _to The address that is minting tokens.
+     *  @param _startTokenId The token ID being minted.
      *  @param _amount The amount of tokens to mint.
      *  @param _data Optional extra data passed to the hook.
      *  @return result Abi encoded bytes result of the hook.

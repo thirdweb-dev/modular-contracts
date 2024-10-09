@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
+
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {MerkleProofLib} from "@solady/utils/MerkleProofLib.sol";
@@ -12,6 +13,12 @@ import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
 import {BeforeMintWithSignatureCallbackERC20} from "../../../callback/BeforeMintWithSignatureCallbackERC20.sol";
 
+interface IERC20 {
+
+    function decimals() external view returns (uint8);
+
+}
+
 library ClaimableStorage {
 
     /// @custom:storage-location erc7201:token.minting.claimable.erc20
@@ -19,14 +26,14 @@ library ClaimableStorage {
         keccak256(abi.encode(uint256(keccak256("token.minting.claimable.erc20")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // sale config: primary sale recipient, and platform fee recipient + BPS.
-        ClaimableERC20.SaleConfig saleConfig;
-        // claim condition
-        ClaimableERC20.ClaimCondition claimCondition;
         // UID => whether it has been used
         mapping(bytes32 => bool) uidUsed;
         // address => how many tokens have been minted
         mapping(address => uint256) totalMinted;
+        // sale config: primary sale recipient, and platform fee recipient + BPS.
+        ClaimableERC20.SaleConfig saleConfig;
+        // claim condition
+        ClaimableERC20.ClaimCondition claimCondition;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -83,9 +90,8 @@ contract ClaimableERC20 is
      *
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
-     *  @param recipient The address that will receive the minted tokens.
-     *  @param amount The amount of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
+     *  @param maxMintPerWallet The maximum number of tokens that can be minted per wallet.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
      */
@@ -101,8 +107,9 @@ contract ClaimableERC20 is
     /**
      *  @notice The parameters sent to the `beforeMintERC20` callback function.
      *
-     *  @param request The minting request.
-     *  @param signature The signature produced from signing the minting request.
+     *  @param currency The address of the currency used to pay for the minted tokens.
+     *  @param pricePerUnit The price per unit of the minted tokens.
+     *  @param recipientAllowlistProof The proof of the recipient's address in the allowlist.
      */
     struct ClaimParamsERC20 {
         address currency;
@@ -160,7 +167,7 @@ contract ClaimableERC20 is
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](5);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC20.selector);
         config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC20.selector);
@@ -194,10 +201,12 @@ contract ClaimableERC20 is
 
         _validateClaimCondition(_to, _amount, _params.currency, _params.pricePerUnit, _params.recipientAllowlistProof);
 
-        _distributeMintPrice(msg.sender, _params.currency, (_amount * _params.pricePerUnit) / 1e18);
+        _distributeMintPrice(
+            msg.sender, _params.currency, (_amount * _params.pricePerUnit) / (10 ** IERC20(address(this)).decimals())
+        );
     }
 
-    /// @notice Callback function for the ERC20Core.mint function.
+    /// @notice Callback function for the ERC20Core.mintWithSignature function.
     function beforeMintWithSignatureERC20(address _to, uint256 _amount, bytes memory _data, address _signer)
         external
         payable
@@ -213,7 +222,9 @@ contract ClaimableERC20 is
 
         _validateClaimSignatureParams(_params, _to, _amount);
 
-        _distributeMintPrice(msg.sender, _params.currency, (_amount * _params.pricePerUnit) / 1e18);
+        _distributeMintPrice(
+            msg.sender, _params.currency, (_amount * _params.pricePerUnit) / (10 ** IERC20(address(this)).decimals())
+        );
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.

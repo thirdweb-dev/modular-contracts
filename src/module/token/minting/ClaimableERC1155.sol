@@ -19,14 +19,14 @@ library ClaimableStorage {
         keccak256(abi.encode(uint256(keccak256("token.minting.claimable.erc1155")) - 1)) & ~bytes32(uint256(0xff));
 
     struct Data {
-        // sale config: primary sale recipient, and platform fee recipient + BPS.
-        ClaimableERC1155.SaleConfig saleConfig;
-        // token ID => claim condition
-        mapping(uint256 => ClaimableERC1155.ClaimCondition) claimConditionByTokenId;
         // UID => whether it has been used
         mapping(bytes32 => bool) uidUsed;
         // address => uint256 => how many tokens have been minted
         mapping(address => mapping(uint256 => uint256)) totalMinted;
+        // sale config: primary sale recipient, and platform fee recipient + BPS.
+        ClaimableERC1155.SaleConfig saleConfig;
+        // token ID => claim condition
+        mapping(uint256 => ClaimableERC1155.ClaimCondition) claimConditionByTokenId;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -161,7 +161,7 @@ contract ClaimableERC1155 is
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](2);
-        config.fallbackFunctions = new FallbackFunction[](5);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
         config.callbackFunctions[0] = CallbackFunction(this.beforeMintERC1155.selector);
         config.callbackFunctions[1] = CallbackFunction(this.beforeMintWithSignatureERC1155.selector);

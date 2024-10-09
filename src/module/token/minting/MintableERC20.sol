@@ -4,12 +4,19 @@ pragma solidity ^0.8.20;
 import {Module} from "../../../Module.sol";
 
 import {Role} from "../../../Role.sol";
+
 import {IInstallationCallback} from "../../../interface/IInstallationCallback.sol";
 import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 import {BeforeMintCallbackERC20} from "../../../callback/BeforeMintCallbackERC20.sol";
 import {BeforeMintWithSignatureCallbackERC20} from "../../../callback/BeforeMintWithSignatureCallbackERC20.sol";
+
+interface IERC20 {
+
+    function decimals() external view returns (uint8);
+
+}
 
 library MintableStorage {
 
@@ -49,8 +56,6 @@ contract MintableERC20 is
      *
      *  @param startTimestamp The timestamp at which the minting request is valid.
      *  @param endTimestamp The timestamp at which the minting request expires.
-     *  @param recipient The address that will receive the minted tokens.
-     *  @param amount The amount of tokens to mint.
      *  @param currency The address of the currency used to pay for the minted tokens.
      *  @param pricePerUnit The price per unit of the minted tokens.
      *  @param uid A unique identifier for the minting request.
@@ -153,7 +158,9 @@ contract MintableERC20 is
         MintSignatureParamsERC20 memory _params = abi.decode(_data, (MintSignatureParamsERC20));
 
         _mintWithSignatureERC20(_params);
-        _distributeMintPrice(msg.sender, _params.currency, (_amount * _params.pricePerUnit) / 1e18);
+        _distributeMintPrice(
+            msg.sender, _params.currency, (_amount * _params.pricePerUnit) / (10 ** IERC20(address(this)).decimals())
+        );
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.

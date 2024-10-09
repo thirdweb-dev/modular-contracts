@@ -78,12 +78,26 @@ contract MintableERC1155Test is Test {
         vm.prank(owner);
         core.installModule(address(batchMetadataModule), "");
 
+        bytes memory encodedTokenIdInstallParams = sequentialTokenIdModule.encodeBytesOnInstall(0);
         vm.prank(owner);
-        core.installModule(address(sequentialTokenIdModule), "");
+        core.installModule(address(sequentialTokenIdModule), encodedTokenIdInstallParams);
 
         // Give permissioned actor minter role
         vm.prank(owner);
         core.grantRoles(owner, Role._MINTER_ROLE);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        Tests: onInstall
+    //////////////////////////////////////////////////////////////*/
+
+    function test_onInstall() public {
+        vm.startPrank(owner);
+        core.uninstallModule(address(sequentialTokenIdModule), "");
+        core.installModule(address(sequentialTokenIdModule), sequentialTokenIdModule.encodeBytesOnInstall(5));
+        vm.stopPrank();
+
+        assertEq(SequentialTokenIdERC1155(address(core)).getNextTokenId(), 5);
     }
 
     /*//////////////////////////////////////////////////////////////
