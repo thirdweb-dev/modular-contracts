@@ -30,7 +30,7 @@ contract Core is ERC20Core {
         bytes[] memory moduleInstallData
     ) payable ERC20Core(name, symbol, contractURI, owner, modules, moduleInstallData) {}
 
-    // disable mint and approve callbacks for these tests
+    // disable mint callbacks for these tests
     function _beforeMint(address to, uint256 amount, bytes calldata data) internal override {}
 
 }
@@ -107,7 +107,6 @@ contract MintableERC20Test is Test {
         vm.expectRevert(abi.encodeWithSelector(SuperChainInterop.SuperChainInteropNotSuperChainBridge.selector));
         SuperChainInterop(address(core)).crosschainMint(actor1, 10 ether);
     }
-
 
     /*//////////////////////////////////////////////////////////////
                         Tests: CrossChainBurn
