@@ -21,7 +21,7 @@ interface ICrossChainERC20 {
     event CrosschainBurnt(address indexed _from, uint256 _amount);
 }
 
-library SuperChainERC20Storage {
+library SuperChainInteropStorage {
 
     /// @custom:storage-location erc7201:crosschain.superchain.erc20
     bytes32 public constant SUPERCHAIN_ERC20_POSITION =
@@ -40,14 +40,14 @@ library SuperChainERC20Storage {
 
 }
 
-contract SuperChainERC20 is ERC20, Module, IInstallationCallback, ICrossChainERC20 {
+contract SuperChainInterop is ERC20, Module, IInstallationCallback, ICrossChainERC20 {
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Emitted when the minting request signature is unauthorized.
-    error SuperChainERC20NotSuperChainBridge();
+    error SuperChainInteropNotSuperChainBridge();
 
     /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
@@ -73,7 +73,7 @@ contract SuperChainERC20 is ERC20, Module, IInstallationCallback, ICrossChainERC
 
     /// @dev Returns the name of the token.
     function name() public pure override returns (string memory) {
-        return "SuperChainERC20";
+        return "SuperChainInterop";
     }
 
     /// @dev Returns the symbol of the token.
@@ -86,8 +86,8 @@ contract SuperChainERC20 is ERC20, Module, IInstallationCallback, ICrossChainERC
     //////////////////////////////////////////////////////////////*/
 
     modifier onlySuperchainERC20Bridge() {
-        if (msg.sender != _superchainERC20Storage().superchainBridge) {
-            revert SuperChainERC20NotSuperChainBridge();
+        if (msg.sender != _superchainInteropStorage().superchainBridge) {
+            revert SuperChainInteropNotSuperChainBridge();
         }
         _;
     }
@@ -99,7 +99,7 @@ contract SuperChainERC20 is ERC20, Module, IInstallationCallback, ICrossChainERC
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         address superchainBridge = abi.decode(data, (address));
-        _superchainERC20Storage().superchainBridge = superchainBridge;
+        _superchainInteropStorage().superchainBridge = superchainBridge;
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -139,20 +139,20 @@ contract SuperChainERC20 is ERC20, Module, IInstallationCallback, ICrossChainERC
 
     /// @notice returns the superchain bridge address
     function getSuperChainBridge() external view returns (address) {
-        return _superchainERC20Storage().superchainBridge;
+        return _superchainInteropStorage().superchainBridge;
     }
 
     /// @notice sets the superchain bridge address
     function setSuperChainBridge(address _superchainBridge) external {
-        _superchainERC20Storage().superchainBridge = _superchainBridge;
+        _superchainInteropStorage().superchainBridge = _superchainBridge;
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _superchainERC20Storage() internal pure returns (SuperChainERC20Storage.Data storage) {
-        return SuperChainERC20Storage.data();
+    function _superchainInteropStorage() internal pure returns (SuperChainInteropStorage.Data storage) {
+        return SuperChainInteropStorage.data();
     }
 
 }

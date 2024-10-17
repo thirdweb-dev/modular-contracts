@@ -17,7 +17,7 @@ import {ERC20Core} from "src/core/token/ERC20Core.sol";
 
 import {ICore} from "src/interface/ICore.sol";
 import {IModuleConfig} from "src/interface/IModuleConfig.sol";
-import {SuperChainERC20} from "src/module/token/crosschain/SuperChainERC20.sol";
+import {SuperChainInterop} from "src/module/token/crosschain/SuperChainInterop.sol";
 
 contract Core is ERC20Core {
 
@@ -39,7 +39,7 @@ contract MintableERC20Test is Test {
 
     Core public core;
 
-    SuperChainERC20 public superchainERC20;
+    SuperChainInterop public superchainInterop;
 
     uint256 ownerPrivateKey = 1;
     address public owner;
@@ -57,12 +57,12 @@ contract MintableERC20Test is Test {
         bytes[] memory moduleData;
 
         core = new Core("test", "TEST", "", owner, modules, moduleData);
-        superchainERC20 = new SuperChainERC20();
+        superchainInterop = new SuperChainInterop();
 
         // install module
-        bytes memory encodedInstallParams = superchainERC20.encodeBytesOnInstall(superchainBridge);
+        bytes memory encodedInstallParams = superchainInterop.encodeBytesOnInstall(superchainBridge);
         vm.prank(owner);
-        core.installModule(address(superchainERC20), encodedInstallParams);
+        core.installModule(address(superchainInterop), encodedInstallParams);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -71,19 +71,19 @@ contract MintableERC20Test is Test {
 
     function test_state_setSuperChainBridge() public {
         vm.prank(owner);
-        SuperChainERC20(address(core)).setSuperChainBridge(address(0x123));
+        SuperChainInterop(address(core)).setSuperChainBridge(address(0x123));
 
-        assertEq(SuperChainERC20(address(core)).getSuperChainBridge(), address(0x123));
+        assertEq(SuperChainInterop(address(core)).getSuperChainBridge(), address(0x123));
     }
 
     function test_revert_setSuperChainBridge_unauthorizedCaller() public {
         vm.prank(unpermissionedActor);
         vm.expectRevert(abi.encodeWithSelector(0x82b42900)); // Unauthorized()
-        SuperChainERC20(address(core)).setSuperChainBridge(address(0x123));
+        SuperChainInterop(address(core)).setSuperChainBridge(address(0x123));
     }
 
     function test_getSuperChainBridge_state() public {
-        assertEq(SuperChainERC20(address(core)).getSuperChainBridge(), superchainBridge);
+        assertEq(SuperChainInterop(address(core)).getSuperChainBridge(), superchainBridge);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -97,15 +97,15 @@ contract MintableERC20Test is Test {
         vm.prank(superchainBridge);
         vm.expectEmit(true, true, true, true);
         emit CrosschainMinted(actor1, 10 ether);
-        SuperChainERC20(address(core)).crosschainMint(actor1, 10 ether);
+        SuperChainInterop(address(core)).crosschainMint(actor1, 10 ether);
 
         assertEq(core.balanceOf(actor1), 10 ether);
     }
 
     function test_crosschainMint_revert_unauthorizedCaller() public {
         vm.prank(unpermissionedActor);
-        vm.expectRevert(abi.encodeWithSelector(SuperChainERC20.SuperChainERC20NotSuperChainBridge.selector));
-        SuperChainERC20(address(core)).crosschainMint(actor1, 10 ether);
+        vm.expectRevert(abi.encodeWithSelector(SuperChainInterop.SuperChainInteropNotSuperChainBridge.selector));
+        SuperChainInterop(address(core)).crosschainMint(actor1, 10 ether);
     }
 
 
@@ -122,15 +122,15 @@ contract MintableERC20Test is Test {
         vm.prank(superchainBridge);
         vm.expectEmit(true, true, true, true);
         emit CrosschainBurnt(actor1, 10 ether);
-        SuperChainERC20(address(core)).crosschainBurn(actor1, 10 ether);
+        SuperChainInterop(address(core)).crosschainBurn(actor1, 10 ether);
 
         assertEq(core.balanceOf(actor1), 0);
     }
 
     function test_crosschainBurn_revert_unauthorizedCaller() public {
         vm.prank(unpermissionedActor);
-        vm.expectRevert(abi.encodeWithSelector(SuperChainERC20.SuperChainERC20NotSuperChainBridge.selector));
-        SuperChainERC20(address(core)).crosschainBurn(actor1, 10 ether);
+        vm.expectRevert(abi.encodeWithSelector(SuperChainInterop.SuperChainInteropNotSuperChainBridge.selector));
+        SuperChainInterop(address(core)).crosschainBurn(actor1, 10 ether);
     }
 
 }
