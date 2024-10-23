@@ -10,12 +10,10 @@ import {SuperChainInterop} from "src/module/token/crosschain/SuperChainInterop.s
 
 contract Core is ERC20Core {
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        string memory contractURI,
-        address owner
-    ) payable ERC20Core(name, symbol, contractURI, owner, new address[](0), new bytes[](0)) {} 
+    constructor(string memory name, string memory symbol, string memory contractURI, address owner)
+        payable
+        ERC20Core(name, symbol, contractURI, owner, new address[](0), new bytes[](0))
+    {}
 
     // disable mint callbacks for this script
     function _beforeMint(address to, uint256 amount, bytes calldata data) internal override {}
