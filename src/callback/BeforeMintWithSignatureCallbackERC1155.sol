@@ -17,6 +17,7 @@ contract BeforeMintWithSignatureCallbackERC1155 {
      *  @notice The beforeMintWithSignatureERC1155 hook that is called by a core token before minting tokens.
      *
      *  @param _to The address that is minting tokens.
+     *  @param _id The token ID being minted.
      *  @param _amount The quantity of tokens to mint.
      *  @param _data Optional extra data passed to the hook.
      *  @param _signer The address that signed the minting request.

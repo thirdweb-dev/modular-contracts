@@ -22,9 +22,9 @@ contract BatchMetadataERC1155 is BatchMetadataERC721, UpdateMetadataCallbackERC1
             FallbackFunction({selector: this.setBaseURI.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.getAllMetadataBatches.selector, permissionBits: 0});
-        config.fallbackFunctions[3] = FallbackFunction({selector: this.nextTokenIdToMint.selector, permissionBits: 0});
-        config.fallbackFunctions[4] = FallbackFunction({selector: this.getBatchId.selector, permissionBits: 0});
-        config.fallbackFunctions[5] = FallbackFunction({selector: this.getBatchRange.selector, permissionBits: 0});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.getMetadataBatch.selector, permissionBits: 0});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.nextTokenIdToMint.selector, permissionBits: 0});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.getBatchIndex.selector, permissionBits: 0});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
@@ -44,7 +44,7 @@ contract BatchMetadataERC1155 is BatchMetadataERC721, UpdateMetadataCallbackERC1
         if (_startTokenId < _batchMetadataStorage().nextTokenIdRangeStart) {
             revert BatchMetadataMetadataAlreadySet();
         }
-        _setMetadata(_quantity, _baseURI);
+        _setMetadata(_startTokenId, _quantity, _baseURI);
     }
 
 }
