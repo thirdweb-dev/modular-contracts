@@ -6,6 +6,7 @@ import {Role} from "../../../Role.sol";
 
 import {CrossChain} from "./CrossChain.sol";
 import {IBridgeAndCall} from "@lxly-bridge-and-call/IBridgeAndCall.sol";
+import {PolygonZkEVMBridgeV2} from "@zkevm-contracts/v2/PolygonZkEVMBridgeV2.sol";
 
 library PolygonAgglayerCrossChainStorage {
 
@@ -15,6 +16,7 @@ library PolygonAgglayerCrossChainStorage {
 
     struct Data {
         address router;
+        address bridge;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -45,8 +47,9 @@ contract PolygonAgglayerCrossChainERC721 is Module, CrossChain {
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        address router = abi.decode(data, (address));
+        (address router, address bridge) = abi.decode(data, (address, address));
         _polygonAgglayerStorage().router = router;
+        _polygonAgglayerStorage().bridge = bridge;
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -83,18 +86,28 @@ contract PolygonAgglayerCrossChainERC721 is Module, CrossChain {
         bytes calldata _extraArgs
     ) external payable override {
         address router = _polygonAgglayerStorage().router;
-        (address _fallbackAddress, bool _forceUpdateGlobalExitRoot, address _token, uint256 _amount) =
-            abi.decode(_extraArgs, (address, bool, address, uint256));
+        (address _fallbackAddress, bool _forceUpdateGlobalExitRoot, address _token, uint256 _amount, bytes memory permitData) =
+            abi.decode(_extraArgs, (address, bool, address, uint256, bytes));
 
-        IBridgeAndCall(router).bridgeAndCall(
-            _token,
-            _amount,
-            uint32(_destinationChain),
-            _callAddress,
-            _fallbackAddress,
-            _payload,
-            _forceUpdateGlobalExitRoot
-        );
+        if (_token == address(0) && _amount == 0) {
+            PolygonZkEVMBridgeV2(router).bridgeMessage(
+                uint32(_destinationChain), _callAddress, _forceUpdateGlobalExitRoot, _payload
+            );
+        } else if (_payload.length == 0) {
+            PolygonZkEVMBridgeV2(router).bridgeAsset(
+                uint32(_destinationChain), _callAddress, _amount, _token, _forceUpdateGlobalExitRoot, _permitData)
+            );
+        } else {
+            IBridgeAndCall(router).bridgeAndCall(
+                _token,
+                _amount,
+                uint32(_destinationChain),
+                _callAddress,
+                _fallbackAddress,
+                _payload,
+                _forceUpdateGlobalExitRoot
+            );
+        }
 
         onCrossChainTransactionSent(_destinationChain, _callAddress, _payload, _extraArgs);
     }
