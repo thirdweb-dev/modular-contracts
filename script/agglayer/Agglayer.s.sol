@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {Script} from "forge-std/Script.sol";
 import {TestNFT} from "./TestNFT.sol";
+
+import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
+import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {Role} from "src/Role.sol";
-import {PolygonAgglayerCrossChain} from "src/module/token/crosschain/PolygonAgglayer.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
+import {PolygonAgglayerCrossChain} from "src/module/token/crosschain/PolygonAgglayer.sol";
 import {MintableERC20} from "src/module/token/minting/MintableERC20.sol";
-import {OwnableRoles} from "@solady/auth/OwnableRoles.sol";
 
 contract DeployTestNFT is Script {
+
     TestNFT public testNFT;
 
     function run() external {
@@ -22,9 +24,11 @@ contract DeployTestNFT is Script {
 
         vm.stopBroadcast();
     }
+
 }
 
 contract MintTestNFT is Script {
+
     TestNFT public testNFT;
     MintableERC20 public mintableModule;
     PolygonAgglayerCrossChain public polygonAgglayer;
@@ -42,7 +46,7 @@ contract MintTestNFT is Script {
 
         address[] memory modules = new address[](2);
         bytes[] memory moduleData = new bytes[](2);
-        
+
         mintableModule = new MintableERC20(address(0x0));
         polygonAgglayer = new PolygonAgglayerCrossChain();
         console.log("mintableModule deployed to:", address(mintableModule));
@@ -74,23 +78,17 @@ contract MintTestNFT is Script {
         core.mint(deployerAddress, 100, "");
         console.log("Minted test tokens to deployer");
 
-        core.approve(agglayerBridgeExtension, 100);
-        console.log("Approved agglayer bridge extension");
+        core.approve(address(core), 100);
+        console.log("Approved core");
 
         bytes memory extraArgs = abi.encode(deployerAddress, true, address(core), 100, "");
-        bytes memory payload = abi.encodeWithSelector(
-            bytes4(keccak256("mint(address,uint256)")),
-            deployerAddress,
-            1
-        );
-        
+        bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("mint(address,uint256)")), deployerAddress, 1);
+
         PolygonAgglayerCrossChain(address(core)).sendCrossChainTransaction(
-            destinationChain,
-            testNFTAddress,
-            payload,
-            extraArgs
+            destinationChain, testNFTAddress, payload, extraArgs
         );
 
         vm.stopBroadcast();
     }
+
 }

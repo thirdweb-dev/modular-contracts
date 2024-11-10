@@ -204,6 +204,8 @@ contract ERC20Base is ERC20, Multicallable, Core, EIP712 {
         return super.transfer(to, amount);
     }
 
+    receive() external payable {}
+
     /**
      *  @notice Transfers tokens from a sender to a recipient.
      *  @param from The address to transfer tokens from.

@@ -6,7 +6,7 @@ import {Role} from "../../../Role.sol";
 
 import {CrossChain} from "./CrossChain.sol";
 import {IBridgeAndCall} from "@lxly-bridge-and-call/IBridgeAndCall.sol";
-import {console} from "forge-std/console.sol";
+import {IERC20} from "src/interface/IERC20.sol";
 
 library PolygonAgglayerCrossChainStorage {
 
@@ -49,7 +49,6 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         address router = abi.decode(data, (address));
-        console.log("router in onInstall: ", router);
         _polygonAgglayerStorage().router = router;
     }
 
@@ -93,12 +92,7 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
             uint256 _amount,
             bytes memory permitData
         ) = abi.decode(_extraArgs, (address, bool, address, uint256, bytes));
-        console.log("token address", _token);
-        console.log("amount", _amount);
-        console.log("destinationChain", _destinationChain);
-        console.log("callAddress", _callAddress);
 
-        // IBridgeAndCall(_polygonAgglayerStorage().router).bridgeAndCall(
         _bridgeAndCall(
             _token,
             _amount,
@@ -109,13 +103,23 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
             _payload,
             _forceUpdateGlobalExitRoot
         );
-        console.log("bridgeAndCall called successfully");
 
         onCrossChainTransactionSent(_destinationChain, _callAddress, _payload, _extraArgs);
     }
 
-    function _bridgeAndCall(address _token, uint256 _amount, bytes memory permitData, uint32 _destinationChain, address _callAddress, address _fallbackAddress, bytes memory _payload, bool _forceUpdateGlobalExitRoot) internal {
-        console.log("router: ", _polygonAgglayerStorage().router);
+    function _bridgeAndCall(
+        address _token,
+        uint256 _amount,
+        bytes memory permitData,
+        uint32 _destinationChain,
+        address _callAddress,
+        address _fallbackAddress,
+        bytes memory _payload,
+        bool _forceUpdateGlobalExitRoot
+    ) internal {
+        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        IERC20(_token).approve(_polygonAgglayerStorage().router, _amount);
+
         IBridgeAndCall(_polygonAgglayerStorage().router).bridgeAndCall(
             _token,
             _amount,
@@ -127,7 +131,6 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
             _forceUpdateGlobalExitRoot
         );
     }
-            
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
