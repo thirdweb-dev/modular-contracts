@@ -6,6 +6,7 @@ import {Role} from "../../../Role.sol";
 
 import {CrossChain} from "./CrossChain.sol";
 import {IBridgeAndCall} from "@lxly-bridge-and-call/IBridgeAndCall.sol";
+import {console} from "forge-std/console.sol";
 
 library PolygonAgglayerCrossChainStorage {
 
@@ -85,6 +86,12 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         address router = _polygonAgglayerStorage().router;
         (address _fallbackAddress, bool _forceUpdateGlobalExitRoot, address _token, uint256 _amount) =
             abi.decode(_extraArgs, (address, bool, address, uint256));
+        console.log("token address", _token);
+        console.log("amount", _amount);
+        console.log("destinationChain", _destinationChain);
+        console.log("callAddress", _callAddress);
+        console.log("fallbackAddress", _fallbackAddress);
+        console.log("forceUpdateGlobalExitRoot", _forceUpdateGlobalExitRoot);
 
         IBridgeAndCall(router).bridgeAndCall(
             _token,
@@ -95,6 +102,7 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
             _payload,
             _forceUpdateGlobalExitRoot
         );
+        console.log("bridgeAndCall called successfully");
 
         onCrossChainTransactionSent(_destinationChain, _callAddress, _payload, _extraArgs);
     }
