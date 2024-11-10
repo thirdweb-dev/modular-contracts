@@ -42,11 +42,14 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
             FallbackFunction({selector: this.setRouter.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
+
+        config.registerInstallationCallback = true;
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         address router = abi.decode(data, (address));
+        console.log("router in onInstall: ", router);
         _polygonAgglayerStorage().router = router;
     }
 
@@ -83,19 +86,23 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         bytes calldata _payload,
         bytes calldata _extraArgs
     ) external payable override {
-        address router = _polygonAgglayerStorage().router;
-        (address _fallbackAddress, bool _forceUpdateGlobalExitRoot, address _token, uint256 _amount) =
-            abi.decode(_extraArgs, (address, bool, address, uint256));
+        (
+            address _fallbackAddress,
+            bool _forceUpdateGlobalExitRoot,
+            address _token,
+            uint256 _amount,
+            bytes memory permitData
+        ) = abi.decode(_extraArgs, (address, bool, address, uint256, bytes));
         console.log("token address", _token);
         console.log("amount", _amount);
         console.log("destinationChain", _destinationChain);
         console.log("callAddress", _callAddress);
-        console.log("fallbackAddress", _fallbackAddress);
-        console.log("forceUpdateGlobalExitRoot", _forceUpdateGlobalExitRoot);
 
-        IBridgeAndCall(router).bridgeAndCall(
+        // IBridgeAndCall(_polygonAgglayerStorage().router).bridgeAndCall(
+        _bridgeAndCall(
             _token,
             _amount,
+            permitData,
             uint32(_destinationChain),
             _callAddress,
             _fallbackAddress,
@@ -106,6 +113,21 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
 
         onCrossChainTransactionSent(_destinationChain, _callAddress, _payload, _extraArgs);
     }
+
+    function _bridgeAndCall(address _token, uint256 _amount, bytes memory permitData, uint32 _destinationChain, address _callAddress, address _fallbackAddress, bytes memory _payload, bool _forceUpdateGlobalExitRoot) internal {
+        console.log("router: ", _polygonAgglayerStorage().router);
+        IBridgeAndCall(_polygonAgglayerStorage().router).bridgeAndCall(
+            _token,
+            _amount,
+            permitData,
+            _destinationChain,
+            _callAddress,
+            _fallbackAddress,
+            _payload,
+            _forceUpdateGlobalExitRoot
+        );
+    }
+            
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS

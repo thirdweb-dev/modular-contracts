@@ -49,13 +49,23 @@ contract MintTestNFT is Script {
         console.log("polygonAgglayer deployed to:", address(polygonAgglayer));
 
         bytes memory mintableEncodedInstallParams = abi.encode(deployerAddress);
-        bytes memory polygonAgglayerEncodedInstallParams = abi.encode(address(polygonAgglayer));
+        bytes memory polygonAgglayerEncodedInstallParams = abi.encode(agglayerBridgeExtension);
+        console.log("polygonAgglayerEncodedInstallParams");
+        console.logBytes(polygonAgglayerEncodedInstallParams);
 
         modules[0] = address(mintableModule);
         modules[1] = address(polygonAgglayer);
 
         moduleData[0] = mintableEncodedInstallParams;
         moduleData[1] = polygonAgglayerEncodedInstallParams;
+
+        console.log("moduleData");
+        console.logBytes(moduleData[0]);
+        console.logBytes(moduleData[1]);
+
+        console.log("modules");
+        console.logAddress(modules[0]);
+        console.logAddress(modules[1]);
 
         core = new ERC20Core("test", "TEST", "", deployerAddress, modules, moduleData);
         console.log("core deployed to:", address(core));
@@ -67,7 +77,7 @@ contract MintTestNFT is Script {
         core.approve(agglayerBridgeExtension, 100);
         console.log("Approved agglayer bridge extension");
 
-        bytes memory extraArgs = abi.encode(deployerAddress, true, address(core), 100);
+        bytes memory extraArgs = abi.encode(deployerAddress, true, address(core), 100, "");
         bytes memory payload = abi.encodeWithSelector(
             bytes4(keccak256("mint(address,uint256)")),
             deployerAddress,
