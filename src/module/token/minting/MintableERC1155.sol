@@ -135,7 +135,10 @@ contract MintableERC1155 is
         override
         returns (bytes memory)
     {
-        if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
+        if (
+            msg.sender != OwnableRoles(address(this)).owner()
+                && !OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)
+        ) {
             revert MintableRequestUnauthorized();
         }
     }
