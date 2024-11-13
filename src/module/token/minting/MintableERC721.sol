@@ -106,7 +106,7 @@ contract MintableERC721 is
     //////////////////////////////////////////////////////////////*/
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address private immutable mintFeeManager;
+    address public immutable mintFeeManager;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR

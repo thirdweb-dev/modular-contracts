@@ -15,10 +15,13 @@ import {BeforeMintWithSignatureCallbackERC20} from "../../../callback/BeforeMint
 
 // Inherit from OP repo once implemented
 interface ICrossChainERC20 {
+
     function crosschainMint(address _account, uint256 _amount) external;
     function crosschainBurn(address _account, uint256 _amount) external;
+
     event CrosschainMinted(address indexed _to, uint256 _amount);
     event CrosschainBurnt(address indexed _from, uint256 _amount);
+
 }
 
 library SuperChainInteropStorage {
@@ -59,7 +62,8 @@ contract SuperChainInterop is ERC20, Module, IInstallationCallback, ICrossChainE
         config.fallbackFunctions[0] = FallbackFunction({selector: this.crosschainMint.selector, permissionBits: 0});
         config.fallbackFunctions[1] = FallbackFunction({selector: this.crosschainBurn.selector, permissionBits: 0});
         config.fallbackFunctions[2] = FallbackFunction({selector: this.getSuperChainBridge.selector, permissionBits: 0});
-        config.fallbackFunctions[3] = FallbackFunction({selector: this.setSuperChainBridge.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setSuperChainBridge.selector, permissionBits: Role._MANAGER_ROLE});
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x36372b07; // ERC20

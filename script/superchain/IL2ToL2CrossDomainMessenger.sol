@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 /// @title IL2ToL2CrossDomainMessenger
 /// @notice Interface for the L2ToL2CrossDomainMessenger contract.
 interface IL2ToL2CrossDomainMessenger {
+
     /// @notice Mapping of message hashes to boolean receipt values. Note that a message will only
     ///         be present in this mapping if it has successfully been relayed on this chain, and
     ///         can therefore not be relayed again.
@@ -34,11 +35,8 @@ interface IL2ToL2CrossDomainMessenger {
     /// @param _message     Message to trigger the target address with.
     /// @return msgHash_ The hash of the message being sent, which can be used for tracking whether
     ///                  the message has successfully been relayed.
-    function sendMessage(
-        uint256 _destination,
-        address _target,
-        bytes calldata _message
-    )
+    function sendMessage(uint256 _destination, address _target, bytes calldata _message)
         external
         returns (bytes32 msgHash_);
+
 }

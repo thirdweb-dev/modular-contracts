@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ICrossChainERC20} from "src/module/token/crosschain/SuperChainInterop.sol";
 import {IL2ToL2CrossDomainMessenger} from "./IL2ToL2CrossDomainMessenger.sol";
 import "lib/forge-std/src/console.sol";
+import {ICrossChainERC20} from "src/module/token/crosschain/SuperChainInterop.sol";
 
 contract SuperChainBridge {
 
