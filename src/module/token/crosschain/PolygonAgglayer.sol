@@ -6,6 +6,7 @@ import {Role} from "../../../Role.sol";
 
 import {CrossChain} from "./CrossChain.sol";
 import {IBridgeAndCall} from "@lxly-bridge-and-call/IBridgeAndCall.sol";
+import {IPolygonZkEVMBridge} from "@zkevm-contracts/interfaces/IPolygonZkEVMBridge.sol";
 import {IERC20} from "src/interface/IERC20.sol";
 
 library PolygonAgglayerCrossChainStorage {
@@ -16,6 +17,7 @@ library PolygonAgglayerCrossChainStorage {
 
     struct Data {
         address router;
+        address bridge;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -35,21 +37,27 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
 
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.fallbackFunctions = new FallbackFunction[](3);
+        config.fallbackFunctions = new FallbackFunction[](7);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getRouter.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setRouter.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[2] =
+        config.fallbackFunctions[2] = FallbackFunction({selector: this.getBridge.selector, permissionBits: 0});
+        config.fallbackFunctions[3] =
+            FallbackFunction({selector: this.setBridge.selector, permissionBits: Role._MANAGER_ROLE});
+        config.fallbackFunctions[4] =
             FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.claimMessage.selector, permissionBits: 0});
+        config.fallbackFunctions[6] = FallbackFunction({selector: this.claimAsset.selector, permissionBits: 0});
 
         config.registerInstallationCallback = true;
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        address router = abi.decode(data, (address));
+        (address router, address bridge) = abi.decode(data, (address, address));
         _polygonAgglayerStorage().router = router;
+        _polygonAgglayerStorage().bridge = bridge;
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -69,14 +77,20 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
                             FALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns whether transfers is enabled for the token.
     function getRouter() external view override returns (address) {
         return _polygonAgglayerStorage().router;
     }
 
-    /// @notice Set transferability for a token.
     function setRouter(address router) external override {
         _polygonAgglayerStorage().router = router;
+    }
+
+    function getBridge() external view returns (address) {
+        return _polygonAgglayerStorage().bridge;
+    }
+
+    function setBridge(address bridge) external {
+        _polygonAgglayerStorage().bridge = bridge;
     }
 
     function sendCrossChainTransaction(
@@ -93,18 +107,110 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
             bytes memory permitData
         ) = abi.decode(_extraArgs, (address, bool, address, uint256, bytes));
 
-        _bridgeAndCall(
-            _token,
-            _amount,
-            permitData,
-            uint32(_destinationChain),
-            _callAddress,
-            _fallbackAddress,
-            _payload,
-            _forceUpdateGlobalExitRoot
-        );
+        if (_token == address(0) && _amount == 0) {
+            _bridgeMessage(uint32(_destinationChain), _callAddress, _forceUpdateGlobalExitRoot, _payload);
+        } else if (_payload.length == 0) {
+            _bridgeAsset(
+                uint32(_destinationChain), _callAddress, _amount, _token, _forceUpdateGlobalExitRoot, permitData
+            );
+        } else {
+            _bridgeAndCall(
+                _token,
+                _amount,
+                permitData,
+                uint32(_destinationChain),
+                _callAddress,
+                _fallbackAddress,
+                _payload,
+                _forceUpdateGlobalExitRoot
+            );
+        }
 
         onCrossChainTransactionSent(_destinationChain, _callAddress, _payload, _extraArgs);
+    }
+
+    function claimMessage(
+        bytes32[32] calldata smtProof,
+        uint32 index,
+        bytes32 mainnetExitRoot,
+        bytes32 rollupExitRoot,
+        uint32 originNetwork,
+        address originAddress,
+        uint32 destinationNetwork,
+        address destinationAddress,
+        uint256 amount,
+        bytes calldata metadata
+    ) external {
+        IPolygonZkEVMBridge(_polygonAgglayerStorage().bridge).claimMessage(
+            smtProof,
+            index,
+            mainnetExitRoot,
+            rollupExitRoot,
+            originNetwork,
+            originAddress,
+            destinationNetwork,
+            destinationAddress,
+            amount,
+            metadata
+        );
+    }
+
+    function claimAsset(
+        bytes32[32] calldata smtProof,
+        uint32 index,
+        bytes32 mainnetExitRoot,
+        bytes32 rollupExitRoot,
+        uint32 originNetwork,
+        address originTokenAddress,
+        uint32 destinationNetwork,
+        address destinationAddress,
+        uint256 amount,
+        bytes calldata metadata
+    ) external {
+        IPolygonZkEVMBridge(_polygonAgglayerStorage().bridge).claimAsset(
+            smtProof,
+            index,
+            mainnetExitRoot,
+            rollupExitRoot,
+            originNetwork,
+            originTokenAddress,
+            destinationNetwork,
+            destinationAddress,
+            amount,
+            metadata
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _bridgeMessage(
+        uint32 _destinationChain,
+        address _callAddress,
+        bool _forceUpdateGlobalExitRoot,
+        bytes memory _payload
+    ) internal {
+        IPolygonZkEVMBridge(_polygonAgglayerStorage().bridge).bridgeMessage(
+            uint32(_destinationChain), _callAddress, _forceUpdateGlobalExitRoot, _payload
+        );
+    }
+
+    function _bridgeAsset(
+        uint32 _destinationChain,
+        address _callAddress,
+        uint256 _amount,
+        address _token,
+        bool _forceUpdateGlobalExitRoot,
+        bytes memory permitData
+    ) internal {
+        address bridge = _polygonAgglayerStorage().bridge;
+        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        IERC20(_token).approve(bridge, _amount);
+
+        IPolygonZkEVMBridge(bridge).bridgeAsset(
+            uint32(_destinationChain), _callAddress, _amount, _token, _forceUpdateGlobalExitRoot, permitData
+        );
     }
 
     function _bridgeAndCall(
@@ -117,10 +223,11 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         bytes memory _payload,
         bool _forceUpdateGlobalExitRoot
     ) internal {
+        address router = _polygonAgglayerStorage().router;
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-        IERC20(_token).approve(_polygonAgglayerStorage().router, _amount);
+        IERC20(_token).approve(router, _amount);
 
-        IBridgeAndCall(_polygonAgglayerStorage().router).bridgeAndCall(
+        IBridgeAndCall(router).bridgeAndCall(
             _token,
             _amount,
             permitData,
@@ -131,10 +238,6 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
             _forceUpdateGlobalExitRoot
         );
     }
-
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
 
     function onCrossChainTransactionSent(
         uint64 _destinationChain,
