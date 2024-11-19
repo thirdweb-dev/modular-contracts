@@ -179,11 +179,23 @@ contract MintableERC721Test is Test {
         );
 
         // Check minted balance
-        assertEq(core.balanceOf(address(0x123)), amount);
+        assertEq(core.balanceOf(tokenRecipient), amount);
 
         uint256 salePrice = amount * mintRequest.pricePerUnit;
         assertEq(tokenRecipient.balance, balBefore - salePrice);
         assertEq(saleRecipient.balance, salePrice);
+    }
+
+    function test_simple_mint() public {
+        vm.prank(owner);
+        core.mint(owner, amount, "", "");
+
+        assertEq(core.balanceOf(owner), amount);
+
+        vm.prank(permissionedActor);
+        core.mint(permissionedActor, amount, "", "");
+
+        assertEq(core.balanceOf(permissionedActor), amount);
     }
 
     function test_mint_revert_unableToDecodeArgs() public {

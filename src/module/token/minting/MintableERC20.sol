@@ -138,7 +138,10 @@ contract MintableERC20 is
         override
         returns (bytes memory)
     {
-        if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
+        if (
+            OwnableRoles(address(this)).owner() != msg.sender
+                && !OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)
+        ) {
             revert MintableRequestUnauthorized();
         }
     }

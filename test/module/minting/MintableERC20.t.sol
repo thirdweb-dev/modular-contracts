@@ -176,6 +176,18 @@ contract MintableERC20Test is Test {
         assertEq(saleRecipient.balance, salePrice);
     }
 
+    function test_simple_mint() public {
+        vm.prank(owner);
+        core.mint(owner, amount, "");
+
+        assertEq(core.balanceOf(owner), amount);
+
+        vm.prank(permissionedActor);
+        core.mint(permissionedActor, amount, "");
+
+        assertEq(core.balanceOf(permissionedActor), amount);
+    }
+
     function test_mint_revert_unableToDecodeArgs() public {
         vm.deal(tokenRecipient, 100 ether);
 
