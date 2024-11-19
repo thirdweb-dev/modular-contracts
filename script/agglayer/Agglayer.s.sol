@@ -8,7 +8,7 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {Role} from "src/Role.sol";
 import {ERC20Core} from "src/core/token/ERC20Core.sol";
-import {PolygonAgglayerCrossChain} from "src/module/token/crosschain/PolygonAgglayer.sol";
+import {AgglayerCrossChain} from "src/module/token/crosschain/Agglayer.sol";
 import {MintableERC20} from "src/module/token/minting/MintableERC20.sol";
 
 contract DeployTestNFT is Script {
@@ -31,7 +31,7 @@ contract MintTestNFT is Script {
 
     TestNFT public testNFT;
     MintableERC20 public mintableModule;
-    PolygonAgglayerCrossChain public polygonAgglayer;
+    AgglayerCrossChain public agglayer;
     ERC20Core public core;
 
     address agglayerBridgeExtension = 0x2311BFA86Ae27FC10E1ad3f805A2F9d22Fc8a6a1;
@@ -48,20 +48,20 @@ contract MintTestNFT is Script {
         bytes[] memory moduleData = new bytes[](2);
 
         mintableModule = new MintableERC20(address(0x0));
-        polygonAgglayer = new PolygonAgglayerCrossChain();
+        agglayer = new AgglayerCrossChain();
         console.log("mintableModule deployed to:", address(mintableModule));
-        console.log("polygonAgglayer deployed to:", address(polygonAgglayer));
+        console.log("agglayer deployed to:", address(agglayer));
 
         bytes memory mintableEncodedInstallParams = abi.encode(deployerAddress);
-        bytes memory polygonAgglayerEncodedInstallParams = abi.encode(agglayerBridgeExtension);
-        console.log("polygonAgglayerEncodedInstallParams");
-        console.logBytes(polygonAgglayerEncodedInstallParams);
+        bytes memory agglayerEncodedInstallParams = abi.encode(agglayerBridgeExtension);
+        console.log("agglayerEncodedInstallParams");
+        console.logBytes(agglayerEncodedInstallParams);
 
         modules[0] = address(mintableModule);
-        modules[1] = address(polygonAgglayer);
+        modules[1] = address(agglayer);
 
         moduleData[0] = mintableEncodedInstallParams;
-        moduleData[1] = polygonAgglayerEncodedInstallParams;
+        moduleData[1] = agglayerEncodedInstallParams;
 
         console.log("moduleData");
         console.logBytes(moduleData[0]);
@@ -84,7 +84,7 @@ contract MintTestNFT is Script {
         bytes memory extraArgs = abi.encode(deployerAddress, true, address(core), 100, "");
         bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("mint(address,uint256)")), deployerAddress, 1);
 
-        PolygonAgglayerCrossChain(address(core)).sendCrossChainTransaction(
+        AgglayerCrossChain(address(core)).sendCrossChainTransaction(
             destinationChain, testNFTAddress, payload, extraArgs
         );
 

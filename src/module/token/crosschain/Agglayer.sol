@@ -9,7 +9,7 @@ import {IBridgeAndCall} from "@lxly-bridge-and-call/IBridgeAndCall.sol";
 import {IPolygonZkEVMBridge} from "@zkevm-contracts/interfaces/IPolygonZkEVMBridge.sol";
 import {IERC20} from "src/interface/IERC20.sol";
 
-library PolygonAgglayerCrossChainStorage {
+library AgglayerCrossChainStorage {
 
     /// @custom:storage-location erc7201:token.bridgeAndCall
     bytes32 public constant BRIDGE_AND_CALL_STORAGE_POSITION =
@@ -29,7 +29,7 @@ library PolygonAgglayerCrossChainStorage {
 
 }
 
-contract PolygonAgglayerCrossChain is Module, CrossChain {
+contract AgglayerCrossChain is Module, CrossChain {
 
     /*//////////////////////////////////////////////////////////////
                             EXTENSION CONFIG
@@ -56,8 +56,8 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
         (address router, address bridge) = abi.decode(data, (address, address));
-        _polygonAgglayerStorage().router = router;
-        _polygonAgglayerStorage().bridge = bridge;
+        _agglayerStorage().router = router;
+        _agglayerStorage().bridge = bridge;
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -78,19 +78,19 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
     //////////////////////////////////////////////////////////////*/
 
     function getRouter() external view override returns (address) {
-        return _polygonAgglayerStorage().router;
+        return _agglayerStorage().router;
     }
 
     function setRouter(address router) external override {
-        _polygonAgglayerStorage().router = router;
+        _agglayerStorage().router = router;
     }
 
     function getBridge() external view returns (address) {
-        return _polygonAgglayerStorage().bridge;
+        return _agglayerStorage().bridge;
     }
 
     function setBridge(address bridge) external {
-        _polygonAgglayerStorage().bridge = bridge;
+        _agglayerStorage().bridge = bridge;
     }
 
     function sendCrossChainTransaction(
@@ -141,7 +141,7 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         uint256 amount,
         bytes calldata metadata
     ) external {
-        IPolygonZkEVMBridge(_polygonAgglayerStorage().bridge).claimMessage(
+        IPolygonZkEVMBridge(_agglayerStorage().bridge).claimMessage(
             smtProof,
             index,
             mainnetExitRoot,
@@ -167,7 +167,7 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         uint256 amount,
         bytes calldata metadata
     ) external {
-        IPolygonZkEVMBridge(_polygonAgglayerStorage().bridge).claimAsset(
+        IPolygonZkEVMBridge(_agglayerStorage().bridge).claimAsset(
             smtProof,
             index,
             mainnetExitRoot,
@@ -191,7 +191,7 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         bool _forceUpdateGlobalExitRoot,
         bytes memory _payload
     ) internal {
-        IPolygonZkEVMBridge(_polygonAgglayerStorage().bridge).bridgeMessage(
+        IPolygonZkEVMBridge(_agglayerStorage().bridge).bridgeMessage(
             uint32(_destinationChain), _callAddress, _forceUpdateGlobalExitRoot, _payload
         );
     }
@@ -204,7 +204,7 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         bool _forceUpdateGlobalExitRoot,
         bytes memory permitData
     ) internal {
-        address bridge = _polygonAgglayerStorage().bridge;
+        address bridge = _agglayerStorage().bridge;
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         IERC20(_token).approve(bridge, _amount);
 
@@ -223,7 +223,7 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         bytes memory _payload,
         bool _forceUpdateGlobalExitRoot
     ) internal {
-        address router = _polygonAgglayerStorage().router;
+        address router = _agglayerStorage().router;
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         IERC20(_token).approve(router, _amount);
 
@@ -257,8 +257,8 @@ contract PolygonAgglayerCrossChain is Module, CrossChain {
         /// post cross chain transaction received logic goes here
     }
 
-    function _polygonAgglayerStorage() internal pure returns (PolygonAgglayerCrossChainStorage.Data storage) {
-        return PolygonAgglayerCrossChainStorage.data();
+    function _agglayerStorage() internal pure returns (AgglayerCrossChainStorage.Data storage) {
+        return AgglayerCrossChainStorage.data();
     }
 
 }
