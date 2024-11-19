@@ -60,7 +60,17 @@ contract TransferableERC1155 is Module, BeforeTransferCallbackERC1155, BeforeBat
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
+
+        config.registerInstallationCallback = true;
     }
+
+    /// @dev Called by a Core into an Module during the installation of the Module.
+    function onInstall(bytes calldata data) external {
+        _transferableStorage().transferEnabled = true;
+    }
+
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS

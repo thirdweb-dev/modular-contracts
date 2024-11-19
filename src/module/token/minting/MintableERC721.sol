@@ -150,7 +150,10 @@ contract MintableERC721 is
         override
         returns (bytes memory)
     {
-        if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
+        if (
+            OwnableRoles(address(this)).owner() != msg.sender
+                && !OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)
+        ) {
             revert MintableRequestUnauthorized();
         }
     }
@@ -181,6 +184,11 @@ contract MintableERC721 is
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
     function onUninstall(bytes calldata data) external {}
+
+    /// @dev Returns bytes encoded for installing modules on cross-chain
+    function crosschainBytesOnInstall() external view returns (bytes memory) {
+        return abi.encode(_mintableStorage().saleConfig.primarySaleRecipient);
+    }
 
     /*//////////////////////////////////////////////////////////////
                     Encode install / uninstall data

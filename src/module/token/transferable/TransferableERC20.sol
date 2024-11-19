@@ -54,7 +54,17 @@ contract TransferableERC20 is Module, BeforeTransferCallbackERC20 {
             FallbackFunction({selector: this.setTransferable.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[3] =
             FallbackFunction({selector: this.setTransferableFor.selector, permissionBits: Role._MANAGER_ROLE});
+
+        config.registerInstallationCallback = true;
     }
+
+    /// @dev Called by a Core into an Module during the installation of the Module.
+    function onInstall(bytes calldata data) external {
+        _transferableStorage().transferEnabled = true;
+    }
+
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS

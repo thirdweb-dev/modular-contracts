@@ -148,7 +148,10 @@ contract MintableERC20 is
         override
         returns (bytes memory)
     {
-        if (!OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)) {
+        if (
+            OwnableRoles(address(this)).owner() != msg.sender
+                && !OwnableRoles(address(this)).hasAllRoles(msg.sender, Role._MINTER_ROLE)
+        ) {
             revert MintableRequestUnauthorized();
         }
     }
@@ -194,6 +197,11 @@ contract MintableERC20 is
     /// @dev Returns bytes encoded uninstall params, to be sent to `onUninstall` function
     function encodeBytesOnUninstall() external pure returns (bytes memory) {
         return "";
+    }
+
+    /// @dev Returns bytes encoded for installing modules on cross-chain
+    function crosschainBytesOnInstall() external view returns (bytes memory) {
+        return abi.encode(_mintableStorage().saleConfig.primarySaleRecipient);
     }
 
     /*//////////////////////////////////////////////////////////////
