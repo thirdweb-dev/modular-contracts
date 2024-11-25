@@ -25,7 +25,7 @@ contract TWCloneFactory {
         }
     }
 
-    function _guard(bytes32 salt, bytes memory data) internal returns (bytes32) {
+    function _guard(bytes32 salt, bytes memory data) internal view returns (bytes32) {
         // 01 if cross chain deployment is allowed
         // 00 if cross chain deployment is not allowed
         bool allowCrossChainDeployment = bytes1(salt[0]) == hex"01";
