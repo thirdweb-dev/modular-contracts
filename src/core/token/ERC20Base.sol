@@ -48,6 +48,16 @@ contract ERC20Base is ERC20, Multicallable, Core, EIP712 {
     /// @notice Emitted when the contract URI is updated.
     event ContractURIUpdated();
 
+    /// @notice Emitted when the contract is initialized.
+    event ContractInitialized(
+        string _name,
+        string _symbol,
+        string _contractURI,
+        address _owner,
+        address[] _modules,
+        bytes[] _moduleInstallData
+    );
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -71,6 +81,8 @@ contract ERC20Base is ERC20, Multicallable, Core, EIP712 {
         for (uint256 i = 0; i < _modules.length; i++) {
             _installModule(_modules[i], _moduleInstallData[i]);
         }
+
+        emit ContractInitialized(_name, _symbol, _contractURI, _owner, _modules, _moduleInstallData);
     }
 
     /*//////////////////////////////////////////////////////////////
