@@ -37,6 +37,13 @@ contract TransferableERC20 is Module, BeforeTransferCallbackERC20 {
     error TransferDisabled();
 
     /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted on attempt to transfer a token when transfers are disabled.
+    event TransferEnableFor(address indexed target, bool enabled);
+
+    /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -103,6 +110,7 @@ contract TransferableERC20 is Module, BeforeTransferCallbackERC20 {
     /// @notice Set transferability for an address for a token.
     function setTransferableFor(address target, bool enableTransfer) external {
         _transferableStorage().transferEnabledFor[target] = enableTransfer;
+        emit TransferEnableFor(target, enableTransfer);
     }
 
     /*//////////////////////////////////////////////////////////////

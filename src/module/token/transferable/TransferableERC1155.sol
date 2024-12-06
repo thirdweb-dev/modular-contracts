@@ -39,6 +39,13 @@ contract TransferableERC1155 is Module, BeforeTransferCallbackERC1155, BeforeBat
     error TransferDisabled();
 
     /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted on attempt to transfer a token when transfers are disabled.
+    event TransferEnableFor(address indexed target, bool enabled);
+
+    /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -130,6 +137,7 @@ contract TransferableERC1155 is Module, BeforeTransferCallbackERC1155, BeforeBat
     /// @notice Set transferability for an operator for a token.
     function setTransferableFor(address target, bool enableTransfer) external {
         _transferableStorage().transferEnabledFor[target] = enableTransfer;
+        emit TransferEnableFor(target, enableTransfer);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -142,15 +142,6 @@ contract RoyaltyERC721 is Module, IInstallationCallback, BeforeTransferCallbackE
         return "";
     }
 
-    /// @dev Returns bytes encoded for installing modules on cross-chain
-    function crosschainBytesOnInstall() external view returns (bytes memory) {
-        return abi.encode(
-            _royaltyStorage().defaultRoyaltyInfo.recipient,
-            _royaltyStorage().defaultRoyaltyInfo.bps,
-            _royaltyStorage().transferValidator
-        );
-    }
-
     /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/

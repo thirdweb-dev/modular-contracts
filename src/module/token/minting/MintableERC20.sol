@@ -199,11 +199,6 @@ contract MintableERC20 is
         return "";
     }
 
-    /// @dev Returns bytes encoded for installing modules on cross-chain
-    function crosschainBytesOnInstall() external view returns (bytes memory) {
-        return abi.encode(_mintableStorage().saleConfig.primarySaleRecipient);
-    }
-
     /*//////////////////////////////////////////////////////////////
                         Encode mint params
     //////////////////////////////////////////////////////////////*/
