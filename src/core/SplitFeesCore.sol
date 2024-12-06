@@ -52,8 +52,6 @@ contract SplitFeesCore is Core, Multicallable, ERC6909 {
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    receive() external payable {}
-
     constructor(address _owner, address[] memory _modules, bytes[] memory _moduleInstallData) {
         _initializeOwner(_owner);
 
