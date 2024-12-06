@@ -28,12 +28,6 @@ library PythOracleStorage {
 
 contract PythOracle is Module {
 
-    IPyth immutable pyth;
-
-    constructor(address _pythContract) {
-        pyth = IPyth(_pythContract);
-    }
-
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
         config.callbackFunctions = new CallbackFunction[](0);
         config.fallbackFunctions = new FallbackFunction[](2);
@@ -58,15 +52,19 @@ contract PythOracle is Module {
     function encodeBytesOnUninstall() external pure returns (bytes memory) {}
 
     function updatePriceFeeds(bytes[] calldata priceUpdate) public payable {
-        uint256 fee = pyth.getUpdateFee(priceUpdate);
-        pyth.updatePriceFeeds{value: fee}(priceUpdate);
+        address pyth = PythOracleStorage.data().pythContract;
+        uint256 fee = IPyth(pyth).getUpdateFee(priceUpdate);
+        IPyth(pyth).updatePriceFeeds{value: fee}(priceUpdate);
     }
 
     /// @notice fetchPythPrices method to update and read the latest price from a price feed.
     /// @dev Make sure to send priceUpdates for all priceFeedIds to get the latest price.
     /// @param priceFeedIds The price feed IDs to update.
     /// @param priceUpdates The price updates to submit.
-    function fetchPythPrices(bytes32[] calldata priceFeedIds, bytes[] calldata priceUpdates, uint256 maxAge) public payable {
+    function fetchPythPrices(bytes32[] calldata priceFeedIds, bytes[] calldata priceUpdates, uint256 maxAge)
+        public
+        payable
+    {
         // Submit a priceUpdate to the Pyth contract to update the on-chain price.
         // Updating the price requires paying the fee returned by getUpdateFee.
         // WARNING: These lines are required to ensure the getPriceNoOlderThan call below succeeds. If you remove them, transactions may fail with "0x19abf40e" error.
@@ -75,7 +73,9 @@ contract PythOracle is Module {
         // Read the latest price from a price feed if it is less than 60 seconds old.
         // The complete list of feed IDs is available at https://pyth.network/developers/price-feed-ids
         for (uint32 i = 0; i < priceFeedIds.length; i++) {
-            PythStructs.Price memory price = pyth.getPriceNoOlderThan(priceFeedIds[i], maxAge);
+            PythStructs.Price memory price =
+                IPyth(PythOracleStorage.data().pythContract).getPriceNoOlderThan(priceFeedIds[i], maxAge);
         }
     }
+
 }
