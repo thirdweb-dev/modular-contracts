@@ -46,7 +46,13 @@ contract SplitFeesModule is Module, BeforeDistributeCallback, AfterWithdrawCallb
                             EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event SplitCreated(address indexed splitWallet, address[] recipients, uint256[] allocations, address controller);
+    event SplitCreated(
+        address indexed splitWallet,
+        address[] recipients,
+        uint256[] allocations,
+        address controller,
+        address referenceContract
+    );
     event SplitsUpdated(address indexed splitWallet, address[] recipients, uint256[] allocations, address controller);
     event ControllerUpdated(address indexed splitWallet, address controller);
     event SplitsDistributed(address indexed splitWallet, address token, uint256 amount);
@@ -145,17 +151,19 @@ contract SplitFeesModule is Module, BeforeDistributeCallback, AfterWithdrawCallb
     //////////////////////////////////////////////////////////////*/
 
     // Core contract calls this in constructor
-    function createSplit(address[] memory _recipients, uint256[] memory _allocations, address _controller)
-        external
-        validateSplits(_recipients, _allocations, _controller)
-    {
+    function createSplit(
+        address[] memory _recipients,
+        uint256[] memory _allocations,
+        address _controller,
+        address _referenceContract
+    ) external validateSplits(_recipients, _allocations, _controller) {
         Split memory _split = _setSplits(_recipients, _allocations, _controller);
         address splitWalletImplementation = SplitFeesCore(payable(address(this))).splitWalletImplementation();
 
         address splitWallet = LibClone.clone(splitWalletImplementation);
         _splitFeesStorage().splits[splitWallet] = _split;
 
-        emit SplitCreated(splitWallet, _recipients, _allocations, _controller);
+        emit SplitCreated(splitWallet, _recipients, _allocations, _controller, _referenceContract);
     }
 
     function updateSplit(
