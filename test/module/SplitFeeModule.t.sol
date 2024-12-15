@@ -52,6 +52,8 @@ contract SplitFeesModuleTest is Test {
     address public recipient1 = address(0x4);
     address public recipient2 = address(0x5);
 
+    address public referenceContract = address(0x6);
+
     // Constants
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -75,12 +77,12 @@ contract SplitFeesModuleTest is Test {
 
         vm.recordLogs();
         vm.prank(owner);
-        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner);
+        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner, referenceContract);
 
         // Retrieve the splitWallet address from the event logs
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
-        bytes32 SplitCreatedTopic = keccak256("SplitCreated(address,address[],uint256[],address)");
+        bytes32 SplitCreatedTopic = keccak256("SplitCreated(address,address[],uint256[],address,address)");
 
         for (uint256 i = 0; i < entries.length; i++) {
             Vm.Log memory log = entries[i];
@@ -90,6 +92,7 @@ contract SplitFeesModuleTest is Test {
                 break;
             }
         }
+        console.log("split wallet created: ", splitWallet);
 
         token = new MockCurrency();
     }
@@ -115,12 +118,12 @@ contract SplitFeesModuleTest is Test {
 
         vm.recordLogs();
         vm.prank(owner);
-        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner);
+        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner, referenceContract);
 
         // Get the splitWallet address from the SplitCreated event
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
-        bytes32 SplitCreatedTopic = keccak256("SplitCreated(address,address[],uint256[],address)");
+        bytes32 SplitCreatedTopic = keccak256("SplitCreated(address,address[],uint256[],address,address)");
 
         address newSplitWallet;
 
@@ -148,7 +151,7 @@ contract SplitFeesModuleTest is Test {
 
         // Expect revert
         vm.expectRevert(abi.encodeWithSelector(SplitFeesModule.SplitFeesTooFewRecipients.selector));
-        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner);
+        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner, referenceContract);
     }
 
     function test_revert_createSplit_LengthMismatch() public {
@@ -163,7 +166,7 @@ contract SplitFeesModuleTest is Test {
         vm.prank(owner);
 
         vm.expectRevert(abi.encodeWithSelector(SplitFeesModule.SplitFeesLengthMismatch.selector));
-        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner);
+        SplitFeesModule(address(splitFeesCore)).createSplit(recipients, allocations, owner, referenceContract);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -180,6 +183,10 @@ contract SplitFeesModuleTest is Test {
         newRecipients[1] = recipient2;
         newAllocations[0] = 70;
         newAllocations[1] = 30;
+
+        Split memory asd = SplitFeesModule(address(splitFeesCore)).getSplit(splitWallet);
+        console.log("controller of split wallet: ", asd.controller);
+        console.log("owner: ", owner);
 
         vm.prank(owner);
         vm.expectEmit(true, true, true, true);
