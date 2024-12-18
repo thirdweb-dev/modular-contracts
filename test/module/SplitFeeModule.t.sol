@@ -136,7 +136,7 @@ contract SplitFeesModuleTest is Test {
             }
         }
 
-        address splitFees = SplitWallet(newSplitWallet).splitFees();
+        address splitFees = SplitWallet(payable(newSplitWallet)).splitFees();
 
         assertEq(splitFees, address(splitFeesCore), "splitWallet splitFees incorrect");
     }

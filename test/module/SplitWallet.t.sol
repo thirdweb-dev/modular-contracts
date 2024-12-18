@@ -186,10 +186,10 @@ contract SplitFeesModuleTest is Test {
 
     function test_revert_notSplitFees() public {
         vm.expectRevert(abi.encodeWithSelector(SplitWallet.OnlySplitFees.selector));
-        SplitWallet(splitWallet).transferETH(10 ether);
+        SplitWallet(payable(splitWallet)).transferETH(10 ether);
 
         vm.expectRevert(abi.encodeWithSelector(SplitWallet.OnlySplitFees.selector));
-        SplitWallet(splitWallet).transferERC20(address(token), 10 ether);
+        SplitWallet(payable(splitWallet)).transferERC20(address(token), 10 ether);
     }
 
 }
