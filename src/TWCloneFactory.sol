@@ -5,8 +5,12 @@ import {LibClone} from "@solady/utils/LibClone.sol";
 
 contract TWCloneFactory {
 
+    error ProxyDeploymentFailed();
+
     /// @dev Emitted when a proxy is deployed.
-    event ProxyDeployed(address indexed implementation, address proxy, address indexed deployer, bytes data);
+    event ProxyDeployed(
+        address indexed implementation, address indexed proxy, address indexed deployer, bytes32 inputSalt, bytes data
+    );
 
     /// @dev Deploys a proxy that points to the given implementation.
     function deployProxyByImplementation(address implementation, bytes memory data, bytes32 salt)
@@ -16,12 +20,15 @@ contract TWCloneFactory {
         bytes32 saltHash = _guard(salt, data);
         deployedProxy = LibClone.cloneDeterministic(implementation, saltHash);
 
-        emit ProxyDeployed(implementation, deployedProxy, msg.sender, data);
+        emit ProxyDeployed(implementation, deployedProxy, msg.sender, salt, data);
 
         if (data.length > 0) {
             // slither-disable-next-line unused-return
             (bool success,) = deployedProxy.call(data);
-            require(success, "TWCloneFactory: proxy deployment failed");
+
+            if (!success) {
+                revert ProxyDeploymentFailed();
+            }
         }
     }
 
