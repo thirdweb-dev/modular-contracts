@@ -6,7 +6,7 @@ import {LibClone} from "@solady/utils/LibClone.sol";
 contract TWCloneFactory {
 
     /// @dev Emitted when a proxy is deployed.
-    event ProxyDeployed(address indexed implementation, address proxy, address indexed deployer);
+    event ProxyDeployed(address indexed implementation, address proxy, address indexed deployer, bytes data);
 
     /// @dev Deploys a proxy that points to the given implementation.
     function deployProxyByImplementation(address implementation, bytes memory data, bytes32 salt)
@@ -16,7 +16,7 @@ contract TWCloneFactory {
         bytes32 saltHash = _guard(salt, data);
         deployedProxy = LibClone.cloneDeterministic(implementation, saltHash);
 
-        emit ProxyDeployed(implementation, deployedProxy, msg.sender);
+        emit ProxyDeployed(implementation, deployedProxy, msg.sender, data);
 
         if (data.length > 0) {
             // slither-disable-next-line unused-return
