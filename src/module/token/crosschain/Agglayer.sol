@@ -3,11 +3,28 @@ pragma solidity ^0.8.20;
 
 import {Module} from "../../../Module.sol";
 import {Role} from "../../../Role.sol";
-
 import {CrossChain} from "./CrossChain.sol";
-import {IBridgeAndCall} from "@lxly-bridge-and-call/IBridgeAndCall.sol";
 import {IPolygonZkEVMBridge} from "@zkevm-contracts/interfaces/IPolygonZkEVMBridge.sol";
 import {IERC20} from "src/interface/IERC20.sol";
+
+interface IBridge is IPolygonZkEVMBridge {
+    function networkID() external view returns(uint32);
+}
+
+interface IBridgeExtension {
+    function bridge() external view returns(address);
+
+    function bridgeAndCall(
+        address token,
+        uint256 amount,
+        bytes calldata permitData,
+        uint32 destinationNetwork,
+        address callAddress,
+        address fallbackAddress,
+        bytes calldata callData,
+        bool forceUpdateGlobalExitRoot
+    ) external payable;
+}
 
 library AgglayerCrossChainStorage {
 
@@ -18,6 +35,7 @@ library AgglayerCrossChainStorage {
     struct Data {
         address router;
         address bridge;
+        uint32 networkId;
     }
 
     function data() internal pure returns (Data storage data_) {
@@ -37,27 +55,27 @@ contract AgglayerCrossChain is Module, CrossChain {
 
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.fallbackFunctions = new FallbackFunction[](7);
+        config.fallbackFunctions = new FallbackFunction[](5);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getRouter.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setRouter.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[2] = FallbackFunction({selector: this.getBridge.selector, permissionBits: 0});
-        config.fallbackFunctions[3] =
-            FallbackFunction({selector: this.setBridge.selector, permissionBits: Role._MANAGER_ROLE});
-        config.fallbackFunctions[4] =
+        config.fallbackFunctions[2] =
             FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
-        config.fallbackFunctions[5] = FallbackFunction({selector: this.claimMessage.selector, permissionBits: 0});
-        config.fallbackFunctions[6] = FallbackFunction({selector: this.claimAsset.selector, permissionBits: 0});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.claimMessage.selector, permissionBits: 0});
+        config.fallbackFunctions[4] = FallbackFunction({selector: this.claimAsset.selector, permissionBits: 0});
 
         config.registerInstallationCallback = true;
     }
 
     /// @dev Called by a Core into an Module during the installation of the Module.
     function onInstall(bytes calldata data) external {
-        (address router, address bridge) = abi.decode(data, (address, address));
+        (address router) = abi.decode(data, (address));
+        address bridge = IBridgeExtension(router).bridge();
+        
         _agglayerStorage().router = router;
         _agglayerStorage().bridge = bridge;
+        _agglayerStorage().networkId = IBridge(bridge).networkID();
     }
 
     /// @dev Called by a Core into an Module during the uninstallation of the Module.
@@ -85,16 +103,8 @@ contract AgglayerCrossChain is Module, CrossChain {
         _agglayerStorage().router = router;
     }
 
-    function getBridge() external view returns (address) {
-        return _agglayerStorage().bridge;
-    }
-
-    function setBridge(address bridge) external {
-        _agglayerStorage().bridge = bridge;
-    }
-
     function sendCrossChainTransaction(
-        uint64 _destinationChain,
+        uint64 _destinationNetwork,
         address _callAddress,
         bytes calldata _payload,
         bytes calldata _extraArgs
@@ -108,17 +118,17 @@ contract AgglayerCrossChain is Module, CrossChain {
         ) = abi.decode(_extraArgs, (address, bool, address, uint256, bytes));
 
         if (_token == address(0) && _amount == 0) {
-            _bridgeMessage(uint32(_destinationChain), _callAddress, _forceUpdateGlobalExitRoot, _payload);
+            _bridgeMessage(uint32(_destinationNetwork), _callAddress, _forceUpdateGlobalExitRoot, _payload);
         } else if (_payload.length == 0) {
             _bridgeAsset(
-                uint32(_destinationChain), _callAddress, _amount, _token, _forceUpdateGlobalExitRoot, permitData
+                uint32(_destinationNetwork), _callAddress, _amount, _token, _forceUpdateGlobalExitRoot, permitData
             );
         } else {
             _bridgeAndCall(
                 _token,
                 _amount,
                 permitData,
-                uint32(_destinationChain),
+                uint32(_destinationNetwork),
                 _callAddress,
                 _fallbackAddress,
                 _payload,
@@ -126,7 +136,7 @@ contract AgglayerCrossChain is Module, CrossChain {
             );
         }
 
-        onCrossChainTransactionSent(_destinationChain, _callAddress, _payload, _extraArgs);
+        onCrossChainTransactionSent(_destinationNetwork, _callAddress, _payload, _extraArgs);
     }
 
     function claimMessage(
@@ -141,7 +151,7 @@ contract AgglayerCrossChain is Module, CrossChain {
         uint256 amount,
         bytes calldata metadata
     ) external {
-        IPolygonZkEVMBridge(_agglayerStorage().bridge).claimMessage(
+        IBridge(_agglayerStorage().bridge).claimMessage(
             smtProof,
             index,
             mainnetExitRoot,
@@ -167,7 +177,7 @@ contract AgglayerCrossChain is Module, CrossChain {
         uint256 amount,
         bytes calldata metadata
     ) external {
-        IPolygonZkEVMBridge(_agglayerStorage().bridge).claimAsset(
+        IBridge(_agglayerStorage().bridge).claimAsset(
             smtProof,
             index,
             mainnetExitRoot,
@@ -186,18 +196,18 @@ contract AgglayerCrossChain is Module, CrossChain {
     //////////////////////////////////////////////////////////////*/
 
     function _bridgeMessage(
-        uint32 _destinationChain,
+        uint32 _destinationNetwork,
         address _callAddress,
         bool _forceUpdateGlobalExitRoot,
         bytes memory _payload
     ) internal {
-        IPolygonZkEVMBridge(_agglayerStorage().bridge).bridgeMessage(
-            uint32(_destinationChain), _callAddress, _forceUpdateGlobalExitRoot, _payload
+        IBridge(_agglayerStorage().bridge).bridgeMessage(
+            uint32(_destinationNetwork), _callAddress, _forceUpdateGlobalExitRoot, _payload
         );
     }
 
     function _bridgeAsset(
-        uint32 _destinationChain,
+        uint32 _destinationNetwork,
         address _callAddress,
         uint256 _amount,
         address _token,
@@ -208,8 +218,8 @@ contract AgglayerCrossChain is Module, CrossChain {
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         IERC20(_token).approve(bridge, _amount);
 
-        IPolygonZkEVMBridge(bridge).bridgeAsset(
-            uint32(_destinationChain), _callAddress, _amount, _token, _forceUpdateGlobalExitRoot, permitData
+        IBridge(bridge).bridgeAsset(
+            uint32(_destinationNetwork), _callAddress, _amount, _token, _forceUpdateGlobalExitRoot, permitData
         );
     }
 
@@ -217,7 +227,7 @@ contract AgglayerCrossChain is Module, CrossChain {
         address _token,
         uint256 _amount,
         bytes memory permitData,
-        uint32 _destinationChain,
+        uint32 _destinationNetwork,
         address _callAddress,
         address _fallbackAddress,
         bytes memory _payload,
@@ -227,11 +237,11 @@ contract AgglayerCrossChain is Module, CrossChain {
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         IERC20(_token).approve(router, _amount);
 
-        IBridgeAndCall(router).bridgeAndCall(
+        IBridgeExtension(router).bridgeAndCall(
             _token,
             _amount,
             permitData,
-            _destinationChain,
+            _destinationNetwork,
             _callAddress,
             _fallbackAddress,
             _payload,
@@ -240,7 +250,7 @@ contract AgglayerCrossChain is Module, CrossChain {
     }
 
     function onCrossChainTransactionSent(
-        uint64 _destinationChain,
+        uint64 _destinationNetwork,
         address _callAddress,
         bytes calldata _payload,
         bytes calldata _extraArgs

@@ -27,6 +27,10 @@ contract DeployTestNFT is Script {
 
 }
 
+interface IBridge {
+    function bridge() external view returns(address);
+}
+
 contract MintTestNFT is Script {
 
     TestNFT public testNFT;
@@ -41,7 +45,7 @@ contract MintTestNFT is Script {
         address deployerAddress = vm.addr(deployerPrivateKey);
         // address coreAddress = vm.envAddress("TEST_TOKEN_ADDRESS");
         address testNFTAddress = vm.envAddress("TEST_NFT_ADDRESS");
-        uint64 destinationChain = 2442;
+        uint64 destinationNetwork = 1;
         vm.startBroadcast(deployerPrivateKey);
 
         address[] memory modules = new address[](2);
@@ -56,6 +60,7 @@ contract MintTestNFT is Script {
         bytes memory agglayerEncodedInstallParams = abi.encode(agglayerBridgeExtension);
         console.log("agglayerEncodedInstallParams");
         console.logBytes(agglayerEncodedInstallParams);
+        console.log(IBridge(agglayerBridgeExtension).bridge());
 
         modules[0] = address(mintableModule);
         modules[1] = address(agglayer);
@@ -85,7 +90,7 @@ contract MintTestNFT is Script {
         bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("mint(address,uint256)")), deployerAddress, 1);
 
         AgglayerCrossChain(address(core)).sendCrossChainTransaction(
-            destinationChain, testNFTAddress, payload, extraArgs
+            destinationNetwork, testNFTAddress, payload, extraArgs
         );
 
         vm.stopBroadcast();
