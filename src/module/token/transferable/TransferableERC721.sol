@@ -37,6 +37,13 @@ contract TransferableERC721 is Module, BeforeTransferCallbackERC721 {
     error TransferDisabled();
 
     /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted on attempt to transfer a token when transfers are disabled.
+    event TransferEnableFor(address indexed target, bool enabled);
+
+    /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -57,7 +64,17 @@ contract TransferableERC721 is Module, BeforeTransferCallbackERC721 {
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x80ac58cd; // ERC721.
+
+        config.registerInstallationCallback = true;
     }
+
+    /// @dev Called by a Core into an Module during the installation of the Module.
+    function onInstall(bytes calldata data) external {
+        _transferableStorage().transferEnabled = true;
+    }
+
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS
@@ -96,6 +113,7 @@ contract TransferableERC721 is Module, BeforeTransferCallbackERC721 {
     /// @notice Set transferability for an address for a token.
     function setTransferableFor(address target, bool enableTransfer) external {
         _transferableStorage().transferEnabledFor[target] = enableTransfer;
+        emit TransferEnableFor(target, enableTransfer);
     }
 
     /*//////////////////////////////////////////////////////////////

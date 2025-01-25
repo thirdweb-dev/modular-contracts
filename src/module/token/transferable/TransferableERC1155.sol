@@ -39,6 +39,13 @@ contract TransferableERC1155 is Module, BeforeTransferCallbackERC1155, BeforeBat
     error TransferDisabled();
 
     /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted on attempt to transfer a token when transfers are disabled.
+    event TransferEnableFor(address indexed target, bool enabled);
+
+    /*//////////////////////////////////////////////////////////////
                             MODULE CONFIG
     //////////////////////////////////////////////////////////////*/
 
@@ -60,7 +67,17 @@ contract TransferableERC1155 is Module, BeforeTransferCallbackERC1155, BeforeBat
 
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0xd9b67a26; // ERC1155
+
+        config.registerInstallationCallback = true;
     }
+
+    /// @dev Called by a Core into an Module during the installation of the Module.
+    function onInstall(bytes calldata data) external {
+        _transferableStorage().transferEnabled = true;
+    }
+
+    /// @dev Called by a Core into an Module during the uninstallation of the Module.
+    function onUninstall(bytes calldata data) external {}
 
     /*//////////////////////////////////////////////////////////////
                             CALLBACK FUNCTIONS
@@ -120,6 +137,7 @@ contract TransferableERC1155 is Module, BeforeTransferCallbackERC1155, BeforeBat
     /// @notice Set transferability for an operator for a token.
     function setTransferableFor(address target, bool enableTransfer) external {
         _transferableStorage().transferEnabledFor[target] = enableTransfer;
+        emit TransferEnableFor(target, enableTransfer);
     }
 
     /*//////////////////////////////////////////////////////////////

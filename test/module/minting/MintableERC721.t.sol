@@ -186,7 +186,7 @@ contract MintableERC721Test is Test {
         );
 
         // Check minted balance
-        assertEq(core.balanceOf(address(0x123)), amount);
+        assertEq(core.balanceOf(tokenRecipient), amount);
 
         uint256 salePrice = (amount * mintRequest.pricePerUnit);
         (uint256 primarySaleAmount, uint256 platformFeeAmount) =
@@ -194,6 +194,18 @@ contract MintableERC721Test is Test {
         assertEq(tokenRecipient.balance, balBefore - salePrice, "tokenRecipient balance");
         assertEq(saleRecipient.balance, primarySaleAmount, "saleRecipient balance");
         assertEq(feeRecipient.balance, platformFeeAmount, "feeRecipient balance");
+    }
+
+    function test_simple_mint() public {
+        vm.prank(owner);
+        core.mint(owner, amount, "", "");
+
+        assertEq(core.balanceOf(owner), amount);
+
+        vm.prank(permissionedActor);
+        core.mint(permissionedActor, amount, "", "");
+
+        assertEq(core.balanceOf(permissionedActor), amount);
     }
 
     function test_mint_revert_unableToDecodeArgs() public {
