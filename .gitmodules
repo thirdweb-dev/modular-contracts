@@ -19,3 +19,6 @@
 [submodule "lib/PermitC"]
 	path = lib/PermitC
 	url = https://github.com/limitbreakinc/PermitC
+[submodule "lib/chainlink.git"]
+	path = lib/chainlink.git
+	url = https://github.com/smartcontractkit/chainlink.git
