@@ -24,6 +24,8 @@ contract SplitWallet is Ownable {
         _;
     }
 
+    receive() external payable {}
+
     function transferETH(uint256 amount) external payable onlySplitFees {
         (bool success,) = splitFees.call{value: amount}("");
         require(success, "Failed to send Ether");
