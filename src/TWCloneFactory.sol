@@ -27,7 +27,7 @@ contract TWCloneFactory {
         public
         returns (address deployedProxy)
     {
-        bytes32 saltHash = keccak256(abi.encodePacked(msg.sender, _salt));
+        bytes32 saltHash = keccak256(abi.encode(_guard(_salt, _data), msg.sender));
         deployedProxy = LibClone.cloneDeterministic(_implementation, saltHash);
 
         emit ProxyDeployed(_implementation, deployedProxy, msg.sender);
