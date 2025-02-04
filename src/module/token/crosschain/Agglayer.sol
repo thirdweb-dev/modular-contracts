@@ -8,11 +8,14 @@ import {IPolygonZkEVMBridge} from "@zkevm-contracts/interfaces/IPolygonZkEVMBrid
 import {IERC20} from "src/interface/IERC20.sol";
 
 interface IBridge is IPolygonZkEVMBridge {
-    function networkID() external view returns(uint32);
+
+    function networkID() external view returns (uint32);
+
 }
 
 interface IBridgeExtension {
-    function bridge() external view returns(address);
+
+    function bridge() external view returns (address);
 
     function bridgeAndCall(
         address token,
@@ -24,6 +27,7 @@ interface IBridgeExtension {
         bytes calldata callData,
         bool forceUpdateGlobalExitRoot
     ) external payable;
+
 }
 
 library AgglayerCrossChainStorage {
@@ -72,7 +76,7 @@ contract AgglayerCrossChain is Module, CrossChain {
     function onInstall(bytes calldata data) external {
         (address router) = abi.decode(data, (address));
         address bridge = IBridgeExtension(router).bridge();
-        
+
         _agglayerStorage().router = router;
         _agglayerStorage().bridge = bridge;
         _agglayerStorage().networkId = IBridge(bridge).networkID();
@@ -135,6 +139,19 @@ contract AgglayerCrossChain is Module, CrossChain {
                 _forceUpdateGlobalExitRoot
             );
         }
+
+        onCrossChainTransactionSent(_destinationNetwork, _callAddress, _payload, _extraArgs);
+    }
+
+    function bridgeTokens(uint64 _destinationNetwork, address _callAddress, uint256 _amount)
+        external
+        payable
+        override
+    {
+        address bridge = _agglayerStorage().bridge;
+        IERC20(address(this)).approve(bridge, _amount);
+
+        IBridge(bridge).bridgeAsset(uint32(_destinationNetwork), _callAddress, _amount, address(this), false, "");
 
         onCrossChainTransactionSent(_destinationNetwork, _callAddress, _payload, _extraArgs);
     }

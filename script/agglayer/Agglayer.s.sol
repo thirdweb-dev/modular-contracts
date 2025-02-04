@@ -28,7 +28,9 @@ contract DeployTestNFT is Script {
 }
 
 interface IBridge {
-    function bridge() external view returns(address);
+
+    function bridge() external view returns (address);
+
 }
 
 contract MintTestNFT is Script {
