@@ -146,14 +146,11 @@ contract AgglayerCrossChain is Module, CrossChain {
     function bridgeTokens(uint64 _destinationNetwork, address _callAddress, uint256 _amount)
         external
         payable
-        override
     {
         address bridge = _agglayerStorage().bridge;
         IERC20(address(this)).approve(bridge, _amount);
 
         IBridge(bridge).bridgeAsset(uint32(_destinationNetwork), _callAddress, _amount, address(this), false, "");
-
-        onCrossChainTransactionSent(_destinationNetwork, _callAddress, _payload, _extraArgs);
     }
 
     function claimMessage(
