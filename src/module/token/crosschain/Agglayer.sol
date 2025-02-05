@@ -59,7 +59,7 @@ contract AgglayerCrossChain is Module, CrossChain {
 
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.fallbackFunctions = new FallbackFunction[](5);
+        config.fallbackFunctions = new FallbackFunction[](6);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getRouter.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
@@ -68,6 +68,7 @@ contract AgglayerCrossChain is Module, CrossChain {
             FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
         config.fallbackFunctions[3] = FallbackFunction({selector: this.claimMessage.selector, permissionBits: 0});
         config.fallbackFunctions[4] = FallbackFunction({selector: this.claimAsset.selector, permissionBits: 0});
+        config.fallbackFunctions[5] = FallbackFunction({selector: this.bridgeTokens.selector, permissionBits: 0});
 
         config.registerInstallationCallback = true;
     }
@@ -148,6 +149,7 @@ contract AgglayerCrossChain is Module, CrossChain {
         payable
     {
         address bridge = _agglayerStorage().bridge;
+        IERC20(address(this)).transferFrom(msg.sender, address(this), _amount);
         IERC20(address(this)).approve(bridge, _amount);
 
         IBridge(bridge).bridgeAsset(uint32(_destinationNetwork), _callAddress, _amount, address(this), false, "");
