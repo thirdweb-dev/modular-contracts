@@ -76,7 +76,7 @@ contract TWCloneFactoryV2 {
         if (allowCrossChainDeployment && encodeDataIntoSalt) {
             saltHash = keccak256(abi.encode(salt, data));
         } else if (allowCrossChainDeployment && !encodeDataIntoSalt) {
-            saltHash = salt;
+            saltHash = keccak256(salt);
         } else if (!allowCrossChainDeployment && encodeDataIntoSalt) {
             saltHash = keccak256(abi.encode(salt, block.chainid, data));
         } else {
