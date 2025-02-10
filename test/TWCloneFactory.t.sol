@@ -17,14 +17,14 @@ contract MockImplementation {
 
 contract TWCloneFactoryTest is Test {
 
-    TWCloneFactory factory;
+    TWCloneFactoryV2 factory;
     MockImplementation implementation;
 
     uint256 chainId1 = 1;
     uint256 chainId2 = 2;
 
     function setUp() public {
-        factory = new TWCloneFactory();
+        factory = new TWCloneFactoryV2();
         implementation = new MockImplementation();
     }
 
