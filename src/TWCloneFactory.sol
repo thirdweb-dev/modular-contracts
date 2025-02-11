@@ -7,7 +7,7 @@ contract TWCloneFactory {
 
     error ProxyDeploymentFailed();
 
-    /// Deprecated - required for backward compatibility
+    /// Deprecated
     /// @dev Emitted when a proxy is deployed.
     event ProxyDeployed(address indexed implementation, address proxy, address indexed deployer);
 
@@ -21,7 +21,7 @@ contract TWCloneFactory {
         bytes extraData
     );
 
-    /// Deprecated - required for backward compatibility
+    /// Deprecated
     /// @dev Deploys a proxy that points to the given implementation.
     function deployProxyByImplementation(address _implementation, bytes memory _data, bytes32 _salt)
         public
