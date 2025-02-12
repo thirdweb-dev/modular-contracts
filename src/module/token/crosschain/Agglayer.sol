@@ -146,11 +146,7 @@ contract AgglayerCrossChain is Module, CrossChain {
         external
         payable
     {
-        address bridge = _agglayerStorage().bridge;
-        IERC20(address(this)).transferFrom(msg.sender, address(this), _amount);
-        IERC20(address(this)).approve(bridge, _amount);
-
-        IBridge(bridge).bridgeAsset(uint32(_destinationNetwork), _callAddress, _amount, address(this), false, "");
+        _bridgeAsset(uint32(_destinationNetwork), _callAddress, _amount, address(this), true, "");
     }
 
     /*//////////////////////////////////////////////////////////////
