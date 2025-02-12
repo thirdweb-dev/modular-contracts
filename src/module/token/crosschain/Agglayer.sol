@@ -59,16 +59,14 @@ contract AgglayerCrossChain is Module, CrossChain {
 
     /// @notice Returns all implemented callback and fallback functions.
     function getModuleConfig() external pure override returns (ModuleConfig memory config) {
-        config.fallbackFunctions = new FallbackFunction[](6);
+        config.fallbackFunctions = new FallbackFunction[](4);
 
         config.fallbackFunctions[0] = FallbackFunction({selector: this.getRouter.selector, permissionBits: 0});
         config.fallbackFunctions[1] =
             FallbackFunction({selector: this.setRouter.selector, permissionBits: Role._MANAGER_ROLE});
         config.fallbackFunctions[2] =
             FallbackFunction({selector: this.sendCrossChainTransaction.selector, permissionBits: 0});
-        config.fallbackFunctions[3] = FallbackFunction({selector: this.claimMessage.selector, permissionBits: 0});
-        config.fallbackFunctions[4] = FallbackFunction({selector: this.claimAsset.selector, permissionBits: 0});
-        config.fallbackFunctions[5] = FallbackFunction({selector: this.bridgeTokens.selector, permissionBits: 0});
+        config.fallbackFunctions[3] = FallbackFunction({selector: this.bridgeTokens.selector, permissionBits: 0});
 
         config.registerInstallationCallback = true;
     }
@@ -153,58 +151,6 @@ contract AgglayerCrossChain is Module, CrossChain {
         IERC20(address(this)).approve(bridge, _amount);
 
         IBridge(bridge).bridgeAsset(uint32(_destinationNetwork), _callAddress, _amount, address(this), false, "");
-    }
-
-    function claimMessage(
-        bytes32[32] calldata smtProof,
-        uint32 index,
-        bytes32 mainnetExitRoot,
-        bytes32 rollupExitRoot,
-        uint32 originNetwork,
-        address originAddress,
-        uint32 destinationNetwork,
-        address destinationAddress,
-        uint256 amount,
-        bytes calldata metadata
-    ) external {
-        IBridge(_agglayerStorage().bridge).claimMessage(
-            smtProof,
-            index,
-            mainnetExitRoot,
-            rollupExitRoot,
-            originNetwork,
-            originAddress,
-            destinationNetwork,
-            destinationAddress,
-            amount,
-            metadata
-        );
-    }
-
-    function claimAsset(
-        bytes32[32] calldata smtProof,
-        uint32 index,
-        bytes32 mainnetExitRoot,
-        bytes32 rollupExitRoot,
-        uint32 originNetwork,
-        address originTokenAddress,
-        uint32 destinationNetwork,
-        address destinationAddress,
-        uint256 amount,
-        bytes calldata metadata
-    ) external {
-        IBridge(_agglayerStorage().bridge).claimAsset(
-            smtProof,
-            index,
-            mainnetExitRoot,
-            rollupExitRoot,
-            originNetwork,
-            originTokenAddress,
-            destinationNetwork,
-            destinationAddress,
-            amount,
-            metadata
-        );
     }
 
     /*//////////////////////////////////////////////////////////////
