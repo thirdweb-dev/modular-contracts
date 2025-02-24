@@ -68,6 +68,9 @@ contract SuperChainInterop is ERC20, Module, IInstallationCallback, ICrossChainE
         config.requiredInterfaces = new bytes4[](1);
         config.requiredInterfaces[0] = 0x36372b07; // ERC20
 
+        config.supportedInterfaces = new bytes4[](1);
+        config.supportedInterfaces[0] = 0x33331994; // ERC7802.
+
         config.registerInstallationCallback = true;
     }
 
